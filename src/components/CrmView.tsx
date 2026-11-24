@@ -26,12 +26,14 @@ import {
   LayoutDashboard,
   Package,
   Table2,
+  UserCog,
   Users,
 } from 'lucide-react';
 import type {
   AnalyticsConfig,
   AnalyticsEventRecord,
   Contact,
+  CrmSessionUser,
   CrmTask,
   Deal,
   DealStage,
@@ -40,6 +42,7 @@ import type {
   ProjectCase,
   RecentChangeRecord,
   SocialLinksConfig,
+  StaffUser,
   StorageDiagnostics,
 } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
@@ -47,6 +50,7 @@ import { SocialIcons } from './SocialIcons.tsx';
 import { DealsDataTable } from './crm/DealsDataTable.tsx';
 import { ContactsTab } from './crm/ContactsTab.tsx';
 import { TasksTab } from './crm/TasksTab.tsx';
+import { StaffTab } from './crm/StaffTab.tsx';
 import { tr } from '../lib/i18n.ts';
 
 interface CrmViewProps {
@@ -73,7 +77,7 @@ const STAGES: Array<{ id: DealStage; label: string; colorClass: string }> = [
   { id: 'done', label: 'Виконано', colorClass: 'text-emerald-700' },
 ];
 
-const ASSIGNEES = [
+const DEFAULT_ASSIGNEES = [
   'Олександр (інженер)',
   'Дмитро (менеджер)',
   'Ірина (координатор)',
@@ -96,10 +100,12 @@ export function CrmView({
   onBackToStore,
 }: CrmViewProps) {
   const [crmTab, setCrmTab] = useState<
-    'pipeline' | 'table' | 'contacts' | 'tasks' | 'catalog' | 'projects' | 'analytics' | 'social' | 'deploy'
+    'pipeline' | 'table' | 'contacts' | 'tasks' | 'staff' | 'catalog' | 'projects' | 'analytics' | 'social' | 'deploy'
   >('pipeline');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [tasks, setTasks] = useState<CrmTask[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [currentUser, setCurrentUser] = useState<CrmSessionUser | null>(null);
   const [dealQuery, setDealQuery] = useState('');
   const [dealTypeFilter, setDealTypeFilter] = useState<'all' | 'order' | 'lead'>('all');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -119,6 +125,8 @@ export function CrmView({
         onRefreshProjects(),
         loadContacts(),
         loadTasks(),
+        loadStaff(),
+        loadCurrentUser(),
       ]);
       if (crmTab === 'analytics') await loadAnalytics();
       if (crmTab === 'deploy' || crmTab === 'catalog') await loadDiagnostics();
@@ -297,13 +305,50 @@ export function CrmView({
     }
   }, [authFetch]);
 
+  const loadStaff = useCallback(async () => {
+    const resp = await authFetch('/api/crm/staff');
+    if (resp.ok) {
+      const data = (await resp.json()) as { staff?: StaffUser[] };
+      if (Array.isArray(data.staff)) setStaffUsers(data.staff);
+    }
+  }, [authFetch]);
+
+  const loadCurrentUser = useCallback(async () => {
+    const resp = await authFetch('/api/crm/me');
+    if (resp.ok) {
+      const data = (await resp.json()) as { user?: CrmSessionUser };
+      if (data.user) setCurrentUser(data.user);
+    }
+  }, [authFetch]);
+
   useEffect(() => {
+    void loadCurrentUser();
+    void loadStaff();
     void loadAnalytics();
     void loadAdminEmails();
     void loadDiagnostics();
     void loadContacts();
     void loadTasks();
-  }, [loadAnalytics, loadAdminEmails, loadDiagnostics, loadContacts, loadTasks]);
+  }, [loadCurrentUser, loadStaff, loadAnalytics, loadAdminEmails, loadDiagnostics, loadContacts, loadTasks]);
+
+  const assigneeOptions = useMemo(() => {
+    const set = new Set<string>();
+    const activeStaffLabels = staffUsers.filter((s) => s.active).map((s) => s.assigneeLabel.trim()).filter(Boolean);
+    if (activeStaffLabels.length > 0) {
+      activeStaffLabels.forEach((l) => set.add(l));
+    } else if (staffUsers.length === 0) {
+      DEFAULT_ASSIGNEES.forEach((l) => set.add(l));
+    }
+    deals.forEach((d) => {
+      if (d.assignee?.trim()) set.add(d.assignee.trim());
+    });
+    tasks.forEach((t) => {
+      if (t.assignee?.trim()) set.add(t.assignee.trim());
+    });
+    return Array.from(set);
+  }, [staffUsers, deals, tasks]);
+
+  const isAdmin = !currentUser || currentUser.role === 'admin';
 
   const metrics = useMemo(() => {
     const active = deals.filter((d) => d.stage !== 'archived');
@@ -909,9 +954,23 @@ export function CrmView({
         {/* Header Bar */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-[#1769aa] mb-1">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#1769aa] mb-1">
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>{tr('Внутрішня CRM та управління каталогом', 'CRM и управление магазином')}</span>
+              {currentUser && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-[#0d1f33]">
+                  {currentUser.name} ·{' '}
+                  <span className="text-[#1769aa]">
+                    {currentUser.role === 'admin'
+                      ? tr('Адміністратор', 'Администратор')
+                      : currentUser.role === 'manager'
+                        ? tr('Менеджер', 'Менеджер')
+                        : currentUser.role === 'engineer'
+                          ? tr('Інженер', 'Инженер')
+                          : tr('Монтаж', 'Монтаж')}
+                  </span>
+                </span>
+              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-[#0d1f33]">
               Energo Comfort — {tr('Адмін-панель', 'Панель администратора')}
@@ -980,31 +1039,34 @@ export function CrmView({
         <nav aria-label={tr('Навігація CRM')} className="flex flex-wrap gap-1.5 p-1.5 bg-white border border-slate-200 rounded-xl">
           {(
             [
-              ['pipeline', tr('Воронка угод'), LayoutDashboard],
-              ['table', tr('Таблиця замовлень'), Table2],
-              ['contacts', `${tr('Контакти')} (${contacts.length})`, Users],
-              ['tasks', `${tr('Задачі', 'Задачи')} (${metrics.openTasksCount})`, CheckSquare],
-              ['catalog', `${tr('Каталог обладнання')} (${products.length})`, Package],
-              ['projects', `${tr('Реальні об’єкти')} (${projectsList.length})`, BriefcaseBusiness],
-              ['analytics', tr('Аналітика'), ChartNoAxesCombined],
-              ['social', tr('Соцмережі та SEO'), Share2],
-              ['deploy', tr('Бекап · Telegram · Вхід'), Database],
+              ['pipeline', tr('Воронка угод'), LayoutDashboard, false],
+              ['table', tr('Таблиця замовлень'), Table2, false],
+              ['contacts', `${tr('Контакти')} (${contacts.length})`, Users, false],
+              ['tasks', `${tr('Задачі', 'Задачи')} (${metrics.openTasksCount})`, CheckSquare, false],
+              ['staff', `${tr('Персонал')} (${staffUsers.length})`, UserCog, false],
+              ['catalog', `${tr('Каталог обладнання')} (${products.length})`, Package, false],
+              ['projects', `${tr('Реальні об’єкти')} (${projectsList.length})`, BriefcaseBusiness, false],
+              ['analytics', tr('Аналітика'), ChartNoAxesCombined, true],
+              ['social', tr('Соцмережі та SEO'), Share2, true],
+              ['deploy', tr('Бекап · Telegram · Вхід'), Database, true],
             ] as const
-          ).map(([id, label, Icon]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setCrmTab(id)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                crmTab === id
-                  ? 'bg-[#0d1f33] text-white shadow-2xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-[#0d1f33]'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {label}
-            </button>
-          ))}
+          )
+            .filter(([, , , adminOnly]) => isAdmin || !adminOnly)
+            .map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setCrmTab(id)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                  crmTab === id
+                    ? 'bg-[#0d1f33] text-white shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-[#0d1f33]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
         </nav>
 
         {dealActionMsg && (
@@ -1154,10 +1216,24 @@ export function CrmView({
             tasks={tasks}
             contacts={contacts}
             deals={deals}
-            assignees={ASSIGNEES}
+            assignees={assigneeOptions}
             authFetch={authFetch}
             onRefreshTasks={loadTasks}
             onRefreshContacts={loadContacts}
+          />
+        )}
+
+        {/* TAB 2D: STAFF & ACCOUNTS MANAGEMENT */}
+        {crmTab === 'staff' && (
+          <StaffTab
+            staff={staffUsers}
+            currentUser={currentUser}
+            deals={deals}
+            tasks={tasks}
+            authFetch={authFetch}
+            onRefreshStaff={loadStaff}
+            onRefreshDeals={onRefreshDeals}
+            onRefreshTasks={loadTasks}
           />
         )}
 
@@ -2112,7 +2188,7 @@ export function CrmView({
                     onChange={(e) => handlePatchDeal(selectedDeal.id, { assignee: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
                   >
-                    {ASSIGNEES.map((a) => (
+                    {assigneeOptions.map((a) => (
                       <option key={a} value={a}>
                         {a}
                       </option>

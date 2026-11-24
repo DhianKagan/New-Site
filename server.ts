@@ -10,13 +10,17 @@ import {
   createProduct,
   createProjectCase,
   createSqliteBackupCopy,
+  createStaffUser,
   createTask,
   deleteContact,
   deleteDeal,
   deleteNote,
   deleteProduct,
   deleteProjectCase,
+  deleteStaffUser,
   deleteTask,
+  findStaffForGoogleLogin,
+  findStaffForPasswordLogin,
   getCatalogFacets,
   getContactDetail,
   getProductById,
@@ -24,6 +28,7 @@ import {
   getRecentCatalogAndProjectChanges,
   getSetting,
   getSocialLinks,
+  getStaffAuthStateSync,
   getStorageDiagnostics,
   getUploadsDir,
   listContacts,
@@ -33,6 +38,7 @@ import {
   listProjectCases,
   listRecentAnalyticsEvents,
   listSitemapProductEntries,
+  listStaffUsers,
   listTasks,
   markDealTelegramSent,
   recordAnalyticsEvent,
@@ -44,9 +50,11 @@ import {
   updateDeal,
   updateProduct,
   updateProjectCase,
+  updateStaffUser,
   updateTask,
 } from './server/db.ts';
 import {
+  adminLoginSchema,
   analyticsPutSchema,
   contactCreateSchema,
   contactPatchSchema,
@@ -62,13 +70,17 @@ import {
   projectCreateSchema,
   projectPatchSchema,
   socialPutSchema,
+  staffCreateSchema,
+  staffPatchSchema,
   taskCreateSchema,
   taskPatchSchema,
 } from './server/validation.ts';
 import {
+  createRequireCrmAuth,
   createSessionToken,
+  getCrmUser,
   hashPassword,
-  requireAdminAuth,
+  requireRoles,
   verifyEnvPassword,
   verifyScryptPassword,
 } from './server/auth.ts';
@@ -654,16 +666,61 @@ async function startServer() {
       return;
     }
 
-    res.status(201).json({ token: createSessionToken() });
+    const adminUser = {
+      userId: null,
+      name: 'Адміністратор',
+      login: 'admin',
+      email: '',
+      role: 'admin' as const,
+      assigneeLabel: 'Адміністратор',
+    };
+    res.status(201).json({ token: createSessionToken(adminUser), user: adminUser });
   });
 
-  app.post('/api/admin/auth/login', authRateLimit, (req, res) => {
-    const body = (req.body ?? {}) as { password?: string };
-    const password = String(body.password ?? '');
-    if (!password) {
-      res.status(400).json({ error: 'Введіть пароль адміністратора' });
+  app.post('/api/admin/auth/login', authRateLimit, async (req, res) => {
+    const parsed = adminLoginSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Введіть пароль' });
       return;
     }
+
+    const { identifier, password } = parsed.data;
+
+    // 1) Personal CRM staff account login (by login or corporate email)
+    if (identifier) {
+      const found = await findStaffForPasswordLogin(identifier);
+      if (
+        !found ||
+        !found.user.active ||
+        !found.user.canLogin ||
+        !found.passwordHash ||
+        !verifyScryptPassword(password, found.passwordHash)
+      ) {
+        res.status(401).json({ error: 'Невірний логін/email або пароль, чи обліковий запис вимкнено' });
+        return;
+      }
+
+      const sessionUser = {
+        userId: found.user.id,
+        name: found.user.name,
+        login: found.user.login,
+        email: found.user.email,
+        role: found.user.role,
+        assigneeLabel: found.user.assigneeLabel,
+      };
+      res.json({ token: createSessionToken(sessionUser), user: sessionUser });
+      return;
+    }
+
+    // 2) Master admin password login (process.env.ADMIN_PASSWORD or claimed hash)
+    const adminUser = {
+      userId: null,
+      name: 'Адміністратор',
+      login: 'admin',
+      email: '',
+      role: 'admin' as const,
+      assigneeLabel: 'Адміністратор',
+    };
 
     const envPass = process.env.ADMIN_PASSWORD?.trim();
     if (envPass) {
@@ -671,7 +728,7 @@ async function startServer() {
         res.status(401).json({ error: 'Невірний пароль адміністратора' });
         return;
       }
-      res.json({ token: createSessionToken() });
+      res.json({ token: createSessionToken(adminUser), user: adminUser });
       return;
     }
 
@@ -686,7 +743,7 @@ async function startServer() {
       return;
     }
 
-    res.json({ token: createSessionToken() });
+    res.json({ token: createSessionToken(adminUser), user: adminUser });
   });
 
   app.post('/api/admin/auth/google', authRateLimit, async (req, res) => {
@@ -708,33 +765,131 @@ async function startServer() {
     }
 
     const { effective } = getEmailAllowlists();
-    if (effective.length === 0) {
-      // First-run bootstrap only if no admin password or email allowlist is configured yet
-      const hasPassword = Boolean(process.env.ADMIN_PASSWORD?.trim() || getSetting('admin_password_hash'));
-      if (hasPassword) {
-        res.status(403).json({
-          error: `Доступ через Google ще не відкритий: увійдіть паролем і додайте ${verified.email} у вкладці «Аналітика» або через ADMIN_EMAILS.`,
-        });
-        return;
-      }
-      const claimed = setSettingIfAbsent('admin_emails', verified.email);
-      if (!claimed) {
-        const refreshed = getEmailAllowlists();
-        if (!refreshed.effective.includes(verified.email)) {
-          res.status(403).json({ error: `Акаунт ${verified.email} не має доступу до CRM` });
+    const staffMatch = await findStaffForGoogleLogin(verified.email);
+    const staffCanGoogleLogin = Boolean(staffMatch && staffMatch.active && staffMatch.canLogin);
+    const isAllowlistedAdmin = effective.includes(verified.email);
+
+    if (!isAllowlistedAdmin && !staffCanGoogleLogin) {
+      if (effective.length === 0) {
+        const hasPassword = Boolean(process.env.ADMIN_PASSWORD?.trim() || getSetting('admin_password_hash'));
+        if (hasPassword) {
+          res.status(403).json({
+            error: `Доступ через Google для ${verified.email} ще не відкритий: додайте email у розділі «Персонал» або через ADMIN_EMAILS.`,
+          });
           return;
         }
+        const claimed = setSettingIfAbsent('admin_emails', verified.email);
+        if (!claimed) {
+          const refreshed = getEmailAllowlists();
+          if (!refreshed.effective.includes(verified.email)) {
+            res.status(403).json({ error: `Акаунт ${verified.email} не має доступу до CRM` });
+            return;
+          }
+        }
+      } else {
+        res.status(403).json({ error: `Акаунт ${verified.email} не має доступу до CRM` });
+        return;
       }
-    } else if (!effective.includes(verified.email)) {
-      res.status(403).json({ error: `Акаунт ${verified.email} не входить до списку адміністраторів CRM` });
-      return;
     }
 
-    res.json({ token: createSessionToken(), email: verified.email });
+    const sessionUser =
+      staffMatch && staffMatch.active
+        ? {
+            userId: staffMatch.id,
+            name: staffMatch.name,
+            login: staffMatch.login,
+            email: verified.email,
+            role: isAllowlistedAdmin ? ('admin' as const) : staffMatch.role,
+            assigneeLabel: staffMatch.assigneeLabel,
+          }
+        : {
+            userId: null,
+            name: verified.name || verified.email.split('@')[0] || 'Адміністратор',
+            login: verified.email.split('@')[0] || 'admin',
+            email: verified.email,
+            role: 'admin' as const,
+            assigneeLabel: verified.name || 'Адміністратор',
+          };
+
+    res.json({ token: createSessionToken(sessionUser), email: verified.email, user: sessionUser });
   });
 
   // Protected CRM APIs
-  app.use('/api/crm', requireAdminAuth);
+  app.use('/api/crm', createRequireCrmAuth(getStaffAuthStateSync));
+
+  app.get('/api/crm/me', (req, res) => {
+    res.json({ user: getCrmUser(req) });
+  });
+
+  app.get('/api/crm/staff', async (_req, res) => {
+    const staff = await listStaffUsers();
+    res.json({ staff });
+  });
+
+  app.post('/api/crm/staff', requireRoles('admin'), async (req, res) => {
+    const parsed = staffCreateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані співробітника' });
+      return;
+    }
+    if (parsed.data.canLogin && !parsed.data.password && !parsed.data.email) {
+      res.status(400).json({ error: 'Щоб увімкнути вхід у CRM, задайте пароль (мін. 6 символів) або Google Email' });
+      return;
+    }
+    try {
+      const member = await createStaffUser(parsed.data);
+      res.status(201).json({ member });
+    } catch (err) {
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Не вдалося створити акаунт' });
+    }
+  });
+
+  app.patch('/api/crm/staff/:id', requireRoles('admin'), async (req, res) => {
+    const staffId = Number(req.params.id);
+    if (!Number.isFinite(staffId) || staffId <= 0) {
+      res.status(400).json({ error: 'Некоректний ID співробітника' });
+      return;
+    }
+    const parsed = staffPatchSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні поля співробітника' });
+      return;
+    }
+    const currentUser = getCrmUser(req);
+    if (currentUser?.userId === staffId && (parsed.data.active === false || parsed.data.canLogin === false)) {
+      res.status(400).json({ error: 'Неможливо вимкнути власний поточний обліковий запис' });
+      return;
+    }
+    try {
+      const member = await updateStaffUser(staffId, parsed.data);
+      if (!member) {
+        res.status(404).json({ error: 'Співробітника не знайдено' });
+        return;
+      }
+      res.json({ member });
+    } catch (err) {
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Помилка оновлення профілю' });
+    }
+  });
+
+  app.delete('/api/crm/staff/:id', requireRoles('admin'), async (req, res) => {
+    const staffId = Number(req.params.id);
+    if (!Number.isFinite(staffId) || staffId <= 0) {
+      res.status(400).json({ error: 'Некоректний ID співробітника' });
+      return;
+    }
+    const currentUser = getCrmUser(req);
+    if (currentUser?.userId === staffId) {
+      res.status(400).json({ error: 'Неможливо видалити власний поточний обліковий запис' });
+      return;
+    }
+    const ok = await deleteStaffUser(staffId);
+    if (!ok) {
+      res.status(404).json({ error: 'Співробітника не знайдено' });
+      return;
+    }
+    res.json({ ok: true });
+  });
 
   app.get('/api/crm/status', (_req, res) => {
     res.json({
@@ -937,7 +1092,12 @@ async function startServer() {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректна нотатка' });
       return;
     }
-    const note = await createNote(parsed.data);
+    const crmUser = getCrmUser(req);
+    const author =
+      parsed.data.author && parsed.data.author !== 'Менеджер CRM'
+        ? parsed.data.author
+        : crmUser?.assigneeLabel || crmUser?.name || 'Менеджер CRM';
+    const note = await createNote({ ...parsed.data, author });
     res.status(201).json({ note });
   });
 
@@ -962,7 +1122,7 @@ async function startServer() {
     });
   });
 
-  app.put('/api/crm/analytics', (req, res) => {
+  app.put('/api/crm/analytics', requireRoles('admin'), (req, res) => {
     const parsed = analyticsPutSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні налаштування аналітики' });
@@ -972,7 +1132,7 @@ async function startServer() {
     res.json(parsed.data);
   });
 
-  app.put('/api/crm/social', (req, res) => {
+  app.put('/api/crm/social', requireRoles('admin'), (req, res) => {
     const parsed = socialPutSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні посилання соцмереж' });
@@ -982,18 +1142,18 @@ async function startServer() {
     res.json({ socialLinks: getSocialLinks() });
   });
 
-  app.get('/api/crm/auth/emails', (_req, res) => {
+  app.get('/api/crm/auth/emails', requireRoles('admin'), (_req, res) => {
     res.json(getEmailAllowlists());
   });
 
-  app.put('/api/crm/auth/emails', (req, res) => {
+  app.put('/api/crm/auth/emails', requireRoles('admin'), (req, res) => {
     const body = (req.body ?? {}) as { emails?: string };
     const parsed = parseAdminEmailList(String(body.emails ?? ''));
     setSetting('admin_emails', parsed.join(', '));
     res.json(getEmailAllowlists());
   });
 
-  app.get('/api/crm/backup', (_req, res) => {
+  app.get('/api/crm/backup', requireRoles('admin'), (_req, res) => {
     let backupPath = '';
     try {
       backupPath = createSqliteBackupCopy();
@@ -1011,7 +1171,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/crm/products', (req, res) => {
+  app.post('/api/crm/products', requireRoles('admin', 'manager'), (req, res) => {
     const parsed = productCreateSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані товару' });
@@ -1035,7 +1195,7 @@ async function startServer() {
     res.status(201).json({ product: created });
   });
 
-  app.patch('/api/crm/products/:id', (req, res) => {
+  app.patch('/api/crm/products/:id', requireRoles('admin', 'manager'), (req, res) => {
     const parsed = productPatchSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні поля товару' });
@@ -1063,7 +1223,7 @@ async function startServer() {
     res.json({ product: updated });
   });
 
-  app.delete('/api/crm/products/:id', (req, res) => {
+  app.delete('/api/crm/products/:id', requireRoles('admin', 'manager'), (req, res) => {
     const ok = deleteProduct(req.params.id);
     if (!ok) {
       res.status(404).json({ error: 'Товар не знайдено' });
@@ -1073,7 +1233,7 @@ async function startServer() {
   });
 
   // CRM Projects / Case Studies API & Persistent Upload
-  app.post('/api/crm/upload', (req, res) => {
+  app.post('/api/crm/upload', requireRoles('admin', 'manager'), (req, res) => {
     const body = (req.body ?? {}) as { dataUrl?: string };
     const dataUrl = String(body.dataUrl ?? '');
     const match = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
@@ -1101,7 +1261,7 @@ async function startServer() {
     res.status(201).json({ url: `/uploads/${filename}` });
   });
 
-  app.post('/api/crm/projects', (req, res) => {
+  app.post('/api/crm/projects', requireRoles('admin', 'manager'), (req, res) => {
     const parsed = projectCreateSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані проєкту' });
@@ -1111,7 +1271,7 @@ async function startServer() {
     res.status(201).json({ project: created });
   });
 
-  app.patch('/api/crm/projects/:id', (req, res) => {
+  app.patch('/api/crm/projects/:id', requireRoles('admin', 'manager'), (req, res) => {
     const parsed = projectPatchSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні поля проєкту' });
@@ -1125,7 +1285,7 @@ async function startServer() {
     res.json({ project: updated });
   });
 
-  app.delete('/api/crm/projects/:id', (req, res) => {
+  app.delete('/api/crm/projects/:id', requireRoles('admin', 'manager'), (req, res) => {
     const ok = deleteProjectCase(req.params.id);
     if (!ok) {
       res.status(404).json({ error: 'Об’єкт не знайдено' });
@@ -1156,7 +1316,7 @@ async function startServer() {
     res.json(info);
   });
 
-  app.post('/api/crm/telegram-webhook', async (req, res) => {
+  app.post('/api/crm/telegram-webhook', requireRoles('admin'), async (req, res) => {
     const body = (req.body ?? {}) as { webhookUrl?: string };
     const rawUrl = String(body.webhookUrl ?? '').trim();
     const targetUrl = rawUrl || `${getBaseUrl(req)}/api/telegram/webhook`;

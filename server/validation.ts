@@ -114,11 +114,53 @@ export const taskCreateSchema = z.object({
 
 export const taskPatchSchema = taskCreateSchema.partial();
 
+export const STAFF_ROLES = ['admin', 'manager', 'engineer', 'installer'] as const;
+
 export const noteCreateSchema = z.object({
   contactId: z.coerce.number().int().positive().nullable().optional().default(null),
   dealId: z.coerce.number().int().positive().nullable().optional().default(null),
   author: z.string().max(80).optional().default('Менеджер CRM'),
   body: z.string().trim().min(1, 'Введіть текст нотатки').max(2000),
+});
+
+export const staffCreateSchema = z.object({
+  name: z.string().trim().min(2, 'Вкажіть ім’я співробітника').max(100),
+  login: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2, 'Логін має містити від 2 символів')
+    .max(40)
+    .regex(/^[a-z0-9._-]+$/, 'Логін може містити лише латиницю, цифри, крапку, дефіс або _'),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(160)
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Некоректний Email')
+    .optional()
+    .default(''),
+  phone: z.string().trim().max(40).optional().default(''),
+  position: z.string().trim().min(1, 'Вкажіть посаду').max(80),
+  role: z.enum(STAFF_ROLES).optional().default('manager'),
+  assigneeLabel: z.string().trim().max(120).optional().default(''),
+  password: z
+    .string()
+    .max(128)
+    .refine((v) => !v || v.length >= 6, 'Пароль має містити щонайменше 6 символів')
+    .optional()
+    .default(''),
+  canLogin: z.boolean().optional().default(true),
+  active: z.boolean().optional().default(true),
+});
+
+export const staffPatchSchema = staffCreateSchema.partial().extend({
+  clearPassword: z.boolean().optional(),
+});
+
+export const adminLoginSchema = z.object({
+  identifier: z.string().trim().max(160).optional().default(''),
+  password: z.string().min(1, 'Введіть пароль').max(128),
 });
 
 export const productCreateSchema = z.object({

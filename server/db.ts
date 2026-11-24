@@ -2,9 +2,10 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { desc, eq, or } from 'drizzle-orm';
+import { asc, desc, eq, or } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 import * as schema from './schema.ts';
+import { hashPassword } from './auth.ts';
 import type {
   Contact,
   ContactSegment,
@@ -19,6 +20,8 @@ import type {
   ProjectCase,
   RecentChangeRecord,
   SocialLinksConfig,
+  StaffRole,
+  StaffUser,
   StorageDiagnostics,
   TaskPriority,
   TaskStatus,
@@ -150,6 +153,22 @@ function getDb(): DatabaseSync {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS staff_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      login TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL DEFAULT '',
+      position TEXT NOT NULL DEFAULT 'Менеджер',
+      role TEXT NOT NULL DEFAULT 'manager',
+      assignee_label TEXT NOT NULL,
+      password_hash TEXT NOT NULL DEFAULT '',
+      can_login INTEGER NOT NULL DEFAULT 0,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 
   // Non-destructive migration for existing deals tables created before contact_id
@@ -161,6 +180,7 @@ function getDb(): DatabaseSync {
   seedCatalogIfEmpty(db);
   seedDealsIfEmpty(db);
   backfillContactsAndSeedCrm(db);
+  seedStaffIfEmpty(db);
   seedProjectsIfEmpty(db);
   dbInstance = db;
   return db;
@@ -1802,5 +1822,312 @@ export async function deleteNote(id: number): Promise<boolean> {
   await drizzleDb.delete(schema.notesTable).where(eq(schema.notesTable.id, id));
   return true;
 }
+
+function seedStaffIfEmpty(db: DatabaseSync): void {
+  const seeded = db.prepare("SELECT value FROM settings WHERE key = 'staff_seeded'").get() as
+    | { value?: string }
+    | undefined;
+  const countRow = db.prepare('SELECT COUNT(*) as cnt FROM staff_users').get() as { cnt?: number } | undefined;
+  if (seeded || Number(countRow?.cnt ?? 0) > 0) return;
+
+  const now = new Date().toISOString();
+  const insert = db.prepare(`
+    INSERT INTO staff_users (
+      name, login, email, phone, position, role, assignee_label,
+      password_hash, can_login, active, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, '', 0, 1, ?, ?)
+  `);
+
+  const defaults: Array<[string, string, string, string, StaffRole, string]> = [
+    ['Олександр', 'alex', '', 'Інженер', 'engineer', 'Олександр (інженер)'],
+    ['Дмитро', 'dmytro', '', 'Менеджер', 'manager', 'Дмитро (менеджер)'],
+    ['Ірина', 'iryna', '', 'Координатор', 'manager', 'Ірина (координатор)'],
+    ['Монтажна бригада №1', 'brigade1', '', 'Монтажна бригада', 'installer', 'Монтажна бригада №1'],
+  ];
+
+  db.exec('BEGIN;');
+  try {
+    for (const [name, login, phone, position, role, assigneeLabel] of defaults) {
+      insert.run(name, login, '', phone, position, role, assigneeLabel, now, now);
+    }
+    db.prepare(
+      "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('staff_seeded', '1', ?)",
+    ).run(now);
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
+function mapStaffRow(r: typeof schema.staffUsersTable.$inferSelect): StaffUser {
+  const role: StaffRole =
+    r.role === 'admin' || r.role === 'manager' || r.role === 'engineer' || r.role === 'installer'
+      ? r.role
+      : 'manager';
+  return {
+    id: r.id,
+    name: r.name,
+    login: r.login,
+    email: r.email,
+    phone: r.phone,
+    position: r.position,
+    role,
+    assigneeLabel: r.assigneeLabel,
+    canLogin: Boolean(r.canLogin),
+    active: Boolean(r.active),
+    hasPassword: Boolean(r.passwordHash),
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
+export function getStaffAuthStateSync(userId: number): {
+  active: boolean;
+  canLogin: boolean;
+  role: StaffRole;
+  name: string;
+  login: string;
+  email: string;
+  assigneeLabel: string;
+} | null {
+  const db = getDb();
+  const row = db
+    .prepare('SELECT name, login, email, role, assignee_label, can_login, active FROM staff_users WHERE id = ?')
+    .get(userId) as
+    | {
+        name: string;
+        login: string;
+        email: string;
+        role: string;
+        assignee_label: string;
+        can_login: number;
+        active: number;
+      }
+    | undefined;
+  if (!row) return null;
+  const role: StaffRole =
+    row.role === 'admin' || row.role === 'manager' || row.role === 'engineer' || row.role === 'installer'
+      ? row.role
+      : 'manager';
+  return {
+    active: Boolean(row.active),
+    canLogin: Boolean(row.can_login),
+    role,
+    name: row.name,
+    login: row.login,
+    email: row.email,
+    assigneeLabel: row.assignee_label,
+  };
+}
+
+export async function listStaffUsers(): Promise<StaffUser[]> {
+  const rows = await drizzleDb
+    .select()
+    .from(schema.staffUsersTable)
+    .orderBy(desc(schema.staffUsersTable.active), asc(schema.staffUsersTable.id));
+  return rows.map(mapStaffRow);
+}
+
+export async function findStaffForPasswordLogin(identifier: string): Promise<{
+  user: StaffUser;
+  passwordHash: string;
+} | null> {
+  const norm = identifier.trim().toLowerCase();
+  if (!norm) return null;
+  const rows = await drizzleDb
+    .select()
+    .from(schema.staffUsersTable)
+    .where(or(eq(schema.staffUsersTable.login, norm), eq(schema.staffUsersTable.email, norm)));
+  const match = rows[0];
+  if (!match) return null;
+  return {
+    user: mapStaffRow(match),
+    passwordHash: match.passwordHash,
+  };
+}
+
+export async function findStaffForGoogleLogin(email: string): Promise<StaffUser | null> {
+  const norm = email.trim().toLowerCase();
+  if (!norm) return null;
+  const row = await drizzleDb
+    .select()
+    .from(schema.staffUsersTable)
+    .where(eq(schema.staffUsersTable.email, norm))
+    .get();
+  if (!row) return null;
+  return mapStaffRow(row);
+}
+
+function defaultAssigneeLabel(name: string, position: string): string {
+  const cleanName = name.trim();
+  const cleanPos = position.trim();
+  if (!cleanPos) return cleanName;
+  if (cleanName.toLowerCase().includes(cleanPos.toLowerCase())) return cleanName;
+  return `${cleanName} (${cleanPos.toLowerCase()})`;
+}
+
+export async function createStaffUser(input: {
+  name: string;
+  login: string;
+  email?: string;
+  phone?: string;
+  position: string;
+  role?: StaffRole;
+  assigneeLabel?: string;
+  password?: string;
+  canLogin?: boolean;
+  active?: boolean;
+}): Promise<StaffUser> {
+  const loginNorm = input.login.trim().toLowerCase();
+  const emailNorm = (input.email ?? '').trim().toLowerCase();
+
+  const existingLogin = await drizzleDb
+    .select({ id: schema.staffUsersTable.id })
+    .from(schema.staffUsersTable)
+    .where(eq(schema.staffUsersTable.login, loginNorm))
+    .get();
+  if (existingLogin) {
+    throw new Error('Співробітник із таким логіном вже існує');
+  }
+
+  if (emailNorm) {
+    const existingEmail = await drizzleDb
+      .select({ id: schema.staffUsersTable.id })
+      .from(schema.staffUsersTable)
+      .where(eq(schema.staffUsersTable.email, emailNorm))
+      .get();
+    if (existingEmail) {
+      throw new Error('Цей Email вже закріплено за іншим співробітником');
+    }
+  }
+
+  const now = new Date().toISOString();
+  const label = (input.assigneeLabel ?? '').trim() || defaultAssigneeLabel(input.name, input.position);
+  const passwordHash = input.password ? hashPassword(input.password) : '';
+
+  const [inserted] = await drizzleDb
+    .insert(schema.staffUsersTable)
+    .values({
+      name: input.name.trim(),
+      login: loginNorm,
+      email: emailNorm,
+      phone: (input.phone ?? '').trim(),
+      position: input.position.trim(),
+      role: input.role ?? 'manager',
+      assigneeLabel: label,
+      passwordHash,
+      canLogin: input.canLogin === false ? 0 : 1,
+      active: input.active === false ? 0 : 1,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  return mapStaffRow(inserted);
+}
+
+export async function updateStaffUser(
+  id: number,
+  patch: Partial<{
+    name: string;
+    login: string;
+    email: string;
+    phone: string;
+    position: string;
+    role: StaffRole;
+    assigneeLabel: string;
+    password: string;
+    clearPassword: boolean;
+    canLogin: boolean;
+    active: boolean;
+  }>,
+): Promise<StaffUser | null> {
+  const existing = await drizzleDb
+    .select()
+    .from(schema.staffUsersTable)
+    .where(eq(schema.staffUsersTable.id, id))
+    .get();
+  if (!existing) return null;
+
+  const nextLogin = patch.login !== undefined ? patch.login.trim().toLowerCase() : existing.login;
+  const nextEmail = patch.email !== undefined ? patch.email.trim().toLowerCase() : existing.email;
+
+  if (nextLogin !== existing.login) {
+    const dupLogin = await drizzleDb
+      .select({ id: schema.staffUsersTable.id })
+      .from(schema.staffUsersTable)
+      .where(eq(schema.staffUsersTable.login, nextLogin))
+      .get();
+    if (dupLogin && dupLogin.id !== id) {
+      throw new Error('Інший співробітник уже використовує цей логін');
+    }
+  }
+
+  if (nextEmail && nextEmail !== existing.email) {
+    const dupEmail = await drizzleDb
+      .select({ id: schema.staffUsersTable.id })
+      .from(schema.staffUsersTable)
+      .where(eq(schema.staffUsersTable.email, nextEmail))
+      .get();
+    if (dupEmail && dupEmail.id !== id) {
+      throw new Error('Цей Email вже закріплено за іншим співробітником');
+    }
+  }
+
+  const nextName = patch.name !== undefined ? patch.name.trim() || existing.name : existing.name;
+  const nextPos = patch.position !== undefined ? patch.position.trim() || existing.position : existing.position;
+  const nextLabel =
+    patch.assigneeLabel !== undefined
+      ? patch.assigneeLabel.trim() || defaultAssigneeLabel(nextName, nextPos)
+      : existing.assigneeLabel;
+
+  let nextPasswordHash = existing.passwordHash;
+  if (patch.clearPassword) {
+    nextPasswordHash = '';
+  } else if (patch.password && patch.password.length >= 6) {
+    nextPasswordHash = hashPassword(patch.password);
+  }
+
+  const now = new Date().toISOString();
+  const [updated] = await drizzleDb
+    .update(schema.staffUsersTable)
+    .set({
+      name: nextName,
+      login: nextLogin,
+      email: nextEmail,
+      phone: patch.phone !== undefined ? patch.phone.trim() : existing.phone,
+      position: nextPos,
+      role: patch.role ?? existing.role,
+      assigneeLabel: nextLabel,
+      passwordHash: nextPasswordHash,
+      canLogin: patch.canLogin !== undefined ? (patch.canLogin ? 1 : 0) : existing.canLogin,
+      active: patch.active !== undefined ? (patch.active ? 1 : 0) : existing.active,
+      updatedAt: now,
+    })
+    .where(eq(schema.staffUsersTable.id, id))
+    .returning();
+
+  // Propagate renamed assigneeLabel to existing deals and tasks so links stay cohesive
+  if (nextLabel !== existing.assigneeLabel) {
+    const db = getDb();
+    db.prepare('UPDATE deals SET assignee = ? WHERE assignee = ?').run(nextLabel, existing.assigneeLabel);
+    db.prepare('UPDATE tasks SET assignee = ? WHERE assignee = ?').run(nextLabel, existing.assigneeLabel);
+  }
+
+  return mapStaffRow(updated);
+}
+
+export async function deleteStaffUser(id: number): Promise<boolean> {
+  const existing = await drizzleDb
+    .select({ id: schema.staffUsersTable.id })
+    .from(schema.staffUsersTable)
+    .where(eq(schema.staffUsersTable.id, id))
+    .get();
+  if (!existing) return false;
+  await drizzleDb.delete(schema.staffUsersTable).where(eq(schema.staffUsersTable.id, id));
+  return true;
+}
+
 
 

@@ -12,6 +12,7 @@ interface AdminAuthGateProps {
 }
 
 export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, onBackToStore }: AdminAuthGateProps) {
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -68,10 +69,13 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
     setSubmitting(true);
     try {
       const endpoint = isSetup ? '/api/admin/auth/setup' : '/api/admin/auth/login';
+      const payload = isSetup
+        ? { password }
+        : { identifier: identifier.trim(), password };
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(payload),
       });
       const data = (await resp.json()) as { token?: string; error?: string };
       if (!resp.ok || !data.token) {
@@ -115,7 +119,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
         <p className="text-xs text-[#52657a] leading-relaxed mb-5">
           {isSetup
             ? tr('Увійдіть через Google-акаунт адміністратора або створіть резервний пароль для доступу до угод CRM, управління цінами та пікселів.', 'Войдите через аккаунт администратора Google или создайте резервный пароль для доступа к сделкам CRM, ценам и пикселям аналитики.')
-            : tr('Увійдіть через Google або введіть пароль адміністратора для доступу до угод CRM, каталогу, Telegram-бота та налаштувань Meta Pixel / GA4.', 'Войдите через Google или введите пароль администратора для доступа к сделкам CRM, каталогу, Telegram-боту и настройкам Meta Pixel / GA4.')}
+            : tr('Увійдіть через Google, за логіном співробітника або головним паролем адміністратора для роботи в CRM.', 'Войдите через Google, по логину сотрудника или главному паролю администратора для работы в CRM.')}
         </p>
 
         {!apiAvailable && (
@@ -157,16 +161,36 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
             <div className="relative flex items-center justify-center my-4">
               <div className="border-t border-slate-200 w-full" />
               <span className="bg-white px-3 text-[11px] font-semibold text-slate-400 whitespace-nowrap">
-                {tr('або паролем адміністратора', 'или паролем администратора')}
+                {tr('або за логіном та паролем', 'или по логину и паролю')}
               </span>
             </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5" noValidate={false}>
+          {!isSetup && (
+            <div>
+              <label htmlFor="admin-identifier" className="block text-xs font-bold text-[#0d1f33] mb-1">
+                {tr('Логін або Email співробітника', 'Логин или Email сотрудника')}{' '}
+                <span className="font-normal text-slate-400">({tr('необов’язково', 'необязательно')})</span>
+              </label>
+              <input
+                id="admin-identifier"
+                name="username"
+                type="text"
+                autoComplete="username"
+                disabled={!apiAvailable || submitting || googleSubmitting}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={tr('alex або manager@company.ua (порожньо — головний адмін)', 'alex или email (пусто — главный админ)')}
+                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
+              />
+            </div>
+          )}
+
           <div>
             <label htmlFor="admin-password" className="block text-xs font-bold text-[#0d1f33] mb-1">
-              {isSetup ? tr('Новий пароль адміністратора', 'Новый пароль администратора') : tr('Пароль адміністратора', 'Пароль администратора')}
+              {isSetup ? tr('Новий пароль адміністратора', 'Новый пароль администратора') : tr('Пароль', 'Пароль')}
             </label>
             <input
               id="admin-password"

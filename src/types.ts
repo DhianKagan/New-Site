@@ -110,6 +110,33 @@ export interface CrmNote {
   createdAt: string;
 }
 
+export type StaffRole = 'admin' | 'manager' | 'engineer' | 'installer';
+
+export interface StaffUser {
+  id: number;
+  name: string;
+  login: string;
+  email: string;
+  phone: string;
+  position: string;
+  role: StaffRole;
+  assigneeLabel: string;
+  canLogin: boolean;
+  active: boolean;
+  hasPassword: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CrmSessionUser {
+  userId: number | null;
+  name: string;
+  login: string;
+  email: string;
+  role: StaffRole;
+  assigneeLabel: string;
+}
+
 export interface ProjectCase {
   id: string;
   seg: 'b2b' | 'b2c';

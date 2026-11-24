@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   createColumnHelper,
   createSortedRowModel,
@@ -53,6 +53,7 @@ export function TasksTab({
   onRefreshContacts,
 }: TasksTabProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | TaskStatus>('open');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'dueDate', desc: false }]);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -65,15 +66,22 @@ export function TasksTab({
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
+  useEffect(() => {
+    if (assignees.length > 0 && (!tAssignee || !assignees.includes(tAssignee))) {
+      setTAssignee(assignees[0]);
+    }
+  }, [assignees, tAssignee]);
+
   const today = new Date().toISOString().slice(0, 10);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
+      if (assigneeFilter !== 'all' && t.assignee !== assigneeFilter) return false;
       if (statusFilter === 'open') return t.status !== 'done';
       if (statusFilter !== 'all') return t.status === statusFilter;
       return true;
     });
-  }, [tasks, statusFilter]);
+  }, [tasks, statusFilter, assigneeFilter]);
 
   async function handleStatusChange(task: CrmTask, nextStatus: TaskStatus) {
     const resp = await authFetch(`/api/crm/tasks/${task.id}`, {
@@ -239,27 +247,43 @@ export function TasksTab({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex flex-wrap p-1 bg-slate-200/70 rounded-lg">
-          {(
-            [
-              ['open', `${tr('Активні', 'Активные')} (${tasks.filter((t) => t.status !== 'done').length})`],
-              ['todo', tr('До виконання', 'К выполнению')],
-              ['in_progress', tr('У роботі', 'В работе')],
-              ['done', tr('Виконано')],
-              ['all', tr('Усі')],
-            ] as const
-          ).map(([st, label]) => (
-            <button
-              key={st}
-              type="button"
-              onClick={() => setStatusFilter(st)}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold cursor-pointer ${
-                statusFilter === st ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex flex-wrap p-1 bg-slate-200/70 rounded-lg">
+            {(
+              [
+                ['open', `${tr('Активні', 'Активные')} (${tasks.filter((t) => t.status !== 'done').length})`],
+                ['todo', tr('До виконання', 'К выполнению')],
+                ['in_progress', tr('У роботі', 'В работе')],
+                ['done', tr('Виконано')],
+                ['all', tr('Усі')],
+              ] as const
+            ).map(([st, label]) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setStatusFilter(st)}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold cursor-pointer ${
+                  statusFilter === st ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            aria-label={tr('Фільтр за відповідальним', 'Фильтр по ответственному')}
+            className="h-9 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-[#0d1f33]"
+          >
+            <option value="all">{tr('Усі відповідальні', 'Все ответственные')}</option>
+            {assignees.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
         </div>
 
         <Button type="button" variant="primary" onClick={() => setCreateOpen(true)}>

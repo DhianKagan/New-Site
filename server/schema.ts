@@ -105,3 +105,19 @@ export const projectsTable = sqliteTable('projects', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+export const staffUsersTable = sqliteTable('staff_users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  login: text('login').notNull().unique(),
+  email: text('email').notNull().default(''),
+  phone: text('phone').notNull().default(''),
+  position: text('position').notNull().default('Менеджер'),
+  role: text('role').notNull().default('manager'),
+  assigneeLabel: text('assignee_label').notNull(),
+  passwordHash: text('password_hash').notNull().default(''),
+  canLogin: integer('can_login').notNull().default(0),
+  active: integer('active').notNull().default(1),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
