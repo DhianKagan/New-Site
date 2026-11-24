@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { ShoppingBag, Menu, X, PhoneCall } from 'lucide-react';
+import { ShoppingBag, Menu, X, PhoneCall, Send } from 'lucide-react';
 import type {
   AdminAuthStatus,
   AnalyticsConfig,
@@ -11,7 +11,7 @@ import type {
   SocialLinksConfig,
 } from './types.ts';
 import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
-import { initAnalytics, trackEvent } from './lib/analytics.ts';
+import { initAnalytics, track, trackEvent, type Placement } from './lib/analytics.ts';
 import { signOutFirebase } from './lib/firebaseAuth.ts';
 import { HomeView } from './components/HomeView.tsx';
 import { ShopView } from './components/ShopView.tsx';
@@ -130,7 +130,26 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCase, setSelectedCase] = useState<ProjectCase | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
+  const [leadPlacement, setLeadPlacement] = useState<Placement>('section');
+  const [stickyCtaVisible, setStickyCtaVisible] = useState(false);
   const [leadTopic, setLeadTopic] = useState('Інженерний розрахунок системи');
+
+  useEffect(() => {
+    const updateStickyVisibility = () => {
+      const viewport = window.visualViewport;
+      const keyboardOpen = Boolean(viewport && viewport.height < window.innerHeight * 0.72);
+      setStickyCtaVisible(window.scrollY > window.innerHeight * 0.75 && !keyboardOpen);
+    };
+    window.addEventListener('scroll', updateStickyVisibility, { passive: true });
+    window.addEventListener('resize', updateStickyVisibility);
+    window.visualViewport?.addEventListener('resize', updateStickyVisibility);
+    updateStickyVisibility();
+    return () => {
+      window.removeEventListener('scroll', updateStickyVisibility);
+      window.removeEventListener('resize', updateStickyVisibility);
+      window.visualViewport?.removeEventListener('resize', updateStickyVisibility);
+    };
+  }, []);
   const [leadEstimateUsd, setLeadEstimateUsd] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -646,9 +665,10 @@ export default function App() {
     setCart((prev) => prev.filter((i) => i.id !== id));
   }
 
-  function openLeadModal(topic: string, estimatedTotalUsd?: number) {
+  function openLeadModal(topic: string, estimatedTotalUsd?: number, placement: Placement = 'section') {
     setLeadTopic(topic);
     setLeadEstimateUsd(estimatedTotalUsd);
+    setLeadPlacement(placement);
     setLeadModalOpen(true);
   }
 
@@ -659,7 +679,7 @@ export default function App() {
     : tr('Адмін / CRM');
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-[#172636]">
+    <div className={`min-h-screen flex flex-col bg-white text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
       {/* Slim Utility Strip (Odessa Office + Store/CRM Workspace Switcher) */}
       <div className="bg-[#0d1f33] text-slate-300 text-xs py-1.5 border-b border-white/10">
         <div className="max-w-[1180px] mx-auto px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-4">
@@ -667,7 +687,10 @@ export default function App() {
             <span className="hidden md:inline">{COMPANY_INFO.address} · </span>
             <a
               href={COMPANY_INFO.phone1Href}
-              onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })}
+              onClick={() => {
+                track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' });
+                trackEvent('contact', { phone: COMPANY_INFO.phone1 });
+              }}
               className="font-semibold text-white hover:text-sky-200 font-mono text-[11px] sm:text-xs"
             >
               {COMPANY_INFO.phone1}
@@ -1084,23 +1107,30 @@ export default function App() {
       )}
 
       {/* Slim Mobile Thumb CTA Bar (<= 44px height) */}
-      {view !== 'crm' && !cartOpen && !leadModalOpen && !selectedProduct && !selectedCase && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 h-11 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 flex items-center gap-2">
+      {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !selectedCase && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
-            onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1, source: 'mobile_bar' })}
-            className="flex-1 h-8 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+            onClick={() => {
+              track({ name: 'phone_click', placement: 'sticky', scenario: 'unspecified' });
+              trackEvent('contact', { phone: COMPANY_INFO.phone1, source: 'mobile_bar' });
+            }}
+            className="flex-1 min-w-0 min-h-12 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"
           >
-            <PhoneCall className="w-3.5 h-3.5 text-[#1769aa]" />
-            {tr('Зателефонувати')}
+            <PhoneCall className="w-4 h-4 text-[#1769aa]" />
+            {tr('Подзвонити', 'Позвонить')}
           </a>
           <button
             type="button"
-            onClick={() => openLeadModal('Експрес-підбір із мобільної панелі')}
-            className="flex-1 h-8 rounded-md bg-[#1769aa] text-white text-xs font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer"
+            onClick={() => {
+              track({ name: 'cta_click', placement: 'sticky', scenario: 'unspecified' });
+              openLeadModal('Експрес-підбір із мобільної панелі', undefined, 'sticky');
+            }}
+            className="flex-1 min-w-0 min-h-12 rounded-md bg-[#1769aa] text-white text-[11px] font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d1f33]"
           >
-            Розрахувати за 15 хв
+            {tr('Розрахунок', 'Расчёт')}
           </button>
+          {socialLinks.telegram && <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" aria-label="Telegram" onClick={() => track({ name: 'messenger_click', placement: 'sticky', scenario: 'unspecified', channel: 'telegram' })} className="flex-1 min-w-0 min-h-12 rounded-md border border-sky-200 bg-sky-50 text-[#1769aa] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"><Send className="w-4 h-4" />Telegram</a>}
         </div>
       )}
 
@@ -1126,6 +1156,7 @@ export default function App() {
         onClose={() => setLeadModalOpen(false)}
         onCreated={() => void fetchDeals()}
         onOpenCrm={() => navigateTo('crm')}
+        placement={leadPlacement}
       />
 
       <CartDrawer

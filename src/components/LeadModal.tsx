@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { X, CheckCircle2, ArrowRight } from 'lucide-react';
 import type { Deal } from '../types.ts';
-import { trackEvent } from '../lib/analytics.ts';
+import { track, trackEvent, type LeadPayload, type Placement, type Property, type Scenario } from '../lib/analytics.ts';
 import { tr } from '../lib/i18n.ts';
+import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 
 interface LeadModalProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface LeadModalProps {
   onClose: () => void;
   onCreated: (deal: Deal) => void;
   onOpenCrm: () => void;
+  placement?: Placement;
 }
 
 export function LeadModal({
@@ -20,37 +22,77 @@ export function LeadModal({
   onClose,
   onCreated,
   onOpenCrm,
+  placement = 'section',
 }: LeadModalProps) {
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('Одеса');
   const [channel, setChannel] = useState('Telegram');
   const [notes, setNotes] = useState('');
+  const [property, setProperty] = useState<Property | ''>('');
   const [website, setWebsite] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [createdDeal, setCreatedDeal] = useState<Deal | null>(null);
+  const formStarted = useRef(false);
+
+  function getScenario(topic: string): Scenario {
+    if (/сес|соняч|solar/i.test(topic)) return 'solar';
+    if (/гібрид|гибрид|hybrid/i.test(topic)) return 'hybrid';
+    if (/резерв|backup|живлен/i.test(topic)) return 'backup';
+    return 'unspecified';
+  }
 
   if (!open) return null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    const scenario = getScenario(initialTopic);
+    const normalizedPhone = phone.replace(/\D/g, '');
+    if (!customerName.trim()) {
+      track({ name: 'form_error', field: 'name', placement, scenario });
+      setError(tr('Вкажіть ваше ім’я', 'Укажите ваше имя'));
+      return;
+    }
+    if (!isValidUaPhone(phone)) {
+      track({ name: 'form_error', field: 'phone', placement, scenario });
+      setError(tr('Вкажіть номер телефону у форматі +380 XX XXX XX XX', 'Укажите номер телефона в формате +380 XX XXX XX XX'));
+      return;
+    }
+    if (!property) {
+      track({ name: 'form_error', field: 'property', placement, scenario });
+      setError(tr('Оберіть тип об’єкта', 'Выберите тип объекта'));
+      return;
+    }
+    const propertyLabel = property === 'apartment'
+      ? tr('Квартира', 'Квартира')
+      : property === 'house'
+        ? tr('Приватний будинок', 'Частный дом')
+        : tr('Бізнес', 'Бизнес');
+    const leadPayload: LeadPayload = {
+      name: customerName.trim(),
+      phone: `+${normalizedPhone}`,
+      property,
+      consent: true,
+    };
     setSubmitting(true);
     try {
       const resp = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerName: customerName.trim() || 'Клієнт сайту',
-          phone,
+          customerName: leadPayload.name,
+          phone: leadPayload.phone,
+          property: leadPayload.property,
           city,
           channel,
-          topic: initialTopic,
+          topic: `${propertyLabel} · ${initialTopic}`,
           taskType: initialTopic,
-          notes,
+          notes: [tr(`Тип об’єкта: ${propertyLabel}`, `Тип объекта: ${propertyLabel}`), notes].filter(Boolean).join('\n'),
           website,
           estimatedTotalUsd,
+          consent: leadPayload.consent,
         }),
       });
       const data = (await resp.json()) as { deal?: Deal; error?: string };
@@ -58,6 +100,7 @@ export function LeadModal({
         setError(data.error || 'Помилка збереження заявки');
       } else {
         setCreatedDeal(data.deal);
+        track({ name: 'lead_submit', placement, scenario, property });
         trackEvent('generate_lead', {
           lead_topic: initialTopic,
           value: estimatedTotalUsd ?? 0,
@@ -77,7 +120,9 @@ export function LeadModal({
     setError('');
     setCustomerName('');
     setPhone('');
+    setProperty('');
     setNotes('');
+    formStarted.current = false;
     onClose();
   }
 
@@ -95,7 +140,7 @@ export function LeadModal({
       >
         <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-slate-200 bg-slate-50">
           <div>
-            <div className="text-[11px] font-bold text-[#1769aa]">{tr('Відповідь інженера за 15 хв')}</div>
+            <div className="text-[11px] font-bold text-[#1769aa]">{tr('Зв’язок з інженером', 'Связь с инженером')}</div>
             <h3 id="lead-modal-title" className="text-lg font-extrabold text-[#0d1f33] mt-0.5">
               {tr('Підбір та інженерний розрахунок')}
             </h3>
@@ -146,7 +191,12 @@ export function LeadModal({
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-3.5" onFocus={() => {
+              if (!formStarted.current) {
+                formStarted.current = true;
+                track({ name: 'form_start', placement, scenario: getScenario(initialTopic) });
+              }
+            }}>
               <div className="hidden" aria-hidden="true">
                 <input
                   type="text"
@@ -156,21 +206,14 @@ export function LeadModal({
                   onChange={(e) => setWebsite(e.target.value)}
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Обрана тема / конфігурація')}</label>
-                <input
-                  type="text"
-                  value={initialTopic}
-                  readOnly
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700"
-                />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Ваше ім’я')}</label>
+                  <label htmlFor="lead-name" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Ваше ім’я')}</label>
                   <input
+                    id="lead-name"
                     type="text"
+                    autoComplete="name"
+                    required
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder={tr('Наприклад, Андрій')}
@@ -178,18 +221,34 @@ export function LeadModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Телефон *')}</label>
+                  <label htmlFor="lead-phone" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Телефон *')}</label>
                   <input
+                    id="lead-phone"
                     type="tel"
                     required
+                    inputMode="tel"
+                    autoComplete="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+38 (0__) ___-__-__"
+                    onChange={(e) => setPhone(formatUaPhone(e.target.value))}
+                    placeholder="+380 XX XXX XX XX"
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
                   />
                 </div>
               </div>
 
+              <div>
+                <label htmlFor="lead-property" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Тип об’єкта *', 'Тип объекта *')}</label>
+                <select id="lead-property" required value={property} onChange={(e) => setProperty(e.target.value as Property | '')} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:border-[#1769aa]">
+                  <option value="">{tr('Оберіть варіант', 'Выберите вариант')}</option>
+                  <option value="apartment">{tr('Квартира', 'Квартира')}</option>
+                  <option value="house">{tr('Приватний будинок', 'Частный дом')}</option>
+                  <option value="business">{tr('Бізнес', 'Бизнес')}</option>
+                </select>
+              </div>
+
+              <details className="rounded-lg border border-slate-200 px-3 py-2">
+                <summary className="cursor-pointer text-xs font-semibold text-slate-600">{tr('Додатково (необов’язково)', 'Дополнительно (необязательно)')}</summary>
+                <div className="space-y-3 pt-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Місто або район')}</label>
@@ -224,16 +283,19 @@ export function LeadModal({
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
                 />
               </div>
+                </div>
+              </details>
 
-              {error && <div className="text-xs font-semibold text-red-600">{error}</div>}
+              {error && <div className="text-xs font-semibold text-red-600" role="alert" aria-live="polite">{error}</div>}
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 px-4 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-sm font-bold transition-colors cursor-pointer"
+                className="w-full min-h-12 py-3 px-4 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-sm font-bold transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d1f33]"
               >
-                {submitting ? tr('Надсилаємо...') : tr('Отримати розрахунок за 15 хв')}
+                {submitting ? tr('Надсилаємо...') : tr('Надіслати запит на розрахунок', 'Отправить запрос на расчёт')}
               </button>
+              <p className="text-[11px] text-slate-500 leading-relaxed">{tr('Надсилаючи заявку, ви погоджуєтесь на обробку персональних даних для зв’язку та підготовки розрахунку.', 'Отправляя заявку, вы соглашаетесь на обработку персональных данных для связи и подготовки расчёта.')}</p>
               <div className="text-center text-[11px] text-slate-500">
                 {tr('Або телефонуйте зараз:')}{' '}
                 <a href="tel:+380507777172" className="font-mono font-bold text-[#0d1f33] hover:text-[#1769aa]">

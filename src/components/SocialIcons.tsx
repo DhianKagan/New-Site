@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { SocialLinksConfig } from '../types.ts';
 import { tr } from '../lib/i18n.ts';
+import { track } from '../lib/analytics.ts';
 
 interface SocialIconsProps {
   links: SocialLinksConfig;
@@ -112,6 +113,11 @@ export function SocialIcons({ links, variant = 'header' }: SocialIconsProps) {
           rel="noopener noreferrer"
           title={item.label}
           aria-label={item.label}
+          onClick={() => {
+            if (item.key === 'telegram' || item.key === 'viber') {
+              track({ name: 'messenger_click', placement: variant === 'footer' ? 'footer' : 'section', scenario: 'unspecified', channel: item.key });
+            }
+          }}
           className={btnClass}
         >
           {item.icon}

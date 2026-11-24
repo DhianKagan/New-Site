@@ -106,6 +106,45 @@ export type TrackableEventName =
   | 'generate_lead'
   | 'contact';
 
+export type Placement = 'hero' | 'sticky' | 'section' | 'footer';
+export type Property = 'apartment' | 'house' | 'business';
+export type Goal = 'backup' | 'solar' | 'hybrid';
+export type Scenario = 'backup' | 'solar' | 'hybrid' | 'unspecified';
+export interface LeadPayload {
+  readonly name: string;
+  readonly phone: string;
+  readonly property: Property;
+  readonly goal?: Goal;
+  readonly consent: true;
+}
+type ConversionContext = { readonly placement: Placement; readonly scenario: Scenario };
+export type AnalyticsEvent =
+  | ({ readonly name: 'cta_click' } & ConversionContext)
+  | ({ readonly name: 'form_start' } & ConversionContext)
+  | ({ readonly name: 'form_error'; readonly field: 'name' | 'phone' | 'property' } & ConversionContext)
+  | ({ readonly name: 'lead_submit'; readonly property: Property } & ConversionContext)
+  | ({ readonly name: 'messenger_click'; readonly channel: 'telegram' | 'viber' } & ConversionContext)
+  | ({ readonly name: 'phone_click' } & ConversionContext);
+
+function getDeviceType(): 'mobile' | 'desktop' {
+  return window.matchMedia('(max-width: 767px)').matches ? 'mobile' : 'desktop';
+}
+
+export function track(event: AnalyticsEvent): void {
+  const { name, ...params } = event;
+  const payload = { ...params, device: getDeviceType() };
+  if (activeConfig.analyticsEnabled && window.gtag && initializedGa4Id) {
+    window.gtag('event', name, payload);
+  }
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ event: name, ...payload });
+  void fetch('/api/analytics/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventName: name, metaEvent: name === 'lead_submit' ? 'Lead' : 'Contact', ga4Event: name, payload }),
+  }).catch(() => undefined);
+}
+
 const META_EVENT_MAP: Record<TrackableEventName, string> = {
   page_view: 'PageView',
   view_item: 'ViewContent',

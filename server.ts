@@ -446,6 +446,12 @@ ${itemsXml}
       'purchase',
       'generate_lead',
       'contact',
+      'cta_click',
+      'form_start',
+      'form_error',
+      'lead_submit',
+      'messenger_click',
+      'phone_click',
     ]);
     const eventName = String(body.eventName ?? '').trim();
     if (!allowedEvents.has(eventName)) {
@@ -666,6 +672,8 @@ ${itemsXml}
       notes?: string;
       website?: string;
       estimatedTotalUsd?: number;
+      property?: 'apartment' | 'house' | 'business';
+      consent?: boolean;
     };
 
     if (typeof body.website === 'string' && body.website.trim().length > 0) {
@@ -674,6 +682,16 @@ ${itemsXml}
     }
 
     const phone = String(body.phone ?? '').trim();
+    if (body.property !== undefined) {
+      if (!['apartment', 'house', 'business'].includes(body.property) || body.consent !== true || !String(body.customerName ?? '').trim()) {
+        res.status(400).json({ error: 'Заповніть ім’я, тип об’єкта та підтвердьте згоду на обробку даних' });
+        return;
+      }
+      if (!/^\+?380\d{9}$/.test(phone.replace(/[\s()-]/g, ''))) {
+        res.status(400).json({ error: 'Вкажіть номер телефону у форматі +380 XX XXX XX XX' });
+        return;
+      }
+    }
     if (phone.length < 7) {
       res.status(400).json({ error: 'Вкажіть коректний номер телефону' });
       return;

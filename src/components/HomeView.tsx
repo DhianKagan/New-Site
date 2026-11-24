@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   Calculator,
   ChevronDown,
@@ -16,7 +16,7 @@ import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
 import { BRAND_PARTNERS, COMPANY_INFO, FAQ_ITEMS } from '../data/siteContent.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
-import { trackEvent } from '../lib/analytics.ts';
+import { track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 interface HomeViewProps {
@@ -26,7 +26,7 @@ interface HomeViewProps {
   onNavigateShop: (cat?: ProductCategory | 'all') => void;
   onNavigateServices: () => void;
   onNavigateProjects: () => void;
-  onOpenLeadModal: (topic: string, estimatedTotalUsd?: number) => void;
+  onOpenLeadModal: (topic: string, estimatedTotalUsd?: number, placement?: 'hero' | 'sticky' | 'section' | 'footer') => void;
   onSelectProduct: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onSelectCase: (project: ProjectCase) => void;
@@ -70,13 +70,6 @@ export function HomeView({
     return () => window.clearInterval(timer);
   }, [heroPaused, projects.length]);
 
-  // Instant Hero Callback state
-  const [heroPhone, setHeroPhone] = useState('');
-  const [heroHoneypot, setHeroHoneypot] = useState('');
-  const [heroSubmitting, setHeroSubmitting] = useState(false);
-  const [heroError, setHeroError] = useState('');
-  const [heroSentDeal, setHeroSentDeal] = useState<Deal | null>(null);
-
   // Engineering Brief Form state
   const [taskType, setTaskType] = useState('Резервне живлення (квартира / дім)');
   const [loads, setLoads] = useState<string[]>(['Газовий котел', 'Холодильник']);
@@ -88,6 +81,20 @@ export function HomeView({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [createdBrief, setCreatedBrief] = useState<Deal | null>(null);
+  const briefFormStarted = useRef(false);
+
+  function getFormScenario(topic: string): Scenario {
+    if (/сес|соняч|solar/i.test(topic)) return 'solar';
+    if (/гібрид|гибрид|hybrid/i.test(topic)) return 'hybrid';
+    if (/резерв|backup|живлен/i.test(topic)) return 'backup';
+    return 'unspecified';
+  }
+
+  function getFormProperty(topic: string): Property {
+    if (/бізнес|бизнес|сто|business/i.test(topic)) return 'business';
+    if (/дім|дом|house/i.test(topic)) return 'house';
+    return 'apartment';
+  }
 
   const backupKits = products
     .filter(
@@ -138,6 +145,7 @@ export function HomeView({
   async function handleBriefSubmit(e: FormEvent) {
     e.preventDefault();
     setFormError('');
+    const scenario = getFormScenario(taskType);
     setSubmitting(true);
     try {
       const resp = await fetch('/api/leads', {
@@ -157,8 +165,10 @@ export function HomeView({
       const data = (await resp.json()) as { deal?: Deal; error?: string };
       if (!resp.ok || !data.deal) {
         setFormError(data.error || 'Помилка відправки заявки');
+        track({ name: 'form_error', field: 'phone', placement: 'section', scenario });
       } else {
         setCreatedBrief(data.deal);
+        track({ name: 'lead_submit', property: getFormProperty(taskType), placement: 'section', scenario });
         trackEvent('generate_lead', {
           lead_topic: taskType,
           value: 0,
@@ -172,50 +182,6 @@ export function HomeView({
       setFormError('Сервер заявок зараз недоступний. Зателефонуйте нам напряму: +38 (050) 777-71-72.');
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleHeroCallbackSubmit(e: FormEvent) {
-    e.preventDefault();
-    setHeroError('');
-    setHeroSentDeal(null);
-    const trimmed = heroPhone.trim();
-    if (trimmed.replace(/\D/g, '').length < 9) {
-      setHeroError('Вкажіть коректний номер телефону');
-      return;
-    }
-    setHeroSubmitting(true);
-    try {
-      const resp = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: 'Швидкий дзвінок (перший екран)',
-          phone: trimmed,
-          city: 'Одеса',
-          channel: 'Телефон',
-          topic: 'Швидка консультація з першого екрана (15 хв)',
-          taskType: 'Експрес-підбір системи',
-          website: heroHoneypot,
-        }),
-      });
-      const data = (await resp.json()) as { deal?: Deal; error?: string };
-      if (!resp.ok || !data.deal) {
-        setHeroError(data.error || 'Не вдалося надіслати номер');
-      } else {
-        setHeroSentDeal(data.deal);
-        setHeroPhone('');
-        trackEvent('generate_lead', {
-          lead_topic: 'hero_instant_callback',
-          value: 0,
-          currency: 'USD',
-        });
-        onLeadCreated(data.deal);
-      }
-    } catch {
-      setHeroError(`Сервер недоступний. Зателефонуйте: ${COMPANY_INFO.phone1}`);
-    } finally {
-      setHeroSubmitting(false);
     }
   }
 
@@ -239,31 +205,33 @@ export function HomeView({
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => onOpenLeadModal('Безкоштовний розрахунок системи з першого екрана')}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer shadow-xs"
+                  onClick={() => {
+                    track({ name: 'cta_click', placement: 'hero', scenario: 'unspecified' });
+                    onOpenLeadModal('Безкоштовний розрахунок системи з першого екрана', undefined, 'hero');
+                  }}
+                  className="inline-flex min-h-12 items-center gap-2 px-5 py-3 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer shadow-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d1f33]"
                 >
-                  {tr('Розрахувати систему за 15 хв')}
+                  {tr('Замовити розрахунок', 'Заказать расчёт')}
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <a
-                  href="/shop"
-                  onClick={(e) => {
-                    if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                      e.preventDefault();
-                      onNavigateShop('all');
-                    }
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-[#0d1f33] text-sm font-bold transition-colors whitespace-nowrap"
+                  href={COMPANY_INFO.phone1Href}
+                  onClick={() => track({ name: 'phone_click', placement: 'hero', scenario: 'unspecified' })}
+                  className="inline-flex min-h-12 items-center gap-2 px-4 py-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-[#0d1f33] text-sm font-bold transition-colors whitespace-nowrap"
                 >
-                  {tr('Каталог')} ({products.length})
+                  <PhoneCall className="w-4 h-4 text-[#1769aa]" />
+                  {tr('Подзвонити', 'Позвонить')}
                 </a>
                 {telegramUrl && (
                   <a
                     href={telegramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => trackEvent('contact', { channel: 'telegram_hero' })}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-3 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#1769aa] text-xs sm:text-sm font-bold transition-colors whitespace-nowrap"
+                    onClick={() => {
+                      track({ name: 'messenger_click', placement: 'hero', scenario: 'unspecified', channel: 'telegram' });
+                      trackEvent('contact', { channel: 'telegram_hero' });
+                    }}
+                    className="inline-flex min-h-12 items-center gap-1.5 px-3.5 py-3 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#1769aa] text-xs sm:text-sm font-bold transition-colors whitespace-nowrap"
                   >
                     <Send className="w-3.5 h-3.5" />
                     {tr('Telegram')}
@@ -271,65 +239,18 @@ export function HomeView({
                 )}
               </div>
 
-              {/* Instant 1-Field Callback Bar (Zero-Friction Above-the-Fold CTA) */}
-              <div className="mt-4 p-3 rounded-xl bg-white border border-slate-200 max-w-xl">
-                {heroSentDeal ? (
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#169374]">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>
-                      {tr('Заявку', 'Заявка')} <strong className="font-mono">{heroSentDeal.dealNumber}</strong> {tr('прийнято — інженер перетелефонує протягом 15 хв.', 'принята — инженер перезвонит в течение 15 минут.')}
-                    </span>
-                  </div>
-                ) : (
-                  <form onSubmit={handleHeroCallbackSubmit} className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <div className="hidden" aria-hidden="true">
-                      <input
-                        type="text"
-                        tabIndex={-1}
-                        autoComplete="off"
-                        value={heroHoneypot}
-                        onChange={(e) => setHeroHoneypot(e.target.value)}
-                      />
-                    </div>
-                    <label htmlFor="hero-callback-phone" className="sr-only">
-                      {tr('Ваш номер телефону для швидкого розрахунку', 'Ваш номер телефона для быстрого расчёта')}
-                    </label>
-                    <div className="relative flex-1">
-                      <PhoneCall className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input
-                        id="hero-callback-phone"
-                        type="tel"
-                        required
-                        value={heroPhone}
-                        onChange={(e) => setHeroPhone(e.target.value)}
-                        placeholder={tr('Ваш телефон: +38 (0__) ___-__-__', 'Ваш телефон: +38 (0__) ___-__-__')}
-                        className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 text-xs sm:text-[13px] text-[#0d1f33] placeholder:text-slate-400 focus:outline-none focus:border-[#1769aa]"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={heroSubmitting}
-                      className="px-4 py-2 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] disabled:opacity-60 text-[#0d1f33] hover:text-white text-xs font-extrabold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                    >
-                      {heroSubmitting ? tr('Надсилаємо...') : tr('Передзвоніть мені')}
-                    </button>
-                  </form>
-                )}
-                {heroError && <div className="text-[11px] font-semibold text-red-600 mt-1.5">{heroError}</div>}
-              </div>
-
               <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-xs font-semibold text-slate-600">
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
-                  {tr('Розрахунок під прилади')}
+                  {tr('Підбір за вашим сценарієм', 'Подбор под ваш сценарий')}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
-                  {tr('Офіс в Одесі (Європейська 93)')}
+                  {tr('Офіс в Одесі · Європейська, 93', 'Офис в Одессе · Европейская, 93')}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
-                  {tr('Офіційна гарантія')}
+                  {tr('Deye · SolaX · Solis', 'Deye · SolaX · Solis')}
                 </span>
               </div>
             </div>
@@ -868,6 +789,12 @@ export function HomeView({
 
           <form
             onSubmit={handleBriefSubmit}
+            onFocus={() => {
+              if (!briefFormStarted.current) {
+                briefFormStarted.current = true;
+                track({ name: 'form_start', placement: 'section', scenario: getFormScenario(taskType) });
+              }
+            }}
             className="lg:col-span-7 bg-white/[0.06] border border-white/15 rounded-2xl p-6 space-y-4"
           >
             <div className="hidden" aria-hidden="true">
