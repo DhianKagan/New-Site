@@ -129,9 +129,13 @@ export const staffCreateSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .min(2, 'Логін має містити від 2 символів')
     .max(40)
-    .regex(/^[a-z0-9._-]+$/, 'Логін може містити лише латиницю, цифри, крапку, дефіс або _'),
+    .refine(
+      (v) => !v || (/^[a-z0-9._-]+$/.test(v) && v.length >= 2),
+      'Логін може містити лише латиницю, цифри, крапку, дефіс або _ (мін. 2 символи)',
+    )
+    .optional()
+    .default(''),
   email: z
     .string()
     .trim()
@@ -245,4 +249,23 @@ export const socialPutSchema = z.object({
   youtube: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для youtube').optional().default(''),
   viber: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для viber').optional().default(''),
   tiktok: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для tiktok').optional().default(''),
+});
+
+export const clientRegisterSchema = z.object({
+  name: z.string().trim().min(2, 'Вкажіть ваше ім’я (мінімум 2 символи)').max(120),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(160)
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Вкажіть коректний Email'),
+  phone: z.string().trim().max(40).optional().default(''),
+  city: z.string().trim().max(80).optional().default('Одеса'),
+  password: z.string().min(6, 'Пароль має містити щонайменше 6 символів').max(128),
+});
+
+export const clientProfilePatchSchema = z.object({
+  name: z.string().trim().min(2, 'Ім’я має містити щонайменше 2 символи').max(120).optional(),
+  phone: z.string().trim().max(40).optional(),
+  city: z.string().trim().min(1, 'Вкажіть місто').max(80).optional(),
 });

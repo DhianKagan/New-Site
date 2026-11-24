@@ -20,10 +20,13 @@ import {
   deleteProjectCase,
   deleteStaffUser,
   deleteTask,
+  findCustomerForPasswordLogin,
   findStaffForGoogleLogin,
   findStaffForPasswordLogin,
   getCatalogFacets,
   getContactDetail,
+  getCustomerAuthStateSync,
+  getCustomerProfileById,
   getMasterAdminRecordSync,
   getProductById,
   getPublicAnalyticsConfig,
@@ -34,6 +37,7 @@ import {
   getStorageDiagnostics,
   getUploadsDir,
   listContacts,
+  listCustomerDeals,
   listDeals,
   listNotes,
   listProducts,
@@ -44,21 +48,26 @@ import {
   listTasks,
   markDealTelegramSent,
   recordAnalyticsEvent,
+  registerCustomerWithPassword,
   saveAnalyticsSettings,
   saveSocialLinks,
   setSetting,
   setSettingIfAbsent,
   updateContact,
+  updateCustomerProfile,
   updateDeal,
   updateProduct,
   updateProjectCase,
   updateStaffUser,
   updateTask,
+  upsertGoogleCustomerAccount,
 } from './server/db.ts';
 import {
   adminLoginSchema,
   adminSetupSchema,
   analyticsPutSchema,
+  clientProfilePatchSchema,
+  clientRegisterSchema,
   contactCreateSchema,
   contactPatchSchema,
   dealPatchSchema,
@@ -79,11 +88,16 @@ import {
   taskPatchSchema,
 } from './server/validation.ts';
 import {
+  createClientSessionToken,
+  createLoginBruteForceGuard,
+  createRequireClientAuth,
   createRequireCrmAuth,
   createSessionToken,
+  getClientUser,
   getCrmUser,
   hashPassword,
   requireRoles,
+  verifyClientSessionToken,
   verifyEnvPassword,
   verifyScryptPassword,
 } from './server/auth.ts';
@@ -244,7 +258,13 @@ function buildRouteSeoHtml(template: string, req: express.Request): string {
     title = 'Публічна оферта (проєкт) — Energo Comfort';
     description = 'Проєкт умов дистанційного замовлення обладнання та послуг Energo Comfort.';
   } else if (rawPath === '/crm') {
-    title = 'CRM та адмін-панель — Energo Comfort';
+    title = 'CRM — Energo Comfort';
+    robots = 'noindex, nofollow';
+  } else if (rawPath === '/login') {
+    title = 'Вхід та реєстрація — Energo Comfort';
+    robots = 'noindex, nofollow';
+  } else if (rawPath === '/account') {
+    title = 'Особистий кабінет — Energo Comfort';
     robots = 'noindex, nofollow';
   }
 
@@ -357,8 +377,16 @@ async function startServer() {
 
   const authRateLimit = createRateLimiter({
     windowMs: 10 * 60_000,
-    max: 12,
-    message: 'Забагато спроб входу. Повторіть через 10 хвилин.',
+    max: 30,
+    message: 'Забагато запитів авторизації. Спробуйте через кілька хвилин.',
+  });
+
+  const loginBruteGuard = createLoginBruteForceGuard({
+    windowMs: 15 * 60_000,
+    lockDurationMs: 15 * 60_000,
+    maxAttemptsPerPair: 5,
+    maxAttemptsPerIdentifier: 8,
+    maxAttemptsPerIp: 15,
   });
 
   const analyticsRateLimit = createRateLimiter({
@@ -366,6 +394,17 @@ async function startServer() {
     max: 120,
     message: 'Rate limit exceeded',
   });
+
+  function resolveOptionalClient(req: express.Request): { customerId: number; customerEmail: string } | null {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) return null;
+    const token = header.slice('Bearer '.length).trim();
+    const parsed = verifyClientSessionToken(token);
+    if (!parsed) return null;
+    const fresh = getCustomerAuthStateSync(parsed.customerId);
+    if (!fresh || !fresh.active) return null;
+    return { customerId: fresh.id, customerEmail: fresh.email };
+  }
 
   // SEO: robots.txt, sitemap.xml & Merchant XML Feed (Meta / Google Shopping)
   app.get('/robots.txt', (req, res) => {
@@ -376,6 +415,8 @@ async function startServer() {
         'Allow: /',
         'Disallow: /api/',
         'Disallow: /crm',
+        'Disallow: /login',
+        'Disallow: /account',
         '',
         `Sitemap: ${baseUrl}/sitemap.xml`,
       ].join('\n'),
@@ -566,6 +607,8 @@ async function startServer() {
       return;
     }
 
+    const linkedClient = resolveOptionalClient(req);
+
     const deal = createDeal({
       type: 'lead',
       customerName: body.customerName.trim(),
@@ -577,6 +620,8 @@ async function startServer() {
       loads: body.loads.map((item) => item.trim()).filter(Boolean),
       notes: body.notes.trim(),
       estimatedTotalUsd: body.estimatedTotalUsd,
+      customerId: linkedClient?.customerId ?? null,
+      customerEmail: linkedClient?.customerEmail ?? '',
     });
 
     const tg = await sendDealToTelegram(deal);
@@ -612,6 +657,8 @@ async function startServer() {
       return;
     }
 
+    const linkedClient = resolveOptionalClient(req);
+
     const deal = createDeal({
       type: 'order',
       customerName: body.customerName.trim(),
@@ -620,6 +667,8 @@ async function startServer() {
       channel: body.channel.trim(),
       notes: body.notes.trim(),
       items: body.items,
+      customerId: linkedClient?.customerId ?? null,
+      customerEmail: linkedClient?.customerEmail ?? '',
     });
 
     if (deal.items.length === 0) {
@@ -637,8 +686,8 @@ async function startServer() {
     res.status(201).json({ deal });
   });
 
-  // Admin Authentication API
-  app.get('/api/admin/auth/status', (_req, res) => {
+  // Unified Authentication API (Staff CRM + Client Cabinet) with Brute-Force Protection
+  const handleAuthStatus: express.RequestHandler = (_req, res) => {
     const hasEnvPassword = Boolean(process.env.ADMIN_PASSWORD?.trim());
     const master = getMasterAdminRecordSync();
     const hasDbHash = Boolean(getSetting('admin_password_hash') || master.passwordHash);
@@ -648,13 +697,16 @@ async function startServer() {
       mode: configured ? 'login' : 'setup',
       googleEnabled: isFirebaseAuthConfigured(),
     });
-  });
+  };
+
+  app.get('/api/auth/status', handleAuthStatus);
+  app.get('/api/admin/auth/status', handleAuthStatus);
 
   app.post('/api/admin/auth/setup', authRateLimit, (req, res) => {
     const envPass = process.env.ADMIN_PASSWORD?.trim();
     const masterExisting = getMasterAdminRecordSync();
     if (envPass || getSetting('admin_password_hash') || masterExisting.passwordHash) {
-      res.status(409).json({ error: 'Мастер-акаунт адміністратора вже налаштовано. Використовуйте форму входу.' });
+      res.status(409).json({ error: 'Акаунт адміністратора вже налаштовано. Використовуйте форму входу.' });
       return;
     }
 
@@ -689,88 +741,161 @@ async function startServer() {
       role: 'admin' as const,
       assigneeLabel: master.assigneeLabel,
     };
-    res.status(201).json({ token: createSessionToken(adminUser), user: adminUser });
+    res.status(201).json({ accountType: 'staff', token: createSessionToken(adminUser), user: adminUser });
   });
 
-  app.post('/api/admin/auth/login', authRateLimit, async (req, res) => {
+  function formatLockoutMessage(retryAfterSec: number): string {
+    const mins = Math.max(1, Math.ceil(retryAfterSec / 60));
+    return `Забагато невдалих спроб входу. Спробуйте повторно через ${mins} хв.`;
+  }
+
+  const handleUnifiedPasswordLogin: express.RequestHandler = async (req, res) => {
+    const clientIp = String(req.ip || req.socket.remoteAddress || 'unknown');
     const parsed = adminLoginSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Введіть пароль' });
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Введіть логін/Email і пароль' });
       return;
     }
 
     const { identifier, password } = parsed.data;
     const normalizedId = identifier.trim().toLowerCase();
+    const guardCheck = loginBruteGuard.check(clientIp, normalizedId);
+    if (!guardCheck.allowed) {
+      res.setHeader('Retry-After', String(guardCheck.retryAfterSec));
+      res.status(429).json({ error: formatLockoutMessage(guardCheck.retryAfterSec), retryAfterSec: guardCheck.retryAfterSec });
+      return;
+    }
 
-    // 1) Master admin account login (blank identifier OR login/email matching master 'admin')
+    const envMasterLogin = process.env.ADMIN_LOGIN?.trim().toLowerCase();
+    const expectedMasterLogin = envMasterLogin || 'admin';
     const master = getMasterAdminRecordSync();
+
     const isMasterAttempt =
-      !normalizedId || normalizedId === 'admin' || (Boolean(master.email) && normalizedId === master.email.toLowerCase());
+      Boolean(normalizedId) &&
+      (normalizedId === expectedMasterLogin ||
+        (!envMasterLogin && Boolean(master.email) && normalizedId === master.email.toLowerCase()));
 
     if (isMasterAttempt) {
+      const envPass = process.env.ADMIN_PASSWORD?.trim();
+      const storedHash = master.passwordHash || getSetting('admin_password_hash');
+      const valid = envPass
+        ? verifyEnvPassword(password, envPass)
+        : Boolean(storedHash && verifyScryptPassword(password, storedHash));
+
+      if (!valid) {
+        const fail = loginBruteGuard.recordFailure(clientIp, normalizedId);
+        if (fail.locked) {
+          res.setHeader('Retry-After', String(fail.retryAfterSec));
+          res.status(429).json({ error: formatLockoutMessage(fail.retryAfterSec), retryAfterSec: fail.retryAfterSec });
+          return;
+        }
+        res.status(401).json({
+          error: 'Невірний логін/Email або пароль',
+          remainingAttempts: fail.remainingAttempts,
+        });
+        return;
+      }
+
+      loginBruteGuard.recordSuccess(clientIp, normalizedId);
       const adminUser = {
         userId: master.id,
         name: master.name,
-        login: master.login,
+        login: expectedMasterLogin,
         email: master.email,
         role: 'admin' as const,
         assigneeLabel: master.assigneeLabel,
       };
-
-      const envPass = process.env.ADMIN_PASSWORD?.trim();
-      if (envPass) {
-        if (!verifyEnvPassword(password, envPass)) {
-          res.status(401).json({ error: 'Невірний пароль адміністратора' });
-          return;
-        }
-        res.json({ token: createSessionToken(adminUser), user: adminUser });
-        return;
-      }
-
-      const storedHash = master.passwordHash || getSetting('admin_password_hash');
-      if (!storedHash) {
-        res.status(400).json({ error: 'Пароль мастер-адміністратора ще не налаштовано' });
-        return;
-      }
-
-      if (!verifyScryptPassword(password, storedHash)) {
-        res.status(401).json({ error: 'Невірний пароль адміністратора' });
-        return;
-      }
-
-      res.json({ token: createSessionToken(adminUser), user: adminUser });
+      res.json({ accountType: 'staff', token: createSessionToken(adminUser), user: adminUser });
       return;
     }
 
-    // 2) Personal CRM staff account login (by login or corporate email)
-    const found = await findStaffForPasswordLogin(identifier);
+    // Check Customer Account by Email + Password
+    const customerRecord = normalizedId.includes('@') ? await findCustomerForPasswordLogin(normalizedId) : null;
     if (
-      !found ||
-      !found.user.active ||
-      !found.user.canLogin ||
-      !found.passwordHash ||
-      !verifyScryptPassword(password, found.passwordHash)
+      customerRecord &&
+      customerRecord.customer.active &&
+      customerRecord.passwordHash &&
+      verifyScryptPassword(password, customerRecord.passwordHash)
     ) {
-      res.status(401).json({ error: 'Невірний логін/email або пароль, чи обліковий запис вимкнено' });
+      loginBruteGuard.recordSuccess(clientIp, normalizedId);
+      const client = customerRecord.customer;
+      const token = createClientSessionToken({
+        customerId: client.id,
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        city: client.city,
+      });
+      res.json({ accountType: 'client', token, customer: client });
       return;
     }
 
-    const sessionUser = {
-      userId: found.user.id,
-      name: found.user.name,
-      login: found.user.login,
-      email: found.user.email,
-      role: found.user.role,
-      assigneeLabel: found.user.assigneeLabel,
-    };
-    res.json({ token: createSessionToken(sessionUser), user: sessionUser });
+    const fail = loginBruteGuard.recordFailure(clientIp, normalizedId);
+    if (fail.locked) {
+      res.setHeader('Retry-After', String(fail.retryAfterSec));
+      res.status(429).json({ error: formatLockoutMessage(fail.retryAfterSec), retryAfterSec: fail.retryAfterSec });
+      return;
+    }
+    res.status(401).json({
+      error: 'Невірний логін/Email або пароль',
+      remainingAttempts: fail.remainingAttempts,
+    });
+  };
+
+  app.post('/api/auth/login', authRateLimit, handleUnifiedPasswordLogin);
+  app.post('/api/admin/auth/login', authRateLimit, handleUnifiedPasswordLogin);
+
+  app.post('/api/auth/register', authRateLimit, async (req, res) => {
+    const parsed = clientRegisterSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані реєстрації' });
+      return;
+    }
+
+    let normalizedPhone = '';
+    if (parsed.data.phone.trim()) {
+      const clean = normalizePhoneInput(parsed.data.phone.trim());
+      if (!clean) {
+        res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
+        return;
+      }
+      normalizedPhone = clean;
+    }
+
+    try {
+      const customer = await registerCustomerWithPassword({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        phone: normalizedPhone,
+        city: parsed.data.city,
+        password: parsed.data.password,
+      });
+      const token = createClientSessionToken({
+        customerId: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        city: customer.city,
+      });
+      res.status(201).json({ accountType: 'client', token, customer });
+    } catch (err) {
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Не вдалося створити акаунт' });
+    }
   });
 
-  app.post('/api/admin/auth/google', authRateLimit, async (req, res) => {
+  const handleUnifiedGoogleAuth: express.RequestHandler = async (req, res) => {
     if (!isFirebaseAuthConfigured()) {
       res.status(400).json({ error: 'Google-авторизація не налаштована на сервері' });
       return;
     }
+    const clientIp = String(req.ip || req.socket.remoteAddress || 'unknown');
+    const guardCheck = loginBruteGuard.check(clientIp, 'google-oauth');
+    if (!guardCheck.allowed) {
+      res.setHeader('Retry-After', String(guardCheck.retryAfterSec));
+      res.status(429).json({ error: formatLockoutMessage(guardCheck.retryAfterSec), retryAfterSec: guardCheck.retryAfterSec });
+      return;
+    }
+
     const body = (req.body ?? {}) as { idToken?: string };
     const idToken = String(body.idToken ?? '').trim();
     if (!idToken) {
@@ -780,61 +905,139 @@ async function startServer() {
 
     const verified = await verifyFirebaseGoogleToken(idToken);
     if (!verified) {
+      loginBruteGuard.recordFailure(clientIp, 'google-oauth');
       res.status(401).json({ error: 'Не вдалося перевірити Google-акаунт' });
       return;
     }
 
+    loginBruteGuard.recordSuccess(clientIp, 'google-oauth');
+
     const { effective } = getEmailAllowlists();
     const staffMatch = await findStaffForGoogleLogin(verified.email);
-    const staffCanGoogleLogin = Boolean(staffMatch && staffMatch.active && staffMatch.canLogin);
     const isAllowlistedAdmin = effective.includes(verified.email);
     const master = getMasterAdminRecordSync();
 
-    if (!isAllowlistedAdmin && !staffCanGoogleLogin) {
-      if (effective.length === 0) {
-        const hasPassword = Boolean(
-          process.env.ADMIN_PASSWORD?.trim() || getSetting('admin_password_hash') || master.passwordHash,
-        );
-        if (hasPassword) {
-          res.status(403).json({
-            error: `Доступ через Google для ${verified.email} ще не відкритий: додайте email у розділі «Персонал» або через ADMIN_EMAILS.`,
-          });
+    // If email belongs to a disabled/revoked staff record (and isn't in ADMIN_EMAILS), block access
+    if (!isAllowlistedAdmin && staffMatch && (!staffMatch.active || !staffMatch.canLogin)) {
+      res.status(403).json({
+        error: 'Обліковий запис співробітника вимкнено адміністратором',
+      });
+      return;
+    }
+
+    // Route Staff / Admin -> CRM
+    if (isAllowlistedAdmin || (staffMatch && staffMatch.active && staffMatch.canLogin)) {
+      const sessionUser =
+        staffMatch && staffMatch.active
+          ? {
+              userId: staffMatch.id,
+              name: staffMatch.name,
+              login: staffMatch.login,
+              email: verified.email,
+              role: isAllowlistedAdmin ? ('admin' as const) : staffMatch.role,
+              assigneeLabel: staffMatch.assigneeLabel,
+            }
+          : {
+              userId: master.id,
+              name: verified.name || master.name,
+              login: master.login,
+              email: verified.email,
+              role: 'admin' as const,
+              assigneeLabel: master.assigneeLabel,
+            };
+
+      res.json({
+        accountType: 'staff',
+        token: createSessionToken(sessionUser),
+        email: verified.email,
+        user: sessionUser,
+      });
+      return;
+    }
+
+    // Route Client -> Auto-register / sign in to Client Cabinet
+    try {
+      const customer = await upsertGoogleCustomerAccount({
+        email: verified.email,
+        name: verified.name,
+        firebaseUid: verified.uid,
+      });
+      const token = createClientSessionToken({
+        customerId: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        city: customer.city,
+      });
+      res.json({
+        accountType: 'client',
+        token,
+        email: verified.email,
+        customer,
+      });
+    } catch (err) {
+      res.status(403).json({ error: err instanceof Error ? err.message : 'Не вдалося увійти в кабінет' });
+    }
+  };
+
+  app.post('/api/auth/google', authRateLimit, handleUnifiedGoogleAuth);
+  app.post('/api/admin/auth/google', authRateLimit, handleUnifiedGoogleAuth);
+
+  // Protected Client Cabinet APIs
+  app.use('/api/client', createRequireClientAuth(getCustomerAuthStateSync));
+
+  app.get('/api/client/me', async (req, res) => {
+    const client = getClientUser(req);
+    if (!client) {
+      res.status(401).json({ error: 'Потрібна авторизація' });
+      return;
+    }
+    const customer = await getCustomerProfileById(client.customerId);
+    if (!customer) {
+      res.status(404).json({ error: 'Профіль клієнта не знайдено' });
+      return;
+    }
+    const deals = listCustomerDeals({ id: customer.id, email: customer.email, phone: customer.phone });
+    res.json({ customer, deals });
+  });
+
+  app.patch('/api/client/profile', async (req, res) => {
+    const client = getClientUser(req);
+    if (!client) {
+      res.status(401).json({ error: 'Потрібна авторизація' });
+      return;
+    }
+    const parsed = clientProfilePatchSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані профілю' });
+      return;
+    }
+
+    let nextPhone: string | undefined;
+    if (parsed.data.phone !== undefined) {
+      if (parsed.data.phone.trim() === '') {
+        nextPhone = '';
+      } else {
+        const normalized = normalizePhoneInput(parsed.data.phone.trim());
+        if (!normalized) {
+          res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
           return;
         }
-        const claimed = setSettingIfAbsent('admin_emails', verified.email);
-        if (!claimed) {
-          const refreshed = getEmailAllowlists();
-          if (!refreshed.effective.includes(verified.email)) {
-            res.status(403).json({ error: `Акаунт ${verified.email} не має доступу до CRM` });
-            return;
-          }
-        }
-      } else {
-        res.status(403).json({ error: `Акаунт ${verified.email} не має доступу до CRM` });
-        return;
+        nextPhone = normalized;
       }
     }
 
-    const sessionUser =
-      staffMatch && staffMatch.active
-        ? {
-            userId: staffMatch.id,
-            name: staffMatch.name,
-            login: staffMatch.login,
-            email: verified.email,
-            role: isAllowlistedAdmin ? ('admin' as const) : staffMatch.role,
-            assigneeLabel: staffMatch.assigneeLabel,
-          }
-        : {
-            userId: master.id,
-            name: verified.name || master.name,
-            login: master.login,
-            email: verified.email,
-            role: 'admin' as const,
-            assigneeLabel: master.assigneeLabel,
-          };
-
-    res.json({ token: createSessionToken(sessionUser), email: verified.email, user: sessionUser });
+    const updated = await updateCustomerProfile(client.customerId, {
+      name: parsed.data.name,
+      phone: nextPhone,
+      city: parsed.data.city,
+    });
+    if (!updated) {
+      res.status(404).json({ error: 'Профіль клієнта не знайдено' });
+      return;
+    }
+    const deals = listCustomerDeals({ id: updated.id, email: updated.email, phone: updated.phone });
+    res.json({ customer: updated, deals });
   });
 
   // Protected CRM APIs
@@ -852,30 +1055,30 @@ async function startServer() {
   app.post('/api/crm/staff', requireRoles('admin'), async (req, res) => {
     const parsed = staffCreateSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані співробітника' });
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані користувача' });
       return;
     }
     if (parsed.data.login === 'admin') {
-      res.status(409).json({ error: 'Логін admin зарезервовано за мастер-акаунтом' });
+      res.status(409).json({ error: 'Логін admin зарезервовано за майстер-акаунтом' });
       return;
     }
-    if (parsed.data.canLogin && !parsed.data.password && !parsed.data.email) {
-      res.status(400).json({ error: 'Щоб увімкнути вхід у CRM, задайте пароль (мін. 6 символів) або Google Email' });
+    if (parsed.data.canLogin && !parsed.data.email) {
+      res.status(400).json({ error: 'Вкажіть Email (Google акаунт) користувача для входу в CRM' });
       return;
     }
     try {
       const member = await createStaffUser(parsed.data);
       res.status(201).json({ member });
     } catch (err) {
-      res.status(409).json({ error: err instanceof Error ? err.message : 'Не вдалося створити акаунт' });
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Не вдалося створити користувача' });
     }
   });
 
-  // Admin can edit any staff member; non-admin users can ONLY edit their own profile & password
+  // Admin can edit any staff member; non-admin users can ONLY edit their own profile fields (Email/role/access locked)
   app.patch('/api/crm/staff/:id', async (req, res) => {
     const staffId = Number(req.params.id);
     if (!Number.isFinite(staffId) || staffId <= 0) {
-      res.status(400).json({ error: 'Некоректний ID співробітника' });
+      res.status(400).json({ error: 'Некоректний ID користувача' });
       return;
     }
 
@@ -884,22 +1087,22 @@ async function startServer() {
     const isSelf = currentUser?.userId !== null && currentUser?.userId === staffId;
 
     if (!isAdmin && !isSelf) {
-      res.status(403).json({ error: 'Ви можете редагувати лише власний обліковий запис' });
+      res.status(403).json({ error: 'Ви можете редагувати лише власний профіль' });
       return;
     }
 
     const rawBody = (req.body ?? {}) as Record<string, unknown>;
     if (!isAdmin) {
-      const restrictedKeys = ['role', 'active', 'canLogin', 'login', 'clearPassword'];
+      const restrictedKeys = ['role', 'active', 'canLogin', 'login', 'email', 'password', 'clearPassword'];
       if (restrictedKeys.some((k) => Object.prototype.hasOwnProperty.call(rawBody, k))) {
-        res.status(403).json({ error: 'Лише адміністратор може змінювати логін, роль або права доступу' });
+        res.status(403).json({ error: 'Лише адміністратор може змінювати Email, роль або права доступу' });
         return;
       }
     }
 
     const parsed = staffPatchSchema.safeParse(rawBody);
     if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні поля співробітника' });
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні поля користувача' });
       return;
     }
 
@@ -912,11 +1115,9 @@ async function startServer() {
       ? parsed.data
       : {
           name: parsed.data.name,
-          email: parsed.data.email,
           phone: parsed.data.phone,
           position: parsed.data.position,
           assigneeLabel: parsed.data.assigneeLabel,
-          password: parsed.data.password,
         };
 
     try {

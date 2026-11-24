@@ -12,11 +12,7 @@ import {
 } from '@tanstack/react-table';
 import {
   ArrowUpDown,
-  Check,
-  Copy,
   Crown,
-  Eye,
-  EyeOff,
   KeyRound,
   Mail,
   Pencil,
@@ -27,7 +23,6 @@ import {
   Trash2,
   UserCheck,
   UserX,
-  Wand2,
 } from 'lucide-react';
 import type { CrmSessionUser, CrmTask, Deal, StaffRole, StaffUser } from '../../types.ts';
 import { tr } from '../../lib/i18n.ts';
@@ -68,13 +63,6 @@ const ROLE_LABELS: Record<StaffRole, { uk: string; ru: string; variant: 'dark' |
   installer: { uk: 'Монтаж', ru: 'Монтаж', variant: 'warning' },
 };
 
-function generateStrongPassword(length = 12): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
-  const bytes = new Uint8Array(length);
-  window.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
-}
-
 export function StaffTab({
   staff,
   currentUser,
@@ -95,16 +83,11 @@ export function StaffTab({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<StaffUser | null>(null);
   const [fName, setFName] = useState('');
-  const [fLogin, setFLogin] = useState('');
   const [fEmail, setFEmail] = useState('');
   const [fPhone, setFPhone] = useState('');
   const [fPosition, setFPosition] = useState('Менеджер');
   const [fRole, setFRole] = useState<StaffRole>('manager');
   const [fAssigneeLabel, setFAssigneeLabel] = useState('');
-  const [fPassword, setFPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [copiedPwd, setCopiedPwd] = useState(false);
-  const [fClearPassword, setFClearPassword] = useState(false);
   const [fCanLogin, setFCanLogin] = useState(true);
   const [fActive, setFActive] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -154,16 +137,11 @@ export function StaffTab({
     if (!isAdmin) return;
     setEditingMember(null);
     setFName('');
-    setFLogin('');
     setFEmail('');
     setFPhone('');
     setFPosition('Менеджер');
     setFRole('manager');
     setFAssigneeLabel('');
-    setFPassword('');
-    setShowPassword(false);
-    setCopiedPwd(false);
-    setFClearPassword(false);
     setFCanLogin(true);
     setFActive(true);
     setFormErr('');
@@ -176,39 +154,15 @@ export function StaffTab({
 
     setEditingMember(m);
     setFName(m.name);
-    setFLogin(m.login);
     setFEmail(m.email);
     setFPhone(m.phone);
     setFPosition(m.position);
     setFRole(m.role);
     setFAssigneeLabel(m.assigneeLabel);
-    setFPassword('');
-    setShowPassword(false);
-    setCopiedPwd(false);
-    setFClearPassword(false);
     setFCanLogin(m.canLogin);
     setFActive(m.active);
     setFormErr('');
     setModalOpen(true);
-  }
-
-  function handleGeneratePassword() {
-    const pwd = generateStrongPassword(12);
-    setFPassword(pwd);
-    setFClearPassword(false);
-    setShowPassword(true);
-    setCopiedPwd(false);
-  }
-
-  async function handleCopyPassword() {
-    if (!fPassword) return;
-    try {
-      await navigator.clipboard.writeText(fPassword);
-      setCopiedPwd(true);
-      window.setTimeout(() => setCopiedPwd(false), 2000);
-    } catch {
-      setCopiedPwd(false);
-    }
   }
 
   async function handleSaveMember(e: FormEvent) {
@@ -221,17 +175,11 @@ export function StaffTab({
       return;
     }
 
-    if (
-      !editingIsSelfOnly &&
-      fCanLogin &&
-      !fPassword &&
-      !fEmail.trim() &&
-      !(editingMember?.hasPassword && !fClearPassword)
-    ) {
+    if (!editingIsSelfOnly && !editingIsMaster && fCanLogin && !fEmail.trim()) {
       setFormErr(
         tr(
-          'Щоб дозволити вхід у CRM, задайте пароль (мін. 6 символів) або вкажіть Google Email',
-          'Чтобы разрешить вход в CRM, задайте пароль (мин. 6 символов) или укажите Google Email',
+          'Щоб користувач міг увійти через Google, вкажіть його Email',
+          'Чтобы пользователь мог войти через Google, укажите его Email',
         ),
       );
       return;
@@ -242,14 +190,12 @@ export function StaffTab({
       const payload: Record<string, unknown> = editingIsSelfOnly
         ? {
             name: fName.trim(),
-            email: fEmail.trim().toLowerCase(),
             phone: fPhone.trim(),
             position: fPosition.trim(),
             assigneeLabel: fAssigneeLabel.trim(),
           }
         : {
             name: fName.trim(),
-            login: editingIsMaster ? 'admin' : fLogin.trim().toLowerCase(),
             email: fEmail.trim().toLowerCase(),
             phone: fPhone.trim(),
             position: fPosition.trim(),
@@ -259,13 +205,6 @@ export function StaffTab({
             active: editingIsMaster ? true : fActive,
           };
 
-      if (fPassword.trim()) {
-        payload.password = fPassword;
-      }
-      if (!editingIsSelfOnly && editingMember && fClearPassword) {
-        payload.clearPassword = true;
-      }
-
       const url = editingMember ? `/api/crm/staff/${editingMember.id}` : '/api/crm/staff';
       const resp = await authFetch(url, {
         method: editingMember ? 'PATCH' : 'POST',
@@ -274,7 +213,7 @@ export function StaffTab({
       });
       const data = (await resp.json()) as { member?: StaffUser; error?: string };
       if (!resp.ok || !data.member) {
-        setFormErr(data.error || tr('Не вдалося зберегти обліковий запис', 'Не удалось сохранить учётную запись'));
+        setFormErr(data.error || tr('Не вдалося зберегти користувача', 'Не удалось сохранить пользователя'));
         return;
       }
 
@@ -288,7 +227,7 @@ export function StaffTab({
       setActionMsg(
         editingMember
           ? tr(`Профіль «${data.member.name}» оновлено`, `Профиль «${data.member.name}» обновлён`)
-          : tr(`Створено обліковий запис для «${data.member.name}»`, `Создана учётная запись для «${data.member.name}»`),
+          : tr(`Додано користувача «${data.member.name}» (${data.member.email || data.member.login})`, `Добавлен пользователь «${data.member.name}»`),
       );
     } catch {
       setFormErr(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
@@ -319,11 +258,11 @@ export function StaffTab({
     const resp = await authFetch(`/api/crm/staff/${m.id}`, { method: 'DELETE' });
     const data = (await resp.json()) as { error?: string };
     if (!resp.ok) {
-      setActionMsg(data.error || tr('Не вдалося видалити співробітника', 'Не удалось удалить сотрудника'));
+      setActionMsg(data.error || tr('Не вдалося видалити користувача', 'Не удалось удалить пользователя'));
       return;
     }
     await onRefreshStaff();
-    setActionMsg(tr(`Співробітника «${m.name}» видалено`, `Сотрудник «${m.name}» удалён`));
+    setActionMsg(tr(`Користувача «${m.name}» видалено`, `Пользователь «${m.name}» удалён`));
   }
 
   const columns = useMemo(
@@ -342,7 +281,7 @@ export function StaffTab({
                   {isMaster && (
                     <Badge variant="dark" className="gap-1">
                       <Crown className="w-3 h-3 text-amber-400" />
-                      {tr('Мастер', 'Мастер')}
+                      {tr('Майстер', 'Мастер')}
                     </Badge>
                   )}
                   {isSelf && <Badge variant="info">{tr('Ви', 'Вы')}</Badge>}
@@ -354,21 +293,26 @@ export function StaffTab({
             );
           },
         }),
-        columnHelper.accessor('login', {
-          header: () => <span>{tr('Логін і контакти', 'Логин и контакты')}</span>,
+        columnHelper.accessor('email', {
+          header: () => <span>{tr('Email (Google) і телефон', 'Email (Google) и телефон')}</span>,
           cell: (info) => {
             const m = info.row.original;
             return (
               <div className="space-y-0.5 text-[11px]">
-                <div className="font-mono font-bold text-[#0d1f33]">@{m.login}</div>
-                {m.email && (
-                  <div className="text-slate-600 inline-flex items-center gap-1">
-                    <Mail className="w-3 h-3 text-slate-400" />
+                {m.email ? (
+                  <div className="font-semibold text-[#0d1f33] inline-flex items-center gap-1">
+                    <Mail className="w-3 h-3 text-[#1769aa]" />
                     {m.email}
+                  </div>
+                ) : (
+                  <div className="text-slate-400 italic">
+                    {m.login === 'admin'
+                      ? tr('Вхід через ADMIN_LOGIN + ADMIN_PASSWORD', 'Вход через ADMIN_LOGIN + ADMIN_PASSWORD')
+                      : tr('Email не прив’язано', 'Email не привязан')}
                   </div>
                 )}
                 {m.phone && (
-                  <div className="text-slate-500 inline-flex items-center gap-1 ml-2">
+                  <div className="text-slate-500 flex items-center gap-1">
                     <Phone className="w-3 h-3 text-slate-400" />
                     {m.phone}
                   </div>
@@ -385,26 +329,33 @@ export function StaffTab({
           },
         }),
         columnHelper.accessor('canLogin', {
-          header: () => <span>{tr('Вхід і пароль', 'Вход и пароль')}</span>,
+          header: () => <span>{tr('Авторизація в CRM', 'Авторизация в CRM')}</span>,
           cell: (info) => {
             const m = info.row.original;
             if (!m.active) {
               return <Badge variant="danger">{tr('Вимкнено', 'Отключён')}</Badge>;
             }
+            if (m.login === 'admin') {
+              return (
+                <div className="flex flex-wrap items-center gap-1">
+                  <Badge variant="dark" className="gap-1">
+                    <KeyRound className="w-3 h-3 text-amber-400" />
+                    {tr('Майстер-вхід (ENV)', 'Мастер-вход (ENV)')}
+                  </Badge>
+                  {m.email && <Badge variant="info">Google</Badge>}
+                </div>
+              );
+            }
             if (!m.canLogin) {
               return <Badge variant="default">{tr('Без входу (лише виконавець)', 'Без входа (только исполнитель)')}</Badge>;
             }
-            return (
-              <div className="flex flex-wrap items-center gap-1">
-                {m.hasPassword && (
-                  <Badge variant="success" className="gap-1">
-                    <KeyRound className="w-3 h-3" />
-                    {tr('Пароль задано', 'Пароль задан')}
-                  </Badge>
-                )}
-                {m.email && <Badge variant="info">Google</Badge>}
-                {!m.hasPassword && !m.email && <Badge variant="warning">{tr('Без пароля', 'Без пароля')}</Badge>}
-              </div>
+            return m.email ? (
+              <Badge variant="success" className="gap-1">
+                <Mail className="w-3 h-3" />
+                {tr('Google за Email', 'Google по Email')}
+              </Badge>
+            ) : (
+              <Badge variant="warning">{tr('Потрібен Email', 'Нужен Email')}</Badge>
             );
           },
         }),
@@ -447,21 +398,17 @@ export function StaffTab({
                   type="button"
                   onClick={() => openEditModal(m)}
                   title={
-                    isSelf
-                      ? tr('Редагувати свій профіль і пароль', 'Редактировать свой профиль и пароль')
-                      : tr('Редагувати профіль і задати пароль', 'Редактировать профиль и задать пароль')
+                    isSelf && !isAdmin
+                      ? tr('Редагувати свій профіль', 'Редактировать свой профиль')
+                      : tr('Редагувати профіль і Email', 'Редактировать профиль и Email')
                   }
                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
                 >
-                  {m.canLogin && !m.hasPassword ? (
-                    <KeyRound className="w-3 h-3 text-amber-600" />
-                  ) : (
-                    <Pencil className="w-3 h-3 text-[#1769aa]" />
-                  )}
+                  <Pencil className="w-3 h-3 text-[#1769aa]" />
                   {isSelf && !isAdmin
-                    ? tr('Мій профіль / Пароль', 'Мой профиль / Пароль')
-                    : !m.hasPassword && m.login !== 'admin'
-                      ? tr('Задати пароль', 'Задать пароль')
+                    ? tr('Мій профіль', 'Мой профиль')
+                    : !m.email && !isMaster
+                      ? tr('Прив’язати Email', 'Привязать Email')
                       : tr('Змінити', 'Изменить')}
                 </button>
                 {isAdmin && !isSelf && !isMaster && (
@@ -470,7 +417,7 @@ export function StaffTab({
                       type="button"
                       onClick={() => void handleToggleActive(m)}
                       title={m.active ? tr('Деактивувати', 'Деактивировать') : tr('Активувати', 'Активировать')}
-                      aria-label={m.active ? tr('Деактивувати співробітника') : tr('Активувати співробітника')}
+                      aria-label={m.active ? tr('Деактивувати користувача') : tr('Активувати користувача')}
                       className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-[#0d1f33] cursor-pointer"
                     >
                       {m.active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5 text-[#169374]" />}
@@ -502,14 +449,14 @@ export function StaffTab({
     onSortingChange: setSorting,
   });
 
-  const activeLoginCount = staff.filter((m) => m.active && m.canLogin).length;
+  const activeGoogleLoginCount = staff.filter((m) => m.active && m.canLogin && Boolean(m.email)).length;
   const activeCount = staff.filter((m) => m.active).length;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Усього в команді', 'Всего в команде')}</div>
+          <div className="text-[11px] font-bold text-slate-500">{tr('Усього користувачів', 'Всего пользователей')}</div>
           <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{staff.length}</div>
         </Card>
         <Card className="p-4">
@@ -517,8 +464,8 @@ export function StaffTab({
           <div className="font-mono text-2xl font-extrabold text-[#169374] mt-1 tabular-nums">{activeCount}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Із входом до CRM', 'Со входом в CRM')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#1769aa] mt-1 tabular-nums">{activeLoginCount}</div>
+          <div className="text-[11px] font-bold text-slate-500">{tr('Прив’язані до Google Email', 'Привязаны к Google Email')}</div>
+          <div className="font-mono text-2xl font-extrabold text-[#1769aa] mt-1 tabular-nums">{activeGoogleLoginCount}</div>
         </Card>
         <Card className="p-4">
           <div className="text-[11px] font-bold text-slate-500">{tr('Адміністратори', 'Администраторы')}</div>
@@ -536,9 +483,9 @@ export function StaffTab({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={tr('Пошук за ім’ям, логіном, посадою...', 'Поиск по имени, логину, должности...')}
+              placeholder={tr('Пошук за ім’ям, Email, посадою...', 'Поиск по имени, Email, должности...')}
               className="pl-8 w-64"
-              aria-label={tr('Пошук персоналу', 'Поиск персонала')}
+              aria-label={tr('Пошук користувачів', 'Поиск пользователей')}
             />
           </div>
           <div className="inline-flex flex-wrap p-1 bg-slate-200/70 rounded-lg">
@@ -568,14 +515,14 @@ export function StaffTab({
         <div className="flex flex-wrap items-center gap-2">
           {selfMember && (
             <Button type="button" variant="outline" onClick={() => openEditModal(selfMember)}>
-              <KeyRound className="w-3.5 h-3.5 text-[#1769aa]" />
-              {tr('Мій профіль / Пароль', 'Мой профиль / Пароль')}
+              <Pencil className="w-3.5 h-3.5 text-[#1769aa]" />
+              {tr('Мій профіль', 'Мой профиль')}
             </Button>
           )}
           {isAdmin && (
             <Button type="button" variant="primary" onClick={openCreateModal}>
               <Plus className="w-3.5 h-3.5" />
-              {tr('Додати співробітника', 'Добавить сотрудника')}
+              {tr('Додати користувача', 'Добавить пользователя')}
             </Button>
           )}
         </div>
@@ -625,7 +572,7 @@ export function StaffTab({
         </Table>
         {filteredStaff.length === 0 && (
           <div className="p-8 text-center text-xs text-slate-400">
-            {tr('Співробітників за вибраним фільтром не знайдено', 'Сотрудники по выбранному фильтру не найдены')}
+            {tr('Користувачів за вибраним фільтром не знайдено', 'Пользователи по выбранному фильтру не найдены')}
           </div>
         )}
       </Card>
@@ -633,15 +580,15 @@ export function StaffTab({
       <div className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
         <Shield className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
         <div>
-          <strong className="text-[#0d1f33]">{tr('Права доступу та паролі:', 'Права доступа и пароли:')}</strong>{' '}
+          <strong className="text-[#0d1f33]">{tr('Як працює вхід за Email:', 'Как работает вход по Email:')}</strong>{' '}
           {isAdmin
             ? tr(
-                'Ви увійшли як адміністратор і маєте повний доступ: можете створювати акаунти, призначати й скидати паролі будь-кому зі співробітників, змінювати ролі та налаштування CRM. Для нових або базових співробітників натисніть «Задати пароль» — система надійно хешує його на сервері.',
-                'Вы вошли как администратор и имеете полный доступ: можете создавать аккаунты, задавать и сбрасывать пароли любому сотруднику, менять роли и настройки CRM. Для базовых профилей нажмите «Задать пароль» — пароль надёжно хэшируется на сервере.',
+                'Ви маєте повний доступ адміністратора: створюйте користувачів і прив’язуйте їхній Google Email — після цього вони входять у CRM через кнопку Google без окремих паролів. Майстер-логін та пароль адміністратора беруться з налаштувань оточення (ADMIN_LOGIN, ADMIN_PASSWORD).',
+                'У вас полный доступ администратора: создавайте пользователей и привязывайте их Google Email — после этого они входят в CRM через кнопку Google без отдельных паролей. Мастер-логин и пароль администратора задаются через переменные окружения (ADMIN_LOGIN, ADMIN_PASSWORD).',
               )
             : tr(
-                'Звичайні користувачі можуть переглядати склад команди та редагувати лише власний профіль і свій пароль. Додавання співробітників, зміна ролей і редагування інших акаунтів доступні тільки адміністратору.',
-                'Обычные пользователи могут видеть список команды и редактировать только свой профиль и свой пароль. Добавление сотрудников, смена ролей и редактирование чужих аккаунтов доступны только администратору.',
+                'Користувачі входять у CRM через Google за своїм Email та можуть редагувати лише власний профіль (ім’я, посаду, телефон). Додавання користувачів і зміна прав доступні тільки адміністратору.',
+                'Пользователи входят в CRM через Google по своему Email и могут редактировать только собственный профиль (имя, должность, телефон). Добавление пользователей и смена прав доступны только администратору.',
               )}
         </div>
       </div>
@@ -655,17 +602,17 @@ export function StaffTab({
                 ? editingIsSelfOnly
                   ? tr(`Мій профіль: ${editingMember.name}`, `Мой профиль: ${editingMember.name}`)
                   : tr(`Профіль: ${editingMember.name}`, `Профиль: ${editingMember.name}`)
-                : tr('Новий співробітник / акаунт CRM', 'Новый сотрудник / аккаунт CRM')}
+                : tr('Новий користувач CRM', 'Новый пользователь CRM')}
             </DialogTitle>
             <DialogDescription>
               {editingIsSelfOnly
                 ? tr(
-                    'Ви можете оновити свої контактні дані та змінити пароль для входу',
-                    'Вы можете обновить свои контактные данные и сменить пароль для входа',
+                    'Ви можете оновити свої контактні дані та відображення у задачах',
+                    'Вы можете обновить свои контактные данные и отображение в задачах',
                   )
                 : tr(
-                    'Налаштуйте відображення у списку відповідальних, роль та облікові дані для входу',
-                    'Настройте отображение в списке ответственных, роль и данные для входа',
+                    'Прив’яжіть Google Email для входу в CRM та вкажіть роль користувача',
+                    'Привяжите Google Email для входа в CRM и выберите роль пользователя',
                   )}
             </DialogDescription>
           </DialogHeader>
@@ -694,6 +641,36 @@ export function StaffTab({
                   value={fPosition}
                   onChange={(e) => setFPosition(e.target.value)}
                   placeholder={tr('Менеджер / Інженер / Монтажник', 'Менеджер / Инженер / Монтажник')}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="staff-email" className="block font-bold text-[#0d1f33] mb-1">
+                  {tr('Email (Google акаунт)', 'Email (Google аккаунт)')}
+                  {fCanLogin && !editingIsMaster ? ' *' : ''}
+                </label>
+                <Input
+                  id="staff-email"
+                  type="email"
+                  required={fCanLogin && !editingIsMaster && isAdmin}
+                  disabled={!isAdmin}
+                  value={fEmail}
+                  onChange={(e) => setFEmail(e.target.value)}
+                  placeholder="name@gmail.com"
+                  className="disabled:bg-slate-100 disabled:text-slate-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="staff-phone" className="block font-bold text-[#0d1f33] mb-1">
+                  {tr('Телефон')}
+                </label>
+                <Input
+                  id="staff-phone"
+                  value={fPhone}
+                  onChange={(e) => setFPhone(e.target.value)}
+                  placeholder="+380 50 ..."
                 />
               </div>
             </div>
@@ -731,47 +708,7 @@ export function StaffTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label htmlFor="staff-login" className="block font-bold text-[#0d1f33] mb-1">
-                  {tr('Логін для входу *', 'Логин для входа *')}
-                </label>
-                <Input
-                  id="staff-login"
-                  required
-                  disabled={!isAdmin || editingIsMaster}
-                  value={fLogin}
-                  onChange={(e) => setFLogin(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
-                  placeholder="andrii"
-                  className="font-mono disabled:bg-slate-100 disabled:text-slate-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="staff-email" className="block font-bold text-[#0d1f33] mb-1">
-                  Google / Email
-                </label>
-                <Input
-                  id="staff-email"
-                  type="email"
-                  value={fEmail}
-                  onChange={(e) => setFEmail(e.target.value)}
-                  placeholder="name@gmail.com"
-                />
-              </div>
-              <div>
-                <label htmlFor="staff-phone" className="block font-bold text-[#0d1f33] mb-1">
-                  {tr('Телефон')}
-                </label>
-                <Input
-                  id="staff-phone"
-                  value={fPhone}
-                  onChange={(e) => setFPhone(e.target.value)}
-                  placeholder="+380 50 ..."
-                />
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
               {isAdmin && !editingIsMaster ? (
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
@@ -790,94 +727,20 @@ export function StaffTab({
                       onChange={(e) => setFCanLogin(e.target.checked)}
                       className="accent-[#1769aa]"
                     />
-                    {tr('Дозволити вхід до CRM', 'Разрешить вход в CRM')}
+                    {tr('Дозволити вхід через Google за Email', 'Разрешить вход через Google по Email')}
                   </label>
                 </div>
               ) : (
                 <div className="text-[11px] text-slate-500">
                   {editingIsMaster
                     ? tr(
-                        'Мастер-акаунт @admin завжди активний і має повні права адміністратора.',
-                        'Мастер-аккаунт @admin всегда активен и имеет полные права администратора.',
+                        'Майстер-логін та пароль адміністратора задаються у змінних оточення ADMIN_LOGIN та ADMIN_PASSWORD.',
+                        'Мастер-логин и пароль администратора задаются в переменных окружения ADMIN_LOGIN и ADMIN_PASSWORD.',
                       )
                     : tr(
-                        'Логін, роль та статус доступу може змінювати лише адміністратор.',
-                        'Логин, роль и статус доступа может изменять только администратор.',
+                        'Email для входу через Google, роль і права доступу може змінювати лише адміністратор.',
+                        'Email для входа через Google, роль и права доступа может изменять только администратор.',
                       )}
-                </div>
-              )}
-
-              {(fCanLogin || editingIsMaster) && (
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-                    <label htmlFor="staff-password" className="block font-bold text-[#0d1f33]">
-                      {editingMember?.hasPassword
-                        ? tr('Новий пароль (залиште порожнім, щоб не змінювати)', 'Новый пароль (оставьте пустым, чтобы не менять)')
-                        : tr('Пароль для входу (мін. 6 символів)', 'Пароль для входа (мин. 6 символов)')}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleGeneratePassword}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
-                      >
-                        <Wand2 className="w-3 h-3" />
-                        {tr('Згенерувати', 'Сгенерировать')}
-                      </button>
-                      {fPassword && (
-                        <button
-                          type="button"
-                          onClick={() => void handleCopyPassword()}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#169374] hover:underline cursor-pointer"
-                        >
-                          {copiedPwd ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                          {copiedPwd ? tr('Скопійовано', 'Скопировано') : tr('Копіювати', 'Копировать')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="relative">
-                    <Input
-                      id="staff-password"
-                      type={showPassword ? 'text' : 'password'}
-                      minLength={fPassword ? 6 : undefined}
-                      autoComplete="new-password"
-                      value={fPassword}
-                      onChange={(e) => {
-                        setFPassword(e.target.value);
-                        if (e.target.value) setFClearPassword(false);
-                      }}
-                      className="pr-9"
-                      placeholder={
-                        editingMember?.hasPassword
-                          ? '••••••••'
-                          : tr('Задайте пароль або натисніть «Згенерувати»', 'Задайте пароль или нажмите «Сгенерировать»')
-                      }
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? tr('Сховати пароль', 'Скрыть пароль') : tr('Показати пароль', 'Показать пароль')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0d1f33] p-0.5 cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-
-                  {isAdmin && editingMember?.hasPassword && !editingIsMaster && (
-                    <label className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-slate-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={fClearPassword}
-                        onChange={(e) => {
-                          setFClearPassword(e.target.checked);
-                          if (e.target.checked) setFPassword('');
-                        }}
-                      />
-                      {tr('Прибрати вхід за паролем (залишити лише Google Email)', 'Убрать вход по паролю (оставить только Google Email)')}
-                    </label>
-                  )}
                 </div>
               )}
             </div>

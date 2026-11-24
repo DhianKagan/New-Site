@@ -36,6 +36,8 @@ export const dealsTable = sqliteTable('deals', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   dealNumber: text('deal_number').notNull().unique(),
   contactId: integer('contact_id').references(() => contactsTable.id, { onDelete: 'set null' }),
+  customerId: integer('customer_id').references(() => customerAccountsTable.id, { onDelete: 'set null' }),
+  customerEmail: text('customer_email').notNull().default(''),
   type: text('type').notNull(),
   stage: text('stage').notNull().default('new'),
   customerName: text('customer_name').notNull().default(''),
@@ -118,6 +120,21 @@ export const staffUsersTable = sqliteTable('staff_users', {
   passwordHash: text('password_hash').notNull().default(''),
   canLogin: integer('can_login').notNull().default(0),
   active: integer('active').notNull().default(1),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const customerAccountsTable = sqliteTable('customer_accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  phone: text('phone').notNull().default(''),
+  city: text('city').notNull().default('Одеса'),
+  firebaseUid: text('firebase_uid').notNull().default(''),
+  passwordHash: text('password_hash').notNull().default(''),
+  authProvider: text('auth_provider').notNull().default('google'),
+  active: integer('active').notNull().default(1),
+  lastLoginAt: text('last_login_at').notNull().default(''),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

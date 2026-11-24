@@ -222,3 +222,31 @@ export interface AdminAuthStatus {
   googleEnabled?: boolean;
 }
 
+export interface CustomerProfile {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  authProvider: 'google' | 'password' | 'both';
+  active: boolean;
+  lastLoginAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientSessionUser {
+  customerId: number;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+}
+
+export interface UnifiedAuthResult {
+  accountType: 'staff' | 'client';
+  token: string;
+  user?: CrmSessionUser;
+  customer?: CustomerProfile;
+}
+

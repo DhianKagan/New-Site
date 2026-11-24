@@ -395,7 +395,7 @@ export default function App() {
       description =
         'Умови публічного договору купівлі-продажу, гарантійного обслуговування та повернення обладнання в інтернет-магазині Energo Comfort.';
     } else if (isCrm) {
-      title = 'CRM та адмін-панель — Energo Comfort';
+      title = 'CRM — Energo Comfort';
     }
 
     document.title = title;
@@ -690,8 +690,8 @@ export default function App() {
   const cartTotalCount = cart.reduce((s, i) => s + i.qty, 0);
   const activeDealsCount = deals.filter((d) => d.stage !== 'archived').length;
   const crmButtonLabel = adminToken
-    ? `${tr('Адмін / CRM')} (${activeDealsCount})`
-    : tr('Адмін / CRM');
+    ? `CRM (${activeDealsCount})`
+    : 'CRM';
 
   return (
     <div className={`min-h-screen flex flex-col bg-white text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>

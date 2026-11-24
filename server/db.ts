@@ -11,6 +11,7 @@ import type {
   ContactSegment,
   CrmNote,
   CrmTask,
+  CustomerProfile,
   Deal,
   DealItem,
   DealStage,
@@ -169,12 +170,33 @@ function getDb(): DatabaseSync {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS customer_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      phone TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT 'Одеса',
+      firebase_uid TEXT NOT NULL DEFAULT '',
+      password_hash TEXT NOT NULL DEFAULT '',
+      auth_provider TEXT NOT NULL DEFAULT 'google',
+      active INTEGER NOT NULL DEFAULT 1,
+      last_login_at TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 
-  // Non-destructive migration for existing deals tables created before contact_id
+  // Non-destructive migration for existing deals tables created before contact_id / customer_id / customer_email
   const dealCols = db.prepare('PRAGMA table_info(deals)').all() as Array<{ name: string }>;
   if (!dealCols.some((c) => c.name === 'contact_id')) {
     db.exec('ALTER TABLE deals ADD COLUMN contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL;');
+  }
+  if (!dealCols.some((c) => c.name === 'customer_id')) {
+    db.exec('ALTER TABLE deals ADD COLUMN customer_id INTEGER REFERENCES customer_accounts(id) ON DELETE SET NULL;');
+  }
+  if (!dealCols.some((c) => c.name === 'customer_email')) {
+    db.exec("ALTER TABLE deals ADD COLUMN customer_email TEXT NOT NULL DEFAULT '';");
   }
 
   seedCatalogIfEmpty(db);
@@ -218,6 +240,7 @@ function upsertContactSync(
   input: {
     name: string;
     phone: string;
+    email?: string;
     city?: string;
     channel?: string;
     company?: string;
@@ -225,8 +248,9 @@ function upsertContactSync(
   },
 ): number {
   const normalizedPhone = normalizeContactPhone(input.phone);
-  const existing = db.prepare('SELECT id, name, city, channel, company, segment FROM contacts WHERE phone = ?').get(normalizedPhone) as
-    | { id: number; name: string; city: string; channel: string; company: string; segment: string }
+  const emailNorm = (input.email ?? '').trim().toLowerCase();
+  const existing = db.prepare('SELECT id, name, email, city, channel, company, segment FROM contacts WHERE phone = ?').get(normalizedPhone) as
+    | { id: number; name: string; email: string; city: string; channel: string; company: string; segment: string }
     | undefined;
   const now = new Date().toISOString();
 
@@ -236,8 +260,10 @@ function upsertContactSync(
         ? input.name.trim() || existing.name
         : existing.name;
     const nextCity = !existing.city && input.city?.trim() ? input.city.trim() : existing.city;
-    db.prepare('UPDATE contacts SET name = ?, city = ?, updated_at = ? WHERE id = ?').run(
+    const nextEmail = !existing.email && emailNorm ? emailNorm : existing.email;
+    db.prepare('UPDATE contacts SET name = ?, email = ?, city = ?, updated_at = ? WHERE id = ?').run(
       nextName,
+      nextEmail,
       nextCity,
       now,
       existing.id,
@@ -251,12 +277,13 @@ function upsertContactSync(
   const res = db
     .prepare(
       `INSERT INTO contacts (name, company, phone, email, city, channel, segment, created_at, updated_at)
-       VALUES (?, ?, ?, '', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       input.name.trim() || 'Клієнт сайту',
       (input.company ?? '').trim(),
       normalizedPhone,
+      emailNorm,
       (input.city ?? '').trim() || 'Одеса',
       (input.channel ?? '').trim() || 'Telegram',
       inferredSegment,
@@ -828,6 +855,8 @@ export function createDeal(input: {
   items?: Array<{ productId: string; qty: number }>;
   notes?: string;
   estimatedTotalUsd?: number;
+  customerId?: number | null;
+  customerEmail?: string;
 }): Deal {
   const db = getDb();
   const now = new Date().toISOString();
@@ -864,6 +893,7 @@ export function createDeal(input: {
   const city = (input.city ?? '').trim() || 'Одеса';
   const channel = (input.channel ?? '').trim() || 'Telegram';
   const taskType = (input.taskType ?? '').trim() || (input.type === 'order' ? 'Кошик / Shop' : 'Консультація');
+  const customerEmailNorm = (input.customerEmail ?? '').trim().toLowerCase();
   const segment: ContactSegment = /бізнес|сто|380\s*в|тов/i.test(`${customerName} ${taskType} ${topic}`)
     ? 'b2b'
     : 'b2c';
@@ -871,6 +901,7 @@ export function createDeal(input: {
   const contactId = upsertContactSync(db, {
     name: customerName,
     phone: input.phone.trim(),
+    email: customerEmailNorm,
     city,
     channel,
     company: /тов/i.test(customerName) ? customerName : '',
@@ -880,14 +911,16 @@ export function createDeal(input: {
   const res = db
     .prepare(`
       INSERT INTO deals (
-        deal_number, contact_id, type, stage, customer_name, phone, city, channel,
+        deal_number, contact_id, customer_id, customer_email, type, stage, customer_name, phone, city, channel,
         topic, task_type, loads_json, items_json, total_usd, assignee, notes,
         telegram_sent, created_at, updated_at
-      ) VALUES (?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     `)
     .run(
       dealNumber,
       contactId,
+      input.customerId ?? null,
+      customerEmailNorm,
       input.type,
       customerName,
       normalizeContactPhone(input.phone.trim()),
@@ -2060,7 +2093,7 @@ function defaultAssigneeLabel(name: string, position: string): string {
 
 export async function createStaffUser(input: {
   name: string;
-  login: string;
+  login?: string;
   email?: string;
   phone?: string;
   position: string;
@@ -2070,17 +2103,8 @@ export async function createStaffUser(input: {
   canLogin?: boolean;
   active?: boolean;
 }): Promise<StaffUser> {
-  const loginNorm = input.login.trim().toLowerCase();
   const emailNorm = (input.email ?? '').trim().toLowerCase();
-
-  const existingLogin = await drizzleDb
-    .select({ id: schema.staffUsersTable.id })
-    .from(schema.staffUsersTable)
-    .where(eq(schema.staffUsersTable.login, loginNorm))
-    .get();
-  if (existingLogin) {
-    throw new Error('Співробітник із таким логіном вже існує');
-  }
+  const explicitLogin = (input.login ?? '').trim().toLowerCase();
 
   if (emailNorm) {
     const existingEmail = await drizzleDb
@@ -2089,8 +2113,40 @@ export async function createStaffUser(input: {
       .where(eq(schema.staffUsersTable.email, emailNorm))
       .get();
     if (existingEmail) {
-      throw new Error('Цей Email вже закріплено за іншим співробітником');
+      throw new Error('Цей Email вже закріплено за іншим користувачем');
     }
+  }
+
+  let loginNorm = explicitLogin;
+  if (loginNorm) {
+    const existingLogin = await drizzleDb
+      .select({ id: schema.staffUsersTable.id })
+      .from(schema.staffUsersTable)
+      .where(eq(schema.staffUsersTable.login, loginNorm))
+      .get();
+    if (existingLogin) {
+      throw new Error('Користувач із таким логіном вже існує');
+    }
+  } else {
+    const baseRaw = (emailNorm.split('@')[0] || input.name)
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, '')
+      .slice(0, 28);
+    const base = baseRaw && baseRaw !== 'admin' && baseRaw.length >= 2 ? baseRaw : `user_${Date.now().toString(36)}`;
+    let candidate = base;
+    let suffix = 2;
+    while (
+      candidate === 'admin' ||
+      (await drizzleDb
+        .select({ id: schema.staffUsersTable.id })
+        .from(schema.staffUsersTable)
+        .where(eq(schema.staffUsersTable.login, candidate))
+        .get())
+    ) {
+      candidate = `${base}_${suffix}`;
+      suffix += 1;
+    }
+    loginNorm = candidate;
   }
 
   const now = new Date().toISOString();
@@ -2249,6 +2305,253 @@ export async function deleteStaffUser(id: number): Promise<boolean> {
     throw new Error('Мастер-акаунт адміністратора не можна видалити');
   }
   await drizzleDb.delete(schema.staffUsersTable).where(eq(schema.staffUsersTable.id, id));
+  return true;
+}
+
+// =========================================================================
+// Customer Accounts & Client Cabinet (Drizzle ORM + node:sqlite)
+// =========================================================================
+
+function mapCustomerRow(r: typeof schema.customerAccountsTable.$inferSelect): CustomerProfile {
+  const provider = r.authProvider === 'password' || r.authProvider === 'both' ? r.authProvider : 'google';
+  return {
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    city: r.city,
+    authProvider: provider,
+    active: Boolean(r.active),
+    lastLoginAt: r.lastLoginAt,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
+export function getCustomerAuthStateSync(customerId: number): {
+  id: number;
+  active: boolean;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+} | null {
+  const db = getDb();
+  const row = db
+    .prepare('SELECT id, active, name, email, phone, city FROM customer_accounts WHERE id = ?')
+    .get(customerId) as
+    | { id: number; active: number; name: string; email: string; phone: string; city: string }
+    | undefined;
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    active: Boolean(row.active),
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    city: row.city,
+  };
+}
+
+export async function getCustomerProfileById(customerId: number): Promise<CustomerProfile | null> {
+  const row = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.id, customerId))
+    .get();
+  return row ? mapCustomerRow(row) : null;
+}
+
+export async function findCustomerForPasswordLogin(email: string): Promise<{
+  customer: CustomerProfile;
+  passwordHash: string;
+} | null> {
+  const norm = email.trim().toLowerCase();
+  if (!norm) return null;
+  const row = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.email, norm))
+    .get();
+  if (!row) return null;
+  return {
+    customer: mapCustomerRow(row),
+    passwordHash: row.passwordHash,
+  };
+}
+
+export async function registerCustomerWithPassword(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  password: string;
+}): Promise<CustomerProfile> {
+  const emailNorm = input.email.trim().toLowerCase();
+  const existingStaff = await drizzleDb
+    .select({ id: schema.staffUsersTable.id })
+    .from(schema.staffUsersTable)
+    .where(eq(schema.staffUsersTable.email, emailNorm))
+    .get();
+  if (existingStaff) {
+    throw new Error('Цей Email закріплено за обліковим записом співробітника. Використайте вхід через Google.');
+  }
+
+  const existing = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.email, emailNorm))
+    .get();
+  if (existing) {
+    throw new Error('Акаунт із таким Email вже існує. Увійдіть за паролем або через Google.');
+  }
+
+  const now = new Date().toISOString();
+  const cleanPhone = input.phone?.trim() ? normalizeContactPhone(input.phone.trim()) : '';
+  const [inserted] = await drizzleDb
+    .insert(schema.customerAccountsTable)
+    .values({
+      name: input.name.trim(),
+      email: emailNorm,
+      phone: cleanPhone,
+      city: (input.city ?? '').trim() || 'Одеса',
+      firebaseUid: '',
+      passwordHash: hashPassword(input.password),
+      authProvider: 'password',
+      active: 1,
+      lastLoginAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  return mapCustomerRow(inserted);
+}
+
+export async function upsertGoogleCustomerAccount(input: {
+  email: string;
+  name: string;
+  firebaseUid: string;
+}): Promise<CustomerProfile> {
+  const emailNorm = input.email.trim().toLowerCase();
+  const now = new Date().toISOString();
+  const existing = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.email, emailNorm))
+    .get();
+
+  if (existing) {
+    if (!existing.active) {
+      throw new Error('Акаунт клієнта тимчасово вимкнено');
+    }
+    const nextProvider =
+      existing.authProvider === 'password' || existing.passwordHash ? 'both' : existing.authProvider || 'google';
+    const nextName = existing.name?.trim() || input.name.trim() || emailNorm.split('@')[0];
+    const [updated] = await drizzleDb
+      .update(schema.customerAccountsTable)
+      .set({
+        name: nextName,
+        firebaseUid: existing.firebaseUid || input.firebaseUid,
+        authProvider: nextProvider,
+        lastLoginAt: now,
+        updatedAt: now,
+      })
+      .where(eq(schema.customerAccountsTable.id, existing.id))
+      .returning();
+    return mapCustomerRow(updated);
+  }
+
+  const [inserted] = await drizzleDb
+    .insert(schema.customerAccountsTable)
+    .values({
+      name: input.name.trim() || emailNorm.split('@')[0],
+      email: emailNorm,
+      phone: '',
+      city: 'Одеса',
+      firebaseUid: input.firebaseUid,
+      passwordHash: '',
+      authProvider: 'google',
+      active: 1,
+      lastLoginAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  return mapCustomerRow(inserted);
+}
+
+export async function updateCustomerProfile(
+  customerId: number,
+  patch: { name?: string; phone?: string; city?: string },
+): Promise<CustomerProfile | null> {
+  const existing = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.id, customerId))
+    .get();
+  if (!existing) return null;
+
+  const nextName = patch.name !== undefined ? patch.name.trim() || existing.name : existing.name;
+  const nextPhone =
+    patch.phone !== undefined ? (patch.phone.trim() ? normalizeContactPhone(patch.phone.trim()) : '') : existing.phone;
+  const nextCity = patch.city !== undefined ? patch.city.trim() || existing.city : existing.city;
+  const now = new Date().toISOString();
+
+  const [updated] = await drizzleDb
+    .update(schema.customerAccountsTable)
+    .set({
+      name: nextName,
+      phone: nextPhone,
+      city: nextCity,
+      updatedAt: now,
+    })
+    .where(eq(schema.customerAccountsTable.id, customerId))
+    .returning();
+
+  // Backfill customer_id on existing deals matching this email or phone so history stays linked
+  const db = getDb();
+  db.prepare(
+    'UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = "" THEN ? ELSE customer_email END WHERE customer_id IS NULL AND LOWER(customer_email) = ?',
+  ).run(customerId, existing.email.toLowerCase(), existing.email.toLowerCase());
+  if (nextPhone) {
+    db.prepare(
+      'UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = "" THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?',
+    ).run(customerId, existing.email.toLowerCase(), nextPhone);
+  }
+
+  return mapCustomerRow(updated);
+}
+
+export function listCustomerDeals(customer: { id: number; email: string; phone: string }): Deal[] {
+  const db = getDb();
+  const emailNorm = customer.email.trim().toLowerCase();
+  const phoneNorm = customer.phone.trim() ? normalizeContactPhone(customer.phone.trim()) : '';
+
+  const rows = db
+    .prepare(
+      `SELECT DISTINCT d.*
+       FROM deals d
+       LEFT JOIN contacts c ON c.id = d.contact_id
+       WHERE d.customer_id = ?
+          OR (? != '' AND LOWER(d.customer_email) = ?)
+          OR (? != '' AND LOWER(c.email) = ?)
+          OR (? != '' AND d.phone = ?)
+       ORDER BY d.id DESC`,
+    )
+    .all(customer.id, emailNorm, emailNorm, emailNorm, emailNorm, phoneNorm, phoneNorm);
+
+  return rows.map(rowToDeal);
+}
+
+export async function deleteCustomerAccount(customerId: number): Promise<boolean> {
+  const existing = await drizzleDb
+    .select({ id: schema.customerAccountsTable.id })
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.id, customerId))
+    .get();
+  if (!existing) return false;
+  await drizzleDb.delete(schema.customerAccountsTable).where(eq(schema.customerAccountsTable.id, customerId));
   return true;
 }
 

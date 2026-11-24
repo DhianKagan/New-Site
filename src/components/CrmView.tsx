@@ -956,15 +956,15 @@ export function CrmView({
           <div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#1769aa] mb-1">
               <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>{tr('Внутрішня CRM та управління каталогом', 'CRM и управление магазином')}</span>
+              <span>{tr('Робочий простір та управління вітриною', 'Рабочее пространство и управление витриной')}</span>
               {currentUser && (
                 <button
                   type="button"
                   onClick={() => setCrmTab('staff')}
-                  title={tr('Перейти до свого профілю та пароля', 'Перейти к своему профилю и паролю')}
+                  title={tr('Перейти до свого профілю', 'Перейти к своему профилю')}
                   className="inline-flex items-center gap-1 rounded-md bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-[#0d1f33] cursor-pointer transition-colors"
                 >
-                  {currentUser.name} (@{currentUser.login}) ·{' '}
+                  {currentUser.name} ({currentUser.email || `@${currentUser.login}`}) ·{' '}
                   <span className="text-[#1769aa]">
                     {currentUser.role === 'admin'
                       ? tr('Адміністратор', 'Администратор')
@@ -978,10 +978,10 @@ export function CrmView({
               )}
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-[#0d1f33]">
-              Energo Comfort — {tr('Адмін-панель', 'Панель администратора')}
+              Energo Comfort — CRM
             </h1>
             <p className="text-xs text-[#52657a] mt-0.5">
-              {tr('Замовлення, клієнти, каталог і робочі інструменти', 'Заказы, клиенты, каталог и рабочие инструменты')}
+              {tr('Замовлення, клієнти, задачі, каталог і налаштування системи', 'Заказы, клиенты, задачи, каталог и настройки системы')}
             </p>
           </div>
 
@@ -1040,41 +1040,92 @@ export function CrmView({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav aria-label={tr('Навігація CRM')} className="flex flex-wrap gap-1.5 p-1.5 bg-white border border-slate-200 rounded-xl">
-          {(
-            [
-              ['pipeline', tr('Воронка угод'), LayoutDashboard, false],
-              ['table', tr('Таблиця замовлень'), Table2, false],
-              ['contacts', `${tr('Контакти')} (${contacts.length})`, Users, false],
-              ['tasks', `${tr('Задачі', 'Задачи')} (${metrics.openTasksCount})`, CheckSquare, false],
-              ['staff', `${tr('Персонал')} (${staffUsers.length})`, UserCog, false],
-              ['catalog', `${tr('Каталог обладнання')} (${products.length})`, Package, false],
-              ['projects', `${tr('Реальні об’єкти')} (${projectsList.length})`, BriefcaseBusiness, false],
-              ['analytics', tr('Аналітика'), ChartNoAxesCombined, true],
-              ['social', tr('Соцмережі та SEO'), Share2, true],
-              ['deploy', tr('Бекап · Telegram · Вхід'), Database, true],
-            ] as const
-          )
-            .filter(([, , , adminOnly]) => isAdmin || !adminOnly)
-            .map(([id, label, Icon]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setCrmTab(id)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                  crmTab === id
-                    ? 'bg-[#0d1f33] text-white shadow-2xs'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-[#0d1f33]'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
-        </nav>
+        {/* Organized Sidebar Navigation + Workspace Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-5 items-start">
+          <aside aria-label={tr('Навігація CRM')} className="bg-white border border-slate-200 rounded-2xl p-3 lg:sticky lg:top-4 shadow-2xs">
+            <nav className="space-y-4">
+              {(
+                [
+                  {
+                    group: tr('Продажі та клієнти', 'Продажи и клиенты'),
+                    adminOnly: false,
+                    items: [
+                      { id: 'pipeline', label: tr('Воронка угод'), Icon: LayoutDashboard, badge: metrics.newCount > 0 ? metrics.newCount : null },
+                      { id: 'table', label: tr('Таблиця замовлень'), Icon: Table2, badge: metrics.total },
+                      { id: 'contacts', label: tr('Контакти'), Icon: Users, badge: contacts.length },
+                      { id: 'tasks', label: tr('Задачі', 'Задачи'), Icon: CheckSquare, badge: metrics.openTasksCount },
+                    ],
+                  },
+                  {
+                    group: tr('Вітрина і контент', 'Витрина и контент'),
+                    adminOnly: false,
+                    items: [
+                      { id: 'catalog', label: tr('Каталог обладнання'), Icon: Package, badge: products.length },
+                      { id: 'projects', label: tr('Реальні об’єкти'), Icon: BriefcaseBusiness, badge: projectsList.length },
+                    ],
+                  },
+                  {
+                    group: tr('Команда', 'Команда'),
+                    adminOnly: false,
+                    items: [
+                      { id: 'staff', label: tr('Користувачі та доступ', 'Пользователи и доступ'), Icon: UserCog, badge: staffUsers.length },
+                    ],
+                  },
+                  {
+                    group: tr('Система', 'Система'),
+                    adminOnly: true,
+                    items: [
+                      { id: 'analytics', label: tr('Аналітика'), Icon: ChartNoAxesCombined, badge: null },
+                      { id: 'social', label: tr('Соцмережі та SEO'), Icon: Share2, badge: null },
+                      { id: 'deploy', label: tr('Бекап · Telegram · Доступ'), Icon: Database, badge: null },
+                    ],
+                  },
+                ] as const
+              )
+                .filter((sec) => isAdmin || !sec.adminOnly)
+                .map((section) => (
+                  <div key={section.group}>
+                    <div className="px-2.5 mb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                      {section.group}
+                    </div>
+                    <div className="flex flex-wrap lg:flex-col gap-1">
+                      {section.items.map(({ id, label, Icon, badge }) => {
+                        const active = crmTab === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setCrmTab(id)}
+                            className={`inline-flex lg:w-full items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                              active
+                                ? 'bg-[#0d1f33] text-white shadow-2xs'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-[#0d1f33]'
+                            }`}
+                          >
+                            <span className="inline-flex items-center gap-2 min-w-0 truncate">
+                              <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-[#f59e0b]' : 'text-slate-400'}`} />
+                              <span className="truncate">{label}</span>
+                            </span>
+                            {badge !== null && (
+                              <span
+                                className={`font-mono text-[10px] px-1.5 py-0.5 rounded-md tabular-nums shrink-0 ${
+                                  active ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                {badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+            </nav>
+          </aside>
 
-        {dealActionMsg && (
+          <div className="min-w-0 space-y-5">
+            {dealActionMsg && (
           <div className="px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-semibold text-[#1769aa]">
             {dealActionMsg}
           </div>
@@ -2058,13 +2109,13 @@ export function CrmView({
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h2 className="text-base font-extrabold text-[#0d1f33]">
-                    Дозволені Google-акаунти для входу в Адмінку
+                    Дозволені Google-акаунти адміністраторів CRM
                   </h2>
                   <p className="text-xs text-[#52657a] mt-1">
-                    Тільки користувачі з підтвердженим email із цього списку (або зі змінної{' '}
-                    <code className="font-mono text-[#0d1f33]">ADMIN_EMAILS</code>) можуть увійти через Google. При
-                    перенесенні на Railway додайте ваш домен у <strong>Authentication → Settings → Authorized domains</strong>{' '}
-                    у Firebase Console.
+                    Користувачі з підтвердженим email із цього списку (або зі змінної{' '}
+                    <code className="font-mono text-[#0d1f33]">ADMIN_EMAILS</code>), а також співробітники з розділу{' '}
+                    <strong>Користувачі та доступ</strong> входять у CRM через Google. При перенесенні на Railway додайте
+                    ваш домен у <strong>Authentication → Settings → Authorized domains</strong> у Firebase Console.
                   </p>
                 </div>
                 <div className="text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
@@ -2075,13 +2126,13 @@ export function CrmView({
               <form onSubmit={handleSaveAdminEmails} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
                 <div className="flex-1">
                   <label className="block text-xs font-bold text-[#0d1f33] mb-1">
-                    Email адміністраторів / менеджерів (через кому)
+                    Email адміністраторів (через кому)
                   </label>
                   <input
                     type="text"
                     value={adminEmailsInput}
                     onChange={(e) => setAdminEmailsInput(e.target.value)}
-                    placeholder="owner@gmail.com, manager@gmail.com"
+                    placeholder="owner@gmail.com, partner@gmail.com"
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
                   />
                 </div>
@@ -2099,6 +2150,8 @@ export function CrmView({
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Deal Inspector Modal */}

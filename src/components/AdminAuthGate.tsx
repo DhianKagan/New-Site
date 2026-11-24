@@ -19,7 +19,7 @@ function generateStrongPassword(length = 12): string {
 }
 
 export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, onBackToStore }: AdminAuthGateProps) {
-  const [identifier, setIdentifier] = useState('');
+  const [identifier, setIdentifier] = useState('admin');
   const [setupName, setSetupName] = useState('Головний адміністратор');
   const [setupEmail, setSetupEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -94,6 +94,9 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
         setError('Паролі не співпадають');
         return;
       }
+    } else if (!identifier.trim()) {
+      setError('Введіть майстер-логін адміністратора');
+      return;
     }
 
     setSubmitting(true);
@@ -143,13 +146,11 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
             {isSetup ? <ShieldCheck className="w-5 h-5 text-[#f59e0b]" /> : <Lock className="w-5 h-5 text-[#f59e0b]" />}
           </div>
           <div>
-            <div className="text-[11px] font-bold text-[#1769aa]">
-              {tr('Energo Comfort · Адмін-панель', 'Energo Comfort · Панель администратора')}
-            </div>
+            <div className="text-[11px] font-bold text-[#1769aa]">Energo Comfort · CRM</div>
             <h1 className="text-lg font-extrabold text-[#0d1f33]">
               {isSetup
-                ? tr('Створення мастер-акаунту адміна', 'Создание мастер-аккаунта админа')
-                : tr('Вхід до CRM та налаштувань', 'Вход в CRM и настройки')}
+                ? tr('Перше налаштування CRM', 'Первая настройка CRM')
+                : tr('Вхід до CRM', 'Вход в CRM')}
             </h1>
           </div>
         </div>
@@ -157,12 +158,12 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
         <p className="text-xs text-[#52657a] leading-relaxed mb-5">
           {isSetup
             ? tr(
-                'Задайте пароль для мастер-акаунту @admin (повні права в CRM) або увійдіть через Google. Потім у вкладці «Персонал» ви зможете призначити паролі співробітникам.',
-                'Задайте пароль для мастер-аккаунта @admin (полные права в CRM) или войдите через Google. Затем во вкладке «Персонал» вы сможете выдать пароли сотрудникам.',
+                'Увійдіть через Google-акаунт або створіть майстер-пароль адміністратора (також можна задати ADMIN_LOGIN / ADMIN_PASSWORD у налаштуваннях оточення).',
+                'Войдите через Google-аккаунт или создайте мастер-пароль администратора (также можно задать ADMIN_LOGIN / ADMIN_PASSWORD в настройках окружения).',
               )
             : tr(
-                'Увійдіть через Google, за логіном (@admin або співробітника) чи залиште логін порожнім для входу в мастер-акаунт.',
-                'Войдите через Google, по логину (@admin или сотрудника) либо оставьте логин пустым для входа в мастер-аккаунт.',
+                'Співробітники входять через Google за своїм Email, доданим адміністратором. Адміністратор також може увійти за майстер-логіном і паролем із налаштувань оточення.',
+                'Сотрудники входят через Google по своему Email, добавленному администратором. Администратор также может войти по мастер-логину и паролю из настроек окружения.',
               )}
         </p>
 
@@ -206,14 +207,14 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
               <span>
                 {googleSubmitting
                   ? tr('Виконується вхід через Google...', 'Выполняется вход через Google…')
-                  : tr('Увійти через Google', 'Войти через Google')}
+                  : tr('Увійти через Google (за Email)', 'Войти через Google (по Email)')}
               </span>
             </button>
 
             <div className="relative flex items-center justify-center my-4">
               <div className="border-t border-slate-200 w-full" />
               <span className="bg-white px-3 text-[11px] font-semibold text-slate-400 whitespace-nowrap">
-                {tr('або за логіном та паролем', 'или по логину и паролю')}
+                {tr('або майстер-вхід адміністратора', 'или мастер-вход администратора')}
               </span>
             </div>
           </div>
@@ -223,9 +224,9 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
           {isSetup ? (
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-[#0d1f33]">{tr('Логін мастер-акаунту', 'Логин мастер-аккаунта')}</span>
+                <span className="font-bold text-[#0d1f33]">{tr('Майстер-логін', 'Мастер-логин')}</span>
                 <span className="font-mono font-bold text-[#1769aa] bg-white px-2 py-0.5 rounded border border-slate-200">
-                  @admin
+                  admin
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -261,19 +262,19 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
           ) : (
             <div>
               <label htmlFor="admin-identifier" className="block text-xs font-bold text-[#0d1f33] mb-1">
-                {tr('Логін або Email', 'Логин или Email')}{' '}
-                <span className="font-normal text-slate-400">({tr('або порожньо для @admin', 'или пусто для @admin')})</span>
+                {tr('Майстер-логін адміністратора', 'Мастер-логин администратора')}
               </label>
               <input
                 id="admin-identifier"
                 name="username"
                 type="text"
+                required
                 autoComplete="username"
                 disabled={!apiAvailable || submitting || googleSubmitting}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={tr('admin, alex або manager@company.ua', 'admin, alex или email')}
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
+                placeholder="admin"
+                className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm font-mono focus:outline-none focus:border-[#1769aa]"
               />
             </div>
           )}
@@ -281,7 +282,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
           <div>
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="admin-password" className="block text-xs font-bold text-[#0d1f33]">
-                {isSetup ? tr('Пароль мастер-акаунту', 'Пароль мастер-аккаунта') : tr('Пароль', 'Пароль')}
+                {isSetup ? tr('Майстер-пароль адміністратора', 'Мастер-пароль администратора') : tr('Пароль адміністратора', 'Пароль администратора')}
               </label>
               {isSetup && (
                 <div className="flex items-center gap-2">
@@ -317,7 +318,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
                 disabled={!apiAvailable || submitting || googleSubmitting}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : tr('Введіть пароль CRM', 'Введите пароль CRM')}
+                placeholder={isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : tr('Пароль із налаштувань оточення', 'Пароль из настроек окружения')}
                 className="w-full pl-3.5 pr-10 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
               />
               <button
@@ -366,8 +367,8 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
             {submitting
               ? tr('Перевірка...', 'Проверка…')
               : isSetup
-                ? tr('Створити мастер-акаунт та увійти', 'Создать мастер-аккаунт и войти')
-                : tr('Увійти в CRM', 'Войти в CRM')}
+                ? tr('Створити майстер-акаунт та увійти', 'Создать мастер-аккаунт и войти')
+                : tr('Увійти як адміністратор', 'Войти как администратор')}
           </button>
         </form>
       </div>
