@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import type { SocialLinksConfig } from '../types.ts';
+import { tr } from '../lib/i18n.ts';
+import { track } from '../lib/analytics.ts';
 
 interface SocialIconsProps {
   links: SocialLinksConfig;
@@ -102,7 +104,7 @@ export function SocialIcons({ links, variant = 'header' }: SocialIconsProps) {
         : 'w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#0d1f33] inline-flex items-center justify-center transition-colors';
 
   return (
-    <div className="flex items-center gap-1.5" aria-label="Соціальні мережі">
+    <div className="flex items-center gap-1.5" aria-label={tr('Соціальні мережі', 'Социальные сети')}>
       {active.map((item) => (
         <a
           key={item.key}
@@ -111,6 +113,11 @@ export function SocialIcons({ links, variant = 'header' }: SocialIconsProps) {
           rel="noopener noreferrer"
           title={item.label}
           aria-label={item.label}
+          onClick={() => {
+            if (item.key === 'telegram' || item.key === 'viber') {
+              track({ name: 'messenger_click', placement: variant === 'footer' ? 'footer' : 'section', scenario: 'unspecified', channel: item.key });
+            }
+          }}
           className={btnClass}
         >
           {item.icon}

@@ -4,6 +4,7 @@ export interface Product {
   id: string;
   sku: string;
   title: string;
+  titleRu?: string;
   cat: ProductCategory;
   rawCats: string[];
   brand: string;
@@ -12,9 +13,12 @@ export interface Product {
   oldPrice: number;
   inStock: boolean;
   statusLabel: string;
+  statusLabelRu?: string;
   img: string;
   specs: [string, string][];
+  specsRu?: [string, string][];
   description: string;
+  descriptionRu?: string;
   sourceUrl: string;
 }
 
@@ -63,24 +67,35 @@ export interface ProjectCase {
   id: string;
   seg: 'b2b' | 'b2c';
   tag: string;
+  tagRu?: string;
   title: string;
+  titleRu?: string;
   img: string;
   task: string;
+  taskRu?: string;
   solution: string;
+  solutionRu?: string;
   specs: string;
+  specsRu?: string;
   result: string;
+  resultRu?: string;
 }
 
 export interface ServiceItem {
   id: string;
   category: 'montage' | 'extra';
   kicker: string;
+  kickerRu?: string;
   title: string;
+  titleRu?: string;
   image?: string;
   imageAlt?: string;
   priceLabel: string;
+  priceLabelRu?: string;
   summary: string;
+  summaryRu?: string;
   bullets: string[];
+  bulletsRu?: string[];
 }
 
 export interface AnalyticsConfig {

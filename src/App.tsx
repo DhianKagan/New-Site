@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { ShoppingBag, Menu, X, PhoneCall } from 'lucide-react';
+import { ShoppingBag, Menu, X, PhoneCall, Send } from 'lucide-react';
 import type {
   AdminAuthStatus,
   AnalyticsConfig,
@@ -11,7 +11,7 @@ import type {
   SocialLinksConfig,
 } from './types.ts';
 import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
-import { initAnalytics, trackEvent } from './lib/analytics.ts';
+import { initAnalytics, track, trackEvent, type Placement } from './lib/analytics.ts';
 import { signOutFirebase } from './lib/firebaseAuth.ts';
 import { HomeView } from './components/HomeView.tsx';
 import { ShopView } from './components/ShopView.tsx';
@@ -28,6 +28,7 @@ import { SmartImage } from './components/SmartImage.tsx';
 import { SocialIcons } from './components/SocialIcons.tsx';
 import { InfoPage } from './components/InfoPage.tsx';
 import { formatUahFromUsd } from './lib/currency.ts';
+import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 
 type AppView = 'home' | 'shop' | 'services' | 'projects' | 'contacts' | 'payment-delivery' | 'offer' | 'crm';
 
@@ -90,6 +91,16 @@ export default function App() {
   const [shopInitialCat, setShopInitialCat] = useState<ProductCategory | 'all'>(initialRoute.cat);
   const [pendingProductId, setPendingProductId] = useState<string | null>(initialRoute.productId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [locale, setLocale] = useState<Locale>(() => getSavedLocale());
+
+  useEffect(() => {
+    setActiveLocale(locale);
+  }, [locale]);
+
+  function changeLocale(nextLocale: Locale) {
+    setActiveLocale(nextLocale);
+    setLocale(nextLocale);
+  }
 
   const [products, setProducts] = useState<Product[]>([]);
   const [projects, setProjects] = useState<ProjectCase[]>(PROJECTS);
@@ -119,7 +130,26 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCase, setSelectedCase] = useState<ProjectCase | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
+  const [leadPlacement, setLeadPlacement] = useState<Placement>('section');
+  const [stickyCtaVisible, setStickyCtaVisible] = useState(false);
   const [leadTopic, setLeadTopic] = useState('Інженерний розрахунок системи');
+
+  useEffect(() => {
+    const updateStickyVisibility = () => {
+      const viewport = window.visualViewport;
+      const keyboardOpen = Boolean(viewport && viewport.height < window.innerHeight * 0.72);
+      setStickyCtaVisible(window.scrollY > window.innerHeight && !keyboardOpen);
+    };
+    window.addEventListener('scroll', updateStickyVisibility, { passive: true });
+    window.addEventListener('resize', updateStickyVisibility);
+    window.visualViewport?.addEventListener('resize', updateStickyVisibility);
+    updateStickyVisibility();
+    return () => {
+      window.removeEventListener('scroll', updateStickyVisibility);
+      window.removeEventListener('resize', updateStickyVisibility);
+      window.visualViewport?.removeEventListener('resize', updateStickyVisibility);
+    };
+  }, []);
   const [leadEstimateUsd, setLeadEstimateUsd] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -243,7 +273,19 @@ export default function App() {
       if (resp.ok && isJson) {
         const data = (await resp.json()) as { projects: ProjectCase[] };
         if (Array.isArray(data.projects) && data.projects.length > 0) {
-          setProjects(data.projects);
+          setProjects(data.projects.map((project) => {
+            const builtIn = PROJECTS.find((item) => item.id === project.id);
+            if (!builtIn) return project;
+            return {
+              ...project,
+              tagRu: project.tagRu ?? builtIn.tagRu,
+              titleRu: project.titleRu ?? builtIn.titleRu,
+              taskRu: project.taskRu ?? builtIn.taskRu,
+              solutionRu: project.solutionRu ?? builtIn.solutionRu,
+              specsRu: project.specsRu ?? builtIn.specsRu,
+              resultRu: project.resultRu ?? builtIn.resultRu,
+            };
+          }));
         }
       }
     } catch {
@@ -623,18 +665,21 @@ export default function App() {
     setCart((prev) => prev.filter((i) => i.id !== id));
   }
 
-  function openLeadModal(topic: string, estimatedTotalUsd?: number) {
+  function openLeadModal(topic: string, estimatedTotalUsd?: number, placement: Placement = 'section') {
     setLeadTopic(topic);
     setLeadEstimateUsd(estimatedTotalUsd);
+    setLeadPlacement(placement);
     setLeadModalOpen(true);
   }
 
   const cartTotalCount = cart.reduce((s, i) => s + i.qty, 0);
   const activeDealsCount = deals.filter((d) => d.stage !== 'archived').length;
-  const crmButtonLabel = adminToken ? `Адмін / CRM (${activeDealsCount})` : 'Адмін / CRM';
+  const crmButtonLabel = adminToken
+    ? `${tr('Адмін / CRM')} (${activeDealsCount})`
+    : tr('Адмін / CRM');
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-[#172636]">
+    <div className={`min-h-screen flex flex-col bg-white text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
       {/* Slim Utility Strip (Odessa Office + Store/CRM Workspace Switcher) */}
       <div className="bg-[#0d1f33] text-slate-300 text-xs py-1.5 border-b border-white/10">
         <div className="max-w-[1180px] mx-auto px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-4">
@@ -642,13 +687,32 @@ export default function App() {
             <span className="hidden md:inline">{COMPANY_INFO.address} · </span>
             <a
               href={COMPANY_INFO.phone1Href}
-              onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })}
+              onClick={() => {
+                track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' });
+                trackEvent('contact', { phone: COMPANY_INFO.phone1 });
+              }}
               className="font-semibold text-white hover:text-sky-200 font-mono text-[11px] sm:text-xs"
             >
               {COMPANY_INFO.phone1}
             </a>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="inline-flex items-center rounded-md border border-white/15 bg-white/5 p-0.5" aria-label={tr('Мова сайту')}>
+              {(['uk', 'ru'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  lang={option}
+                  aria-pressed={locale === option}
+                  onClick={() => changeLocale(option)}
+                  className={`rounded px-2 py-1 text-[10px] font-extrabold transition-colors ${
+                    locale === option ? 'bg-white text-[#0d1f33]' : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {option.toUpperCase()}
+                </button>
+              ))}
+            </div>
             <div className="hidden sm:block">
               <SocialIcons links={socialLinks} variant="header" />
             </div>
@@ -660,7 +724,7 @@ export default function App() {
                   view !== 'crm' ? 'bg-white/15 text-white' : 'text-slate-300 hover:text-white'
                 }`}
               >
-                Магазин
+                {tr('Магазин')}
               </button>
               <button
                 type="button"
@@ -697,7 +761,7 @@ export default function App() {
           </a>
 
           {/* Zone 2: 5 concise single-line nav links (desktop lg+) */}
-          <nav aria-label="Головна навігація" className="hidden lg:flex items-center gap-5 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
+          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-5 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
             <a
               href="/"
               onClick={(e) => handleNavAnchor(e, 'home')}
@@ -705,7 +769,7 @@ export default function App() {
                 view === 'home' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Головна
+              {tr('Головна')}
             </a>
             <a
               href="/shop"
@@ -714,7 +778,7 @@ export default function App() {
                 view === 'shop' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Обладнання
+              {tr('Обладнання')}
             </a>
             <a
               href="/services"
@@ -723,7 +787,7 @@ export default function App() {
                 view === 'services' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Послуги
+              {tr('Послуги')}
             </a>
             <a
               href="/projects"
@@ -732,7 +796,7 @@ export default function App() {
                 view === 'projects' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Проєкти
+              {tr('Проєкти')}
             </a>
             <a
               href="/contacts"
@@ -741,7 +805,7 @@ export default function App() {
                 view === 'contacts' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Контакти
+              {tr('Контакти')}
             </a>
           </nav>
 
@@ -752,19 +816,19 @@ export default function App() {
               onClick={() => openLeadModal('Підбір рішення з шапки сайту')}
               className="inline-flex items-center justify-center h-9 px-2.5 sm:px-3.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <span className="min-[440px]:hidden">Підібрати</span>
-              <span className="hidden min-[440px]:inline">Підібрати рішення</span>
+              <span className="min-[440px]:hidden">{tr('Підібрати')}</span>
+              <span className="hidden min-[440px]:inline">{tr('Підібрати рішення')}</span>
             </button>
 
             <button
               type="button"
               onClick={handleOpenCart}
-              aria-label={`Кошик (${cartTotalCount})`}
-              title="Кошик обладнання"
+              aria-label={`${tr('Кошик')} (${cartTotalCount})`}
+              title={tr('Кошик обладнання', 'Корзина оборудования')}
               className="inline-flex items-center justify-center gap-1.5 h-9 px-2.5 xl:px-3.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <ShoppingBag className="w-4 h-4 text-[#f59e0b] shrink-0" />
-              <span className="hidden xl:inline">Кошик</span>
+              <span className="hidden xl:inline">{tr('Кошик')}</span>
               <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
                 {cartTotalCount}
               </span>
@@ -773,7 +837,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen((v) => !v)}
-              aria-label="Меню"
+              aria-label={tr('Меню', 'Меню')}
               aria-expanded={mobileMenuOpen}
               className="lg:hidden w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-[#0d1f33] cursor-pointer shrink-0"
             >
@@ -787,13 +851,13 @@ export default function App() {
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-2">
             {(
               [
-                ['home', '/', 'Головна'],
-                ['shop', '/shop', `Обладнання (${products.length})`],
-                ['services', '/services', 'Послуги монтажу та інжинірингу'],
-                ['projects', '/projects', `Реалізовані проєкти (${projects.length})`],
-                ['contacts', '/contacts', 'Контакти'],
-                ['payment-delivery', '/payment-delivery', 'Оплата і доставка'],
-                ['offer', '/public-offer', 'Публічна оферта'],
+                ['home', '/', tr('Головна')],
+                ['shop', '/shop', `${tr('Обладнання')} (${products.length})`],
+                ['services', '/services', tr('Послуги монтажу та інжинірингу')],
+                ['projects', '/projects', `${tr('Реалізовані проєкти')} (${projects.length})`],
+                ['contacts', '/contacts', tr('Контакти')],
+                ['payment-delivery', '/payment-delivery', tr('Оплата і доставка')],
+                ['offer', '/public-offer', tr('Публічна оферта')],
                 ['crm', '/crm', crmButtonLabel],
               ] as const
             ).map(([v, href, label]) => (
@@ -814,10 +878,10 @@ export default function App() {
               }}
               className="block w-full text-center px-3 py-2.5 rounded-lg bg-[#1769aa] text-white text-sm font-bold"
             >
-              Підібрати рішення
+              {tr('Підібрати рішення')}
             </button>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-500">Ми в соцмережах:</span>
+              <span className="text-xs font-semibold text-slate-500">{tr('Ми в соцмережах:', 'Мы в соцсетях:')}</span>
               <SocialIcons links={socialLinks} variant="light" />
             </div>
           </div>
@@ -948,13 +1012,13 @@ export default function App() {
                   className="h-12 w-auto bg-white rounded-lg p-1.5 mb-3"
                 />
                 <p className="text-xs text-slate-400 leading-relaxed mb-3.5">
-                  Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.
+                  {tr('Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.', 'Системы резервного питания и солнечные электростанции под ключ в Одессе и области.')}
                 </p>
                 <SocialIcons links={socialLinks} variant="footer" />
               </div>
 
               <div>
-                <h2 className="text-xs font-extrabold text-white mb-3">Обладнання</h2>
+                <h2 className="text-xs font-extrabold text-white mb-3">{tr('Обладнання')}</h2>
                 <div className="space-y-1.5 text-xs text-slate-400">
                   {(
                     [
@@ -971,41 +1035,41 @@ export default function App() {
                       onClick={(e) => handleNavAnchor(e, 'shop', c)}
                       className="block hover:text-white"
                     >
-                      {label}
+                      {tr(label)}
                     </a>
                   ))}
                 </div>
               </div>
 
               <div>
-                <h2 className="text-xs font-extrabold text-white mb-3">Компанія та сервіс</h2>
+                <h2 className="text-xs font-extrabold text-white mb-3">{tr('Компанія та сервіс', 'Компания и сервис')}</h2>
                 <div className="space-y-1.5 text-xs text-slate-400">
                   <a
                     href="/services"
                     onClick={(e) => handleNavAnchor(e, 'services')}
                     className="block hover:text-white"
                   >
-                    Послуги монтажу та інжинірингу
+                    {tr('Послуги монтажу та інжинірингу')}
                   </a>
                   <a
                     href="/projects"
                     onClick={(e) => handleNavAnchor(e, 'projects')}
                     className="block hover:text-white"
                   >
-                    Реалізовані об’єкти ({projects.length})
+                    {tr('Реалізовані об’єкти')} ({projects.length})
                   </a>
                   <a
                     href="/contacts"
                     onClick={(e) => handleNavAnchor(e, 'contacts')}
                     className="block hover:text-white"
                   >
-                    Контакти
+                    {tr('Контакти')}
                   </a>
                   <a href="/payment-delivery" onClick={(e) => handleNavAnchor(e, 'payment-delivery')} className="block hover:text-white">
-                    Оплата і доставка
+                    {tr('Оплата і доставка')}
                   </a>
                   <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block hover:text-white">
-                    Публічна оферта
+                    {tr('Публічна оферта')}
                   </a>
                   <a
                     href="/crm"
@@ -1018,9 +1082,9 @@ export default function App() {
               </div>
 
               <div>
-                <h2 className="text-xs font-extrabold text-white mb-3">Контакти · Одеса</h2>
+                <h2 className="text-xs font-extrabold text-white mb-3">{tr('Контакти · Одеса', 'Контакты · Одесса')}</h2>
                 <div className="space-y-1.5 text-xs text-slate-400">
-                  <p>{COMPANY_INFO.address}</p>
+                  <p>{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
                   <a href={COMPANY_INFO.phone1Href} className="block font-mono hover:text-white">
                     {COMPANY_INFO.phone1}
                   </a>
@@ -1036,30 +1100,37 @@ export default function App() {
 
             <div className="mt-8 pt-5 border-t border-white/10 text-[11px] text-slate-500 flex flex-wrap justify-between gap-2">
               <span>© 2026 Energo Comfort · energocomfort.shop</span>
-              <span>Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina</span>
+              <span>{tr('Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina', 'Официальное оборудование Deye, SolaX, Solis, Dyness, Trina')}</span>
             </div>
           </div>
         </footer>
       )}
 
       {/* Slim Mobile Thumb CTA Bar (<= 44px height) */}
-      {view !== 'crm' && !cartOpen && !leadModalOpen && !selectedProduct && !selectedCase && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 h-11 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 flex items-center gap-2">
+      {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !selectedCase && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
-            onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1, source: 'mobile_bar' })}
-            className="flex-1 h-8 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+            onClick={() => {
+              track({ name: 'phone_click', placement: 'sticky', scenario: 'unspecified' });
+              trackEvent('contact', { phone: COMPANY_INFO.phone1, source: 'mobile_bar' });
+            }}
+            className="flex-1 min-w-0 min-h-12 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"
           >
-            <PhoneCall className="w-3.5 h-3.5 text-[#1769aa]" />
-            Зателефонувати
+            <PhoneCall className="w-4 h-4 text-[#1769aa]" />
+            {tr('Подзвонити', 'Позвонить')}
           </a>
           <button
             type="button"
-            onClick={() => openLeadModal('Експрес-підбір із мобільної панелі')}
-            className="flex-1 h-8 rounded-md bg-[#1769aa] text-white text-xs font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer"
+            onClick={() => {
+              track({ name: 'cta_click', placement: 'sticky', scenario: 'unspecified' });
+              openLeadModal('Експрес-підбір із мобільної панелі', undefined, 'sticky');
+            }}
+            className="flex-1 min-w-0 min-h-12 rounded-md bg-[#1769aa] text-white text-[11px] font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d1f33]"
           >
-            Розрахувати за 15 хв
+            {tr('Розрахунок', 'Расчёт')}
           </button>
+          {socialLinks.telegram && <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" aria-label="Telegram" onClick={() => track({ name: 'messenger_click', placement: 'sticky', scenario: 'unspecified', channel: 'telegram' })} className="flex-1 min-w-0 min-h-12 rounded-md border border-sky-200 bg-sky-50 text-[#1769aa] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"><Send className="w-4 h-4" />Telegram</a>}
         </div>
       )}
 
@@ -1085,6 +1156,7 @@ export default function App() {
         onClose={() => setLeadModalOpen(false)}
         onCreated={() => void fetchDeals()}
         onOpenCrm={() => navigateTo('crm')}
+        placement={leadPlacement}
       />
 
       <CartDrawer
