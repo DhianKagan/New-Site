@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Lock, ShieldCheck, ArrowLeft } from 'lucide-react';
 import type { AdminAuthStatus } from '../types.ts';
 import { signInWithGooglePopup } from '../lib/firebaseAuth.ts';
+import { tr } from '../lib/i18n.ts';
 
 interface AdminAuthGateProps {
   status: AdminAuthStatus;
@@ -96,7 +97,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
           className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1769aa] hover:underline mb-5 cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Повернутися в магазин
+          {tr('Повернутися в магазин', 'Вернуться в магазин')}
         </button>
 
         <div className="flex items-center gap-3 mb-4">
@@ -104,23 +105,22 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
             {isSetup ? <ShieldCheck className="w-5 h-5 text-[#f59e0b]" /> : <Lock className="w-5 h-5 text-[#f59e0b]" />}
           </div>
           <div>
-            <div className="text-[11px] font-bold text-[#1769aa]">Energo Comfort · Адмін-панель</div>
+            <div className="text-[11px] font-bold text-[#1769aa]">{tr('Energo Comfort · Адмін-панель', 'Energo Comfort · Панель администратора')}</div>
             <h1 className="text-lg font-extrabold text-[#0d1f33]">
-              {isSetup ? 'Вхід або перше налаштування' : 'Вхід до CRM та налаштувань'}
+              {isSetup ? tr('Вхід або перше налаштування', 'Вход или первичная настройка') : tr('Вхід до CRM та налаштувань', 'Вход в CRM и настройки')}
             </h1>
           </div>
         </div>
 
         <p className="text-xs text-[#52657a] leading-relaxed mb-5">
           {isSetup
-            ? 'Увійдіть через Google-акаунт адміністратора або створіть резервний пароль для доступу до угод CRM, управління цінами та пікселів.'
-            : 'Увійдіть через Google або введіть пароль адміністратора для доступу до угод CRM, каталогу, Telegram-бота та налаштувань Meta Pixel / GA4.'}
+            ? tr('Увійдіть через Google-акаунт адміністратора або створіть резервний пароль для доступу до угод CRM, управління цінами та пікселів.', 'Войдите через аккаунт администратора Google или создайте резервный пароль для доступа к сделкам CRM, ценам и пикселям аналитики.')
+            : tr('Увійдіть через Google або введіть пароль адміністратора для доступу до угод CRM, каталогу, Telegram-бота та налаштувань Meta Pixel / GA4.', 'Войдите через Google или введите пароль администратора для доступа к сделкам CRM, каталогу, Telegram-боту и настройкам Meta Pixel / GA4.')}
         </p>
 
         {!apiAvailable && (
           <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
-            <strong>Серверне API зараз недоступне</strong> (сайт відкрито в автономному статичному режимі). Вітрина,
-            каталог із 250 товарів і кошик працюють, але вхід до CRM і збереження угод потребують запущеного сервера{' '}
+            <strong>{tr('Серверне API зараз недоступне', 'Серверное API сейчас недоступно')}</strong> {tr('(сайт відкрито в автономному статичному режимі). Вітрина, каталог із 250 товарів і кошик працюють, але вхід до CRM і збереження угод потребують запущеного сервера', '(сайт открыт в автономном статическом режиме). Магазин, каталог из 250 товаров и корзина работают, но для входа в CRM и сохранения сделок нужен запущенный сервер')}{' '}
             <code className="font-mono">node server.ts</code>.
           </div>
         )}
@@ -151,13 +151,13 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
                   d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
                 />
               </svg>
-              <span>{googleSubmitting ? 'Виконується вхід через Google...' : 'Увійти через Google'}</span>
+              <span>{googleSubmitting ? tr('Виконується вхід через Google...', 'Выполняется вход через Google…') : tr('Увійти через Google', 'Войти через Google')}</span>
             </button>
 
             <div className="relative flex items-center justify-center my-4">
               <div className="border-t border-slate-200 w-full" />
               <span className="bg-white px-3 text-[11px] font-semibold text-slate-400 whitespace-nowrap">
-                або паролем адміністратора
+                {tr('або паролем адміністратора', 'или паролем администратора')}
               </span>
               <div className="border-t border-slate-200 w-full" />
             </div>
@@ -167,7 +167,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
             <label className="block text-xs font-bold text-[#0d1f33] mb-1">
-              {isSetup ? 'Новий пароль (від 6 символів)' : 'Пароль адміністратора'}
+              {isSetup ? tr('Новий пароль (від 6 символів)', 'Новый пароль (от 6 символов)') : tr('Пароль адміністратора', 'Пароль администратора')}
             </label>
             <input
               type="password"
@@ -181,7 +181,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
 
           {isSetup && (
             <div>
-              <label className="block text-xs font-bold text-[#0d1f33] mb-1">Підтвердьте пароль</label>
+              <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Підтвердьте пароль', 'Подтвердите пароль')}</label>
               <input
                 type="password"
                 required
@@ -195,7 +195,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
 
           {error && (
             <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
-              {error}
+              {tr(error)}
             </div>
           )}
 
@@ -205,10 +205,10 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
             className="w-full py-2.5 px-4 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] disabled:opacity-60 text-white text-sm font-bold transition-colors cursor-pointer"
           >
             {submitting
-              ? 'Перевіряємо...'
+              ? tr('Перевіряємо...', 'Проверяем…')
               : isSetup
-                ? 'Зберегти пароль і відкрити Адмінку'
-                : 'Увійти за паролем'}
+                ? tr('Зберегти пароль і відкрити Адмінку', 'Сохранить пароль и открыть админ-панель')
+                : tr('Увійти за паролем', 'Войти по паролю')}
           </button>
         </form>
       </div>

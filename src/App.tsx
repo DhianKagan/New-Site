@@ -254,7 +254,19 @@ export default function App() {
       if (resp.ok && isJson) {
         const data = (await resp.json()) as { projects: ProjectCase[] };
         if (Array.isArray(data.projects) && data.projects.length > 0) {
-          setProjects(data.projects);
+          setProjects(data.projects.map((project) => {
+            const builtIn = PROJECTS.find((item) => item.id === project.id);
+            if (!builtIn) return project;
+            return {
+              ...project,
+              tagRu: project.tagRu ?? builtIn.tagRu,
+              titleRu: project.titleRu ?? builtIn.titleRu,
+              taskRu: project.taskRu ?? builtIn.taskRu,
+              solutionRu: project.solutionRu ?? builtIn.solutionRu,
+              specsRu: project.specsRu ?? builtIn.specsRu,
+              resultRu: project.resultRu ?? builtIn.resultRu,
+            };
+          }));
         }
       }
     } catch {
