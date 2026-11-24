@@ -1,0 +1,6187 @@
+[
+  {
+    "id": "deye-bos-g-pdu-2-bms-module",
+    "sku": "6116",
+    "title": "BMS Модуль Deye BOS-G-PDU-2 (для BOS-G-Pro 5,1)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 900,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-bos-g-pdu-2-bms-module.png",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "Deye BOS-G-PDU-2 (Power Distribution Unit) - це інтелектуальний високовольтний блок керування систем...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-bos-g-pdu-2-bms-module"
+  },
+  {
+    "id": "solax-power-bms-r15-bms-unit",
+    "sku": "7777",
+    "title": "BMS Модуль SolaX Power BMS-R15 (для АКБ TB-HR140)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori",
+      "komplektuyuchi"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1278,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-bms-r15-bms-unit.png",
+    "specs": [],
+    "description": "SolaX Power BMS-R15 - це інтелектуальний блок керування (BMS), спеціально розроблений для комерційни...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-bms-r15-bms-unit"
+  },
+  {
+    "id": "blok-keruvannia-solax-tbms-mcs0800",
+    "sku": "8432",
+    "title": "BMS Модуль SolaX Power TBMS-MCS0800 (BMS для системи АКБ T-BAT H S3.6)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 530,
+    "oldPrice": 600,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/blok-keruvannia-solax-tbms-mcs0800.png",
+    "specs": [],
+    "description": "SolaX Power TBMS-MCS0800 - це інтелектуальна система керування акумуляторами (BMS), яка є ключовим к...",
+    "sourceUrl": "https://energocomfort.shop/shop/blok-keruvannia-solax-tbms-mcs0800"
+  },
+  {
+    "id": "solax-power-tbms-r76-bms",
+    "sku": "6481",
+    "title": "BMS Модуль SolaX Power TBMS-R76 (для АКБ TB-HR76)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori",
+      "komplektuyuchi"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1222,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-tbms-r76-bms.png",
+    "specs": [],
+    "description": "Інтелектуальне керування вашою системою накопичення \n Блок керування SolaX Power TBMS-R76 виконує роль ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-tbms-r76-bms"
+  },
+  {
+    "id": "blok-keruvannya-solax-tbms-s51-8",
+    "sku": "8760",
+    "title": "BMS Модуль SolaX Power TBMS-S51-8 (BMS для системи АКБ T-HS5.1)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1024,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/blok-keruvannya-solax-tbms-s51-8.png",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "SolaX Power TBMS-S51-8 - це високовольтна система керування акумуляторами (BMS) останнього покоління...",
+    "sourceUrl": "https://energocomfort.shop/shop/blok-keruvannya-solax-tbms-s51-8"
+  },
+  {
+    "id": "bms-bd-base-dyness-stack100",
+    "sku": "4431",
+    "title": "BMS модуль з підігрівом BDU + База для системи Dyness Stack100",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori",
+      "komplektuyuchi"
+    ],
+    "brand": "Dyness",
+    "isKit": false,
+    "price": 800,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/bms-bd-base-dyness-stack100.png",
+    "specs": [],
+    "description": "BMS модуль (Battery Distribution Unit) з функцією підігріву та спеціальна база - це ключові компонен...",
+    "sourceUrl": "https://energocomfort.shop/shop/bms-bd-base-dyness-stack100"
+  },
+  {
+    "id": "gcl-group-gcl-nt12r-66gdf-620-620w-bifacial-n-type",
+    "sku": "3164",
+    "title": "Cонячна панель GCL Group GCL-NT12R/66GDF620 Bifacical (620 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "GCL",
+    "isKit": false,
+    "price": 117,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gcl-group-gcl-nt12r-66gdf-620-620w-bifacial-n-type.png",
+    "specs": [
+      [
+        "Потужність",
+        "620 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Двостороння сонячна панель GCL Group GCL-NT12R/66GDF-620 потужністю 620 Вт - це високоефективний фот...",
+    "sourceUrl": "https://energocomfort.shop/shop/gcl-group-gcl-nt12r-66gdf-620-620w-bifacial-n-type"
+  },
+  {
+    "id": "akumulyatorna-batareya-deye-se-f5-pro",
+    "sku": "50022",
+    "title": "Deye SE-F5 Pro \"C\" Version (5,1 кВт*год 48В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 950,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyatorna-batareya-deye-se-f5-pro.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.1 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "Акумуляторна батарея Deye SE-F5 Pro (C-Version) — 5.12 кВт*год / 48В Deye SE-F5 Pro — це інтелектуаль...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyatorna-batareya-deye-se-f5-pro"
+  },
+  {
+    "id": "deye-sun-15k-sg01hp3-eu-am2",
+    "sku": "10043",
+    "title": "Deye SUN-15K-SG05LP3-EU-SM2 (15кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2200,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-15k-sg01hp3-eu-am2.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний гібридний інвертор Deye SUN-15K-SG05LP3-EU-SM2 (15 кВт, 48В) Deye SUN-15K — це флагманська ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-15k-sg01hp3-eu-am2"
+  },
+  {
+    "id": "merezhevij-trifaznij-smart-meter-livoltek-3-fazi-z-ct-250a",
+    "sku": "50024",
+    "title": "Litiot 3 фаза Smart Meter with CT 250A (LIVOLTEK)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Livoltek",
+    "isKit": false,
+    "price": 140,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevij-trifaznij-smart-meter-livoltek-3-fazi-z-ct-250a.png",
+    "specs": [
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний Smart Meter LIVOLTEK з трансформаторами струму (CT 250A) Litiot 3-Phase Smart Meter — це ін...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevij-trifaznij-smart-meter-livoltek-3-fazi-z-ct-250a"
+  },
+  {
+    "id": "avtomatichnij-vvod-rezervu-yrq2cb-63-ats-4p-63a-400v",
+    "sku": "10094",
+    "title": "Автоматичний ввод резерву YRQ2CB-63 ATS 4P 63A 400V",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 74,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/avtomatichnij-vvod-rezervu-yrq2cb-63-ats-4p-63a-400v.jpg",
+    "specs": [],
+    "description": "63A 400V GENERATOR TYPE\nАвтоматичний ввод резерву YRQ2CB-63 ATS 4P 63A 400V – це надійний чотириполюс...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vvod-rezervu-yrq2cb-63-ats-4p-63a-400v"
+  },
+  {
+    "id": "avtomatichnij-vvod-rezervu-yrq2pc-125-pc-ats-2p-63a-220v-generator-type",
+    "sku": "10092",
+    "title": "Автоматичний ввод резерву YRQ2PC-125 PC ATS 2P 63A 220V GENERATOR TYPE",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 58,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/avtomatichnij-vvod-rezervu-yrq2pc-125-pc-ats-2p-63a-220v-generator-type.jpg",
+    "specs": [],
+    "description": "2P 63A 220V GENERATOR TYPE\nАвтоматичний ввод резерву YRQ2PC-125 PC ATS 2P 63A 220V GENERATOR TYPE – ц...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vvod-rezervu-yrq2pc-125-pc-ats-2p-63a-220v-generator-type"
+  },
+  {
+    "id": "avtomatichnij-vvod-rezervu-yrq2pc-125-pc-ats-4p-63a-220v-generator-type",
+    "sku": "10093",
+    "title": "Автоматичний ввод резерву YRQ2PC-125 PC ATS 4P 63A 400V GENERATOR TYPE",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 68,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/avtomatichnij-vvod-rezervu-yrq2pc-125-pc-ats-4p-63a-220v-generator-type.jpg",
+    "specs": [],
+    "description": "Автоматичне введення резерву (АВР) YRQ2PC-125 PC ATS (4P, 63A, 400V) — Generator Type YRO YRQ2PC-125 ...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vvod-rezervu-yrq2pc-125-pc-ats-4p-63a-220v-generator-type"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63ac",
+    "sku": "50087-3",
+    "title": "Автоматичний вимикач YRL7-63/AC400V/6kA (2P)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 9,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63ac.png",
+    "specs": [],
+    "description": "Автоматичний вимикач змінного струму YRL7-63 AC (2P, 400V, 6kA) YRL7-63 AC — це двополюсний (2P) авто...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63ac"
+  },
+  {
+    "id": "akumulyatorna-batareya-lifepo4-byd-premium-lv-50",
+    "sku": "50019",
+    "title": "Акумуляторна батарея BYD LV 5.0 + (100Ah/48V)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "BYD",
+    "isKit": false,
+    "price": 900,
+    "oldPrice": 1000,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyatorna-batareya-lifepo4-byd-premium-lv-50.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.12 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "Акумуляторна батарея BYD Premium LV 5.0 + (100Ah / 48V / 5.12kWh) BYD Premium LV 5.0 — це літій-заліз...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyatorna-batareya-lifepo4-byd-premium-lv-50"
+  },
+  {
+    "id": "deye-rw-m6-1-6-14kwh-48v-lifepo4-battery",
+    "sku": "6636",
+    "title": "Акумуляторна батарея Deye RW-M6.1 LiFePO4 (6.14 кВт·год, 48 В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1040,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-rw-m6-1-6-14kwh-48v-lifepo4-battery.jpg",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "6.14 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Низьковольтний літій-залізо-фосфатний акумуляторний модуль Deye RW-M6.1 ємністю 6.14 кВт·год (51.2 В...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-rw-m6-1-6-14kwh-48v-lifepo4-battery"
+  },
+  {
+    "id": "deye-se-f12-l",
+    "sku": "50023",
+    "title": "Акумуляторна батарея Deye SE-F12-L 51.2V 230Ah (12 кВт*год)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1900,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-se-f12-l.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "12 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "Акумуляторна батарея Deye SE-F12-L (11.77 кВт*год / 48В / 230Ah) Deye SE-F12-L — це високоефективна л...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-se-f12-l"
+  },
+  {
+    "id": "deye-se-f16-c-lifepo4-battery-15kwh-314ah",
+    "sku": "4932",
+    "title": "Акумуляторна батарея Deye SE-F16-С 51.2V 314Ah (16 кВт*год/48В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2000,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-se-f16-c-lifepo4-battery-15kwh-314ah.jpg",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "16 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Deye SE-F16-С - це високоефективний літій-залізо-фосфатний (LiFePO4) акумуляторний модуль нового пок...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-se-f16-c-lifepo4-battery-15kwh-314ah"
+  },
+  {
+    "id": "dyness-dl5-0c-heating-5-12kwh-48v-lifepo4",
+    "sku": "4137",
+    "title": "Акумуляторна батарея Dyness DL5.0C Heating (5,1 кВт*год 48В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Dyness",
+    "isKit": false,
+    "price": 890,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/dyness-dl5-0c-heating-5-12kwh-48v-lifepo4.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.1 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "Акумуляторний модуль новітнього покоління Dyness DL5.0C Heating ємністю 5.12 кВт·год (48 В / 51.2 В,...",
+    "sourceUrl": "https://energocomfort.shop/shop/dyness-dl5-0c-heating-5-12kwh-48v-lifepo4"
+  },
+  {
+    "id": "dyness-powerbrick-plus-16-07kwh-48v-heating-battery",
+    "sku": "6336",
+    "title": "Акумуляторна батарея Dyness PowerBrick Plus LiFePO4 (16.07 кВт·год, 48 В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Dyness",
+    "isKit": false,
+    "price": 1950,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/dyness-powerbrick-plus-16-07kwh-48v-heating-battery.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "16.07 кВт·год"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Низьковольтний літій-залізо-фосфатний акумуляторний блок високої ємності Dyness PowerBrick Plus ємні...",
+    "sourceUrl": "https://energocomfort.shop/shop/dyness-powerbrick-plus-16-07kwh-48v-heating-battery"
+  },
+  {
+    "id": "akumulyator-dyness-powerhaus-5-12kwh-51-2v-lifepo4",
+    "sku": "6171",
+    "title": "Акумуляторна батарея Dyness PowerHaus (5.12 кВт*год / 51.2 В / 100 Ah) LiFePO4",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Dyness",
+    "isKit": false,
+    "price": 1020,
+    "oldPrice": 1200,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyator-dyness-powerhaus-5-12kwh-51-2v-lifepo4.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.12 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Dyness PowerHaus - це інтелектуальна система накопичення енергії нового покоління, розроблена для за...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyator-dyness-powerhaus-5-12kwh-51-2v-lifepo4"
+  },
+  {
+    "id": "akumulyatorna-batareya-dyness-stack100-s51100-5-12kwh-51-2v",
+    "sku": "3052",
+    "title": "Акумуляторна батарея Dyness Stack100 S51100 (5.12 кВт*год, 51.2В, 100Аг)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Dyness",
+    "isKit": false,
+    "price": 800,
+    "oldPrice": 950,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyatorna-batareya-dyness-stack100-s51100-5-12kwh-51-2v.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.12 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Dyness Stack100 S51100 - це сучасний літій-залізо-фосфатний (LiFePO4) акумуляторний модуль, розробле...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyatorna-batareya-dyness-stack100-s51100-5-12kwh-51-2v"
+  },
+  {
+    "id": "akumulyatorna-batareya-felicity-solar-fla-48314-eu",
+    "sku": "50024",
+    "title": "Акумуляторна батарея Felicity FLA 48314-EU (16кВт*год/48В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Felicity",
+    "isKit": false,
+    "price": 2000,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyatorna-batareya-felicity-solar-fla-48314-eu.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "16 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "Акумуляторна батарея Felicity Solar FLA 48314-EU (16.1 кВт*год / 48В / 314Ah) Felicity Solar FLA 4831...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyatorna-batareya-felicity-solar-fla-48314-eu"
+  },
+  {
+    "id": "lifepo4-deye-se-g51-pro-b",
+    "sku": "10018",
+    "title": "Акумуляторна батарея LiFePo4 Deye SE-G5.1 PRO B (5,1 кВт*год 48В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 900,
+    "oldPrice": 1100,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/lifepo4-deye-se-g51-pro-b.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.1 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Номінальна ємність - 5,1 кВт*год;\nАКБ, що використовується для інверторів Deye; \nТип АКБ Li-ion (LFP);",
+    "sourceUrl": "https://energocomfort.shop/shop/lifepo4-deye-se-g51-pro-b"
+  },
+  {
+    "id": "akkumulyator-lifepo4-must-lp16-24200-25-6v-200ah",
+    "sku": "5041",
+    "title": "Акумуляторна батарея LiFePO4 Must LP16-24200",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Must",
+    "isKit": false,
+    "price": 984,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akkumulyator-lifepo4-must-lp16-24200-25-6v-200ah.jpg",
+    "specs": [
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Must LP16-24200 - це високотехнологічний літій-залізо-фосфатний (LiFePO4) акумулятор нового поколінн...",
+    "sourceUrl": "https://energocomfort.shop/shop/akkumulyator-lifepo4-must-lp16-24200-25-6v-200ah"
+  },
+  {
+    "id": "akkumulyator-lifepo4-must-lp16-48100-48v-100ah-5kw",
+    "sku": "8542",
+    "title": "Акумуляторна батарея LiFePO4 MUST LP16-48100 (51.2В, 100Аг, 5.12 кВт·год)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Must",
+    "isKit": false,
+    "price": 960,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akkumulyator-lifepo4-must-lp16-48100-48v-100ah-5kw.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.12 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "MUST LP16-48100 - це сучасний літій-залізо-фосфатний акумулятор (LiFePO4) преміум-класу, розроблений...",
+    "sourceUrl": "https://energocomfort.shop/shop/akkumulyator-lifepo4-must-lp16-48100-48v-100ah-5kw"
+  },
+  {
+    "id": "akumulyatorna-batareya-lifepo4-pylontech-us5000-4-8-kvt-god",
+    "sku": "50055",
+    "title": "Акумуляторна батарея LiFePo4 Pylontech US5000 (4,8 кВт*год)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Pylontech",
+    "isKit": false,
+    "price": 1000,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyatorna-batareya-lifepo4-pylontech-us5000-4-8-kvt-god.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "4.8 кВт·год"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Акумуляторна батарея LiFePO4 Pylontech US5000 (4.8 кВт·год / 48В) \n Pylontech US5000 - це сучасна літій...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyatorna-batareya-lifepo4-pylontech-us5000-4-8-kvt-god"
+  },
+  {
+    "id": "solax-power-tb-ld160-16kwh-48v-lifepo4-battery",
+    "sku": "5529",
+    "title": "Акумуляторна батарея SolaX Power TB-LD160 LiFePO4 (16 кВт·год, 48 В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2229,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-tb-ld160-16kwh-48v-lifepo4-battery.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "16 кВт·год"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Низьковольтний літій-залізо-фосфатний акумуляторний блок високої ємності SolaX Power TB-LD160 ємніст...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-tb-ld160-16kwh-48v-lifepo4-battery"
+  },
+  {
+    "id": "solax-power-tb-ld51c-5-12kwh-48v-lifepo4-battery",
+    "sku": "5535",
+    "title": "Акумуляторна батарея SolaX Power TB-LD51C LiFePO4 (5.12 кВт·год, 48 В)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 964,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-tb-ld51c-5-12kwh-48v-lifepo4-battery.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.12 кВт·год"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Низьковольтний літій-залізо-фосфатний акумуляторний модуль SolaX Power TB-LD51C ємністю 5.12 кВт·год...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-tb-ld51c-5-12kwh-48v-lifepo4-battery"
+  },
+  {
+    "id": "akumulyator-solax-t-bat-lv-d53-5-3kwh",
+    "sku": "8051",
+    "title": "Акумуляторний модуль SolaX Power T-BAT-LD53 LV (5.3 кВт*год, LiFePO4)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1012,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyator-solax-t-bat-lv-d53-5-3kwh.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.3 кВт·год"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Energo Comfort - Офіційний партнер SolaX Power Ми забезпечуємо прямі поставки оригінального обладнанн...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyator-solax-t-bat-lv-d53-5-3kwh"
+  },
+  {
+    "id": "solax-power-tb-hr140-14-3kwh-lfp",
+    "sku": "7227",
+    "title": "Акумуляторний модуль SolaX Power TB-HR140 (LFP, 14.3 кВт·год)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1944,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-tb-hr140-14-3kwh-lfp.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "14.3 кВт·год"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "SolaX Power TB-HR140 - це високонадійний акумуляторний блок комерційного класу ємністю 14.3 кВт·год ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-tb-hr140-14-3kwh-lfp"
+  },
+  {
+    "id": "solax-power-tb-hr76-7-6kwh-lfp",
+    "sku": "6355",
+    "title": "Акумуляторний модуль SolaX Power TB-HR76 (LFP, 7.6 кВт*год)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1222,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-tb-hr76-7-6kwh-lfp.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "7.6 кВт·год"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Акумуляторний модуль SolaX Power TB-HR76 створений для забезпечення стабільного резервного живлення ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-tb-hr76-7-6kwh-lfp"
+  },
+  {
+    "id": "akumuliator-solax-power-triple-power-t-bat-h5-8-master",
+    "sku": "8763",
+    "title": "Акумуляторний модуль SolaX Power Triple Power T-BAT H5.8 Master Pack (5.8 кВт*год, LiFePO4, високовольтний)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2340,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumuliator-solax-power-triple-power-t-bat-h5-8-master.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.8 кВт·год"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "SolaX Power Triple Power T-BAT H5.8 Master Pack - це основний елемент системи накопичення енергії ви...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumuliator-solax-power-triple-power-t-bat-h5-8-master"
+  },
+  {
+    "id": "dodatkovyi-akumuliatornyi-modul-solax-t-bat-h5-8-slave",
+    "sku": "8918",
+    "title": "Акумуляторний модуль SolaX Power Triple Power T-BAT H5.8 Slave Pack (5.8 кВт*год)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2280,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/dodatkovyi-akumuliatornyi-modul-solax-t-bat-h5-8-slave.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.8 кВт·год"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "SolaX Power Triple Power T-BAT H5.8 Slave Pack - це модуль розширення ємності для високовольтних сис...",
+    "sourceUrl": "https://energocomfort.shop/shop/dodatkovyi-akumuliatornyi-modul-solax-t-bat-h5-8-slave"
+  },
+  {
+    "id": "akumuliator-solax-power-triple-power-t-bat-h-s3-6",
+    "sku": "8410",
+    "title": "Акумуляторний модуль SolaX Power Triple Power T-BAT H S3.6 (3.6 кВт*год, LiFePO4, високовольтний)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 964,
+    "oldPrice": 1204,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumuliator-solax-power-triple-power-t-bat-h-s3-6.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "3.6 кВт·год"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "SolaX Power Triple Power T-BAT H S3.6 - це сучасне рішення для накопичення енергії, розроблене для р...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumuliator-solax-power-triple-power-t-bat-h-s3-6"
+  },
+  {
+    "id": "akumulyator-solax-power-t-bat-h-s5-1",
+    "sku": "8712",
+    "title": "Акумуляторний модуль SolaX Power Triple Power T-BAT H S5.1 (5.1 кВт*год, LiFePO4, високовольтний)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1422,
+    "oldPrice": 1565,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyator-solax-power-t-bat-h-s5-1.png",
+    "specs": [
+      [
+        "Ємність АКБ",
+        "5.1 кВт·год"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "SolaX Power Triple Power T-BAT H S5.1 - це високовольтний акумуляторний модуль нового покоління, ств...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyator-solax-power-t-bat-h-s5-1"
+  },
+  {
+    "id": "blok-keruvannya-deye-bos-hvb-750v100a",
+    "sku": "40026",
+    "title": "Блок управління Deye BOS HVB-750V/100A",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori",
+      "komplektuyuchi"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 680,
+    "oldPrice": 820,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/blok-keruvannya-deye-bos-hvb-750v100a.png",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "Блок управління Deye BOS-G (Cluster Control Box) HVB-750V/100A Deye BOS HVB-750V/100A — це інтелектуа...",
+    "sourceUrl": "https://energocomfort.shop/shop/blok-keruvannya-deye-bos-hvb-750v100a"
+  },
+  {
+    "id": "vimikach-navantazhennya-yro-s1db-n32-4p",
+    "sku": "10069",
+    "title": "Вимикач навантаження YRO YRDS1DB/N32/4P",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 25,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/vimikach-navantazhennya-yro-s1db-n32-4p.jpg",
+    "specs": [],
+    "description": "Вимикач навантаження DC YRO S1DB/N32/4P (4 Полюси, 32А, 1000В) YRO S1DB/N32/4P — це високонадійний чо...",
+    "sourceUrl": "https://energocomfort.shop/shop/vimikach-navantazhennya-yro-s1db-n32-4p"
+  },
+  {
+    "id": "deye-bos-g-pack5-1-pro-51-2v-100ah-lifepo4",
+    "sku": "2221",
+    "title": "Високовольтний акумуляторний модуль Deye BOS-G-Pack5.1 Pro LiFePO4 (51.2V 100Ah)",
+    "cat": "batteries",
+    "rawCats": [
+      "akumulyatori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 900,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-bos-g-pack5-1-pro-51-2v-100ah-lifepo4.jpg",
+    "specs": [
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Deye BOS-G (Pack 5.1 Pro) - це високоефективний літій-залізо-фосфатний (LiFePO4) акумуляторний модул...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-bos-g-pack5-1-pro-51-2v-100ah-lifepo4"
+  },
+  {
+    "id": "gibridniy-invertor-must-pv18-6248-eco-48v-6-2kw",
+    "sku": "8502",
+    "title": "Гібридний інвертор MUST PV18-6248 ECO (6.2 кВт, 48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Must",
+    "isKit": false,
+    "price": 549,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-invertor-must-pv18-6248-eco-48v-6-2kw.png",
+    "specs": [
+      [
+        "Потужність",
+        "6.2 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "MUST PV18-6248 ECO - це потужне та інтелектуальне рішення для створення повної енергонезалежності. З...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-invertor-must-pv18-6248-eco-48v-6-2kw"
+  },
+  {
+    "id": "invertor-solax-power-x1-hyb-5-0-lv-5kw",
+    "sku": "8050",
+    "title": "Гібридний інвертор SolaX Power X1-HYB-5.0-LV (5 кВт, Low Voltage)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 843,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/invertor-solax-power-x1-hyb-5-0-lv-5kw.png",
+    "specs": [
+      [
+        "Потужність",
+        "5 кВт"
+      ]
+    ],
+    "description": "Energo Comfort - Офіційний партнер SolaX Power Купуючи обладнання SolaX у нас, ви отримуєте 100% ориг...",
+    "sourceUrl": "https://energocomfort.shop/shop/invertor-solax-power-x1-hyb-5-0-lv-5kw"
+  },
+  {
+    "id": "gibridniy-invertor-solax-power-x1-hyb-6-0-lv-6kw-48v",
+    "sku": "6501",
+    "title": "Гібридний інвертор SolaX Power X1-HYB-6.0-LV (6 кВт, 1-фазний)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 936,
+    "oldPrice": 1023,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-invertor-solax-power-x1-hyb-6-0-lv-6kw-48v.png",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "SolaX Power X1-HYB-6.0-LV - це сучасний однофазний гібридний інвертор четвертого покоління (G4), роз...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-invertor-solax-power-x1-hyb-6-0-lv-6kw-48v"
+  },
+  {
+    "id": "gibridniy-invertor-solax-power-x1-lite-10-0-lv-10kw-48v",
+    "sku": "8967",
+    "title": "Гібридний інвертор SolaX Power X1-Lite-10.0-LV (10 кВт, 1 фаза)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1687,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-invertor-solax-power-x1-lite-10-0-lv-10kw-48v.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "SolaX Power X1-Lite-10.0-LV - це один із найпотужніших однофазних гібридних інверторів на ринку. Він...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-invertor-solax-power-x1-lite-10-0-lv-10kw-48v"
+  },
+  {
+    "id": "gibridniy-invertor-solax-power-x1-lite-12-0-lv-12kw-48v",
+    "sku": "6541",
+    "title": "Гібридний інвертор SolaX Power X1-Lite-12.0-LV (12 кВт, 1-фазний)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1806,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-invertor-solax-power-x1-lite-12-0-lv-12kw-48v.png",
+    "specs": [
+      [
+        "Потужність",
+        "12 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "SolaX Power X1-Lite-12.0-LV - це один із найпотужніших однофазних гібридних інверторів на ринку, ро...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-invertor-solax-power-x1-lite-12-0-lv-12kw-48v"
+  },
+  {
+    "id": "gibridniy-invertor-solax-power-x1-lite-8-0-lv-8kw-48v",
+    "sku": "6532",
+    "title": "Гібридний інвертор SolaX Power X1-Lite-8.0-LV (8 кВт, 1-фазний)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1325,
+    "oldPrice": 1506,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-invertor-solax-power-x1-lite-8-0-lv-8kw-48v.png",
+    "specs": [
+      [
+        "Потужність",
+        "8 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "SolaX Power X1-Lite-8.0-LV - це потужний однофазний гібридний інвертор низьковольтної серії (48В), щ...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-invertor-solax-power-x1-lite-8-0-lv-8kw-48v"
+  },
+  {
+    "id": "deye-sun-10k-sg06lp1-eu-cm3",
+    "sku": "8446",
+    "title": "Гібридний однофазний інвертор Deye SUN-10K-SG06LP1 EU-CM3 (10 кВт / 48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1600,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-10k-sg06lp1-eu-cm3.webp",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Однофазний гібридний інвертор Deye SUN-10K-SG06LP1 EU-CM3 потужністю 10 кВт та напругою 48В - це пот...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-10k-sg06lp1-eu-cm3"
+  },
+  {
+    "id": "deye-sun-12k-sg06lp1-eu-bm3-12kw-48v",
+    "sku": "6369",
+    "title": "Гібридний однофазний інвертор Deye SUN-12K-SG06LP1-EU-BM3 (12 кВт / 48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1900,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-12k-sg06lp1-eu-bm3-12kw-48v.webp",
+    "specs": [
+      [
+        "Потужність",
+        "12 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Однофазний гібридний інвертор Deye SUN-12K-SG06LP1-EU-BM3 потужністю 12 кВт та напругою 48В - це вис...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-12k-sg06lp1-eu-bm3-12kw-48v"
+  },
+  {
+    "id": "deye-sun-16-k-sg02lp1-eu-am1-p-16",
+    "sku": "50054",
+    "title": "Гібридний однофазний інвертор Deye SUN 16-K-SG01LP1-EU-AM3-P (16кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2000,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-16-k-sg02lp1-eu-am1-p-16.png",
+    "specs": [
+      [
+        "Потужність",
+        "16 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Гібридний інвертор Deye SUN 16-K-SG01LP1-EU (16 кВт, 48В, 1 фаза) Deye SUN 16-K - це найпотужніший од...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-16-k-sg02lp1-eu-am1-p-16"
+  },
+  {
+    "id": "deye-sun-6k-sg06lp1-eu-bm2-6kw-48v",
+    "sku": "5591",
+    "title": "Гібридний однофазний інвертор Deye SUN-6K-SG06LP1-EU-BM2 (6 кВт, 48 В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1150,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-6k-sg06lp1-eu-bm2-6kw-48v.webp",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Deye SUN-6K-SG06LP1-EU-BM2 - це однофазний низьковольтний гібридний інвертор потужністю 6 кВт, призн...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-6k-sg06lp1-eu-bm2-6kw-48v"
+  },
+  {
+    "id": "deye-sun-8k-sg06lp1-eu-cm3",
+    "sku": "8317",
+    "title": "Гібридний однофазний інвертор Deye SUN-8K-SG06LP1 EU-CM3 (8 кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1400,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-8k-sg06lp1-eu-cm3.webp",
+    "specs": [
+      [
+        "Потужність",
+        "8 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Однофазний гібридний інвертор Deye SUN-8K-SG06LP1 EU-CM3 потужністю 8 кВт та напругою 48В - це сучас...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-8k-sg06lp1-eu-cm3"
+  },
+  {
+    "id": "dyness-d5-0k-ls-5kw-48v-hybrid-inverter",
+    "sku": "6616",
+    "title": "Гібридний однофазний інвертор Dyness D5.0K-LS (5 кВт, 48 В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Dyness",
+    "isKit": false,
+    "price": 800,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/dyness-d5-0k-ls-5kw-48v-hybrid-inverter.png",
+    "specs": [
+      [
+        "Потужність",
+        "5 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Гібридний однофазний низьковольтний інвертор Dyness D5.0K-LS серії LS потужністю 5 кВт - це сучасне,...",
+    "sourceUrl": "https://energocomfort.shop/shop/dyness-d5-0k-ls-5kw-48v-hybrid-inverter"
+  },
+  {
+    "id": "solax-x1-reno-8k-lv-8kw-48v-hybrid-inverter",
+    "sku": "5559",
+    "title": "Гібридний однофазний інвертор SolaX X1-RENO-8K LV (8 кВт, 48 В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1434,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-x1-reno-8k-lv-8kw-48v-hybrid-inverter.png",
+    "specs": [
+      [
+        "Потужність",
+        "8 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Гібридний однофазний низьковольтний інвертор нового покоління SolaX X1-RENO-8K LV потужністю 8 кВт -...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-x1-reno-8k-lv-8kw-48v-hybrid-inverter"
+  },
+  {
+    "id": "deye-sun-12k-sg04lp3-eu",
+    "sku": "10041",
+    "title": "Гібридний трифазний інвертор Deye SUN-12K-SG-05-LP3-EU-SM2 (12кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1900,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-12k-sg04lp3-eu.png",
+    "specs": [
+      [
+        "Потужність",
+        "12 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Гібридний трифазний інвертор Deye SUN-12K-SG04-LP3-EU (12 кВт, 48В) Deye SUN-12K — це інтелектуальна ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-12k-sg04lp3-eu"
+  },
+  {
+    "id": "deye-sun-80k-sg02hp3-eu-em6-80kw",
+    "sku": "8828",
+    "title": "Гібридний трифазний інвертор Deye SUN-80K-SG02HP3-EU-EM6 (80кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 5700,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-80k-sg02hp3-eu-em6-80kw.png",
+    "specs": [
+      [
+        "Потужність",
+        "80 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Флагманське рішення для комерційних систем резервного живлення Гібридний інвертор Deye SUN-80K-SG02HP...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-80k-sg02hp3-eu-em6-80kw"
+  },
+  {
+    "id": "gibridniy-tryfazniy-invertor-solax-power-x3-neo-12k-lv-12kw-48v",
+    "sku": "6910",
+    "title": "Гібридний трифазний інвертор SolaX Power X3-NEO-12K-LV (12 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2048,
+    "oldPrice": 2159,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-tryfazniy-invertor-solax-power-x3-neo-12k-lv-12kw-48v.png",
+    "specs": [
+      [
+        "Потужність",
+        "12 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-NEO-12K-LV - це інноваційний трифазний гібридний інвертор нового покоління, який пра...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-tryfazniy-invertor-solax-power-x3-neo-12k-lv-12kw-48v"
+  },
+  {
+    "id": "gibridniy-tryfazniy-invertor-solax-power-x3-neo-15k-lv-15kw-48v",
+    "sku": "8729",
+    "title": "Гібридний трифазний інвертор SolaX Power X3-NEO-15K-LV (15 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2288,
+    "oldPrice": 2530,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-tryfazniy-invertor-solax-power-x3-neo-15k-lv-15kw-48v.png",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-NEO-15K-LV - це надпотужний трифазний гібридний інвертор, розроблений для великих при...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-tryfazniy-invertor-solax-power-x3-neo-15k-lv-15kw-48v"
+  },
+  {
+    "id": "gibridniy-tryfazniy-invertor-solax-power-x3-neo-20k-lv-20kw-48v",
+    "sku": "8757",
+    "title": "Гібридний трифазний інвертор SolaX Power X3-NEO-20K-LV (20 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2890,
+    "oldPrice": 2940,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/gibridniy-tryfazniy-invertor-solax-power-x3-neo-20k-lv-20kw-48v.png",
+    "specs": [
+      [
+        "Потужність",
+        "20 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-NEO-20K-LV - флагман серії NEO, що забезпечує колосальну потужність у 20 кВт для три...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-tryfazniy-invertor-solax-power-x3-neo-20k-lv-20kw-48v"
+  },
+  {
+    "id": "solax-x3-ult-20k-20kw-3phase-hybrid-inverter",
+    "sku": "4434",
+    "title": "Гібридний трифазний інвертор SolaX X3-ULT-20K (20 кВт, High Voltage)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 3012,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-x3-ult-20k-20kw-3phase-hybrid-inverter.png",
+    "specs": [
+      [
+        "Потужність",
+        "20 кВт"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Високопотужний трифазний високовольтний гібридний інвертор нового покоління SolaX X3-ULT-20K (серії ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-x3-ult-20k-20kw-3phase-hybrid-inverter"
+  },
+  {
+    "id": "solax-x3-ult-25k-25kw-3phase-hybrid-inverter",
+    "sku": "4411",
+    "title": "Гібридний трифазний інвертор SolaX X3-ULT-25K (25 кВт, High Voltage)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 3193,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-x3-ult-25k-25kw-3phase-hybrid-inverter.png",
+    "specs": [
+      [
+        "Потужність",
+        "25 кВт"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Високопотужний трифазний високовольтний гібридний інвертор нового покоління SolaX X3-ULT-25K (серії ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-x3-ult-25k-25kw-3phase-hybrid-inverter"
+  },
+  {
+    "id": "systema-rezervnogo-zhyvlennya-deye-10kw-akb-10kwh-pid-klyuch",
+    "sku": "8011",
+    "title": "☀️ Готове рішення Deye 10 кВт / 10.2 кВт*год",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "Deye",
+    "isKit": true,
+    "price": 4500,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/systema-rezervnogo-zhyvlennya-deye-10kw-akb-10kwh-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "10.2 кВт·год"
+      ]
+    ],
+    "description": "Опис можливостей та переваг комплекту Це ультимативне рішення для великих приватних будинків, котеджі...",
+    "sourceUrl": "https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-deye-10kw-akb-10kwh-pid-klyuch"
+  },
+  {
+    "id": "systema-rezervnogo-zhyvlennya-deye-6kw-akb-5kwh-montazh-pid-klyuch",
+    "sku": "8010",
+    "title": "☀️ Готове рішення Deye 6 кВт / 5.1 кВт*год",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "Deye",
+    "isKit": true,
+    "price": 2999,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/systema-rezervnogo-zhyvlennya-deye-6kw-akb-5kwh-montazh-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "5.1 кВт·год"
+      ]
+    ],
+    "description": "Готове рішення 6 кВт / 5.1 кВт*год (Deye + Повний комплект матеріалів + Монтаж в Одесі) \n Опис можливос...",
+    "sourceUrl": "https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-deye-6kw-akb-5kwh-montazh-pid-klyuch"
+  },
+  {
+    "id": "systema-rezervnogo-zhyvlennya-must-4kw-akb-5kwh-montazh-pid-klyuch",
+    "sku": "8030",
+    "title": "☀️ Готове рішення Must 4 кВт / 5.1 кВт*год",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "Must",
+    "isKit": true,
+    "price": 2000,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/systema-rezervnogo-zhyvlennya-must-4kw-akb-5kwh-montazh-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "4 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "5.1 кВт·год"
+      ]
+    ],
+    "description": "Система резервного живлення «Must Comfort» 4 кВт / 5.1 кВт*год (Інвертор + АКБ + Монтаж в Одесі під ...",
+    "sourceUrl": "https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-must-4kw-akb-5kwh-montazh-pid-klyuch"
+  },
+  {
+    "id": "systema-rezervnogo-zhyvlennya-must-6-2kw-akb-5kwh-montazh-pid-klyuch",
+    "sku": "8654",
+    "title": "☀️ Готове рішення Must 6.2 кВт + АКБ 5.12 кВт·год",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "Must",
+    "isKit": true,
+    "price": 2600,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/systema-rezervnogo-zhyvlennya-must-6-2kw-akb-5kwh-montazh-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "6.2 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "5.12 кВт·год"
+      ]
+    ],
+    "description": "Система резервного живлення MUST 6.2 кВт + АКБ 5.12 кВт·год (Монтаж під ключ) Повна енергонезалежніст...",
+    "sourceUrl": "https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-must-6-2kw-akb-5kwh-montazh-pid-klyuch"
+  },
+  {
+    "id": "sistema-rezervnogo-zhyvlennya-solax-5kw-akb-5-3kwh-pid-klyuch",
+    "sku": "8055",
+    "title": "☀️ Готове рішення SolaX Power 5 кВт + 5.3 кВт*год",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "SolaX",
+    "isKit": true,
+    "price": 2499,
+    "oldPrice": 2999,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/sistema-rezervnogo-zhyvlennya-solax-5kw-akb-5-3kwh-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "5 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "5.3 кВт·год"
+      ]
+    ],
+    "description": "Система резервного живлення SolaX Power 5 кВт + 5.3 кВт*год (Монтаж в Одесі «під ключ») \n Energo Comfor...",
+    "sourceUrl": "https://energocomfort.shop/shop/sistema-rezervnogo-zhyvlennya-solax-5kw-akb-5-3kwh-pid-klyuch"
+  },
+  {
+    "id": "sistema-rezervnogo-zhivlennya-solax-10kw-t-bat-5-3kwh-pid-klyuch",
+    "sku": "7854",
+    "title": "☀️ Готове рішення SolaX Premium 10 кВт + 2х АКБ 5.3 кВт·год",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "SolaX",
+    "isKit": true,
+    "price": 3999,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/sistema-rezervnogo-zhivlennya-solax-10kw-t-bat-5-3kwh-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "5.3 кВт·год"
+      ]
+    ],
+    "description": "Система резервного живлення SolaX Premium 10 кВт + АКБ 5.3 кВт·год (Монтаж в Одесі під ключ) Максимал...",
+    "sourceUrl": "https://energocomfort.shop/shop/sistema-rezervnogo-zhivlennya-solax-10kw-t-bat-5-3kwh-pid-klyuch"
+  },
+  {
+    "id": "sonyachna-stantsiya-deye-10kw-akb-10kwh-20trina-bifacial-pid-klyuch",
+    "sku": "8021",
+    "title": "☀️ Готове рішення СЕС Deye 10 кВт / 10.2 кВт*год + 20x Trina BIFACIAL",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "sonyachni-elektrostanciyi-pid-klyuch",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "Deye",
+    "isKit": true,
+    "price": 8500,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/sonyachna-stantsiya-deye-10kw-akb-10kwh-20trina-bifacial-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "10.2 кВт·год"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Сонячна електростанція 10 кВт / 10.2 кВт*год + 20x Trina BIFACIAL (Deye + Монтаж під ключ в Одесі) \n Оп...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-stantsiya-deye-10kw-akb-10kwh-20trina-bifacial-pid-klyuch"
+  },
+  {
+    "id": "sonyachna-stantsiya-deye-6kw-akb-5kwh-trina-bifacial-pid-klyuch",
+    "sku": "8020",
+    "title": "☀️ Готове рішення СЕС Deye 6 кВт / 5.1 кВт*год + 10x Trina BIFACIAL",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "sonyachni-elektrostanciyi-pid-klyuch",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "Deye",
+    "isKit": true,
+    "price": 4500,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/sonyachna-stantsiya-deye-6kw-akb-5kwh-trina-bifacial-pid-klyuch.png",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "5.1 кВт·год"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Готове рішення СЕС «Максимальна генерація» 6 кВт / 5.1 кВт*год + 10x Trina BIFACIAL (Deye + Монтаж п...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-stantsiya-deye-6kw-akb-5kwh-trina-bifacial-pid-klyuch"
+  },
+  {
+    "id": "ses-solax-10kw-2x-t-bat-10-6kwh-20x-trina-bifacial",
+    "sku": "8213",
+    "title": "☀️ Готове рішення СЕС SolaX Power 10 кВт / 10.6 кВт*год + 20x Trina BIFACIAL",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "sonyachni-elektrostanciyi-pid-klyuch",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "SolaX",
+    "isKit": true,
+    "price": 9000,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/ses-solax-10kw-2x-t-bat-10-6kwh-20x-trina-bifacial.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "10.6 кВт·год"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Готове рішення СЕС «Повна енергонезалежність» 10 кВт / 10.6 кВт*год + 20x Trina BIFACIAL (SolaX + Мо...",
+    "sourceUrl": "https://energocomfort.shop/shop/ses-solax-10kw-2x-t-bat-10-6kwh-20x-trina-bifacial"
+  },
+  {
+    "id": "ses-solax-5kw-t-bat-5-3kwh-trina-bifacial",
+    "sku": "8831",
+    "title": "☀️ Готове рішення СЕС SolaX Power 5 кВт / 5.3 кВт*год + 10x Trina BIFACIAL",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "sonyachni-elektrostanciyi-pid-klyuch",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "SolaX",
+    "isKit": true,
+    "price": 4500,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/ses-solax-5kw-t-bat-5-3kwh-trina-bifacial.png",
+    "specs": [
+      [
+        "Потужність",
+        "5 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "5.3 кВт·год"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Готове рішення СЕС «Інтелектуальна автономія» 5 кВт / 5.3 кВт*год + 10x Trina BIFACIAL (SolaX + Монт...",
+    "sourceUrl": "https://energocomfort.shop/shop/ses-solax-5kw-t-bat-5-3kwh-trina-bifacial"
+  },
+  {
+    "id": "zapobizhnik-yro-nh-00-battery-160a",
+    "sku": "10082",
+    "title": "Запобіжник YROPV-160/NH00/160A/60 (VDC)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 12,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/zapobizhnik-yro-nh-00-battery-160a.jpg",
+    "specs": [],
+    "description": "Запобіжники YRO PV NH00 — Професійний захист DC ланцюгів YRO YROPV-160/NH00 — це серія високоякісних ...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-yro-nh-00-battery-160a"
+  },
+  {
+    "id": "kabelnyij-three-way-mc4-para",
+    "sku": "50073",
+    "title": "Конектор МС4 Three-Way",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 10,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/kabelnyij-three-way-mc4-para.png",
+    "specs": [],
+    "description": "Потрійний конектор Three-Way MC4 (Пара: 3-to-1) Three-Way MC4 — це посилений розгалужувач «3 в 1», ро...",
+    "sourceUrl": "https://energocomfort.shop/shop/kabelnyij-three-way-mc4-para"
+  },
+  {
+    "id": "coedinitelnyij-konnektor-mc4",
+    "sku": "50071",
+    "title": "Конектор МС4 Пелюстковий (Пара)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 1,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/coedinitelnyij-konnektor-mc4.png",
+    "specs": [],
+    "description": "Конектор MC4 «Пелюстковий» (Пара: Штекер + Гніздо) Конектори MC4 (Multi-Contact) — це світовий станда...",
+    "sourceUrl": "https://energocomfort.shop/shop/coedinitelnyij-konnektor-mc4"
+  },
+  {
+    "id": "kontroler-zaryadu-hors-sc-mprt-12-24-48-30a",
+    "sku": "50063",
+    "title": "Контролер заряду HORS SC-MPРТ 12/24/48 (30А)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Hors",
+    "isKit": false,
+    "price": 60,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/kontroler-zaryadu-hors-sc-mprt-12-24-48-30a.jpg",
+    "specs": [],
+    "description": "Контролер заряду HORS SC-MPPT 12/24/48 (30А) HORS SC-MPPT 30A — це універсальний та високоефективний ...",
+    "sourceUrl": "https://energocomfort.shop/shop/kontroler-zaryadu-hors-sc-mprt-12-24-48-30a"
+  },
+  {
+    "id": "merezhevyy-invertor-huawei-sun2000-30ktl-m3-30kw",
+    "sku": "6922",
+    "title": "Мережевий інвертор Huawei SUN2000-30KTL-M3 (30 кВт, 3 фази, 4 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Huawei",
+    "isKit": false,
+    "price": 2400,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyy-invertor-huawei-sun2000-30ktl-m3-30kw.png",
+    "specs": [
+      [
+        "Потужність",
+        "30 кВт"
+      ]
+    ],
+    "description": "Huawei SUN2000-30KTL-M3 - це інтелектуальне рішення від світового лідера у сфері фотовольтаїки. Цей ...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyy-invertor-huawei-sun2000-30ktl-m3-30kw"
+  },
+  {
+    "id": "merezhevyi-invertor-solax-power-x3-pro-10k-g2",
+    "sku": "7410",
+    "title": "Мережевий інвертор SolaX Power X3-PRO-10K-G2 (10 кВт, 3 фази, 2 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 807,
+    "oldPrice": 963,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyi-invertor-solax-power-x3-pro-10k-g2.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-PRO-10K-G2 - це представник нового покоління трифазних мережевих інверторів, розробле...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyi-invertor-solax-power-x3-pro-10k-g2"
+  },
+  {
+    "id": "merezhevyi-invertor-solax-power-x3-pro-15k-g2",
+    "sku": "7411",
+    "title": "Мережевий інвертор SolaX Power X3-PRO-15K-G2 (15 кВт, 3 фази, 2 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1083,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyi-invertor-solax-power-x3-pro-15k-g2.png",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-PRO-15K-G2 - високопродуктивний трифазний інвертор потужністю 15 кВт, який ідеально п...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyi-invertor-solax-power-x3-pro-15k-g2"
+  },
+  {
+    "id": "merezhevyi-invertor-solax-power-x3-pro-20k-g2",
+    "sku": "7412",
+    "title": "Мережевий інвертор SolaX Power X3-PRO-20K-G2 (20 кВт, 3 фази, 2 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 24,
+    "oldPrice": 1204,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyi-invertor-solax-power-x3-pro-20k-g2.png",
+    "specs": [
+      [
+        "Потужність",
+        "20 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-PRO-20K-G2 - це промисловий стандарт надійності в компактному корпусі. Трифазний мере...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyi-invertor-solax-power-x3-pro-20k-g2"
+  },
+  {
+    "id": "merezhevyi-invertor-solax-power-x3-pro-30k-g2",
+    "sku": "7414",
+    "title": "Мережевий інвертор SolaX Power X3-PRO-30K-G2 (30 кВт, 3 фази, 3 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1204,
+    "oldPrice": 1500,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyi-invertor-solax-power-x3-pro-30k-g2.png",
+    "specs": [
+      [
+        "Потужність",
+        "30 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-PRO-30K-G2 - це високопотужний трифазний інвертор, спеціально розроблений для комерці...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyi-invertor-solax-power-x3-pro-30k-g2"
+  },
+  {
+    "id": "solax-power-x1-1-1-s-d-1-1kw-1-phase",
+    "sku": "5675",
+    "title": "Мережевий однофазний інвертор SolaX Power X1-1.1-S-D (1.1 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 348,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-x1-1-1-s-d-1-1kw-1-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "1.1 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Компактне рішення та максимальна віддача для невеликих СЕС Мережевий інвертор SolaX Power X1-1.1-S-D ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-x1-1-1-s-d-1-1kw-1-phase"
+  },
+  {
+    "id": "solax-power-x1-2-0-s-d-2kw-1-phase",
+    "sku": "8448",
+    "title": "Мережевий однофазний інвертор SolaX Power X1-2.0-S-D (2 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 360,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-x1-2-0-s-d-2kw-1-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "2 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Ефективне рішення для малих сонячних станцій та економії бізнесу й дому Мережевий інвертор SolaX Powe...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-x1-2-0-s-d-2kw-1-phase"
+  },
+  {
+    "id": "solax-power-x1-3-0-s-d-3kw-1-phase",
+    "sku": "8224",
+    "title": "Мережевий однофазний інвертор SolaX Power X1-3.0-S-D (3 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 420,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-x1-3-0-s-d-3kw-1-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "3 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Ефективність та надійність для вашої домашньої сонячної станції Мережевий інвертор SolaX Power X1-3.0...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-x1-3-0-s-d-3kw-1-phase"
+  },
+  {
+    "id": "solax-power-x1-boost-5k-g4-5kw-1-phase",
+    "sku": "8933",
+    "title": "Мережевий однофазний інвертор SolaX Power X1-BOOST-5K-G4 (5 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 602,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-x1-boost-5k-g4-5kw-1-phase.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "5 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Технології 4-го покоління для максимальної енергонезалежності вашого дому Мережевий інвертор SolaX Po...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-x1-boost-5k-g4-5kw-1-phase"
+  },
+  {
+    "id": "solax-power-x1-boost-6k-g4-6kw-1-phase",
+    "sku": "8586",
+    "title": "Мережевий однофазний інвертор SolaX Power X1-BOOST-6K-G4 (6 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 663,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-x1-boost-6k-g4-6kw-1-phase.png",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Максимум продуктивності для однофазної сонячної електростанції Мережевий інвертор SolaX Power X1-BOOS...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-x1-boost-6k-g4-6kw-1-phase"
+  },
+  {
+    "id": "solis-s6-gr1p2k-m-2kw",
+    "sku": "7373",
+    "title": "Мережевий однофазний інвертор Solis S6-GR1P2K-M (2 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 360,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s6-gr1p2k-m-2kw.webp",
+    "specs": [
+      [
+        "Потужність",
+        "2 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Компактність та максимальна ефективність для вашого дому \n Мережевий інвертор Solis S6-GR1P2K-M створен...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s6-gr1p2k-m-2kw"
+  },
+  {
+    "id": "solis-s6-gr1p3k-m-3kw",
+    "sku": "7338",
+    "title": "Мережевий однофазний інвертор Solis S6-GR1P3K-M (3 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 456,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s6-gr1p3k-m-3kw.webp",
+    "specs": [
+      [
+        "Потужність",
+        "3 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Ефективність та надійність для вашої домашньої СЕС \n Мережевий інвертор Solis S6-GR1P3K-M розроблений д...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s6-gr1p3k-m-3kw"
+  },
+  {
+    "id": "solis-s6-gr1p4k-4kw",
+    "sku": "7447",
+    "title": "Мережевий однофазний інвертор Solis S6-GR1P4K (4 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 636,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s6-gr1p4k-4kw.webp",
+    "specs": [
+      [
+        "Потужність",
+        "4 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Гнучкість та максимум енергії для вашого будинку \n Мережевий інвертор Solis S6-GR1P4K потужністю 4 кВт ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s6-gr1p4k-4kw"
+  },
+  {
+    "id": "deye-sun-15k-g06p3-eu-bm2-p1-15kw-inverter",
+    "sku": "5513",
+    "title": "Мережевий трифазний інвертор Deye SUN-15K-G06P3-EU-BM2-P1 (15 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 800,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-15k-g06p3-eu-bm2-p1-15kw-inverter.png",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Deye SUN-15K-G06P3-EU-BM2-P1 - це сучасний трифазний мережевий інвертор потужністю 15 кВт, розроблен...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-15k-g06p3-eu-bm2-p1-15kw-inverter"
+  },
+  {
+    "id": "deye-sun-50k-g04-50kw-three-phase-inverter",
+    "sku": "5524",
+    "title": "Мережевий трифазний інвертор Deye SUN-50K-G04 (50 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1550,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-50k-g04-50kw-three-phase-inverter.png",
+    "specs": [
+      [
+        "Потужність",
+        "50 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Deye SUN-50K-G04 - це високопотужний мережевий трифазний інвертор на 50 кВт, спроектований для велик...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-50k-g04-50kw-three-phase-inverter"
+  },
+  {
+    "id": "akumulyatorna-batareya-livoltek-gt3-20kd1",
+    "sku": "50019",
+    "title": "Мережевий трифазний інвертор LIVOLTEK GT3-20KD1 F2 (20кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Livoltek",
+    "isKit": false,
+    "price": 1050,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/akumulyatorna-batareya-livoltek-gt3-20kd1.png",
+    "specs": [
+      [
+        "Потужність",
+        "20 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Мережевий трифазний інвертор LIVOLTEK GT3-20KD1 F2 (20 кВт) Livoltek GT3-20KD1 — це потужний та надій...",
+    "sourceUrl": "https://energocomfort.shop/shop/akumulyatorna-batareya-livoltek-gt3-20kd1"
+  },
+  {
+    "id": "merezhevij-trifaznij-invertor-livoltek-gt3-30kt1",
+    "sku": "50022",
+    "title": "Мережевий трифазний інвертор LIVOLTEK GT3-30KТ1 (30кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Livoltek",
+    "isKit": false,
+    "price": 1300,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevij-trifaznij-invertor-livoltek-gt3-30kt1.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "30 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Мережевий трифазний інвертор LIVOLTEK GT3-30KT1 (30 кВт) Livoltek GT3-30KT1 — це високоефективний три...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevij-trifaznij-invertor-livoltek-gt3-30kt1"
+  },
+  {
+    "id": "merezhevij-trifaznij-invertor-livoltek-gt3-50kq1-f2",
+    "sku": "50023",
+    "title": "Мережевий трифазний інвертор LIVOLTEK GT3-50KQ1 F2 (50кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Livoltek",
+    "isKit": false,
+    "price": 1580,
+    "oldPrice": 1750,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevij-trifaznij-invertor-livoltek-gt3-50kq1-f2.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "50 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Мережевий трифазний інвертор LIVOLTEK GT3-50KQ1 F2 (50 кВт) Livoltek GT3-50KQ1 F2 — високопотужний ме...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevij-trifaznij-invertor-livoltek-gt3-50kq1-f2"
+  },
+  {
+    "id": "solax-power-x3-fth-150k-p-150kw",
+    "sku": "9905",
+    "title": "Мережевий трифазний інвертор SolaX Power X3-FTH-150K-P (150 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 4458,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-x3-fth-150k-p-150kw.png",
+    "specs": [
+      [
+        "Потужність",
+        "150 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Надійне рішення для комерційних сонячних електростанцій Мережевий інвертор SolaX Power X3-FTH-150K-P ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-x3-fth-150k-p-150kw"
+  },
+  {
+    "id": "solax-power-x3-mega-50k-g2-50kw",
+    "sku": "3535",
+    "title": "Мережевий трифазний інвертор SolaX Power X3-MEGA-50K-G2 (50 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2314,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solax-power-x3-mega-50k-g2-50kw.png",
+    "specs": [
+      [
+        "Потужність",
+        "50 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "SolaX Power X3-MEGA-50K-G2 - це високоефективний мережевий трифазний інвертор потужністю 50 кВт, роз...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-x3-mega-50k-g2-50kw"
+  },
+  {
+    "id": "solis-s5-gc25k-25kw-3-phase",
+    "sku": "8118",
+    "title": "Мережевий трифазний інвертор Solis S5-GC25K (25 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 1072,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gc25k-25kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "25 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Професійне рішення для комерційних та великих домашніх СЕС Мережевий інвертор Solis S5-GC25K потужніс...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gc25k-25kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gc36k-36kw-3-phase",
+    "sku": "8866",
+    "title": "Мережевий трифазний інвертор Solis S5-GC36K (36 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 1360,
+    "oldPrice": 1519,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gc36k-36kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "36 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Енергетична незалежність та прибуток для вашого бізнесу Мережевий інвертор Solis S5-GC36K потужністю ...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gc36k-36kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gc40k-40kw-3-phase",
+    "sku": "8897",
+    "title": "Мережевий трифазний інвертор Solis S5-GC40K (40 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 1675,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gc40k-40kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "40 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Промислова потужність для максимальної енергонезалежності Мережевий інвертор Solis S5-GC40K потужніст...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gc40k-40kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gc50k-50kw-3-phase",
+    "sku": "9929",
+    "title": "Мережевий трифазний інвертор Solis S5-GC50K (50 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 1806,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gc50k-50kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "50 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Промислова ефективність та максимум енергії для великого бізнесу Мережевий інвертор Solis S5-GC50K по...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gc50k-50kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gr3p10k-10kw-3-phase",
+    "sku": "7558",
+    "title": "Мережевий трифазний інвертор Solis S5-GR3P10K (10 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 723,
+    "oldPrice": 783,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gr3p10k-10kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Золота середина для вашої сонячної станції \n Мережевий інвертор Solis S5-GR3P10K потужністю 10 кВт - це...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gr3p10k-10kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gr3p15k-15kw-3-phase",
+    "sku": "7711",
+    "title": "Мережевий трифазний інвертор Solis S5-GR3P15K (15 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 783,
+    "oldPrice": 843,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gr3p15k-15kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Надійна потужність для дому та малого бізнесу Мережевий інвертор Solis S5-GR3P15K потужністю 15 кВт -...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gr3p15k-15kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gr3p17k-17kw-3-phase",
+    "sku": "7712",
+    "title": "Мережевий трифазний інвертор Solis S5-GR3P17K (17 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 943,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gr3p17k-17kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "17 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Висока потужність для максимальної рентабельності вашої СЕС Мережевий інвертор Solis S5-GR3P17K потуж...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gr3p17k-17kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gr3p20k-20kw-3-phase",
+    "sku": "7714",
+    "title": "Мережевий трифазний інвертор Solis S5-GR3P20K (20 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 904,
+    "oldPrice": 964,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gr3p20k-20kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "20 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Максимальна потужність для найамбітніших сонячних проєктів Мережевий інвертор Solis S5-GR3P20K потужн...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gr3p20k-20kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gr3p6k-6kw-3-phase",
+    "sku": "7557",
+    "title": "Мережевий трифазний інвертор Solis S5-GR3P6K (6 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 828,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s5-gr3p6k-6kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Надійна основа для вашої трифазної сонячної станції \n Мережевий інвертор Solis S5-GR3P6K потужністю 6 к...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gr3p6k-6kw-3-phase"
+  },
+  {
+    "id": "solis-s6-gc110k-110kw-3-phase",
+    "sku": "9957",
+    "title": "Мережевий трифазний інвертор Solis S6-GC110K (110 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 3554,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s6-gc110k-110kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "110 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Індустріальний масштаб та енергонезалежність для вашого бізнесу Мережевий інвертор Solis S6-GC110K по...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s6-gc110k-110kw-3-phase"
+  },
+  {
+    "id": "solis-s6-gc125k-125kw-3-phase",
+    "sku": "9962",
+    "title": "Мережевий трифазний інвертор Solis S6-GC125K (125 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 3855,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s6-gc125k-125kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "125 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Абсолютний максимум генерації для промислових масштабів Мережевий інвертор Solis S6-GC125K потужністю...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s6-gc125k-125kw-3-phase"
+  },
+  {
+    "id": "solis-s6-gc80k-80kw-3-phase",
+    "sku": "9993",
+    "title": "Мережевий трифазний інвертор Solis S6-GC80K (80 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 2747,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/solis-s6-gc80k-80kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "80 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Промисловий гігант для максимальної енергонезалежності підприємства Мережевий інвертор Solis S6-GC80K...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s6-gc80k-80kw-3-phase"
+  },
+  {
+    "id": "opn-yro-t2-5-20ms-dc-2p-20-40-ka",
+    "sku": "10077",
+    "title": "Обмежувач перенапруги YRSP-D2 T2 (2P)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 25,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/opn-yro-t2-5-20ms-dc-2p-20-40-ka.png",
+    "specs": [],
+    "description": "Обмежувач перенапруги (ПЗІП) YRSP-D2 DC (Тип 2, 2P) YRSP-D2 T2 — це спеціалізований захисний пристрій...",
+    "sourceUrl": "https://energocomfort.shop/shop/opn-yro-t2-5-20ms-dc-2p-20-40-ka"
+  },
+  {
+    "id": "optmizator-yhq-600-mppt-optimizer-dc-to-dc-15-a-8-70-v",
+    "sku": "10062",
+    "title": "Оптимізатор Потужності для сонячних панелей YHQ-600 MPPT Optimizer DC to DC 15-A 8-70 V ( Під одну панель)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 70,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/optmizator-yhq-600-mppt-optimizer-dc-to-dc-15-a-8-70-v.png",
+    "specs": [],
+    "description": "Оптимізатор потужності для сонячних панелей YHQ-600 MPPT (600 Вт, 15А) YHQ-600 MPPT Optimizer — це ін...",
+    "sourceUrl": "https://energocomfort.shop/shop/optmizator-yhq-600-mppt-optimizer-dc-to-dc-15-a-8-70-v"
+  },
+  {
+    "id": "peremikach-tripozicijnij-ymts-63-4r63a",
+    "sku": "10096",
+    "title": "Перемикач трипозиційний YRAS80-DB63R-4/AC/400V (8P/63A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 90,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/peremikach-tripozicijnij-ymts-63-4r63a.jpg",
+    "specs": [],
+    "description": "Перемикач трипозиційний YRO YRAS80-DB63R-4/AC/400V (8P, 63A) YRO YRAS80-DB63R-4 — це промисловий кула...",
+    "sourceUrl": "https://energocomfort.shop/shop/peremikach-tripozicijnij-ymts-63-4r63a"
+  },
+  {
+    "id": "merezhevyi-invertor-solax-power-x3-fth-100k",
+    "sku": "7510",
+    "title": "Промисловий мережевий інвертор SolaX Power X3-FTH-100K (100 кВт, 3 фази, 9 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 3133,
+    "oldPrice": 3374,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyi-invertor-solax-power-x3-fth-100k.png",
+    "specs": [
+      [
+        "Потужність",
+        "100 кВт"
+      ]
+    ],
+    "description": "SolaX Power X3-FTH-100K (серія Forth) - це флагманське рішення для промислової сонячної генерації. І...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyi-invertor-solax-power-x3-fth-100k"
+  },
+  {
+    "id": "merezhevyi-invertor-solax-power-x3-fth-110k",
+    "sku": "7511",
+    "title": "Промисловий мережевий інвертор SolaX Power X3-FTH-110K (110 кВт, 3 фази, 9 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 3494,
+    "oldPrice": 3613,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyi-invertor-solax-power-x3-fth-110k.png",
+    "specs": [
+      [
+        "Потужність",
+        "110 кВт"
+      ]
+    ],
+    "description": "SolaX Power X3-FTH-110K (серія Forth) - потужне інтелектуальне рішення для комерційних та промислови...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyi-invertor-solax-power-x3-fth-110k"
+  },
+  {
+    "id": "merezhevyi-invertor-solax-power-x3-fth-125k",
+    "sku": "7512",
+    "title": "Промисловий мережевий інвертор SolaX Power X3-FTH-125K (125 кВт, 3 фази, 12 MPPT)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 243,
+    "oldPrice": 3856,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/merezhevyi-invertor-solax-power-x3-fth-125k.png",
+    "specs": [
+      [
+        "Потужність",
+        "125 кВт"
+      ]
+    ],
+    "description": "SolaX Power X3-FTH-125K (серія Forth) - це надпотужний мережевий інвертор промислового класу, розроб...",
+    "sourceUrl": "https://energocomfort.shop/shop/merezhevyi-invertor-solax-power-x3-fth-125k"
+  },
+  {
+    "id": "rele-naprugi-yro-wi-fi-smart-meter-energy-protector-63a-2p",
+    "sku": "10099",
+    "title": "Реле напруги YRO Wi-Fi-Smart Meter & Energy Protector 63A (2P)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 58,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/rele-naprugi-yro-wi-fi-smart-meter-energy-protector-63a-2p.jpg",
+    "specs": [],
+    "description": "Реле напруги YRO Wi-Fi Smart Meter & Energy Protector 63A (2P) YRO Wi-Fi Smart Meter — це багатоф...",
+    "sourceUrl": "https://energocomfort.shop/shop/rele-naprugi-yro-wi-fi-smart-meter-energy-protector-63a-2p"
+  },
+  {
+    "id": "deye-bos-g-ta-48v",
+    "sku": "40036",
+    "title": "Серверна стійка Deye (12 мод.)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 600,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-bos-g-ta-48v.png",
+    "specs": [],
+    "description": "Серверна стійка Deye (Rack Mount) — на 12 модулів Серверна стійка Deye — це спеціалізоване монтажне р...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-bos-g-ta-48v"
+  },
+  {
+    "id": "hanersun-hitouch-6n-hn21rn-54ht-500w-bifacial-n-type",
+    "sku": "3163",
+    "title": "Сонячна панель Hanersun HiTouch 6N HN21RN-54HT 500W",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Hanersun",
+    "isKit": false,
+    "price": 95,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/hanersun-hitouch-6n-hn21rn-54ht-500w-bifacial-n-type.png",
+    "specs": [
+      [
+        "Потужність",
+        "500 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Двостороння сонячна панель Hanersun HiTouch 6N HN21RN-54HT 500W - це високоефективний фотомодуль пре...",
+    "sourceUrl": "https://energocomfort.shop/shop/hanersun-hitouch-6n-hn21rn-54ht-500w-bifacial-n-type"
+  },
+  {
+    "id": "ja-solar-jam54d40-470-lr-470w-mono-black-frame",
+    "sku": "3873",
+    "title": "Сонячна панель JA Solar JAM54D40-470/LR Mono BlackFrame (470 Вт) (1762х1134х30mm)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 90,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/ja-solar-jam54d40-470-lr-470w-mono-black-frame.webp",
+    "specs": [
+      [
+        "Потужність",
+        "470 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Двостороння сонячна панель JA Solar JAM54D40-470/LR Mono Black Frame потужністю 470 Вт - це високоеф...",
+    "sourceUrl": "https://energocomfort.shop/shop/ja-solar-jam54d40-470-lr-470w-mono-black-frame"
+  },
+  {
+    "id": "jinko-tiger-neo-590w-72hl4-590bdv-bifacial",
+    "sku": "8922",
+    "title": "Сонячна панель Jinko Tiger Neo N-type 72HL4-590BDV Bifacical (590 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Jinko Solar",
+    "isKit": false,
+    "price": 112,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/jinko-tiger-neo-590w-72hl4-590bdv-bifacial.png",
+    "specs": [
+      [
+        "Потужність",
+        "590 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Jinko Solar Tiger Neo N-type 72HL4-590BDV - це двосторонній (Bifacial) модуль нового покоління. Завд...",
+    "sourceUrl": "https://energocomfort.shop/shop/jinko-tiger-neo-590w-72hl4-590bdv-bifacial"
+  },
+  {
+    "id": "longi-solar-hi-mo-7-lr8-66hgd-615m-615w-bifacial",
+    "sku": "5211",
+    "title": "Сонячна панель LONGi Solar Hi-MO 7 LR8-66HGD-615M Bifacial (615 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Longi Solar",
+    "isKit": false,
+    "price": 116,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/longi-solar-hi-mo-7-lr8-66hgd-615m-615w-bifacial.png",
+    "specs": [
+      [
+        "Потужність",
+        "615 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Двостороння сонячна панель LONGi Solar Hi-MO 7 LR8-66HGD-615M потужністю 615 Вт - це високоефективн...",
+    "sourceUrl": "https://energocomfort.shop/shop/longi-solar-hi-mo-7-lr8-66hgd-615m-615w-bifacial"
+  },
+  {
+    "id": "tongwei-tw-solar-twmnh-66hd625-n-type-topcon-bifacial-625w",
+    "sku": "3391",
+    "title": "Сонячна панель Tongwei TW Solar TWMNH-66HD625 (625 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 117,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/tongwei-tw-solar-twmnh-66hd625-n-type-topcon-bifacial-625w.png",
+    "specs": [
+      [
+        "Потужність",
+        "625 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "TW Solar (Tongwei) TWMNH-66HD625 - це високоефективний двосторонній (Bifacial) сонячний модуль новог...",
+    "sourceUrl": "https://energocomfort.shop/shop/tongwei-tw-solar-twmnh-66hd625-n-type-topcon-bifacial-625w"
+  },
+  {
+    "id": "sonyachna-panel-trina-solar-vertex-n-615-wp-neg19rc20-bifacial",
+    "sku": "7701",
+    "title": "Сонячна панель Trina Solar Vertex N 615 Wp (NEG19RC.20) Bifacial",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Trina Solar",
+    "isKit": false,
+    "price": 123,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/sonyachna-panel-trina-solar-vertex-n-615-wp-neg19rc20-bifacial.jpg",
+    "specs": [
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Trina Solar Vertex N 615 Wp - це двостороння (Bifacial) сонячна панель нового покоління, побудована ...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-panel-trina-solar-vertex-n-615-wp-neg19rc20-bifacial"
+  },
+  {
+    "id": "deye-sun-30k-sg01hp3-eu-bm3",
+    "sku": "50078",
+    "title": "Трифазний високовольтний інвертор Deye SUN-30K-SG02HP3-EU-AM3 (30кВт/HV)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2700,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-30k-sg01hp3-eu-bm3.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "30 кВт"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний високовольтний інвертор Deye SUN-30K-SG02HP3-EU-AM3 (30 кВт, HV) Deye SUN-30K-SG02HP3 — це ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-30k-sg01hp3-eu-bm3"
+  },
+  {
+    "id": "deye-sun-10k-sg02-lp1-eu-am3",
+    "sku": "10033",
+    "title": "Трифазний гібридний інвертор Deye SUN-10K-SG05LP3-EU-SM2 (10кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1720,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-10k-sg02-lp1-eu-am3.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний гібридний інвертор Deye SUN-10K-SG05LP3-EU-SM2 (10 кВт, 48В) Deye SUN-10K-SG05LP3 - це висо...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-10k-sg02-lp1-eu-am3"
+  },
+  {
+    "id": "deye-sun-20k-sg05lp3-eu-sm2",
+    "sku": "10046",
+    "title": "Трифазний гібридний інвертор Deye SUN-20K-SG05LP3-EU-SM2 (20кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2500,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-20k-sg05lp3-eu-sm2.png",
+    "specs": [
+      [
+        "Потужність",
+        "20 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний гібридний інвертор Deye SUN-20K-SG05LP3-EU-SM2 (20 кВт, 48В) Deye SUN-20K - це найпотужніши...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-20k-sg05lp3-eu-sm2"
+  },
+  {
+    "id": "deye-sun-50k-sg01hp3-eu-bm4",
+    "sku": "10049",
+    "title": "Трифазний гібридний інвертор Deye SUN-50K-SG01HP3-EU-BM4",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 4200,
+    "oldPrice": 4400,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/deye-sun-50k-sg01hp3-eu-bm4.png",
+    "specs": [
+      [
+        "Потужність",
+        "50 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Потужність АС - 50 кВт;  Потужність DC 50 кВт;  4-МРРТ - 36/36/36/36 A;  Робочий діапазон МРРТ 150 - 85...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-50k-sg01hp3-eu-bm4"
+  },
+  {
+    "id": "prosolax-x3-aelio-50k",
+    "sku": "10057",
+    "title": "Трифазний гібридний інвертор Solax Power X3-AELIO- 50K",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 4333,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/prosolax-x3-aelio-50k.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "50 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Потужність АС - 50 кВт;  Потужність DC - 100 кВт;  5-МРРТ 10-String;  Діапазон напруги DC МРРТ - 160-95...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-x3-aelio-50k"
+  },
+  {
+    "id": "prosolax-x3-ult-30k",
+    "sku": "10056",
+    "title": "Трифазний гібридний інвертор SolaX Power X3-ULT-30K",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 3373,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/prosolax-x3-ult-30k.png",
+    "specs": [
+      [
+        "Потужність",
+        "30 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Потужність АС - 30 кВт;  Потужність DC - 60 кВт;  3-МРРТ 6-String;  Діапазон напруги DC МРРТ - 160-950 ...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-x3-ult-30k"
+  },
+  {
+    "id": "prosolax-h3-hybrid-150m-150d",
+    "sku": "10054",
+    "title": "Трифазний гібридний інвертор SolaX Power Х3-HYBRID 15.0M / 15.0D",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1807,
+    "oldPrice": 2300,
+    "inStock": true,
+    "statusLabel": "в наявності",
+    "img": "/assets/products/prosolax-h3-hybrid-150m-150d.png",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Потужність АС - 15 кВт; \nПотужність DC - 30 кВт; \n2-МРРТ 3-String; \nДіапазон напруги DC МРРТ - 180-950 ...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-h3-hybrid-150m-150d"
+  },
+  {
+    "id": "blok-keruvannya-prosolax-bms-ms0600",
+    "sku": "10026",
+    "title": "BMS Модуль PROSOLAX BMS МС0600",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 625,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/blok-keruvannya-prosolax-bms-ms0600.jpg",
+    "specs": [],
+    "description": "Блок керування системою АКБ T-BAT H 3.0\nБлок керування PROSOLAX BMS МС0600 є важливим компонентом для...",
+    "sourceUrl": "https://energocomfort.shop/shop/blok-keruvannya-prosolax-bms-ms0600"
+  },
+  {
+    "id": "blok-keruvannya-prosolax-tbmsmcs0800",
+    "sku": "10023",
+    "title": "BMS Модуль PROSOLAX TBMSMCS0800",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 625,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/blok-keruvannya-prosolax-tbmsmcs0800.jpg",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "Блок керування системою АКБ T-BAT SYS HV S\nБлок керування PROSOLAX TBMSMCS0800 є важливим компонентом...",
+    "sourceUrl": "https://energocomfort.shop/shop/blok-keruvannya-prosolax-tbmsmcs0800"
+  },
+  {
+    "id": "deye-sun-100k-g03",
+    "sku": "10061",
+    "title": "Deye SUN-100K-G03",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 3300,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/deye-sun-100k-g03.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "100 кВт"
+      ]
+    ],
+    "description": "Потужність AC-100 кВт; \nПотужність DC - 150 кВт; \nДіапазон напруги МРРТ 200-850 В;\n6-МРРТ; \n40/40/40/40/...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-100k-g03"
+  },
+  {
+    "id": "deye-sun-12k-sg04lp3-eu-1",
+    "sku": "50041",
+    "title": "Deye SUN 12-K-SG02LP1-EU AM3-P (12кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1900,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/deye-sun-12k-sg04lp3-eu-1.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "12 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "Гібридний інвертор Deye SUN 12-K-SG02LP1-EU (12 кВт, 48В, 1 фаза) Deye SUN 12-K - це інтелектуальне с...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-12k-sg04lp3-eu-1"
+  },
+  {
+    "id": "deye-sun-14k-sg05lp3-eu-sm2",
+    "sku": "10042",
+    "title": "Deye SUN-14K-SG05LP3-EU-SM2",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2450,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/deye-sun-14k-sg05lp3-eu-sm2.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "14 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 14 кВт; \nПотужність DC - 18 кВт; \n2-MPPT 2+1-String;\nДіапазон напруги DC MPPT - 160-650...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-14k-sg05lp3-eu-sm2"
+  },
+  {
+    "id": "deye-sun-25-ksg01hp3-eu-am2",
+    "sku": "10047",
+    "title": "Deye SUN 25-KSG01HP3-EU-AM2",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2500,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/deye-sun-25-ksg01hp3-eu-am2.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "25 кВт"
+      ]
+    ],
+    "description": "Потужність АС -25 кВт; \nПотужність DC 32 кВт; \n2-МРРТ - 26/26 A; \nРобочий діапазон МРРТ 150 - 850 В. \nТи...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-25-ksg01hp3-eu-am2"
+  },
+  {
+    "id": "deye-sun-25k-sg01hp3-eu-am2-25kvthv",
+    "sku": "50074",
+    "title": "Deye SUN-25K-SG01HP3-EU-AM2 (25кВт/HV)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2400,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/deye-sun-25k-sg01hp3-eu-am2-25kvthv.png",
+    "specs": [
+      [
+        "Потужність",
+        "25 кВт"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний високовольтний інвертор Deye SUN-25K-SG01HP3-EU-AM2 (25 кВт, HV) Deye SUN-25K-SG01HP3 — це ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-25k-sg01hp3-eu-am2-25kvthv"
+  },
+  {
+    "id": "deye-sun-60k-g",
+    "sku": "10060",
+    "title": "Deye SUN-60K-G",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2400,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/deye-sun-60k-g.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "60 кВт"
+      ]
+    ],
+    "description": "Потужність AC-60 кВт;\nПотужність DC - 78 кВт;\nДіапазон напруги МРРТ 200-850 В;\n4-МРРТ;\nМакс. струм DC 40...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-60k-g"
+  },
+  {
+    "id": "prosolax-x1-hyb-60lv",
+    "sku": "10034",
+    "title": "PROSOLAX X1-HYB-6.0LV",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 936,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-x1-hyb-60lv.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 6 кВт;\nПотужність DC - 12 кВт;\n2-МРРТ 1-String;\nДіапазон напруги DC МРРТ - 80-520 В;\nМак...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-x1-hyb-60lv"
+  },
+  {
+    "id": "prosolax-x1-lite-100lv",
+    "sku": "10036",
+    "title": "PROSOLAX X1-Lite-10.0LV",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2063,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-x1-lite-100lv.png",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 10 кВт; \nПотужність DC- 20 кВт; \n2 MPPT / 2-String; \nДіапазон напруги MPPT 50~550 В; \nМа...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-x1-lite-100lv"
+  },
+  {
+    "id": "prosolax-x1-lite-120lv",
+    "sku": "10037",
+    "title": "PROSOLAX X1-Lite-12.0LV",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2200,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-x1-lite-120lv.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "12 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 12 кВт; \nПотужність DC- 24 кВт; \n3 MPPT / 6-String; \nДіапазон напруги MPPT 50~550 В; \nМа...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-x1-lite-120lv"
+  },
+  {
+    "id": "prosolax-x1-lite-80lv",
+    "sku": "10035",
+    "title": "PROSOLAX X1-Lite-8.0LV",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1750,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-x1-lite-80lv.png",
+    "specs": [
+      [
+        "Потужність",
+        "8 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 8 кВт; \nПотужність DC- 16 кВт; \n2 MPPT / 2-String; \nДіапазон напруги MPPT 50~550 В; \nМак...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-x1-lite-80lv"
+  },
+  {
+    "id": "prosolax-x3-neo-15klv",
+    "sku": "10051",
+    "title": "PROSOLAX X3-NEO-15KLV",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2700,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-x3-neo-15klv.png",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 15 кВт; \nПотужність DC- 30 кВт; \n2 MPPT / 4-String; Діапазон напруги MPPT 50~550 В; \nМа...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-x3-neo-15klv"
+  },
+  {
+    "id": "prosolax-h1-hybrid-60m-60d",
+    "sku": "10038",
+    "title": "PROSOLAX Х1-HYBRID 6.0M / 6.0D",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1125,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-h1-hybrid-60m-60d.png",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 6 кВт; \nПотужність DC - 9 кВт; \n2-МРРТ 2-String; \nДіапазон напруги DC МРРТ - 70-550 В;",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-h1-hybrid-60m-60d"
+  },
+  {
+    "id": "prosolax-h1-hybrid-75m-75d",
+    "sku": "10039",
+    "title": "PROSOLAX Х1-HYBRID 7.5M / 7.5D",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 1250,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-h1-hybrid-75m-75d.png",
+    "specs": [
+      [
+        "Потужність",
+        "7.5 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 7,5 кВт;\nПотужність DC - 10 кВт;\n2-МРРТ 2-String;\nДіапазон напруги DC МРРТ - 70-550 В;\nМ...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-h1-hybrid-75m-75d"
+  },
+  {
+    "id": "prosolax-h3-hybrid-100m-100d",
+    "sku": "10052",
+    "title": "PROSOLAX Х3-HYBRID 10.0M / 10.0D",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2300,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-h3-hybrid-100m-100d.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 10 кВт; \nПотужність DC - 20 кВт; 2-МРРТ 3-String; \nДіапазон напруги DC МРРТ - 180-950 ...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-h3-hybrid-100m-100d"
+  },
+  {
+    "id": "prosolax-h3-hybrid-120m-120d",
+    "sku": "10053",
+    "title": "PROSOLAX Х3-HYBRID 12.0M / 12.0D",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 2300,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/prosolax-h3-hybrid-120m-120d.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "12 кВт"
+      ]
+    ],
+    "description": "Потужність АС - 12 кВт; \nПотужність DC - 24 кВт; \n2-МРРТ 3-String; \nДіапазон напруги DC МРРТ - 180-950 ...",
+    "sourceUrl": "https://energocomfort.shop/shop/prosolax-h3-hybrid-120m-120d"
+  },
+  {
+    "id": "t-modul-sf",
+    "sku": "10138",
+    "title": "T-Модуль SF",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/t-modul-sf.jpg",
+    "specs": [],
+    "description": "Спец-гайка під рейку АІD та Roof\nT-Модуль SF – це універсальний та зручний елемент кріплення, признач...",
+    "sourceUrl": "https://energocomfort.shop/shop/t-modul-sf"
+  },
+  {
+    "id": "t-modul-sf-na-kutnik",
+    "sku": "10133",
+    "title": "T-Модуль SF на кутник",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/t-modul-sf-na-kutnik.jpg",
+    "specs": [],
+    "description": "Спец-гайка у сборі з болтом 25мм, гровером і шайбою під рейку АІD та Roof\nT-Модуль SF на кутник – це ...",
+    "sourceUrl": "https://energocomfort.shop/shop/t-modul-sf-na-kutnik"
+  },
+  {
+    "id": "wi-fi-rele-yro-stm-63m",
+    "sku": "10100",
+    "title": "WI-FI реле YRO STM-63M",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 20,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/wi-fi-rele-yro-stm-63m.jpg",
+    "specs": [],
+    "description": "Програмується через додаток (увімк/вимк + лічильник)\nWI-FI реле YRO STM-63M – це компактне та універс...",
+    "sourceUrl": "https://energocomfort.shop/shop/wi-fi-rele-yro-stm-63m"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro16a-63a",
+    "sku": "10087",
+    "title": "Автоматичний вимикач YRL7-63DC 1P (A-Class)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 15,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro16a-63a.png",
+    "specs": [],
+    "description": "Автоматичний вимикач постійного струму YRL7-63DC (A-Class) YRL7-63DC — це спеціалізований однополюсни...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro16a-63a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yrl7-63-2p-20fa63a",
+    "sku": "10087",
+    "title": "Автоматичний вимикач YRL7-63DC 2P (A-Class)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 25,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yrl7-63-2p-20fa63a.png",
+    "specs": [],
+    "description": "Автоматичний вимикач постійного струму YRL7-63DC 2P (A-Class) YRL7-63DC 2P — це двополюсний автоматич...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yrl7-63-2p-20fa63a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yrl7-63dc-a-class-4r",
+    "sku": "10087",
+    "title": "Автоматичний вимикач YRL7-63DC 4P (A-Class)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 40,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yrl7-63dc-a-class-4r.png",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "Автоматичний вимикач постійного струму YRL7-63DC 4P (A-Class) YRL7-63DC 4P — це високовольтний чотири...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yrl7-63dc-a-class-4r"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-63-dc-2p16a",
+    "sku": "10063",
+    "title": "Автоматичний вимикач YRO 63 DC (2P/16А)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 20,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-63-dc-2p16a.jpg",
+    "specs": [],
+    "description": "800VDC; In:16А; \nIi:6In; Категорія А; \nIcu=Ics 4,5kA (EN/IEC 60947-2) \nАвтоматичний вимикач YRO 63 DC (...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-63-dc-2p16a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-dc-2p20a",
+    "sku": "10064",
+    "title": "Автоматичний вимикач YRO DC (2P/20А)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 20,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-dc-2p20a.jpg",
+    "specs": [],
+    "description": "800VDC; \nIn: 20А; \nIi: 6In; \nКатегорія А; \nIcu=Ics 4,5kA (EN/IEC 60947-2)\nАвтоматичний вимикач YRO DC (2P...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-dc-2p20a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-dc-2p25a",
+    "sku": "10065",
+    "title": "Автоматичний вимикач YRO DC (2P/25А)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 20,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-dc-2p25a.jpg",
+    "specs": [],
+    "description": "800VDC; In:25А; Ii:6In; Категорія А; Icu=Ics 4,5kA (EN/IEC 60947-2)\nАвтоматичний вимикач YRO DC (2P/2...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-dc-2p25a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-dc-2p32a",
+    "sku": "10066",
+    "title": "Автоматичний вимикач YRO DC (2P/32А)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 20,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-dc-2p32a.jpg",
+    "specs": [],
+    "description": "800VDC; In:32А; \nIi:6In; Категорія А; \nIcu=Ics 4,5kA (EN/IEC 60947-2)\nАвтоматичний вимикач YRO DC (2P/3...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-dc-2p32a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-dc-2p40a",
+    "sku": "10067",
+    "title": "Автоматичний вимикач YRO DC (2P/40A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 22,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-dc-2p40a.jpg",
+    "specs": [],
+    "description": "800VDC; \nUi=1250V; \nIi=6in; Isc=100%; \nUimp=8kV; \nКатегорія А; +40*C \nАвтоматичний вимикач YRO DC...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-dc-2p40a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-dc-2p63a",
+    "sku": "10068",
+    "title": "Автоматичний вимикач YRO DC (2P/63A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 22,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-dc-2p63a.jpg",
+    "specs": [],
+    "description": "800VDC; \nUi=1250V; \nIi=6in; \nIsc=100%; \nUimp=8kV; \nКатегорія А; +40*C\nАвтоматичний вимикач YRO DC (2P/63A...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-dc-2p63a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63-2p25a",
+    "sku": "10085",
+    "title": "Автоматичний вимикач YRO YRL7-63 (2P/25A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 6,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63-2p25a.jpg",
+    "specs": [],
+    "description": "Характеристика спрацювання: C \nКількість полюсів: 2, \nВимикаюча здатність (кА): 6; \nТип напруги: AC;\nНом...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63-2p25a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63-2p32a",
+    "sku": "10086",
+    "title": "Автоматичний вимикач YRO YRL7-63 (2P/32A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 7,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63-2p32a.jpg",
+    "specs": [],
+    "description": "Характеристика спрацювання: C\nКількість полюсів: 2, \nВимикаюча здатність (кА): 6; \nТип напруги: AC;\nНомі...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63-2p32a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63-2p40a",
+    "sku": "10087",
+    "title": "Автоматичний вимикач YRO YRL7-63 (2P/40A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 8,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63-2p40a.jpg",
+    "specs": [],
+    "description": "Характеристика спрацювання: C \nКількість полюсів: 2, \nВимикаюча здатність (кА): 6; \nТип напруги: AC;\nНом...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63-2p40a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63-2p63a",
+    "sku": "10088",
+    "title": "Автоматичний вимикач YRO YRL7-63 (2P/63A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 9,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63-2p63a.jpg",
+    "specs": [],
+    "description": "Характеристика спрацювання: C \nКількість полюсів: 2, \nВимикаюча здатність (кА): 6; \nТип напруги: AC;\nНом...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63-2p63a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yrl7-63dc-a-3p",
+    "sku": "10087",
+    "title": "Автоматичний вимикач YRO YRL7-63DC 3P (A-Class)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 35,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yrl7-63dc-a-3p.png",
+    "specs": [],
+    "description": "Автоматичний вимикач постійного струму YRO YRL7-63DC 3P (A-Class) YRO YRL7-63DC 3P — це професійний т...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yrl7-63dc-a-3p"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63-pro-3p32a",
+    "sku": "10089",
+    "title": "Автоматичний вимикач YRO YRL7-63 PRO (3P/32A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 12,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63-pro-3p32a.jpg",
+    "specs": [],
+    "description": "Номінальний струм 32A; 3p; \n50/60Гц; Uimp 4 кВт; \nТип кривої С; \nТип захисту Термомагнітні; \nМеханічна ...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63-pro-3p32a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63-pro-4p63a",
+    "sku": "10091",
+    "title": "Автоматичний вимикач YRO YRL7-63 PRO (4P/63A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 25,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63-pro-4p63a.jpg",
+    "specs": [],
+    "description": "Номінальний струм (A): 63 \nХарактеристика спрацювання: C; \nКількість полюсів: 4 \nВимикаюча здатність (к...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63-pro-4p63a"
+  },
+  {
+    "id": "avtomatichnij-vimikach-yro-yrl7-63-pro-4p25a",
+    "sku": "10090",
+    "title": "Автоматичний вимикач YRO YRL7-63PRO/AC400/10kA (4P)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 25,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-vimikach-yro-yrl7-63-pro-4p25a.png",
+    "specs": [
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Автоматичний вимикач трифазний YRO YRL7-63PRO/AC (4P, 400V, 10kA) YRO YRL7-63PRO 10kA — це посилений ...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-vimikach-yro-yrl7-63-pro-4p25a"
+  },
+  {
+    "id": "avtomatichnij-ac-3p-yro-yrl7-63pro-16a-63a",
+    "sku": "10087",
+    "title": "Автоматичний вимикач YRO YRL7-63PRO/AC400/6kA (3P)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/avtomatichnij-ac-3p-yro-yrl7-63pro-16a-63a.png",
+    "specs": [
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Автоматичний вимикач трифазний YRO YRL7-63PRO/AC (3P, 400V, 6kA) YRO YRL7-63PRO — це серія триполюсни...",
+    "sourceUrl": "https://energocomfort.shop/shop/avtomatichnij-ac-3p-yro-yrl7-63pro-16a-63a"
+  },
+  {
+    "id": "solax-power-og648-6-4kw-48v-off-grid",
+    "sku": "6913",
+    "title": "Автономний однофазний інвертор SolaX Power OG648 (6.4 кВт, 48 В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "SolaX",
+    "isKit": false,
+    "price": 578,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/solax-power-og648-6-4kw-48v-off-grid.png",
+    "specs": [
+      [
+        "Потужність",
+        "6.4 кВт"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Надійна автономія та безперебійне живлення для вашого дому Автономний сонячний інвертор SolaX Power O...",
+    "sourceUrl": "https://energocomfort.shop/shop/solax-power-og648-6-4kw-48v-off-grid"
+  },
+  {
+    "id": "alyuminiyeva-rejka-roof-25",
+    "sku": "10129",
+    "title": "Алюмінієва рейка Roof 2,5",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/alyuminiyeva-rejka-roof-25.jpg",
+    "specs": [],
+    "description": "Рейка із високоякісного алюмінію для кріплення фотомодулів на покрівлю. \nВідстань між точками кріпле...",
+    "sourceUrl": "https://energocomfort.shop/shop/alyuminiyeva-rejka-roof-25"
+  },
+  {
+    "id": "alyuminiyeva-rejka-roof-36-1",
+    "sku": "10130",
+    "title": "Алюмінієва рейка Roof 3,6",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/alyuminiyeva-rejka-roof-36-1.jpg",
+    "specs": [],
+    "description": "Рейка із високоякісного алюмінію для кріплення фотомодулів на покрівлю. \nВідстань між точками кріпле...",
+    "sourceUrl": "https://energocomfort.shop/shop/alyuminiyeva-rejka-roof-36-1"
+  },
+  {
+    "id": "alyuminiyeva-rejka-roof-45",
+    "sku": "10131",
+    "title": "Алюмінієва рейка Roof 4,5",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/alyuminiyeva-rejka-roof-45.jpg",
+    "specs": [],
+    "description": "Рейка із високоякісного алюмінію для кріплення фотомодулів на покрівлю. \nВідстань між точками кріпле...",
+    "sourceUrl": "https://energocomfort.shop/shop/alyuminiyeva-rejka-roof-45"
+  },
+  {
+    "id": "blok-dlya-bezprofilnoyi-sistemi-kriplennya-20sm-spl-5",
+    "sku": "10139",
+    "title": "Блок для безпрофільної системи кріплення 20см SPL-5",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/blok-dlya-bezprofilnoyi-sistemi-kriplennya-20sm-spl-5.jpg",
+    "specs": [],
+    "description": "Блок 20 см. (без притисків та болтів) \nБлок для безпрофільної системи кріплення 20см SPL-5 – це спеці...",
+    "sourceUrl": "https://energocomfort.shop/shop/blok-dlya-bezprofilnoyi-sistemi-kriplennya-20sm-spl-5"
+  },
+  {
+    "id": "blok-keruvannya-viso-yi-batareyi-deye-hvb750v100a-eu",
+    "sku": "10021",
+    "title": "Блок керування високовольтної батареї Deye HVB750V/100A-EU",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 960,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/blok-keruvannya-viso-yi-batareyi-deye-hvb750v100a-eu.jpg",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "Блок керування високовольтної батареї Deye HVB750V/100A-EU – це ключовий компонент для ефективного т...",
+    "sourceUrl": "https://energocomfort.shop/shop/blok-keruvannya-viso-yi-batareyi-deye-hvb750v100a-eu"
+  },
+  {
+    "id": "bolt-din-912-m8h25-a2",
+    "sku": "10125",
+    "title": "Болт DIN 912 M8х25 А2",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/bolt-din-912-m8h25-a2.jpg",
+    "specs": [],
+    "description": "\"Джексон\" нержавіюча сталь М8\nБолт DIN 912 M8х... А2 – це високоякісний циліндричний болт з внутрішні...",
+    "sourceUrl": "https://energocomfort.shop/shop/bolt-din-912-m8h25-a2"
+  },
+  {
+    "id": "bolt-din-912-m8h35-a2-1",
+    "sku": "10126",
+    "title": "Болт DIN 912 M8х35 А2",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/bolt-din-912-m8h35-a2-1.jpg",
+    "specs": [],
+    "description": "\"Джексон\" нержавіюча сталь М8\nБолт DIN 912 M8х35 А2 – це високоякісний циліндричний болт з внутрішнім...",
+    "sourceUrl": "https://energocomfort.shop/shop/bolt-din-912-m8h35-a2-1"
+  },
+  {
+    "id": "bolt-din-912-m8h45-a2",
+    "sku": "10127",
+    "title": "Болт DIN 912 M8х45 А2",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/bolt-din-912-m8h45-a2.jpg",
+    "specs": [],
+    "description": "\"Джексон\" нержавіюча сталь М8\nБолт DIN 912 M8х45 А2 – це високоякісний циліндричний болт з внутрішнім...",
+    "sourceUrl": "https://energocomfort.shop/shop/bolt-din-912-m8h45-a2"
+  },
+  {
+    "id": "bolt-din-912-m8h50-a2-1",
+    "sku": "10128",
+    "title": "Болт DIN 912 M8х50 А2",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/bolt-din-912-m8h50-a2-1.jpg",
+    "specs": [],
+    "description": "\"Джексон\" нержавіюча сталь М8\nБолт DIN 912 M8х50 А2 – це високоякісний циліндричний болт з внутрішнім...",
+    "sourceUrl": "https://energocomfort.shop/shop/bolt-din-912-m8h50-a2-1"
+  },
+  {
+    "id": "gvint-shurup-m10200-kombinovanij",
+    "sku": "10111",
+    "title": "Гвинт-шуруп М10×200 комбінований",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/gvint-shurup-m10200-kombinovanij.jpg",
+    "specs": [],
+    "description": "Нержавіюча сталь, резинова прокладка, 3 гайки з юбкою.\nГвинт-шуруп М10×200 комбінований – це універса...",
+    "sourceUrl": "https://energocomfort.shop/shop/gvint-shurup-m10200-kombinovanij"
+  },
+  {
+    "id": "gvint-shurup-m10h250-kombinovanij-nerzh",
+    "sku": "10112",
+    "title": "Гвинт-шуруп М10х250 Комбінований (нерж.)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/gvint-shurup-m10h250-kombinovanij-nerzh.jpg",
+    "specs": [],
+    "description": "Нержавіюча сталь, резинова прокладка, 3 гайки з юбкою. (Добре підходить для шиферного даху)\nГвинт-шур...",
+    "sourceUrl": "https://energocomfort.shop/shop/gvint-shurup-m10h250-kombinovanij-nerzh"
+  },
+  {
+    "id": "komplekt-rezervnoho-zhyvlennya-deye-8kw-akb-16kwh",
+    "sku": "8389",
+    "title": "☀️ Готове рішення Deye 8 кВт / 16 кВт*год",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "Deye",
+    "isKit": true,
+    "price": 3999,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/komplekt-rezervnoho-zhyvlennya-deye-8kw-akb-16kwh.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "8 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "16 кВт·год"
+      ],
+      [
+        "Технологія",
+        "LiFePO4"
+      ]
+    ],
+    "description": "Готове рішення для енергонезалежності «ПІД КЛЮЧ» - Комплект резервного живлення Deye 8 кВт + LiFePO4...",
+    "sourceUrl": "https://energocomfort.shop/shop/komplekt-rezervnoho-zhyvlennya-deye-8kw-akb-16kwh"
+  },
+  {
+    "id": "zakladna-pid-cherepicyu-1",
+    "sku": "10113",
+    "title": "Закладна під черепицю №1",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zakladna-pid-cherepicyu-1.jpg",
+    "specs": [],
+    "description": "\"П'ята\" 15х5 см\nВиісота 17 см\nОпорна частина 6см (Анодована)\nЗакладна під черепицю №1 – це спеціалізова...",
+    "sourceUrl": "https://energocomfort.shop/shop/zakladna-pid-cherepicyu-1"
+  },
+  {
+    "id": "zakladna-pid-cherepicyu-2",
+    "sku": "10114",
+    "title": "Закладна під черепицю №2",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zakladna-pid-cherepicyu-2.jpg",
+    "specs": [],
+    "description": "\"П'ята\" 15х5 см\nВиісота 12 см\nОпорна частина 6см\nЗакладна під черепицю №2 – це спеціалізований елемент ...",
+    "sourceUrl": "https://energocomfort.shop/shop/zakladna-pid-cherepicyu-2"
+  },
+  {
+    "id": "zakladna-pid-cherepicyu-3-regulovananerzhaviyucha",
+    "sku": "10115",
+    "title": "Закладна під черепицю №3 (Регульована/нержавіюча)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zakladna-pid-cherepicyu-3-regulovananerzhaviyucha.jpg",
+    "specs": [],
+    "description": "Регулюється до 8см від площадки ( в комплекті болт+т-модуль) та 4 саморізи.\nЗакладна під черепицю №3 ...",
+    "sourceUrl": "https://energocomfort.shop/shop/zakladna-pid-cherepicyu-3-regulovananerzhaviyucha"
+  },
+  {
+    "id": "zakladna-pid-cherepicyu-4-regulovanaalyuminiyeva",
+    "sku": "10116",
+    "title": "Закладна під черепицю №4 (Регульована/алюмінієва)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zakladna-pid-cherepicyu-4-regulovanaalyuminiyeva.jpg",
+    "specs": [],
+    "description": "Регулюється по осям Х та Y (Високоякісний анодований алюміній) \nЗакладна під черепицю №4 – це інновац...",
+    "sourceUrl": "https://energocomfort.shop/shop/zakladna-pid-cherepicyu-4-regulovanaalyuminiyeva"
+  },
+  {
+    "id": "zakladna-pid-cherepicyu-5-dvotipova",
+    "sku": "10117",
+    "title": "Закладна під черепицю №5 (Двотипова)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zakladna-pid-cherepicyu-5-dvotipova.jpg",
+    "specs": [],
+    "description": "Регулюється по висоті та може змінюватись як на \"альбом\" так і на \"книжку\"\nЗакладна під черепицю №5 –...",
+    "sourceUrl": "https://energocomfort.shop/shop/zakladna-pid-cherepicyu-5-dvotipova"
+  },
+  {
+    "id": "zapobizhnik-eti-10x38-gpv-20a-1000v-30ka",
+    "sku": "10074",
+    "title": "Запобіжник ETI 10x38 gPV 20A 1000V (30kA)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "ETI",
+    "isKit": false,
+    "price": 4,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zapobizhnik-eti-10x38-gpv-20a-1000v-30ka.jpg",
+    "specs": [],
+    "description": "Категорія: Плавка вставка (запобіжник);\nТип: CH;Типорозмір: CH10; \nНомінальний струм (A): 20; \nНом.Напр...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-eti-10x38-gpv-20a-1000v-30ka"
+  },
+  {
+    "id": "zapobizhnik-eti-nh-00-battery-125a-80v-dc",
+    "sku": "10083",
+    "title": "Запобіжник ETI NH-00 Battery 125A 80V DC",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "ETI",
+    "isKit": false,
+    "price": 20,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zapobizhnik-eti-nh-00-battery-125a-80v-dc.jpg",
+    "specs": [],
+    "description": "Категорія: Плавка вставка;\nТип: NH\nТипорозмір: NH00 \nНомінальний струм (A): 160\nНомінальна напруга DC (V...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-eti-nh-00-battery-125a-80v-dc"
+  },
+  {
+    "id": "zapobizhnik-eti-nh-00-battery-160a-80v-dc",
+    "sku": "10084",
+    "title": "Запобіжник ETI NH-00 Battery 160A 80V DC",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "ETI",
+    "isKit": false,
+    "price": 20,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zapobizhnik-eti-nh-00-battery-160a-80v-dc.jpg",
+    "specs": [],
+    "description": "Категорія: Плавка вставка;\nТип: NH\nТипорозмір: NH00 \nНомінальний струм (A): 125\nНомінальна напруга DC (V...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-eti-nh-00-battery-160a-80v-dc"
+  },
+  {
+    "id": "zapobizhnik-yro-10x3815a1000vdc",
+    "sku": "10071",
+    "title": "Запобіжник YRO 10x38/15A/1000VDC",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 3,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zapobizhnik-yro-10x3815a1000vdc.jpg",
+    "specs": [],
+    "description": "Категорія: Плавка вставка (запобіжник);\nТип: CH;Типорозмір: CH10; \nНомінальний струм (A): 15; \nНом.Напр...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-yro-10x3815a1000vdc"
+  },
+  {
+    "id": "zapobizhnik-yro-10x3820a1000vdc",
+    "sku": "10072",
+    "title": "Запобіжник YRO 10x38/20A/1000VDC",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 3,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zapobizhnik-yro-10x3820a1000vdc.jpg",
+    "specs": [],
+    "description": "Категорія: Плавка вставка (запобіжник);\nТип: CH;Типорозмір: CH10; \nНомінальний струм (A): 20; \nНом.Напр...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-yro-10x3820a1000vdc"
+  },
+  {
+    "id": "zapobizhnik-yro-10x3832a1000vdc",
+    "sku": "10073",
+    "title": "Запобіжник YRO 10x38/32A/1000VDC",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 4,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zapobizhnik-yro-10x3832a1000vdc.jpg",
+    "specs": [],
+    "description": "Категорія: Плавка вставка (запобіжник);\nТип: CH;\nТипорозмір: CH10; \nНомінальний струм (A): 32; \nНом.Напр...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-yro-10x3832a1000vdc"
+  },
+  {
+    "id": "zapobizhnik-yro-batt-nh-00-125a80-vdc",
+    "sku": "10081",
+    "title": "Запобіжник YRO BATT NH-00 125A/80 VDC",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 15,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zapobizhnik-yro-batt-nh-00-125a80-vdc.jpg",
+    "specs": [],
+    "description": "Категорія: Плавка вставка;\nТип: NH\nТипорозмір: NH00 Номінальний струм (A): 160\nНомінальна напруга DC (V...",
+    "sourceUrl": "https://energocomfort.shop/shop/zapobizhnik-yro-batt-nh-00-125a80-vdc"
+  },
+  {
+    "id": "zyednuvach-dlya-ocinkovanogo-profilyu",
+    "sku": "10118",
+    "title": "З'єднувач для оцинкованого профілю",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/zyednuvach-dlya-ocinkovanogo-profilyu.jpg",
+    "specs": [],
+    "description": "Потужний з'єднувач оцинкованого профілю - 44 грн\nЗ'єднувач для оцинкованого профілю – це важливий еле...",
+    "sourceUrl": "https://energocomfort.shop/shop/zyednuvach-dlya-ocinkovanogo-profilyu"
+  },
+  {
+    "id": "kabel-zhivlennya-dlya-batareyi-dyness",
+    "sku": "10030",
+    "title": "Кабель живлення для батареї Dyness",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Dyness",
+    "isKit": false,
+    "price": 50,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/kabel-zhivlennya-dlya-batareyi-dyness.png",
+    "specs": [],
+    "description": "Кабель живлення для батареї Dyness – це високоякісний кабель, спеціально розроблений для надійного п...",
+    "sourceUrl": "https://energocomfort.shop/shop/kabel-zhivlennya-dlya-batareyi-dyness"
+  },
+  {
+    "id": "kabel-zhivlennya-dlya-batareyi-voltsmile",
+    "sku": "10031",
+    "title": "Кабель живлення для батареї VOLTSMILE",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Voltsmile",
+    "isKit": false,
+    "price": 700,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/kabel-zhivlennya-dlya-batareyi-voltsmile.jpg",
+    "specs": [],
+    "description": "Кабель живлення для батареї VOLTSMILE – це надійний та якісний кабель, розроблений спеціально для пі...",
+    "sourceUrl": "https://energocomfort.shop/shop/kabel-zhivlennya-dlya-batareyi-voltsmile"
+  },
+  {
+    "id": "komplekt-zahistu-dlya-sonyachnoyi-stanciyi-6-8-kvt-na-1-mppt",
+    "sku": "10103",
+    "title": "Комплект захисту для сонячної станції 6-8 кВт на 1 MPPT",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 210,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/komplekt-zahistu-dlya-sonyachnoyi-stanciyi-6-8-kvt-na-1-mppt.png",
+    "specs": [],
+    "description": "Зкомутований щит. \nВ комплект входять: \n1. Пластиковий щит ETI ECH 24PT (24мод. зовн.встан. IP65) \n2. П...",
+    "sourceUrl": "https://energocomfort.shop/shop/komplekt-zahistu-dlya-sonyachnoyi-stanciyi-6-8-kvt-na-1-mppt"
+  },
+  {
+    "id": "komplekt-zahistu-dlya-sonyachnoyi-stanciyi-6-8-kvt-na-2-mppt",
+    "sku": "10104",
+    "title": "Комплект захисту для сонячної станції 6-8 кВт на 2 MPPT",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 250,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/komplekt-zahistu-dlya-sonyachnoyi-stanciyi-6-8-kvt-na-2-mppt.jpg",
+    "specs": [],
+    "description": "Зкомутований щит. В комплект входять: \n1. Пластиковий щит ETI ECH 24PT (24мод. зовн.встан. IP65) \n2. П...",
+    "sourceUrl": "https://energocomfort.shop/shop/komplekt-zahistu-dlya-sonyachnoyi-stanciyi-6-8-kvt-na-2-mppt"
+  },
+  {
+    "id": "kontroler-zaryadu-hors-sc-mprt-122448-30a",
+    "sku": "10029",
+    "title": "Контролер заряду HORS SC-MPРТ 12/24/48 (30А)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Hors",
+    "isKit": false,
+    "price": 70,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/kontroler-zaryadu-hors-sc-mprt-122448-30a.jpg",
+    "specs": [
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "(30A, 12/24/48В) Макс потужність 12В (450Вт);\n24В (900Вт); 48В (1800Вт);\nМакс. Напруга 160В;\nДіапазон н...",
+    "sourceUrl": "https://energocomfort.shop/shop/kontroler-zaryadu-hors-sc-mprt-122448-30a"
+  },
+  {
+    "id": "kronshtejn-alyuminiyevij-na-bitumnij-dah",
+    "sku": "10134",
+    "title": "Кронштейн алюмінієвий на бітумний дах",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/kronshtejn-alyuminiyevij-na-bitumnij-dah.jpg",
+    "specs": [],
+    "description": "Кронштейн Т-подібний Анодований (без Гвинтів)\nКронштейн алюмінієвий на бітумний дах – це спеціально р...",
+    "sourceUrl": "https://energocomfort.shop/shop/kronshtejn-alyuminiyevij-na-bitumnij-dah"
+  },
+  {
+    "id": "kutnik-alyuminiyevij-sf",
+    "sku": "10137",
+    "title": "Кутник алюмінієвий SF",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/kutnik-alyuminiyevij-sf.jpg",
+    "specs": [],
+    "description": "Висота - 8,5см; Ширина - 4см; \nТовщина 9мм; (Отвір під 10мм.) \nКутник алюмінієвий SF – це універсальни...",
+    "sourceUrl": "https://energocomfort.shop/shop/kutnik-alyuminiyevij-sf"
+  },
+  {
+    "id": "obmezhuvach-perenaprugi-yro-sp-a12-t1t2-4p",
+    "sku": "10102",
+    "title": "Обмежувач перенапруги YRO SP-A12 Т1+Т2 (4P)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 90,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/obmezhuvach-perenaprugi-yro-sp-a12-t1t2-4p.png",
+    "specs": [],
+    "description": "30-60 КА Iimp:12,5КА 275VAC T1+T2\nОбмежувач перенапруги YRO SP-A12 Т1+Т2 (4P) – це потужний чотирипол...",
+    "sourceUrl": "https://energocomfort.shop/shop/obmezhuvach-perenaprugi-yro-sp-a12-t1t2-4p"
+  },
+  {
+    "id": "obmezhuvach-perenaprugi-yro-yrsp-d2-1000vdc2p",
+    "sku": "10076",
+    "title": "Обмежувач перенапруги YRO YRSP-D2 1000VDC/2P",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 34,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/obmezhuvach-perenaprugi-yro-yrsp-d2-1000vdc2p.jpg",
+    "specs": [],
+    "description": "Максимальна робоча постійна напруга, Unpv 1000V; \nМаксимальна робоча постійна напруга підключення(1-2...",
+    "sourceUrl": "https://energocomfort.shop/shop/obmezhuvach-perenaprugi-yro-yrsp-d2-1000vdc2p"
+  },
+  {
+    "id": "obmezhuvach-perenaprugi-yro-yrsp-d2-600vdc2p",
+    "sku": "10075",
+    "title": "Обмежувач перенапруги YRO YRSP-D2 600VDC/2P",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 30,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/obmezhuvach-perenaprugi-yro-yrsp-d2-600vdc2p.png",
+    "specs": [],
+    "description": "ТИП Т2; \nUcpv - 600VDC; \nPVin: 20kA; \nImax: 40kA;",
+    "sourceUrl": "https://energocomfort.shop/shop/obmezhuvach-perenaprugi-yro-yrsp-d2-600vdc2p"
+  },
+  {
+    "id": "obmezhuvach-perenaprugi-yro-as-yrsp-a2-2p",
+    "sku": "10101",
+    "title": "Обмежувач Перенапруги YRO АС YRSP-A2 (2P)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 35,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/obmezhuvach-perenaprugi-yro-as-yrsp-a2-2p.jpg",
+    "specs": [],
+    "description": "Струм: 20-40КА; \nНапруга 275VAC; 2P; \nUc ~275V; \nIn:20kA;\nImax 40kA; \nОбмежувач перенапруги YRO АС YRSP-A...",
+    "sourceUrl": "https://energocomfort.shop/shop/obmezhuvach-perenaprugi-yro-as-yrsp-a2-2p"
+  },
+  {
+    "id": "deye-sun-6-6k-og03lp1-eu-am2-6-6kw-48v-off-grid",
+    "sku": "8282",
+    "title": "Однофазний інвертор Deye SUN-6.6K-OG03LP1-EU-AM2 (6,6кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 800,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/deye-sun-6-6k-og03lp1-eu-am2-6-6kw-48v-off-grid.webp",
+    "specs": [
+      [
+        "Потужність",
+        "6.6 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Однофазний автономний інвертор Deye SUN-6.6K-OG03LP1-EU-AM2 потужністю 6.6 кВт (48 В) - це надійне, ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-6-6k-og03lp1-eu-am2-6-6kw-48v-off-grid"
+  },
+  {
+    "id": "optimizator-honeybee-650",
+    "sku": "10014",
+    "title": "Оптимізатор HoneyBee 650",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 80,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/optimizator-honeybee-650.png",
+    "specs": [],
+    "description": "DC 16-A (12-75 V)\nОптимізатор HoneyBee 650 - це додаткове обладнання для сонячних панелей, яке допома...",
+    "sourceUrl": "https://energocomfort.shop/shop/optimizator-honeybee-650"
+  },
+  {
+    "id": "peremikach-tripozicijnij-ymts-63-2p40a",
+    "sku": "10097",
+    "title": "Перемикач трипозиційний YMTS-63 (2P/40A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 22,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/peremikach-tripozicijnij-ymts-63-2p40a.jpg",
+    "specs": [],
+    "description": "230V~50/60Hz (IEC 60947-3) 40А\nПеремикач трипозиційний YMTS-63 (2P/40A) – це надійний двополюсний кул...",
+    "sourceUrl": "https://energocomfort.shop/shop/peremikach-tripozicijnij-ymts-63-2p40a"
+  },
+  {
+    "id": "peremikach-tripozicijnij-ymts-63-2p63a",
+    "sku": "10098",
+    "title": "Перемикач трипозиційний YMTS-63 (2P/63A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 22,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/peremikach-tripozicijnij-ymts-63-2p63a.jpg",
+    "specs": [],
+    "description": "230V~50/60Hz (IEC 60947-3) 63А\nПеремикач трипозиційний YMTS-63 (2P/63A) – це надійний двополюсний кул...",
+    "sourceUrl": "https://energocomfort.shop/shop/peremikach-tripozicijnij-ymts-63-2p63a"
+  },
+  {
+    "id": "peremikach-tripozicijnij-yro-s80-4p63a",
+    "sku": "10095",
+    "title": "Перемикач трипозиційний YRO S80 (4P/63A)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 60,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/peremikach-tripozicijnij-yro-s80-4p63a.jpg",
+    "specs": [],
+    "description": "4 полюси 63 А (380/415 В)\nПеремикач трипозиційний YRO S80 (4P/63A) – це надійний чотириполюсний перем...",
+    "sourceUrl": "https://energocomfort.shop/shop/peremikach-tripozicijnij-yro-s80-4p63a"
+  },
+  {
+    "id": "plastikovij-shit-eti-ech-12pt-12mod-zovnvstan-ip65",
+    "sku": "10105",
+    "title": "Пластиковий щит ETI ECH 12PT (12мод. зовн.встан. IP65)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "ETI",
+    "isKit": false,
+    "price": 30,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/plastikovij-shit-eti-ech-12pt-12mod-zovnvstan-ip65.jpg",
+    "specs": [],
+    "description": "Номінальна напруга: 400 В AC\nСтупінь захисту: IP65\nКлас ізоляції: ІІ\nРобоч. Діапазон температур: от - 2...",
+    "sourceUrl": "https://energocomfort.shop/shop/plastikovij-shit-eti-ech-12pt-12mod-zovnvstan-ip65"
+  },
+  {
+    "id": "plastikovij-shit-eti-ech-24pt-24mod-zovnvstan-ip65",
+    "sku": "10106",
+    "title": "Пластиковий щит ETI ECH 24PT (24мод. зовн.встан. IP65)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "ETI",
+    "isKit": false,
+    "price": 45,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/plastikovij-shit-eti-ech-24pt-24mod-zovnvstan-ip65.jpg",
+    "specs": [],
+    "description": "Номінальна напруга: 400 В AC\nСтупінь захисту: IP65\nКлас ізоляції: ІІ\nРобоч. Діапазон температур: от - 2...",
+    "sourceUrl": "https://energocomfort.shop/shop/plastikovij-shit-eti-ech-24pt-24mod-zovnvstan-ip65"
+  },
+  {
+    "id": "plastikovij-shit-eti-esn-36rt-36-mod-zovn-vstan-ir65",
+    "sku": "10107",
+    "title": "Пластиковий ЩИТ ЕТІ ЕСН 36РТ (36 мод. зовн. встан. ІР65)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 80,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/plastikovij-shit-eti-esn-36rt-36-mod-zovn-vstan-ir65.jpg",
+    "specs": [],
+    "description": "Номінальна напруга: 400 В AC\nСтупінь захисту: IP65\nКлас ізоляції: ІІ\nРобоч. Діапазон температур: от - 2...",
+    "sourceUrl": "https://energocomfort.shop/shop/plastikovij-shit-eti-esn-36rt-36-mod-zovn-vstan-ir65"
+  },
+  {
+    "id": "pritisk-bokovij-3035",
+    "sku": "10122",
+    "title": "Притиск боковий 30/35",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-bokovij-3035.jpg",
+    "specs": [],
+    "description": "Притиск універсальний анодований сріблом\nПритиск боковий 30/35 – це універсальний елемент кріплення, ...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-bokovij-3035"
+  },
+  {
+    "id": "pritisk-bokovij-30-mm-psp-5268-50mm",
+    "sku": "10121",
+    "title": "Притиск боковий 30 мм (ПСП 52.68 (50мм)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-bokovij-30-mm-psp-5268-50mm.png",
+    "specs": [],
+    "description": "Під раму панелі 30 мм\nПритиск боковий 30 мм (ПСП 52.68 (50мм)) – це спеціалізований елемент кріплення...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-bokovij-30-mm-psp-5268-50mm"
+  },
+  {
+    "id": "pritisk-bokovij-3540",
+    "sku": "10123",
+    "title": "Притиск боковий 35/40",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-bokovij-3540.png",
+    "specs": [],
+    "description": "Притиск універсальний анодований сріблом\nПритиск боковий 35/40 – це універсальний елемент кріплення, ...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-bokovij-3540"
+  },
+  {
+    "id": "pritisk-bokovij-40mm",
+    "sku": "10124",
+    "title": "Притиск боковий 40мм",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-bokovij-40mm.jpg",
+    "specs": [],
+    "description": "Анодований алюміній для панелі з рамою 35 або 40 мм\nПритиск боковий 40мм – це спеціалізований елемент...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-bokovij-40mm"
+  },
+  {
+    "id": "pritisk-bokovij-u-sbori-3035-mm",
+    "sku": "10135",
+    "title": "Притиск боковий у сборі 30/35 мм",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-bokovij-u-sbori-3035-mm.jpg",
+    "specs": [],
+    "description": "Комплект підходить для рейки \"Roof та AID\"\nПритиск боковий у зборі 30/35 мм – це готовий до встановле...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-bokovij-u-sbori-3035-mm"
+  },
+  {
+    "id": "pritisk-bokovij-u-sbori-pid-ocinkovanij-profil-30-mm",
+    "sku": "10109",
+    "title": "Притиск боковий у сборі під оцинкований профіль 30 мм",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-bokovij-u-sbori-pid-ocinkovanij-profil-30-mm.png",
+    "specs": [],
+    "description": "Комплект підходить для оцинкованої рейки 41x41\nПритиск боковий у зборі під оцинкований профіль 30 мм ...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-bokovij-u-sbori-pid-ocinkovanij-profil-30-mm"
+  },
+  {
+    "id": "pritisk-mizhmodulnij-0205",
+    "sku": "10120",
+    "title": "Притиск міжмодульний 0,2/0,5",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-mizhmodulnij-0205.jpg",
+    "specs": [],
+    "description": "Проміжок між панелями складе 2см. Довжина притиску 5см.\nПритиск міжмодульний 0,2/0,5 – це універсальн...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-mizhmodulnij-0205"
+  },
+  {
+    "id": "pritisk-mizhmodulnij-u-sbori-3035-mm",
+    "sku": "10136",
+    "title": "Притиск міжмодульній у сборі 30/35 мм",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-mizhmodulnij-u-sbori-3035-mm.jpg",
+    "specs": [],
+    "description": "Комплект підходить для рейки \"Roof та AID\"\nПритиск боковий у зборі 30/35 мм – це готовий до встановле...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-mizhmodulnij-u-sbori-3035-mm"
+  },
+  {
+    "id": "pritisk-mizhmodulnij-u-sbori-pid-ocinkovanij-profil-3035-mm",
+    "sku": "10110",
+    "title": "Притиск міжмодульній у сборі під оцинкований профіль 30/35 мм",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/pritisk-mizhmodulnij-u-sbori-pid-ocinkovanij-profil-3035-mm.png",
+    "specs": [],
+    "description": "Комплект підходить для оцинкованої рейки 41x41\nПритиск міжмодульний у зборі під оцинкований профіль 3...",
+    "sourceUrl": "https://energocomfort.shop/shop/pritisk-mizhmodulnij-u-sbori-pid-ocinkovanij-profil-3035-mm"
+  },
+  {
+    "id": "profil-ocinkovanij-41h41h15",
+    "sku": "10108",
+    "title": "Профіль оцинкований 41х41х1,5",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/profil-ocinkovanij-41h41h15.png",
+    "specs": [],
+    "description": "Вартість - 150 грн/м.\nПерфорований профіль 41х41х1,5 мм. Довжина рейки 2,5 м.\nПрофіль оцинкований 41х4...",
+    "sourceUrl": "https://energocomfort.shop/shop/profil-ocinkovanij-41h41h15"
+  },
+  {
+    "id": "rozyednuvach-zapobizhnika-eti-kvl-1p",
+    "sku": "10078",
+    "title": "Роз'єднувач запобіжника ETI KVL 1P",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "ETI",
+    "isKit": false,
+    "price": 30,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/rozyednuvach-zapobizhnika-eti-kvl-1p.jpg",
+    "specs": [],
+    "description": "Типорозмір: 00; \nНомінальний струм (A): 160; \nКількість полюсів: 1; \nНомінальна напруга AC (V): 690; \nНо...",
+    "sourceUrl": "https://energocomfort.shop/shop/rozyednuvach-zapobizhnika-eti-kvl-1p"
+  },
+  {
+    "id": "rozyednuvach-zapobizhnika-yro-hvl-00-m8-1p",
+    "sku": "10079",
+    "title": "Роз'єднувач запобіжника YRO HVL 00 M8 1P",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 15,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/rozyednuvach-zapobizhnika-yro-hvl-00-m8-1p.jpg",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "Типорозмір: 00; \nНомінальний струм (A): 160; \nКількість полюсів: 1; \nНомінальна напруга AC (V): 690; \nНо...",
+    "sourceUrl": "https://energocomfort.shop/shop/rozyednuvach-zapobizhnika-yro-hvl-00-m8-1p"
+  },
+  {
+    "id": "rozyednuvach-zapobizhnika-yro-hvl-00-m8-2p",
+    "sku": "10080",
+    "title": "Роз'єднувач запобіжника YRO HVL 00 M8 2P",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 28,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/rozyednuvach-zapobizhnika-yro-hvl-00-m8-2p.jpg",
+    "specs": [
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "Типорозмір: 00; \nНомінальний струм (A): 160; \nКількість полюсів:2; \nНомінальна напруга AC (V): 690; \nНом...",
+    "sourceUrl": "https://energocomfort.shop/shop/rozyednuvach-zapobizhnika-yro-hvl-00-m8-2p"
+  },
+  {
+    "id": "rozyednuvach-zapobizhnika-yro-pv-2p-32a1000vdc",
+    "sku": "10070",
+    "title": "Роз'єднувач запобіжника YRO PV 2P (32А/1000VDC)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "YRO",
+    "isKit": false,
+    "price": 7,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/rozyednuvach-zapobizhnika-yro-pv-2p-32a1000vdc.jpg",
+    "specs": [],
+    "description": "Розмір запобіжника: 10x38\nНомінальний струм (A): 32\nКількість полюсів: 2\nНомінальна напруга AC (V): 690",
+    "sourceUrl": "https://energocomfort.shop/shop/rozyednuvach-zapobizhnika-yro-pv-2p-32a1000vdc"
+  },
+  {
+    "id": "stik-dlya-rejki-roof",
+    "sku": "10132",
+    "title": "Стик для рейки Roof",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/stik-dlya-rejki-roof.jpg",
+    "specs": [],
+    "description": "Потужний з'єднувач рейки \"Roof та AID\"\nСтик для рейки Roof – це спеціальний з'єднувальний елемент, пр...",
+    "sourceUrl": "https://energocomfort.shop/shop/stik-dlya-rejki-roof"
+  },
+  {
+    "id": "shinna-gajka-z-plastikovim-fiksatorom-m8-gbm",
+    "sku": "10119",
+    "title": "Шинна гайка з пластиковим фіксатором М8 (ГБМ)",
+    "cat": "parts",
+    "rawCats": [
+      "komplektuyuchi"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 0,
+    "oldPrice": 0,
+    "inStock": true,
+    "statusLabel": "очікується",
+    "img": "/assets/products/shinna-gajka-z-plastikovim-fiksatorom-m8-gbm.jpg",
+    "specs": [],
+    "description": "Під оцинковану рейку 41х41 або 21х41 - 14.00 грн.\nШинна гайка з пластиковим фіксатором М8 (ГБМ) – це ...",
+    "sourceUrl": "https://energocomfort.shop/shop/shinna-gajka-z-plastikovim-fiksatorom-m8-gbm"
+  },
+  {
+    "id": "deye-sun-20k-sg01hp3-eu-am2-1",
+    "sku": "50045",
+    "title": "Deye SUN-15K-SG01HP3-EU-AM2 (15кВт/HV)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1670,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/deye-sun-20k-sg01hp3-eu-am2-1.png",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний високовольтний інвертор Deye SUN-15K-SG01HP3-EU-AM2 (15 кВт, HV) Deye SUN-15K-SG01HP3 — це ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-20k-sg01hp3-eu-am2-1"
+  },
+  {
+    "id": "deye-sun-16k-sg05lp3-eu-sm2",
+    "sku": "10044",
+    "title": "Deye SUN-16K-SG05LP3-EU-SM2",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 2150,
+    "oldPrice": 2680,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/deye-sun-16k-sg05lp3-eu-sm2.png",
+    "specs": [
+      [
+        "Потужність",
+        "16 кВт"
+      ]
+    ],
+    "description": "Потужність АС -16 кВт; \nПотужність DC 32 кВт; \n2-МРРТ - 36/20 A; \nРобочий діапазон МРРТ 160 - 650 В. \nТи...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-16k-sg05lp3-eu-sm2"
+  },
+  {
+    "id": "deye-sun-20k-sg01hp3-eu-am2",
+    "sku": "50072",
+    "title": "Deye SUN-20K-SG01HP3-EU-AM2 (20кВт/HV)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1800,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/deye-sun-20k-sg01hp3-eu-am2.png",
+    "specs": [
+      [
+        "Потужність",
+        "20 кВт"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Трифазний високовольтний інвертор Deye SUN-20K-SG01HP3-EU-AM2 (20 кВт, HV) Deye SUN-20K-SG01HP3 — це ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-20k-sg01hp3-eu-am2"
+  },
+  {
+    "id": "deye-sun-30k-g04",
+    "sku": "10059",
+    "title": "Deye SUN-30K-G04 (30 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 990,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/deye-sun-30k-g04.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "30 кВт"
+      ]
+    ],
+    "description": "Потужність AC-30 кВт; \nПотужність DC - 39 кВт; \nДіапазон напруги МРРТ 200-850 В;\n2-МРРТ; 3+ 3 -String;",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-30k-g04"
+  },
+  {
+    "id": "deye-sun-6-k-sg05lp1-eu-am2-p",
+    "sku": "50058",
+    "title": "Deye SUN 6-K SG05LP1 EU-AM2-P (6 кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 860,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/deye-sun-6-k-sg05lp1-eu-am2-p.png",
+    "specs": [
+      [
+        "Потужність",
+        "6 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "1 фаза (220 В)"
+      ]
+    ],
+    "description": "Однофазний інвертор Deye SUN 6-K SG05LP1 EU-AM2-P (6 кВт/48В) \n Потужність (Вт):6000 Кількість фаз:1 Тип ...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-6-k-sg05lp1-eu-am2-p"
+  },
+  {
+    "id": "deye-sun-8k-sg01lp1-eu",
+    "sku": "10016",
+    "title": "Deye SUN 8-K SG05LP1 EU-AM2-P (8 кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1150,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/deye-sun-8k-sg01lp1-eu.png",
+    "specs": [
+      [
+        "Потужність",
+        "8 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ]
+    ],
+    "description": "Потужність АС- 8 кВт;  Потужність DC-10 кВт;  2-МРРТ ;  Струм КЗ 26/26 A;  Робочий діапазон МРРТ 150-425...",
+    "sourceUrl": "https://energocomfort.shop/shop/deye-sun-8k-sg01lp1-eu"
+  },
+  {
+    "id": "vysokovoltna-sistema-solax-x3-ies-p15b15",
+    "sku": "9988",
+    "title": "Гібридна система накопичення енергії SolaX Power X3-IES-P15B15 (15 кВт / 15 кВт*год, High Voltage)",
+    "cat": "kits",
+    "rawCats": [
+      "gotovi-rishennya-dlya-energonezalezhnosti",
+      "rezervne-zhivlennya-dlya-domu-ta-kvartiri",
+      "gotovi-rishennya-ses-pid-klyuch"
+    ],
+    "brand": "SolaX",
+    "isKit": true,
+    "price": 10120,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/vysokovoltna-sistema-solax-x3-ies-p15b15.png",
+    "specs": [
+      [
+        "Потужність",
+        "15 кВт"
+      ],
+      [
+        "Ємність АКБ",
+        "15 кВт·год"
+      ],
+      [
+        "Тип системи",
+        "Високовольтна (HV)"
+      ]
+    ],
+    "description": "SolaX Power X3-IES-P15B15 - це високовольтне ( High Voltage ) рішення преміум-класу формату «All-in-On...",
+    "sourceUrl": "https://energocomfort.shop/shop/vysokovoltna-sistema-solax-x3-ies-p15b15"
+  },
+  {
+    "id": "gibridniy-invertor-must-pv18-4024eco-4kw-24v",
+    "sku": "5040",
+    "title": "Гібридний інвертор Must PV18-4024ECO (4 кВт, 24В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Must",
+    "isKit": false,
+    "price": 399,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/gibridniy-invertor-must-pv18-4024eco-4kw-24v.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "4 кВт"
+      ]
+    ],
+    "description": "Must PV18-4024ECO - це багатофункціональний гібридний інвертор потужністю 4 кВт, що поєднує в собі ф...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridniy-invertor-must-pv18-4024eco-4kw-24v"
+  },
+  {
+    "id": "solis-100k-5g-pro-100kw-3-phase",
+    "sku": "9939",
+    "title": "Мережевий трифазний інвертор Solis 100K 5G-PRO (100 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 3133,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/solis-100k-5g-pro-100kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "100 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Індустріальна потужність 100 кВт для великого бізнесу Мережевий інвертор Solis 100K 5G-PRO потужністю...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-100k-5g-pro-100kw-3-phase"
+  },
+  {
+    "id": "solis-s5-gc33k-33kw-3-phase",
+    "sku": "8855",
+    "title": "Мережевий трифазний інвертор Solis S5-GC33K (33 кВт)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Solis",
+    "isKit": false,
+    "price": 1410,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/solis-s5-gc33k-33kw-3-phase.webp",
+    "specs": [
+      [
+        "Потужність",
+        "33 кВт"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Професійна потужність для вашого бізнесу Мережевий інвертор Solis S5-GC33K потужністю 33 кВт створени...",
+    "sourceUrl": "https://energocomfort.shop/shop/solis-s5-gc33k-33kw-3-phase"
+  },
+  {
+    "id": "astronergy-n7s-2-0-chsm48rn-460w-n-type-bifacial",
+    "sku": "7400",
+    "title": "Сонячна панель Astronergy N7s 2.0 CHSM48RN(DG)/F-BH Bifacial (460 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 78,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/astronergy-n7s-2-0-chsm48rn-460w-n-type-bifacial.png",
+    "specs": [
+      [
+        "Потужність",
+        "460 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Astronergy N7s 2.0 (460 Вт) - це передова двостороння (bifacial) сонячна панель, яка поєднує в собі ...",
+    "sourceUrl": "https://energocomfort.shop/shop/astronergy-n7s-2-0-chsm48rn-460w-n-type-bifacial"
+  },
+  {
+    "id": "ja-solar-jam54d40-445lb",
+    "sku": "10012",
+    "title": "Сонячна панель Ja Solar JAM54D40-445/LB (445 Вт) (FULL BLACK двостороня)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 75,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/ja-solar-jam54d40-445lb.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "445 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Струм КЗ 14.40 В А \nНапруга Холостого 39.10 В \nРозмір 1762х1134х30 мм\nСонячна панель Ja Solar JAM54D40-...",
+    "sourceUrl": "https://energocomfort.shop/shop/ja-solar-jam54d40-445lb"
+  },
+  {
+    "id": "sonyachna-panel-ja-solar-jam54d40-460lb-bifacical-blackframe",
+    "sku": "50015",
+    "title": "Сонячна панель JA Solar JAM54D40-460/LB Bifacical BlackFrame (460 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 98,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/sonyachna-panel-ja-solar-jam54d40-460lb-bifacical-blackframe.png",
+    "specs": [
+      [
+        "Потужність",
+        "460 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Сонячна панель JA Solar JAM54D40-460/LB Bifacial Black Frame (460 Вт) JA Solar 460Wp — це високоефект...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-panel-ja-solar-jam54d40-460lb-bifacical-blackframe"
+  },
+  {
+    "id": "ja-solar-jam66d45-635-lb-635-wp-bifacial-n-type",
+    "sku": "7319",
+    "title": "Сонячна панель JA Solar JAM66D45-635/LB 635 Вт N-Type Bifacial (Double Glass)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 115,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/ja-solar-jam66d45-635-lb-635-wp-bifacial-n-type.webp",
+    "specs": [
+      [
+        "Потужність",
+        "635 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "JA Solar JAM66D45-635/LB (635 Вт) - це потужна двостороння сонячна панель нового покоління, створена...",
+    "sourceUrl": "https://energocomfort.shop/shop/ja-solar-jam66d45-635-lb-635-wp-bifacial-n-type"
+  },
+  {
+    "id": "jinko-tiger-neo-54hl4m-bdv-515w-n-type-bifacial",
+    "sku": "4284",
+    "title": "Сонячна панель Jinko JKM515N- 54HL4M-BDV N-Type Dual Glass (515 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Jinko Solar",
+    "isKit": false,
+    "price": 98,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/jinko-tiger-neo-54hl4m-bdv-515w-n-type-bifacial.png",
+    "specs": [
+      [
+        "Потужність",
+        "515 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Jinko Tiger Neo 54HL4M-BDV (515 Вт) - це високоефективна двостороння (bifacial) сонячна панель новог...",
+    "sourceUrl": "https://energocomfort.shop/shop/jinko-tiger-neo-54hl4m-bdv-515w-n-type-bifacial"
+  },
+  {
+    "id": "sonyachna-panel-jinko-tiger-neo-n-type-72hl4-bdv-dvostoronnya-585-vt",
+    "sku": "10013",
+    "title": "Сонячна панель Jinko Tiger Neo N-type 72HL4-BDV (Двостороння) 585 Вт",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Jinko Solar",
+    "isKit": false,
+    "price": 95,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/sonyachna-panel-jinko-tiger-neo-n-type-72hl4-bdv-dvostoronnya-585-vt.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "585 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Струм КЗ 14,13 А \nНапруга Холостого 52.7 В \nРозмір 22878х1134х30 мм\nСонячна панель Jinko Tiger Neo N-ty...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-panel-jinko-tiger-neo-n-type-72hl4-bdv-dvostoronnya-585-vt"
+  },
+  {
+    "id": "sample-valetta-armchair-zix-studio",
+    "sku": "10011",
+    "title": "Сонячна панель longi LR5-54HTH EXPLORER (435 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Longi Solar",
+    "isKit": false,
+    "price": 61,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/sample-valetta-armchair-zix-studio.png",
+    "specs": [
+      [
+        "Потужність",
+        "435 Вт"
+      ]
+    ],
+    "description": "Струм КЗ 14,22 А \nНапруга Холостого 39.33 В \nРозмір 1722х1134х30 мм\nСонячна панель Longi LR5-54HTH EXPL...",
+    "sourceUrl": "https://energocomfort.shop/shop/sample-valetta-armchair-zix-studio"
+  },
+  {
+    "id": "tongwei-solar-twmnh-66hd635-635w-n-type-bifacial",
+    "sku": "6999",
+    "title": "Сонячна панель Tongwei Solar TWMNH-66HD635 (635 Вт, N-Type, Bifacial)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 119,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/tongwei-solar-twmnh-66hd635-635w-n-type-bifacial.webp",
+    "specs": [
+      [
+        "Потужність",
+        "635 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Двостороння сонячна панель Tongwei Solar TWMNH-66HD635 потужністю 635 Вт - це фотомодуль преміум-кла...",
+    "sourceUrl": "https://energocomfort.shop/shop/tongwei-solar-twmnh-66hd635-635w-n-type-bifacial"
+  },
+  {
+    "id": "tongwei-tw-twmnh-48hw470-470w-n-type",
+    "sku": "2994",
+    "title": "Сонячна панель Tongwei TW TWMNH-48HW470 (470 Вт, N-Type TOPCon)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 88,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/tongwei-tw-twmnh-48hw470-470w-n-type.webp",
+    "specs": [
+      [
+        "Потужність",
+        "470 Вт"
+      ]
+    ],
+    "description": "Нове покоління сонячної генерації з технологією N-Type TOPCon Сонячна панель Tongwei TW TWMNH-48HW470",
+    "sourceUrl": "https://energocomfort.shop/shop/tongwei-tw-twmnh-48hw470-470w-n-type"
+  },
+  {
+    "id": "tsm-460-neg9r28-trina-solar",
+    "sku": "5411",
+    "title": "Сонячна панель Trina Solar TSM-460 NEG9R.28 (Vertex S+, N-type, 460 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Trina Solar",
+    "isKit": false,
+    "price": 92,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/tsm-460-neg9r28-trina-solar.png",
+    "specs": [
+      [
+        "Потужність",
+        "460 Вт"
+      ]
+    ],
+    "description": "Trina Solar TSM-460 NEG9R.28 - це преміальна сонячна панель серії Vertex S+, яка поєднує в собі інно...",
+    "sourceUrl": "https://energocomfort.shop/shop/tsm-460-neg9r28-trina-solar"
+  },
+  {
+    "id": "sonyachna-panel-trina-solar-vertex-n-625wp-neg19rc-20-bifacial",
+    "sku": "7720",
+    "title": "Сонячна панель Trina Solar Vertex N 625 Wp (NEG19RC.20) Bifacial",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Trina Solar",
+    "isKit": false,
+    "price": 125,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/sonyachna-panel-trina-solar-vertex-n-625wp-neg19rc-20-bifacial.jpg",
+    "specs": [
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Trina Solar Vertex N 625 Wp - це флагманська двостороння панель серії Vertex N, яка поєднує в собі м...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-panel-trina-solar-vertex-n-625wp-neg19rc-20-bifacial"
+  },
+  {
+    "id": "sonyachna-panel-tw-solar-470vt-ntype-dual-glass-twmnh-48hw470",
+    "sku": "50013",
+    "title": "Сонячна панель TW Solar 470 Вт (TWMNH-48HW470) N-type, Dual-glass",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 97,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/sonyachna-panel-tw-solar-470vt-ntype-dual-glass-twmnh-48hw470.png",
+    "specs": [
+      [
+        "Потужність",
+        "470 Вт"
+      ]
+    ],
+    "description": "TW Solar TWMNH-48HW470 — це високоефективна сонячна панель нового покоління, побудована на базі пере...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-panel-tw-solar-470vt-ntype-dual-glass-twmnh-48hw470"
+  },
+  {
+    "id": "sonyachna-panel-ulica-solar-585w-bifacial-n-type",
+    "sku": "50015",
+    "title": "Сонячна панель Ulica Solar UL-585M-144-ADGN Bifacical (585 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 117,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/sonyachna-panel-ulica-solar-585w-bifacial-n-type.png",
+    "specs": [
+      [
+        "Потужність",
+        "585 Вт"
+      ],
+      [
+        "Тип модуля",
+        "Bifacial N-Type"
+      ]
+    ],
+    "description": "Сонячна панель Ulica Solar UL-585M-144-ADGN Bifacial (585 Вт, N-Type) Ulica Solar 585Wp — це високоеф...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-panel-ulica-solar-585w-bifacial-n-type"
+  },
+  {
+    "id": "sonyachna-panel-jsolar-zxmr-uhldd96-455-455wp",
+    "sku": "50013",
+    "title": "Сонячна панель ZNSHINE Solar ZXMR-UHLDD96-455 455Wp, Super, Black, Mono (455 Вт)",
+    "cat": "panels",
+    "rawCats": [
+      "sonyachni-paneli"
+    ],
+    "brand": "Energo Comfort",
+    "isKit": false,
+    "price": 96,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/sonyachna-panel-jsolar-zxmr-uhldd96-455-455wp.png",
+    "specs": [
+      [
+        "Потужність",
+        "455 Вт"
+      ]
+    ],
+    "description": "Сонячна панель ZNSHINE Solar ZXMR-UHLDD96-455 (455 Вт, Full Black, Double Glass) ZNSHINE Solar 455Wp ...",
+    "sourceUrl": "https://energocomfort.shop/shop/sonyachna-panel-jsolar-zxmr-uhldd96-455-455wp"
+  },
+  {
+    "id": "gibridnyy-invertor-deye-10kw-sun-10k-sg02lp1",
+    "sku": "10040",
+    "title": "Трифазний гібридний інвертор Deye SUN 10-K-SG02LP1-EU AM3-P (10кВт/48В)",
+    "cat": "inverters",
+    "rawCats": [
+      "invertori"
+    ],
+    "brand": "Deye",
+    "isKit": false,
+    "price": 1700,
+    "oldPrice": 0,
+    "inStock": false,
+    "statusLabel": "немає в наявності",
+    "img": "/assets/products/gibridnyy-invertor-deye-10kw-sun-10k-sg02lp1.jpg",
+    "specs": [
+      [
+        "Потужність",
+        "10 кВт"
+      ],
+      [
+        "Напруга",
+        "48 / 51.2 В (LV)"
+      ],
+      [
+        "Мережа",
+        "3 фази (380 В)"
+      ]
+    ],
+    "description": "Гібридний інвертор Deye SUN-10K-SG02LP1-EU-AM3-P (10 кВт, 1 фаза, 48В) Це надпотужний гібридний інвер...",
+    "sourceUrl": "https://energocomfort.shop/shop/gibridnyy-invertor-deye-10kw-sun-10k-sg02lp1"
+  }
+]

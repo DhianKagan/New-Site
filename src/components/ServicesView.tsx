@@ -1,0 +1,129 @@
+import { Check, ArrowRight } from 'lucide-react';
+import { EXTRA_SERVICES, MONTAGE_SERVICES } from '../data/siteContent.ts';
+
+interface ServicesViewProps {
+  onBackHome: () => void;
+  onOrderService: (topic: string) => void;
+}
+
+export function ServicesView({ onBackHome, onOrderService }: ServicesViewProps) {
+  return (
+    <div>
+      <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
+        <div className="max-w-[1180px] mx-auto px-5">
+          <nav aria-label="Хлібні крихти" className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+            <a
+              href="/"
+              onClick={(e) => {
+                if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                  e.preventDefault();
+                  onBackHome();
+                }
+              }}
+              className="text-[#1769aa] font-bold hover:underline"
+            >
+              Головна
+            </a>
+            <span aria-hidden="true">/</span>
+            <span>Послуги монтажу та інжинірингу</span>
+          </nav>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+            Послуги монтажу СЕС та додатковий інженерний сервіс
+          </h1>
+          <p className="text-sm text-[#52657a] max-w-2xl">
+            Власний монтажний підрозділ в Одесі та Одеській області. Від аудиту електромережі до пусконалагодження і
+            юридичного супроводу «зеленого тарифу».
+          </p>
+        </div>
+      </section>
+
+      <section className="py-12 bg-white">
+        <div className="max-w-[1180px] mx-auto px-5 space-y-12">
+          <div>
+            <div className="mb-6">
+              <div className="text-xs font-extrabold text-[#1769aa] mb-1">Напрямок 01</div>
+              <h2 className="text-2xl font-extrabold text-[#0d1f33]">Послуги монтажу під ключ</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {MONTAGE_SERVICES.map((svc) => (
+                <article
+                  key={svc.id}
+                  className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between gap-5"
+                >
+                  <div>
+                    <div className="text-[11px] font-bold text-[#1769aa] mb-1">{svc.kicker}</div>
+                    <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{svc.title}</h3>
+                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{svc.summary}</p>
+                    <ul className="space-y-2 text-xs text-slate-700">
+                      {svc.bullets.map((b) => (
+                        <li key={b} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{svc.priceLabel}</span>
+                    <button
+                      type="button"
+                      onClick={() => onOrderService(`Послуга: ${svc.title}`)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+                    >
+                      Замовити
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-200">
+            <div className="mb-6">
+              <div className="text-xs font-extrabold text-[#1769aa] mb-1">Напрямок 02</div>
+              <h2 className="text-2xl font-extrabold text-[#0d1f33]">Додаткові інженерні послуги</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {EXTRA_SERVICES.map((svc) => (
+                <article
+                  key={svc.id}
+                  className="bg-[#f6f8fb] border border-slate-200 rounded-2xl p-6 flex flex-col justify-between gap-5"
+                >
+                  <div>
+                    <div className="text-[11px] font-bold text-[#1769aa] mb-1">{svc.kicker}</div>
+                    <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{svc.title}</h3>
+                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{svc.summary}</p>
+                    <ul className="space-y-2 text-xs text-slate-700">
+                      {svc.bullets.map((b) => (
+                        <li key={b} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3">
+                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{svc.priceLabel}</span>
+                    <button
+                      type="button"
+                      onClick={() => onOrderService(`Додаткова послуга: ${svc.title}`)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+                    >
+                      Залишити заявку
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

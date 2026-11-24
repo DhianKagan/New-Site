@@ -1,0 +1,6 @@
+{
+  "name": "Energo Comfort — СЕС, резервне живлення та CRM",
+  "description": "Повнофункціональний інтернет-магазин сонячних електростанцій та систем резервного живлення в Одесі (energocomfort.shop) із каталогом 250 позицій, кошиком замовлень, інженерними заявками та вбудованою CRM.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,1051 @@
+import { useCallback, useEffect, useState, type MouseEvent } from 'react';
+import { ShoppingBag, Menu, X, PhoneCall } from 'lucide-react';
+import type {
+  AdminAuthStatus,
+  AnalyticsConfig,
+  CartItem,
+  Deal,
+  Product,
+  ProductCategory,
+  ProjectCase,
+  SocialLinksConfig,
+} from './types.ts';
+import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
+import { initAnalytics, trackEvent } from './lib/analytics.ts';
+import { signOutFirebase } from './lib/firebaseAuth.ts';
+import { HomeView } from './components/HomeView.tsx';
+import { ShopView } from './components/ShopView.tsx';
+import { ServicesView } from './components/ServicesView.tsx';
+import { ProjectsView } from './components/ProjectsView.tsx';
+import { ContactsView } from './components/ContactsView.tsx';
+import { CrmView } from './components/CrmView.tsx';
+import { AdminAuthGate } from './components/AdminAuthGate.tsx';
+import { ProductModal } from './components/ProductModal.tsx';
+import { CaseModal } from './components/CaseModal.tsx';
+import { LeadModal } from './components/LeadModal.tsx';
+import { CartDrawer } from './components/CartDrawer.tsx';
+import { SmartImage } from './components/SmartImage.tsx';
+import { SocialIcons } from './components/SocialIcons.tsx';
+
+type AppView = 'home' | 'shop' | 'services' | 'projects' | 'contacts' | 'crm';
+
+const CART_STORAGE_KEY = 'ec_cart_v1';
+const VALID_CATS: ProductCategory[] = ['kits', 'inverters', 'batteries', 'panels', 'parts'];
+
+const DEFAULT_SOCIAL_LINKS: SocialLinksConfig = {
+  telegram: 'https://t.me/+380507777172',
+  instagram: '',
+  facebook: COMPANY_INFO.facebookUrl,
+  youtube: '',
+  viber: '',
+  tiktok: '',
+};
+
+function parseRouteFromLocation(): {
+  view: AppView;
+  cat: ProductCategory | 'all';
+  productId: string | null;
+} {
+  if (typeof window === 'undefined') {
+    return { view: 'home', cat: 'all', productId: null };
+  }
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  const params = new URLSearchParams(window.location.search);
+  const qCat = params.get('cat');
+  const cat: ProductCategory | 'all' = qCat && VALID_CATS.includes(qCat as ProductCategory) ? (qCat as ProductCategory) : 'all';
+
+  if (pathname === '/shop') {
+    return { view: 'shop', cat, productId: null };
+  }
+  if (pathname.startsWith('/shop/')) {
+    const rawId = pathname.slice('/shop/'.length).split('/')[0];
+    return { view: 'shop', cat: 'all', productId: rawId ? decodeURIComponent(rawId) : null };
+  }
+  if (pathname === '/services') return { view: 'services', cat: 'all', productId: null };
+  if (pathname === '/projects') return { view: 'projects', cat: 'all', productId: null };
+  if (pathname === '/contacts') return { view: 'contacts', cat: 'all', productId: null };
+  if (pathname === '/crm') return { view: 'crm', cat: 'all', productId: null };
+  return { view: 'home', cat: 'all', productId: null };
+}
+
+function buildPathForRoute(view: AppView, cat: ProductCategory | 'all', productId?: string | null): string {
+  if (productId) {
+    return `/shop/${encodeURIComponent(productId)}`;
+  }
+  if (view === 'home') return '/';
+  if (view === 'shop') {
+    return cat !== 'all' ? `/shop?cat=${encodeURIComponent(cat)}` : '/shop';
+  }
+  return `/${view}`;
+}
+
+export default function App() {
+  const initialRoute = parseRouteFromLocation();
+  const [view, setView] = useState<AppView>(initialRoute.view);
+  const [shopInitialCat, setShopInitialCat] = useState<ProductCategory | 'all'>(initialRoute.cat);
+  const [pendingProductId, setPendingProductId] = useState<string | null>(initialRoute.productId);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [projects, setProjects] = useState<ProjectCase[]>(PROJECTS);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLinksConfig>(DEFAULT_SOCIAL_LINKS);
+  const [telegramConfigured, setTelegramConfigured] = useState(false);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+
+  // Admin auth token held strictly in React memory (never persisted to localStorage)
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [authStatus, setAuthStatus] = useState<AdminAuthStatus>({ configured: true, mode: 'login' });
+  const [apiAvailable, setApiAvailable] = useState(true);
+
+  // Cart state persisted in localStorage
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as CartItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [cartOpen, setCartOpen] = useState(false);
+
+  // Modals
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCase, setSelectedCase] = useState<ProjectCase | null>(null);
+  const [leadModalOpen, setLeadModalOpen] = useState(false);
+  const [leadTopic, setLeadTopic] = useState('Інженерний розрахунок системи');
+  const [leadEstimateUsd, setLeadEstimateUsd] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [cart]);
+
+  const fetchCatalog = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/catalog');
+      const isJson = resp.headers.get('content-type')?.includes('application/json');
+      if (resp.ok && isJson) {
+        const data = (await resp.json()) as { items: Product[] };
+        setProducts(data.items);
+        setApiAvailable(true);
+        return;
+      }
+      throw new Error('Catalog API unavailable');
+    } catch {
+      setApiAvailable(false);
+      try {
+        const seed = await import('../server/seed/catalog.json');
+        setProducts(seed.default as Product[]);
+      } catch {
+        // ignore fallback load failure
+      }
+    } finally {
+      setLoadingCatalog(false);
+    }
+  }, []);
+
+  const fetchAuthStatus = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/admin/auth/status');
+      const isJson = resp.headers.get('content-type')?.includes('application/json');
+      if (resp.ok && isJson) {
+        const data = (await resp.json()) as AdminAuthStatus;
+        setAuthStatus(data);
+        setApiAvailable(true);
+      } else {
+        setApiAvailable(false);
+      }
+    } catch {
+      setApiAvailable(false);
+    }
+  }, []);
+
+  const fetchPublicConfig = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/public/config');
+      const isJson = resp.headers.get('content-type')?.includes('application/json');
+      if (resp.ok && isJson) {
+        const cfg = (await resp.json()) as AnalyticsConfig & { socialLinks?: SocialLinksConfig };
+        initAnalytics(cfg);
+        if (cfg.socialLinks) {
+          setSocialLinks(cfg.socialLinks);
+        }
+        trackEvent('page_view', {
+          page_path: window.location.pathname || '/',
+          page_title: document.title,
+        });
+      }
+    } catch {
+      // Static mode without backend config API: skip remote pixel init silently
+    }
+  }, []);
+
+  const fetchDeals = useCallback(async () => {
+    if (!adminToken) return;
+    const resp = await fetch('/api/crm/deals', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    if (resp.status === 401) {
+      setAdminToken(null);
+      return;
+    }
+    if (resp.ok) {
+      const data = (await resp.json()) as { deals: Deal[] };
+      setDeals(data.deals);
+    }
+  }, [adminToken]);
+
+  const fetchCrmStatus = useCallback(async () => {
+    if (!adminToken) return;
+    const resp = await fetch('/api/crm/status', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    if (resp.ok) {
+      const data = (await resp.json()) as { telegramConfigured?: boolean };
+      setTelegramConfigured(Boolean(data.telegramConfigured));
+    }
+  }, [adminToken]);
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/projects');
+      const isJson = resp.headers.get('content-type')?.includes('application/json');
+      if (resp.ok && isJson) {
+        const data = (await resp.json()) as { projects: ProjectCase[] };
+        if (Array.isArray(data.projects) && data.projects.length > 0) {
+          setProjects(data.projects);
+        }
+      }
+    } catch {
+      // Static mode keeps PROJECTS seed fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchCatalog();
+    void fetchProjects();
+    void fetchPublicConfig();
+    void fetchAuthStatus();
+  }, [fetchCatalog, fetchProjects, fetchPublicConfig, fetchAuthStatus]);
+
+  useEffect(() => {
+    if (adminToken) {
+      void fetchDeals();
+      void fetchCrmStatus();
+    } else {
+      setDeals([]);
+    }
+  }, [adminToken, fetchDeals, fetchCrmStatus]);
+
+  // Open product modal automatically when visiting /shop/<id>
+  useEffect(() => {
+    if (!pendingProductId || products.length === 0) return;
+    const found = products.find((p) => p.id === pendingProductId);
+    if (found) {
+      setSelectedProduct(found);
+    }
+    setPendingProductId(null);
+  }, [pendingProductId, products]);
+
+  // Browser Back/Forward synchronization
+  useEffect(() => {
+    function handlePopState() {
+      const parsed = parseRouteFromLocation();
+      setView(parsed.view);
+      setShopInitialCat(parsed.cat);
+      if (parsed.productId) {
+        const match = products.find((p) => p.id === parsed.productId);
+        if (match) {
+          setSelectedProduct(match);
+        } else {
+          setPendingProductId(parsed.productId);
+        }
+      } else {
+        setSelectedProduct(null);
+      }
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
+
+  // Dynamic Client-side SEO (<title>, meta description, robots, og:*, twitter:*, canonical, JSON-LD)
+  useEffect(() => {
+    let title = 'Energo Comfort — СЕС та резервне живлення в Одесі';
+    let description =
+      'Сонячні електростанції та резервне живлення в Одесі: інвертори Deye, SolaX, Solis, АКБ LiFePO4, панелі та монтаж під ключ із гарантією. Замовте розрахунок!';
+    let ogImage = `${window.location.origin}/assets/energocomfort/sto_110kw.jpg`;
+    let ogType = 'website';
+    const isCrm = view === 'crm';
+
+    if (selectedProduct) {
+      const priceText = selectedProduct.price > 0 ? `$${selectedProduct.price}` : 'За запитом';
+      title = `${selectedProduct.title} (${priceText}) — Energo Comfort`.slice(0, 70);
+      description = (
+        selectedProduct.description.trim() ||
+        `${selectedProduct.title} (${selectedProduct.brand}). ${selectedProduct.statusLabel}. Доставка зі складу в Одесі, гарантія та професійний монтаж.`
+      ).slice(0, 158);
+      if (selectedProduct.img) {
+        ogImage = selectedProduct.img.startsWith('http')
+          ? selectedProduct.img
+          : `${window.location.origin}${selectedProduct.img.startsWith('/') ? '' : '/'}${selectedProduct.img}`;
+      }
+      ogType = 'product';
+    } else if (view === 'shop') {
+      const catTitles: Record<ProductCategory | 'all', string> = {
+        all: 'Каталог обладнання СЕС та резервного живлення',
+        kits: 'Готові комплекти резервного живлення та СЕС',
+        inverters: 'Гібридні та мережеві інвертори Deye, SolaX, Solis',
+        batteries: 'Акумулятори LiFePO4 Deye, Dyness в Одесі',
+        panels: 'Сонячні панелі Jinko, Trina, Longi в Одесі',
+        parts: 'Комплектуючі та захист AC/DC для СЕС',
+      };
+      title = `${catTitles[shopInitialCat]} — Energo Comfort`;
+      description = `Каталог із ${products.length || 250} позицій для автономного живлення та СЕС зі складу в Одесі: Deye, SolaX, Solis, Dyness, Jinko. Замовляйте з доставкою!`;
+    } else if (view === 'services') {
+      title = 'Послуги монтажу СЕС та інжинірингу — Energo Comfort';
+      description =
+        'Професійний монтаж сонячних електростанцій, систем резервного живлення та енергоаудит для дому і бізнесу в Одесі та області з гарантією.';
+    } else if (view === 'projects') {
+      title = `Реалізовані об’єкти (${projects.length}) — Energo Comfort Одеса`;
+      description =
+        'Реальні кейси СЕС і резервного живлення 6–110 кВт для бізнесу та приватних будинків в Одесі й області. Дивіться характеристики та фото об’єктів.';
+    } else if (view === 'contacts') {
+      title = 'Контакти та умови співпраці — Energo Comfort Одеса';
+      description =
+        'Офіс та склад Energo Comfort: м. Одеса, вул. Європейська 93. Телефони +38 (050) 777-71-72, +38 (098) 152-32-61. Графік Пн–Сб 09:00–18:00.';
+    } else if (isCrm) {
+      title = 'CRM та адмін-панель — Energo Comfort';
+    }
+
+    document.title = title;
+    const canonicalUrl = `${window.location.origin}${window.location.pathname}`;
+
+    const ensureMeta = (attrName: 'name' | 'property', key: string, content: string) => {
+      let el = document.querySelector(`meta[${attrName}="${key}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attrName, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    ensureMeta('name', 'description', description);
+    ensureMeta('name', 'robots', isCrm ? 'noindex, nofollow' : 'index, follow');
+    ensureMeta('property', 'og:type', ogType);
+    ensureMeta('property', 'og:title', title);
+    ensureMeta('property', 'og:description', description);
+    ensureMeta('property', 'og:url', canonicalUrl);
+    ensureMeta('property', 'og:image', ogImage);
+    ensureMeta('name', 'twitter:title', title);
+    ensureMeta('name', 'twitter:description', description);
+    ensureMeta('name', 'twitter:image', ogImage);
+
+    const canonicalEl = document.querySelector('link[rel="canonical"]');
+    if (canonicalEl) {
+      canonicalEl.setAttribute('href', canonicalUrl);
+    }
+
+    const storeEntity = {
+      '@type': 'Store',
+      '@id': `${window.location.origin}/#organization`,
+      name: 'Energo Comfort',
+      url: window.location.origin,
+      image: `${window.location.origin}/assets/energocomfort/sto_110kw.jpg`,
+      telephone: '+380507777172',
+      email: COMPANY_INFO.email,
+      priceRange: '$$',
+      areaServed: 'Одеса та Одеська область',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'вул. Європейська 93',
+        addressLocality: 'Одеса',
+        addressCountry: 'UA',
+      },
+      openingHoursSpecification: [
+        {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+          opens: '09:00',
+          closes: '18:00',
+        },
+      ],
+    };
+
+    const jsonLdEl = document.getElementById('ec-jsonld');
+    if (jsonLdEl && !isCrm) {
+      if (selectedProduct) {
+        jsonLdEl.textContent = JSON.stringify({
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'Product',
+              name: selectedProduct.title,
+              sku: selectedProduct.sku,
+              mpn: selectedProduct.sku,
+              image: ogImage,
+              description,
+              brand: { '@type': 'Brand', name: selectedProduct.brand || 'Energo Comfort' },
+              offers: {
+                '@type': 'Offer',
+                url: canonicalUrl,
+                priceCurrency: 'USD',
+                price: selectedProduct.price > 0 ? selectedProduct.price : 0,
+                itemCondition: 'https://schema.org/NewCondition',
+                availability: selectedProduct.inStock
+                  ? 'https://schema.org/InStock'
+                  : 'https://schema.org/PreOrder',
+                seller: { '@type': 'Organization', name: 'Energo Comfort' },
+              },
+            },
+            {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Головна', item: `${window.location.origin}/` },
+                { '@type': 'ListItem', position: 2, name: 'Обладнання', item: `${window.location.origin}/shop` },
+                { '@type': 'ListItem', position: 3, name: selectedProduct.title, item: canonicalUrl },
+              ],
+            },
+          ],
+        });
+      } else if (view === 'home') {
+        jsonLdEl.textContent = JSON.stringify({
+          '@context': 'https://schema.org',
+          '@graph': [
+            storeEntity,
+            {
+              '@type': 'WebSite',
+              name: 'Energo Comfort',
+              url: window.location.origin,
+            },
+            {
+              '@type': 'FAQPage',
+              mainEntity: FAQ_ITEMS.map((item) => ({
+                '@type': 'Question',
+                name: item.q,
+                acceptedAnswer: { '@type': 'Answer', text: item.a },
+              })),
+            },
+          ],
+        });
+      } else {
+        const pageNameMap: Record<AppView, string> = {
+          home: 'Головна',
+          shop: 'Каталог обладнання',
+          services: 'Послуги монтажу та інжинірингу',
+          projects: 'Реалізовані об’єкти',
+          contacts: 'Контакти',
+          crm: 'CRM',
+        };
+        const pageTypeMap: Record<AppView, string> = {
+          home: 'WebPage',
+          shop: 'CollectionPage',
+          services: 'Service',
+          projects: 'CollectionPage',
+          contacts: 'ContactPage',
+          crm: 'WebPage',
+        };
+        jsonLdEl.textContent = JSON.stringify({
+          '@context': 'https://schema.org',
+          '@graph': [
+            storeEntity,
+            {
+              '@type': pageTypeMap[view],
+              name: title,
+              description,
+              url: canonicalUrl,
+            },
+            {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Головна', item: `${window.location.origin}/` },
+                { '@type': 'ListItem', position: 2, name: pageNameMap[view], item: canonicalUrl },
+              ],
+            },
+          ],
+        });
+      }
+    }
+  }, [view, shopInitialCat, selectedProduct, products.length, projects.length]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (selectedProduct) {
+          handleCloseProductModal();
+        }
+        setSelectedCase(null);
+        setLeadModalOpen(false);
+        setCartOpen(false);
+        setMobileMenuOpen(false);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
+
+  function navigateTo(nextView: AppView, cat?: ProductCategory | 'all') {
+    const resolvedCat = nextView === 'shop' ? cat ?? 'all' : 'all';
+    if (nextView === 'shop') {
+      setShopInitialCat(resolvedCat);
+    }
+    if (nextView === 'crm' && !adminToken) {
+      void fetchAuthStatus();
+    }
+    setSelectedProduct(null);
+    setView(nextView);
+    setMobileMenuOpen(false);
+    const targetUrl = buildPathForRoute(nextView, resolvedCat, null);
+    if (window.location.pathname + window.location.search !== targetUrl) {
+      window.history.pushState({}, '', targetUrl);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (nextView !== 'crm') {
+      trackEvent('page_view', {
+        page_path: targetUrl,
+        page_title: nextView,
+      });
+    }
+  }
+
+  function handleNavAnchor(e: MouseEvent<HTMLAnchorElement>, nextView: AppView, cat?: ProductCategory | 'all') {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    navigateTo(nextView, cat);
+  }
+
+  function handleSelectProduct(product: Product) {
+    setSelectedProduct(product);
+    const targetUrl = buildPathForRoute('shop', shopInitialCat, product.id);
+    if (window.location.pathname !== targetUrl) {
+      window.history.pushState({}, '', targetUrl);
+    }
+    trackEvent('view_item', {
+      item_id: product.sku,
+      item_name: product.title,
+      item_category: product.cat,
+      value: product.price,
+      currency: 'USD',
+    });
+  }
+
+  function handleCloseProductModal() {
+    setSelectedProduct(null);
+    if (window.location.pathname.startsWith('/shop/')) {
+      const targetUrl = buildPathForRoute(view, shopInitialCat, null);
+      window.history.pushState({}, '', targetUrl);
+    }
+  }
+
+  function handleAddToCart(product: Product) {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === product.id);
+      if (existing) {
+        return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 1 } : i));
+      }
+      return [
+        ...prev,
+        {
+          id: product.id,
+          sku: product.sku,
+          title: product.title,
+          price: product.price,
+          qty: 1,
+          img: product.img,
+        },
+      ];
+    });
+    trackEvent('add_to_cart', {
+      item_id: product.sku,
+      item_name: product.title,
+      item_category: product.cat,
+      value: product.price,
+      currency: 'USD',
+    });
+    setCartOpen(true);
+  }
+
+  function handleOpenCart() {
+    if (cart.length > 0) {
+      const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      trackEvent('begin_checkout', {
+        value: subtotal,
+        currency: 'USD',
+        items_count: cart.reduce((s, i) => s + i.qty, 0),
+      });
+    }
+    setCartOpen(true);
+  }
+
+  function handleUpdateCartQty(id: string, delta: number) {
+    setCart((prev) =>
+      prev
+        .map((i) => (i.id === id ? { ...i, qty: i.qty + delta } : i))
+        .filter((i) => i.qty > 0),
+    );
+  }
+
+  function handleRemoveFromCart(id: string) {
+    setCart((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  function openLeadModal(topic: string, estimatedTotalUsd?: number) {
+    setLeadTopic(topic);
+    setLeadEstimateUsd(estimatedTotalUsd);
+    setLeadModalOpen(true);
+  }
+
+  const cartTotalCount = cart.reduce((s, i) => s + i.qty, 0);
+  const activeDealsCount = deals.filter((d) => d.stage !== 'archived').length;
+  const crmButtonLabel = adminToken ? `Адмін / CRM (${activeDealsCount})` : 'Адмін / CRM';
+
+  return (
+    <div className="min-h-screen flex flex-col bg-white text-[#172636]">
+      {/* Slim Utility Strip (Odessa Office + Store/CRM Workspace Switcher) */}
+      <div className="bg-[#0d1f33] text-slate-300 text-xs py-1.5 border-b border-white/10">
+        <div className="max-w-[1180px] mx-auto px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="truncate min-w-0">
+            <span className="hidden md:inline">{COMPANY_INFO.address} · </span>
+            <a
+              href={COMPANY_INFO.phone1Href}
+              onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })}
+              className="font-semibold text-white hover:text-sky-200 font-mono text-[11px] sm:text-xs"
+            >
+              {COMPANY_INFO.phone1}
+            </a>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden sm:block">
+              <SocialIcons links={socialLinks} variant="header" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => navigateTo('home')}
+                className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                  view !== 'crm' ? 'bg-white/15 text-white' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Магазин
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateTo('crm')}
+                className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                  view === 'crm' ? 'bg-[#f59e0b] text-[#0d1f33]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
+                }`}
+              >
+                {crmButtonLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-slate-200">
+        <div className="max-w-[1180px] mx-auto px-3 sm:px-5 h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
+          {/* Zone 1: Single-line Brand Wordmark */}
+          <a
+            href="/"
+            onClick={(e) => handleNavAnchor(e, 'home')}
+            className="flex items-center gap-2 whitespace-nowrap shrink-0 text-left min-w-0"
+          >
+            <SmartImage
+              src="/assets/energocomfort/logo_mark.webp"
+              alt="Energo Comfort"
+              priority
+              className="h-7 w-7 sm:h-8 sm:w-8 object-contain rounded shrink-0"
+            />
+            <span className="text-sm sm:text-base lg:text-lg font-extrabold tracking-tight text-[#0d1f33]">
+              Energo Comfort
+            </span>
+          </a>
+
+          {/* Zone 2: 5 concise single-line nav links (desktop lg+) */}
+          <nav aria-label="Головна навігація" className="hidden lg:flex items-center gap-5 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
+            <a
+              href="/"
+              onClick={(e) => handleNavAnchor(e, 'home')}
+              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+                view === 'home' ? 'text-[#1769aa] font-bold' : ''
+              }`}
+            >
+              Головна
+            </a>
+            <a
+              href="/shop"
+              onClick={(e) => handleNavAnchor(e, 'shop', 'all')}
+              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+                view === 'shop' ? 'text-[#1769aa] font-bold' : ''
+              }`}
+            >
+              Обладнання
+            </a>
+            <a
+              href="/services"
+              onClick={(e) => handleNavAnchor(e, 'services')}
+              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+                view === 'services' ? 'text-[#1769aa] font-bold' : ''
+              }`}
+            >
+              Послуги
+            </a>
+            <a
+              href="/projects"
+              onClick={(e) => handleNavAnchor(e, 'projects')}
+              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+                view === 'projects' ? 'text-[#1769aa] font-bold' : ''
+              }`}
+            >
+              Проєкти
+            </a>
+            <a
+              href="/contacts"
+              onClick={(e) => handleNavAnchor(e, 'contacts')}
+              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+                view === 'contacts' ? 'text-[#1769aa] font-bold' : ''
+              }`}
+            >
+              Контакти
+            </a>
+          </nav>
+
+          {/* Zone 3: Quick Lead CTA + Compact Intuitive Cart Button + Mobile/Tablet Menu */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => openLeadModal('Підбір рішення з шапки сайту')}
+              className="inline-flex items-center justify-center h-9 px-2.5 sm:px-3.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <span className="min-[440px]:hidden">Підібрати</span>
+              <span className="hidden min-[440px]:inline">Підібрати рішення</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenCart}
+              aria-label={`Кошик (${cartTotalCount})`}
+              title="Кошик обладнання"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-2.5 xl:px-3.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4 text-[#f59e0b] shrink-0" />
+              <span className="hidden xl:inline">Кошик</span>
+              <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
+                {cartTotalCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label="Меню"
+              aria-expanded={mobileMenuOpen}
+              className="lg:hidden w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-[#0d1f33] cursor-pointer shrink-0"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile / Tablet Drawer */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-2">
+            {(
+              [
+                ['home', '/', 'Головна'],
+                ['shop', '/shop', `Обладнання (${products.length})`],
+                ['services', '/services', 'Послуги монтажу та інжинірингу'],
+                ['projects', '/projects', `Реалізовані проєкти (${projects.length})`],
+                ['contacts', '/contacts', 'Контакти та умови'],
+                ['crm', '/crm', crmButtonLabel],
+              ] as const
+            ).map(([v, href, label]) => (
+              <a
+                key={v}
+                href={href}
+                onClick={(e) => handleNavAnchor(e, v)}
+                className="block w-full text-left px-3 py-2.5 rounded-lg bg-slate-50 text-sm font-bold text-[#0d1f33]"
+              >
+                {label}
+              </a>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openLeadModal('Підбір рішення з мобільного меню');
+              }}
+              className="block w-full text-center px-3 py-2.5 rounded-lg bg-[#1769aa] text-white text-sm font-bold"
+            >
+              Підібрати рішення
+            </button>
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-500">Ми в соцмережах:</span>
+              <SocialIcons links={socialLinks} variant="light" />
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1">
+        {loadingCatalog && view !== 'crm' ? (
+          <div className="max-w-[1180px] mx-auto px-5 py-16 space-y-4">
+            <div className="h-8 w-64 bg-slate-200 rounded animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-72 bg-slate-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {view === 'home' && (
+              <HomeView
+                products={products}
+                projects={projects}
+                telegramUrl={socialLinks.telegram}
+                onNavigateShop={(cat) => navigateTo('shop', cat)}
+                onNavigateServices={() => navigateTo('services')}
+                onNavigateProjects={() => navigateTo('projects')}
+                onOpenLeadModal={openLeadModal}
+                onSelectProduct={handleSelectProduct}
+                onAddToCart={handleAddToCart}
+                onSelectCase={setSelectedCase}
+                onLeadCreated={() => void fetchDeals()}
+                onOpenCrm={() => navigateTo('crm')}
+              />
+            )}
+
+            {view === 'shop' && (
+              <ShopView
+                key={shopInitialCat}
+                products={products}
+                initialCategory={shopInitialCat}
+                onSelectProduct={handleSelectProduct}
+                onAddToCart={handleAddToCart}
+                onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+                onBackHome={() => navigateTo('home')}
+              />
+            )}
+
+            {view === 'services' && (
+              <ServicesView
+                onBackHome={() => navigateTo('home')}
+                onOrderService={(topic) => openLeadModal(topic)}
+              />
+            )}
+
+            {view === 'projects' && (
+              <ProjectsView
+                projects={projects}
+                onBackHome={() => navigateTo('home')}
+                onSelectCase={setSelectedCase}
+              />
+            )}
+
+            {view === 'contacts' && (
+              <ContactsView
+                onBackHome={() => navigateTo('home')}
+                onOpenLeadModal={(topic) => openLeadModal(topic)}
+              />
+            )}
+
+            {view === 'crm' &&
+              (adminToken ? (
+                <CrmView
+                  adminToken={adminToken}
+                  deals={deals}
+                  products={products}
+                  projectsList={projects}
+                  telegramConfigured={telegramConfigured}
+                  socialLinks={socialLinks}
+                  onRefreshDeals={fetchDeals}
+                  onRefreshCatalog={fetchCatalog}
+                  onRefreshProjects={fetchProjects}
+                  onSocialLinksUpdated={setSocialLinks}
+                  onAnalyticsUpdated={(cfg) => initAnalytics(cfg)}
+                  onLogout={() => {
+                    setAdminToken(null);
+                    void signOutFirebase();
+                    void fetchAuthStatus();
+                  }}
+                  onBackToStore={() => navigateTo('home')}
+                />
+              ) : (
+                <AdminAuthGate
+                  status={authStatus}
+                  apiAvailable={apiAvailable}
+                  onAuthenticated={(token) => {
+                    setAdminToken(token);
+                    void fetchAuthStatus();
+                  }}
+                  onBackToStore={() => navigateTo('home')}
+                />
+              ))}
+          </>
+        )}
+      </main>
+
+      {/* Footer */}
+      {view !== 'crm' && (
+        <footer className="bg-[#081421] text-slate-300 pt-11 pb-20 lg:pb-11 border-t border-white/10">
+          <div className="max-w-[1180px] mx-auto px-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div>
+                <SmartImage
+                  src="/assets/energocomfort/logo_full.png"
+                  alt="Energo Comfort — сонячні станції та резервне живлення"
+                  className="h-12 w-auto bg-white rounded-lg p-1.5 mb-3"
+                />
+                <p className="text-xs text-slate-400 leading-relaxed mb-3.5">
+                  Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.
+                </p>
+                <SocialIcons links={socialLinks} variant="footer" />
+              </div>
+
+              <div>
+                <h2 className="text-xs font-extrabold text-white mb-3">Обладнання</h2>
+                <div className="space-y-1.5 text-xs text-slate-400">
+                  {(
+                    [
+                      ['kits', 'Готові рішення'],
+                      ['panels', 'Сонячні панелі'],
+                      ['inverters', 'Інвертори'],
+                      ['batteries', 'Акумулятори LiFePO4'],
+                      ['parts', 'Комплектуючі та захист'],
+                    ] as const
+                  ).map(([c, label]) => (
+                    <a
+                      key={c}
+                      href={`/shop?cat=${c}`}
+                      onClick={(e) => handleNavAnchor(e, 'shop', c)}
+                      className="block hover:text-white"
+                    >
+                      {label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xs font-extrabold text-white mb-3">Компанія та сервіс</h2>
+                <div className="space-y-1.5 text-xs text-slate-400">
+                  <a
+                    href="/services"
+                    onClick={(e) => handleNavAnchor(e, 'services')}
+                    className="block hover:text-white"
+                  >
+                    Послуги монтажу та інжинірингу
+                  </a>
+                  <a
+                    href="/projects"
+                    onClick={(e) => handleNavAnchor(e, 'projects')}
+                    className="block hover:text-white"
+                  >
+                    Реалізовані об’єкти ({projects.length})
+                  </a>
+                  <a
+                    href="/contacts"
+                    onClick={(e) => handleNavAnchor(e, 'contacts')}
+                    className="block hover:text-white"
+                  >
+                    Повернення та публічна оферта
+                  </a>
+                  <a
+                    href="/crm"
+                    onClick={(e) => handleNavAnchor(e, 'crm')}
+                    className="block text-amber-300 hover:text-amber-200"
+                  >
+                    {crmButtonLabel}
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xs font-extrabold text-white mb-3">Контакти · Одеса</h2>
+                <div className="space-y-1.5 text-xs text-slate-400">
+                  <p>{COMPANY_INFO.address}</p>
+                  <a href={COMPANY_INFO.phone1Href} className="block font-mono hover:text-white">
+                    {COMPANY_INFO.phone1}
+                  </a>
+                  <a href={COMPANY_INFO.phone2Href} className="block font-mono hover:text-white">
+                    {COMPANY_INFO.phone2}
+                  </a>
+                  <a href={`mailto:${COMPANY_INFO.email}`} className="block hover:text-white">
+                    {COMPANY_INFO.email}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-5 border-t border-white/10 text-[11px] text-slate-500 flex flex-wrap justify-between gap-2">
+              <span>© 2026 Energo Comfort · energocomfort.shop</span>
+              <span>Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina</span>
+            </div>
+          </div>
+        </footer>
+      )}
+
+      {/* Slim Mobile Thumb CTA Bar (<= 44px height) */}
+      {view !== 'crm' && !cartOpen && !leadModalOpen && !selectedProduct && !selectedCase && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 h-11 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 flex items-center gap-2">
+          <a
+            href={COMPANY_INFO.phone1Href}
+            onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1, source: 'mobile_bar' })}
+            className="flex-1 h-8 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+          >
+            <PhoneCall className="w-3.5 h-3.5 text-[#1769aa]" />
+            Зателефонувати
+          </a>
+          <button
+            type="button"
+            onClick={() => openLeadModal('Експрес-підбір із мобільної панелі')}
+            className="flex-1 h-8 rounded-md bg-[#1769aa] text-white text-xs font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer"
+          >
+            Розрахувати за 15 хв
+          </button>
+        </div>
+      )}
+
+      {/* Modals & Cart Drawer */}
+      <ProductModal
+        product={selectedProduct}
+        onClose={handleCloseProductModal}
+        onAddToCart={handleAddToCart}
+        onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+      />
+
+      <CaseModal
+        project={selectedCase}
+        onClose={() => setSelectedCase(null)}
+        onQuote={(proj) => openLeadModal(`Схоже на кейс: ${proj.title}`)}
+      />
+
+      <LeadModal
+        open={leadModalOpen}
+        initialTopic={leadTopic}
+        estimatedTotalUsd={leadEstimateUsd}
+        onClose={() => setLeadModalOpen(false)}
+        onCreated={() => void fetchDeals()}
+        onOpenCrm={() => navigateTo('crm')}
+      />
+
+      <CartDrawer
+        open={cartOpen}
+        items={cart}
+        onClose={() => setCartOpen(false)}
+        onUpdateQty={handleUpdateCartQty}
+        onRemove={handleRemoveFromCart}
+        onClearCart={() => setCart([])}
+        onOrderCreated={() => void fetchDeals()}
+        onOpenCrm={() => navigateTo('crm')}
+      />
+    </div>
+  );
+}

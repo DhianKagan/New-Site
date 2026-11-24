@@ -1,0 +1,1124 @@
+import { DatabaseSync } from 'node:sqlite';
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import type {
+  Deal,
+  DealItem,
+  DealStage,
+  DealType,
+  Product,
+  ProductCategory,
+  ProjectCase,
+  RecentChangeRecord,
+  SocialLinksConfig,
+  StorageDiagnostics,
+} from '../src/types.ts';
+
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(process.cwd(), 'server', 'data');
+const DB_PATH = path.join(DATA_DIR, 'energocomfort.db');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+const SEED_CATALOG_PATH = path.resolve(process.cwd(), 'server', 'seed', 'catalog.json');
+
+export function getUploadsDir(): string {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  return UPLOADS_DIR;
+}
+
+let dbInstance: DatabaseSync | null = null;
+
+function getDb(): DatabaseSync {
+  if (dbInstance) return dbInstance;
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const db = new DatabaseSync(DB_PATH);
+  db.exec('PRAGMA journal_mode = WAL;');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      sku TEXT NOT NULL,
+      title TEXT NOT NULL,
+      cat TEXT NOT NULL,
+      raw_cats_json TEXT NOT NULL DEFAULT '[]',
+      brand TEXT NOT NULL,
+      is_kit INTEGER NOT NULL DEFAULT 0,
+      price INTEGER NOT NULL DEFAULT 0,
+      old_price INTEGER NOT NULL DEFAULT 0,
+      in_stock INTEGER NOT NULL DEFAULT 1,
+      status_label TEXT NOT NULL DEFAULT 'в наявності',
+      img TEXT NOT NULL DEFAULT '',
+      specs_json TEXT NOT NULL DEFAULT '[]',
+      description TEXT NOT NULL DEFAULT '',
+      source_url TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS deals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      deal_number TEXT NOT NULL UNIQUE,
+      type TEXT NOT NULL,
+      stage TEXT NOT NULL DEFAULT 'new',
+      customer_name TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL,
+      city TEXT NOT NULL DEFAULT 'Одеса',
+      channel TEXT NOT NULL DEFAULT 'Telegram',
+      topic TEXT NOT NULL DEFAULT '',
+      task_type TEXT NOT NULL DEFAULT '',
+      loads_json TEXT NOT NULL DEFAULT '[]',
+      items_json TEXT NOT NULL DEFAULT '[]',
+      total_usd INTEGER NOT NULL DEFAULT 0,
+      assignee TEXT NOT NULL DEFAULT 'Олександр (інженер)',
+      notes TEXT NOT NULL DEFAULT '',
+      telegram_sent INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_name TEXT NOT NULL,
+      meta_event TEXT NOT NULL,
+      ga4_event TEXT NOT NULL,
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS projects (
+      id TEXT PRIMARY KEY,
+      seg TEXT NOT NULL DEFAULT 'b2c',
+      tag TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL,
+      img TEXT NOT NULL DEFAULT '',
+      task TEXT NOT NULL DEFAULT '',
+      solution TEXT NOT NULL DEFAULT '',
+      specs TEXT NOT NULL DEFAULT '',
+      result TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+
+  seedCatalogIfEmpty(db);
+  seedDealsIfEmpty(db);
+  seedProjectsIfEmpty(db);
+  dbInstance = db;
+  return db;
+}
+
+function seedCatalogIfEmpty(db: DatabaseSync): void {
+  const row = db.prepare('SELECT COUNT(*) as cnt FROM products').get();
+  const count = Number(row?.cnt ?? 0);
+  if (count > 0 || !fs.existsSync(SEED_CATALOG_PATH)) return;
+
+  const raw = JSON.parse(fs.readFileSync(SEED_CATALOG_PATH, 'utf-8')) as Product[];
+  const now = new Date().toISOString();
+  const insert = db.prepare(`
+    INSERT INTO products (
+      id, sku, title, cat, raw_cats_json, brand, is_kit,
+      price, old_price, in_stock, status_label, img,
+      specs_json, description, source_url, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  db.exec('BEGIN;');
+  try {
+    for (const p of raw) {
+      insert.run(
+        p.id,
+        p.sku,
+        p.title,
+        p.cat,
+        JSON.stringify(p.rawCats ?? []),
+        p.brand,
+        p.isKit ? 1 : 0,
+        p.price ?? 0,
+        p.oldPrice ?? 0,
+        p.inStock ? 1 : 0,
+        p.statusLabel ?? 'в наявності',
+        p.img ?? '',
+        JSON.stringify(p.specs ?? []),
+        p.description ?? '',
+        p.sourceUrl ?? '',
+        now,
+      );
+    }
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
+function seedDealsIfEmpty(db: DatabaseSync): void {
+  const row = db.prepare('SELECT COUNT(*) as cnt FROM deals').get();
+  const count = Number(row?.cnt ?? 0);
+  if (count > 0) return;
+
+  const now = Date.now();
+  const iso = (offsetMins: number) => new Date(now - offsetMins * 60_000).toISOString();
+
+  const initialDeals: Array<{
+    dealNumber: string;
+    type: DealType;
+    stage: DealStage;
+    customerName: string;
+    phone: string;
+    city: string;
+    channel: string;
+    topic: string;
+    taskType: string;
+    loads: string[];
+    items: DealItem[];
+    totalUsd: number;
+    assignee: string;
+    notes: string;
+    createdAt: string;
+  }> = [
+    {
+      dealNumber: 'EC-1041',
+      type: 'lead',
+      stage: 'new',
+      customerName: 'Ігор Мельник',
+      phone: '+38 (067) 412-88-19',
+      city: 'Одеса, Таїрова',
+      channel: 'Telegram',
+      topic: 'Готове рішення Deye 8 кВт / 16 кВт·год під ключ',
+      taskType: 'Резервне живлення (квартира / дім)',
+      loads: ['Газовий котел', 'Холодильник', 'Wi-Fi / Інтернет', 'Освітлення'],
+      items: [],
+      totalUsd: 3999,
+      assignee: 'Олександр (інженер)',
+      notes: 'Приватний будинок 140 м², 1 фаза, потрібно перемикання без затримки для котла.',
+      createdAt: iso(45),
+    },
+    {
+      dealNumber: 'EC-1040',
+      type: 'order',
+      stage: 'audit',
+      customerName: 'Сергій Кравченко',
+      phone: '+38 (050) 934-15-02',
+      city: 'Чорноморськ',
+      channel: 'Телефон',
+      topic: 'Замовлення обладнання з кошика (2 поз.)',
+      taskType: 'Замовлення обладнання',
+      loads: [],
+      items: [
+        {
+          productId: 'deye-sun-6k-sg06lp1-eu-bm2',
+          sku: '10002',
+          title: 'Гібридний інвертор Deye SUN-6K-SG06LP1-EU-BM2',
+          price: 1150,
+          qty: 1,
+        },
+        {
+          productId: 'lifepo4-deye-se-g51-pro-b',
+          sku: '10018',
+          title: 'Акумуляторна батарея LiFePo4 Deye SE-G5.1 PRO B (5,1 кВт*год 48В)',
+          price: 900,
+          qty: 1,
+        },
+      ],
+      totalUsd: 2050,
+      assignee: 'Дмитро (менеджер)',
+      notes: 'Уточнити потребу в комплекті захисту AC/DC та кабелях перемичок.',
+      createdAt: iso(180),
+    },
+    {
+      dealNumber: 'EC-1039',
+      type: 'lead',
+      stage: 'proposal',
+      customerName: 'ТОВ «Південь-Автосервіс»',
+      phone: '+38 (098) 211-44-70',
+      city: 'Одеса, Київський р-н',
+      channel: 'Telegram',
+      topic: 'СЕС для бізнесу 30 кВт + АКБ 30 кВт·год',
+      taskType: 'Рішення для бізнесу / СТО (380 В)',
+      loads: ['Компресори 380В', 'Підйомники', 'Освітлення'],
+      items: [],
+      totalUsd: 24500,
+      assignee: 'Олександр (інженер)',
+      notes: 'Відправлено 2 варіанти КП на Deye 30 кВт HV та SolaX 30 кВт. Узгоджуємо виїзд на дах.',
+      createdAt: iso(640),
+    },
+    {
+      dealNumber: 'EC-1038',
+      type: 'order',
+      stage: 'fulfillment',
+      customerName: 'Олена Савченко',
+      phone: '+38 (063) 550-19-83',
+      city: 'Одеса, Аркадія',
+      channel: 'Viber',
+      topic: 'Замовлення обладнання з кошика (1 поз.)',
+      taskType: 'Замовлення обладнання',
+      loads: [],
+      items: [
+        {
+          productId: 'deye-se-f12-l',
+          sku: '50023',
+          title: 'Акумуляторна батарея Deye SE-F12-L 51.2V 230Ah (12 кВт*год)',
+          price: 1900,
+          qty: 1,
+        },
+      ],
+      totalUsd: 1900,
+      assignee: 'Дмитро (менеджер)',
+      notes: 'Оплачено. Доставка по Одесі узгоджена на завтра 11:00.',
+      createdAt: iso(1440),
+    },
+    {
+      dealNumber: 'EC-1037',
+      type: 'lead',
+      stage: 'done',
+      customerName: 'Віталій Бондар',
+      phone: '+38 (050) 318-90-12',
+      city: 'Овідіополь',
+      channel: 'Телефон',
+      topic: 'СЕС Deye 6 кВт / 5.1 кВт·год + 10× Trina Bifacial',
+      taskType: 'Сонячна електростанція для дому',
+      loads: ['Газовий котел', 'Холодильник', 'Свердловинний насос', 'Кондиціонер'],
+      items: [],
+      totalUsd: 4500,
+      assignee: 'Олександр (інженер)',
+      notes: 'Змонтовано та запущено. Моніторинг Solarman підключено клієнту.',
+      createdAt: iso(4320),
+    },
+  ];
+
+  const insert = db.prepare(`
+    INSERT INTO deals (
+      deal_number, type, stage, customer_name, phone, city, channel,
+      topic, task_type, loads_json, items_json, total_usd, assignee, notes,
+      telegram_sent, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const d of initialDeals) {
+    insert.run(
+      d.dealNumber,
+      d.type,
+      d.stage,
+      d.customerName,
+      d.phone,
+      d.city,
+      d.channel,
+      d.topic,
+      d.taskType,
+      JSON.stringify(d.loads),
+      JSON.stringify(d.items),
+      d.totalUsd,
+      d.assignee,
+      d.notes,
+      0,
+      d.createdAt,
+      d.createdAt,
+    );
+  }
+}
+
+function rowToProduct(r: Record<string, unknown>): Product {
+  return {
+    id: String(r.id),
+    sku: String(r.sku),
+    title: String(r.title),
+    cat: String(r.cat) as ProductCategory,
+    rawCats: JSON.parse(String(r.raw_cats_json || '[]')) as string[],
+    brand: String(r.brand),
+    isKit: Number(r.is_kit) === 1,
+    price: Number(r.price),
+    oldPrice: Number(r.old_price),
+    inStock: Number(r.in_stock) === 1,
+    statusLabel: String(r.status_label),
+    img: String(r.img),
+    specs: JSON.parse(String(r.specs_json || '[]')) as [string, string][],
+    description: String(r.description),
+    sourceUrl: String(r.source_url),
+  };
+}
+
+function rowToDeal(r: Record<string, unknown>): Deal {
+  return {
+    id: Number(r.id),
+    dealNumber: String(r.deal_number),
+    type: String(r.type) as DealType,
+    stage: String(r.stage) as DealStage,
+    customerName: String(r.customer_name),
+    phone: String(r.phone),
+    city: String(r.city),
+    channel: String(r.channel),
+    topic: String(r.topic),
+    taskType: String(r.task_type),
+    loads: JSON.parse(String(r.loads_json || '[]')) as string[],
+    items: JSON.parse(String(r.items_json || '[]')) as DealItem[],
+    totalUsd: Number(r.total_usd),
+    assignee: String(r.assignee),
+    notes: String(r.notes),
+    telegramSent: Number(r.telegram_sent) === 1,
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+  };
+}
+
+export function listProducts(filters?: {
+  cat?: string;
+  brand?: string;
+  q?: string;
+  inStockOnly?: boolean;
+  sort?: string;
+}): Product[] {
+  const db = getDb();
+  const where: string[] = [];
+  const params: Array<string | number | null> = [];
+
+  if (filters?.cat && filters.cat !== 'all') {
+    where.push('cat = ?');
+    params.push(filters.cat);
+  }
+  if (filters?.brand && filters.brand !== 'all') {
+    where.push('brand = ?');
+    params.push(filters.brand);
+  }
+  if (filters?.inStockOnly) {
+    where.push('in_stock = 1');
+  }
+  if (filters?.q && filters.q.trim()) {
+    const like = `%${filters.q.trim().toLowerCase()}%`;
+    where.push('(LOWER(title) LIKE ? OR LOWER(sku) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(description) LIKE ?)');
+    params.push(like, like, like, like);
+  }
+
+  let orderBy = 'ORDER BY CASE WHEN price > 0 THEN 0 ELSE 1 END, is_kit DESC, in_stock DESC, id ASC';
+  if (filters?.sort === 'asc') {
+    orderBy = 'ORDER BY CASE WHEN price > 0 THEN 0 ELSE 1 END, price ASC';
+  } else if (filters?.sort === 'desc') {
+    orderBy = 'ORDER BY price DESC';
+  } else if (filters?.sort === 'featured') {
+    orderBy = 'ORDER BY CASE WHEN price > 0 THEN 0 ELSE 1 END, in_stock DESC, price DESC';
+  }
+
+  const sql = `SELECT * FROM products ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ${orderBy}`;
+  const rows = db.prepare(sql).all(...params);
+  return rows.map(rowToProduct);
+}
+
+export function getCatalogFacets(): {
+  total: number;
+  byCategory: Record<string, number>;
+  brands: Array<{ brand: string; count: number }>;
+} {
+  const db = getDb();
+  const totalRow = db.prepare('SELECT COUNT(*) as cnt FROM products').get();
+  const catRows = db.prepare('SELECT cat, COUNT(*) as cnt FROM products GROUP BY cat').all();
+  const brandRows = db
+    .prepare('SELECT brand, COUNT(*) as cnt FROM products GROUP BY brand ORDER BY cnt DESC, brand ASC')
+    .all();
+
+  const byCategory: Record<string, number> = {};
+  for (const r of catRows) {
+    byCategory[String(r.cat)] = Number(r.cnt);
+  }
+  const brands = brandRows.map((r) => ({
+    brand: String(r.brand),
+    count: Number(r.cnt),
+  }));
+
+  return {
+    total: Number(totalRow?.cnt ?? 0),
+    byCategory,
+    brands,
+  };
+}
+
+export function getProductById(id: string): Product | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+  return row ? rowToProduct(row) : null;
+}
+
+export function updateProduct(
+  id: string,
+  patch: {
+    title?: string;
+    sku?: string;
+    cat?: ProductCategory;
+    brand?: string;
+    isKit?: boolean;
+    price?: number;
+    oldPrice?: number;
+    inStock?: boolean;
+    statusLabel?: string;
+    img?: string;
+    specs?: [string, string][];
+    description?: string;
+  },
+): Product | null {
+  const db = getDb();
+  const existing = getProductById(id);
+  if (!existing) return null;
+
+  const title = patch.title !== undefined ? String(patch.title).trim() || existing.title : existing.title;
+  const sku = patch.sku !== undefined ? String(patch.sku).trim() : existing.sku;
+  const cat = patch.cat !== undefined ? patch.cat : existing.cat;
+  const brand = patch.brand !== undefined ? String(patch.brand).trim() || existing.brand : existing.brand;
+  const isKit = patch.isKit !== undefined ? patch.isKit : existing.isKit;
+  const price = patch.price !== undefined ? Math.max(0, Math.round(Number(patch.price) || 0)) : existing.price;
+  const oldPrice =
+    patch.oldPrice !== undefined ? Math.max(0, Math.round(Number(patch.oldPrice) || 0)) : existing.oldPrice;
+  const inStock = patch.inStock !== undefined ? patch.inStock : existing.inStock;
+  const statusLabel =
+    patch.statusLabel !== undefined && String(patch.statusLabel).trim()
+      ? String(patch.statusLabel).trim()
+      : patch.inStock !== undefined
+        ? inStock
+          ? 'в наявності'
+          : 'під замовлення'
+        : existing.statusLabel;
+  const img = patch.img !== undefined ? String(patch.img).trim() : existing.img;
+  const specsJson = patch.specs !== undefined ? JSON.stringify(patch.specs) : JSON.stringify(existing.specs);
+  const description = patch.description !== undefined ? String(patch.description).trim() : existing.description;
+  const now = new Date().toISOString();
+
+  db.prepare(
+    `UPDATE products
+     SET sku = ?, title = ?, cat = ?, brand = ?, is_kit = ?,
+         price = ?, old_price = ?, in_stock = ?, status_label = ?,
+         img = ?, specs_json = ?, description = ?, updated_at = ?
+     WHERE id = ?`,
+  ).run(
+    sku,
+    title,
+    cat,
+    brand,
+    isKit ? 1 : 0,
+    price,
+    oldPrice,
+    inStock ? 1 : 0,
+    statusLabel,
+    img,
+    specsJson,
+    description,
+    now,
+    id,
+  );
+
+  return getProductById(id);
+}
+
+export function createProduct(input: {
+  title: string;
+  sku: string;
+  cat: ProductCategory;
+  brand: string;
+  isKit?: boolean;
+  price: number;
+  oldPrice?: number;
+  inStock: boolean;
+  statusLabel?: string;
+  img?: string;
+  specs?: [string, string][];
+  description?: string;
+}): Product {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const slugBase = input.title
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яіїєґ]+/gi, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 48);
+  const id = `${slugBase || 'item'}-${Date.now().toString(36)}`;
+  const isKit = input.isKit ?? input.cat === 'kits';
+  const statusLabel =
+    input.statusLabel?.trim() || (input.inStock ? 'в наявності' : 'під замовлення');
+
+  db.prepare(`
+    INSERT INTO products (
+      id, sku, title, cat, raw_cats_json, brand, is_kit,
+      price, old_price, in_stock, status_label, img,
+      specs_json, description, source_url, updated_at
+    ) VALUES (?, ?, ?, ?, '[]', ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?)
+  `).run(
+    id,
+    input.sku.trim() || id.slice(0, 8).toUpperCase(),
+    input.title.trim(),
+    input.cat,
+    input.brand.trim() || 'Energo Comfort',
+    isKit ? 1 : 0,
+    Math.max(0, Math.round(Number(input.price) || 0)),
+    Math.max(0, Math.round(Number(input.oldPrice) || 0)),
+    input.inStock ? 1 : 0,
+    statusLabel,
+    (input.img ?? '').trim(),
+    JSON.stringify(input.specs ?? []),
+    (input.description ?? '').trim(),
+    now,
+  );
+
+  return getProductById(id)!;
+}
+
+export function deleteProduct(id: string): boolean {
+  const db = getDb();
+  const res = db.prepare('DELETE FROM products WHERE id = ?').run(id);
+  return Number(res.changes) > 0;
+}
+
+function nextDealNumber(db: DatabaseSync): string {
+  const row = db.prepare('SELECT MAX(id) as max_id FROM deals').get();
+  const nextNum = 1042 + Number(row?.max_id ?? 0);
+  return `EC-${nextNum}`;
+}
+
+export function createDeal(input: {
+  type: DealType;
+  customerName?: string;
+  phone: string;
+  city?: string;
+  channel?: string;
+  topic?: string;
+  taskType?: string;
+  loads?: string[];
+  items?: Array<{ productId: string; qty: number }>;
+  notes?: string;
+  estimatedTotalUsd?: number;
+}): Deal {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const dealNumber = nextDealNumber(db);
+
+  let verifiedItems: DealItem[] = [];
+  let totalUsd = 0;
+
+  if (input.items && input.items.length > 0) {
+    for (const reqItem of input.items) {
+      const prod = getProductById(reqItem.productId);
+      if (!prod) continue;
+      const qty = Math.max(1, Math.min(99, Math.round(Number(reqItem.qty) || 1)));
+      verifiedItems.push({
+        productId: prod.id,
+        sku: prod.sku,
+        title: prod.title,
+        price: prod.price,
+        qty,
+      });
+      totalUsd += prod.price * qty;
+    }
+  } else if (input.estimatedTotalUsd) {
+    totalUsd = Math.max(0, Math.round(Number(input.estimatedTotalUsd)));
+  }
+
+  const topic =
+    input.topic?.trim() ||
+    (input.type === 'order'
+      ? `Замовлення обладнання з кошика (${verifiedItems.length} поз.)`
+      : input.taskType?.trim() || 'Інженерний розрахунок системи');
+
+  const res = db
+    .prepare(`
+      INSERT INTO deals (
+        deal_number, type, stage, customer_name, phone, city, channel,
+        topic, task_type, loads_json, items_json, total_usd, assignee, notes,
+        telegram_sent, created_at, updated_at
+      ) VALUES (?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+    `)
+    .run(
+      dealNumber,
+      input.type,
+      (input.customerName ?? '').trim() || 'Клієнт сайту',
+      input.phone.trim(),
+      (input.city ?? '').trim() || 'Одеса',
+      (input.channel ?? '').trim() || 'Telegram',
+      topic,
+      (input.taskType ?? '').trim() || (input.type === 'order' ? 'Кошик / Shop' : 'Консультація'),
+      JSON.stringify(input.loads ?? []),
+      JSON.stringify(verifiedItems),
+      totalUsd,
+      input.type === 'order' ? 'Дмитро (менеджер)' : 'Олександр (інженер)',
+      (input.notes ?? '').trim(),
+      now,
+      now,
+    );
+
+  const created = db.prepare('SELECT * FROM deals WHERE id = ?').get(Number(res.lastInsertRowid));
+  return rowToDeal(created!);
+}
+
+export function markDealTelegramSent(id: number): void {
+  const db = getDb();
+  db.prepare('UPDATE deals SET telegram_sent = 1 WHERE id = ?').run(id);
+}
+
+export function listDeals(): Deal[] {
+  const db = getDb();
+  const rows = db.prepare('SELECT * FROM deals ORDER BY id DESC').all();
+  return rows.map(rowToDeal);
+}
+
+export function updateDeal(
+  id: number,
+  patch: {
+    stage?: DealStage;
+    assignee?: string;
+    notes?: string;
+    totalUsd?: number;
+  },
+): Deal | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM deals WHERE id = ?').get(id);
+  if (!row) return null;
+  const existing = rowToDeal(row);
+
+  const stage = patch.stage ?? existing.stage;
+  const assignee = patch.assignee !== undefined ? patch.assignee.trim() : existing.assignee;
+  const notes = patch.notes !== undefined ? patch.notes.trim() : existing.notes;
+  const totalUsd =
+    patch.totalUsd !== undefined ? Math.max(0, Math.round(Number(patch.totalUsd))) : existing.totalUsd;
+  const now = new Date().toISOString();
+
+  db.prepare('UPDATE deals SET stage = ?, assignee = ?, notes = ?, total_usd = ?, updated_at = ? WHERE id = ?').run(
+    stage,
+    assignee,
+    notes,
+    totalUsd,
+    now,
+    id,
+  );
+
+  const updated = db.prepare('SELECT * FROM deals WHERE id = ?').get(id);
+  return updated ? rowToDeal(updated) : null;
+}
+
+export function deleteDeal(id: number): boolean {
+  const db = getDb();
+  const res = db.prepare('DELETE FROM deals WHERE id = ?').run(id);
+  return Number(res.changes) > 0;
+}
+
+export function getSetting(key: string): string | null {
+  const db = getDb();
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? String(row.value) : null;
+}
+
+export function setSetting(key: string, value: string): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(key, value, now);
+}
+
+export function setSettingIfAbsent(key: string, value: string): boolean {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const res = db
+    .prepare('INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
+    .run(key, value, now);
+  return Number(res.changes) > 0;
+}
+
+export function getPublicAnalyticsConfig(): {
+  metaPixelId: string;
+  ga4MeasurementId: string;
+  gtmContainerId: string;
+  analyticsEnabled: boolean;
+} {
+  const metaPixelId = (getSetting('meta_pixel_id') ?? process.env.META_PIXEL_ID ?? '').trim();
+  const ga4MeasurementId = (getSetting('ga4_measurement_id') ?? process.env.GA4_MEASUREMENT_ID ?? '').trim();
+  const gtmContainerId = (getSetting('gtm_container_id') ?? process.env.GTM_CONTAINER_ID ?? '').trim();
+  const enabledSetting = getSetting('analytics_enabled');
+  const analyticsEnabled = enabledSetting === null ? true : enabledSetting === 'true';
+
+  return {
+    metaPixelId,
+    ga4MeasurementId,
+    gtmContainerId,
+    analyticsEnabled,
+  };
+}
+
+export function saveAnalyticsSettings(input: {
+  metaPixelId: string;
+  ga4MeasurementId: string;
+  gtmContainerId: string;
+  analyticsEnabled: boolean;
+}): void {
+  setSetting('meta_pixel_id', input.metaPixelId);
+  setSetting('ga4_measurement_id', input.ga4MeasurementId);
+  setSetting('gtm_container_id', input.gtmContainerId);
+  setSetting('analytics_enabled', input.analyticsEnabled ? 'true' : 'false');
+}
+
+export function recordAnalyticsEvent(
+  eventName: string,
+  metaEvent: string,
+  ga4Event: string,
+  payload: Record<string, string | number>,
+): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(
+    'INSERT INTO analytics_events (event_name, meta_event, ga4_event, payload_json, created_at) VALUES (?, ?, ?, ?, ?)',
+  ).run(eventName, metaEvent, ga4Event, JSON.stringify(payload), now);
+
+  // Keep only last 100 events in SQLite
+  db.prepare(
+    'DELETE FROM analytics_events WHERE id NOT IN (SELECT id FROM analytics_events ORDER BY id DESC LIMIT 100)',
+  ).run();
+}
+
+export function listRecentAnalyticsEvents(limit = 35): Array<{
+  id: number;
+  eventName: string;
+  metaEvent: string;
+  ga4Event: string;
+  payload: Record<string, string | number>;
+  createdAt: string;
+}> {
+  const db = getDb();
+  const safeLimit = Math.max(1, Math.min(100, Math.round(limit)));
+  const rows = db.prepare('SELECT * FROM analytics_events ORDER BY id DESC LIMIT ?').all(safeLimit);
+  return rows.map((r) => ({
+    id: Number(r.id),
+    eventName: String(r.event_name),
+    metaEvent: String(r.meta_event),
+    ga4Event: String(r.ga4_event),
+    payload: JSON.parse(String(r.payload_json || '{}')) as Record<string, string | number>,
+    createdAt: String(r.created_at),
+  }));
+}
+
+function seedProjectsIfEmpty(db: DatabaseSync): void {
+  const row = db.prepare('SELECT COUNT(*) as cnt FROM projects').get();
+  const count = Number(row?.cnt ?? 0);
+  if (count > 0) return;
+
+  const initialProjects: ProjectCase[] = [
+    {
+      id: 'sto',
+      seg: 'b2b',
+      tag: 'B2B · Одеса',
+      title: 'СТО для вантажного транспорту',
+      img: '/assets/energocomfort/sto_110kw.jpg',
+      task: 'Забезпечити безперебійну роботу енергоємного обладнання (підйомників, компресорів) в умовах лімітів потужності мережі.',
+      solution: 'Змонтовано сонячне поле 110 кВт, встановлено трифазний гібридний інвертор 80 кВт та блок акумуляторів ємністю 160 кВт·год.',
+      specs: 'PV 110 кВт · Гібрид 80 кВт · АКБ 160 кВт·год',
+      result: 'Денне заміщення власного споживання та тривала автономність сервісу навіть під час тривалих відключень.',
+    },
+    {
+      id: 'factory',
+      seg: 'b2b',
+      tag: 'B2B · Одеська обл.',
+      title: 'Завод з виробництва тротуарної плитки',
+      img: '/assets/energocomfort/factory_110kw.png',
+      task: 'Зменшити навантаження на електромережу та оптимізувати денні витрати промислового виробництва.',
+      solution: 'Промислове покрівельне сонячне поле потужністю 110 кВт із мережевою та гібридною архітектурою 380 В.',
+      specs: 'PV 110 кВт · Промислова СЕС · 380 В',
+      result: 'Стабільна генерація для виробничої лінії у робочу зміну та швидка окупність обладнання.',
+    },
+    {
+      id: 'school',
+      seg: 'b2b',
+      tag: 'B2B · Заклад освіти',
+      title: 'Навчальний заклад',
+      img: '/assets/energocomfort/school_55kw.png',
+      task: 'Забезпечити безперервний навчальний процес освітленням та живленням систем безпеки і серверів.',
+      solution: 'Монтаж 55 кВт сонячних панелей та балансування критичного навантаження на 3-фазній мережі.',
+      specs: 'PV 55 кВт · 3 фази · Проєкт під ключ',
+      result: 'Безперебійна робота навчального комплексу під час графіків відключень.',
+    },
+    {
+      id: 'hotel',
+      seg: 'b2b',
+      tag: 'B2B · Узбережжя',
+      title: 'Готельний комплекс',
+      img: '/assets/energocomfort/hotel_35kw.png',
+      task: 'Провести аудит споживання та організувати автоматичне резервування інженерних систем готелю.',
+      solution: 'Сонячне поле 35 кВт, високовольтний гібридний інвертор Deye 30 кВт та блок АКБ 30 кВт·год.',
+      specs: 'PV 35 кВт · Deye 30 кВт · АКБ 30 кВт·год',
+      result: 'Миттєве перемикання без зупинки сервісу, ліфтів, насосів та систем кондиціонування для гостей.',
+    },
+    {
+      id: 'recreation',
+      seg: 'b2b',
+      tag: 'B2B · Одеська обл.',
+      title: 'База відпочинку',
+      img: '/assets/energocomfort/recreation_36kw.jpg',
+      task: 'Забезпечити безперебійне енергопостачання та оптимізувати витрати у піковий курортний сезон.',
+      solution: 'Встановлено 60 сонячних панелей (36 кВт), трифазний інвертор Deye 30 кВт та акумуляторний блок 30,6 кВт·год.',
+      specs: 'PV 36 кВт · Deye 30 кВт · АКБ 30,6 кВт·год',
+      result: 'Повна автономність ключової інфраструктури комплексу та зниження рахунків за електроенергію.',
+    },
+    {
+      id: 'office',
+      seg: 'b2b',
+      tag: 'B2B · Центр Одеси',
+      title: 'Офісний центр',
+      img: '/assets/energocomfort/office_16kw.png',
+      task: 'Живлення робочих місць, серверної групи, зв’язку та клімат-контролю без простоїв.',
+      solution: 'СЕС 16 кВт, гібридний інвертор 12 кВт та запас енергії в АКБ LiFePO4 20 кВт·год.',
+      specs: 'PV 16 кВт · Інвертор 12 кВт · АКБ 20 кВт·год',
+      result: 'Команда працює у штатному режимі за будь-яких мережевих обмежень.',
+    },
+    {
+      id: 'houseSolar',
+      seg: 'b2c',
+      tag: 'B2C · Одеський р-н',
+      title: 'Приватний будинок із СЕС',
+      img: '/assets/energocomfort/house_6kw.png',
+      task: 'Власна денна генерація та надійний нічний резерв для родини.',
+      solution: 'Сонячне поле 6 кВт, гібридний інвертор 10 кВт і акумуляторна система 15 кВт·год.',
+      specs: 'PV 6 кВт · Інвертор 10 кВт · АКБ 15 кВт·год',
+      result: 'Стабільне живлення будинку незалежно від зовнішньої мережі та економія на тарифі.',
+    },
+    {
+      id: 'houseBackup',
+      seg: 'b2c',
+      tag: 'B2C · Одеса',
+      title: 'Резервне живлення квартири та дому',
+      img: '/assets/energocomfort/backup_deye_8kw.jpg',
+      task: 'Тихий автопідхват опалення, освітлення та побутової техніки без втрати простору в кімнатах.',
+      solution: 'Однофазний гібридний інвертор Deye 6–8 кВт та компактний LiFePO4 блок Deye 12 кВт·год із захистом AC/DC.',
+      specs: 'Без СЕС · Deye 6–8 кВт (1ф) · АКБ 12 кВт·год',
+      result: 'Повністю автоматизована тиха система резервного живлення з можливістю подальшого підключення панелей.',
+    },
+  ];
+
+  const now = new Date().toISOString();
+  const insert = db.prepare(`
+    INSERT INTO projects (
+      id, seg, tag, title, img, task, solution, specs, result, sort_order, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  initialProjects.forEach((p, idx) => {
+    insert.run(p.id, p.seg, p.tag, p.title, p.img, p.task, p.solution, p.specs, p.result, idx + 1, now, now);
+  });
+}
+
+function rowToProjectCase(r: Record<string, unknown>): ProjectCase {
+  return {
+    id: String(r.id),
+    seg: String(r.seg) === 'b2b' ? 'b2b' : 'b2c',
+    tag: String(r.tag),
+    title: String(r.title),
+    img: String(r.img),
+    task: String(r.task),
+    solution: String(r.solution),
+    specs: String(r.specs),
+    result: String(r.result),
+  };
+}
+
+export function listProjectCases(): ProjectCase[] {
+  const db = getDb();
+  const rows = db.prepare('SELECT * FROM projects ORDER BY sort_order ASC, created_at DESC').all();
+  return rows.map(rowToProjectCase);
+}
+
+export function getProjectCaseById(id: string): ProjectCase | null {
+  const db = getDb();
+  const row = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+  return row ? rowToProjectCase(row) : null;
+}
+
+export function createProjectCase(input: {
+  seg: 'b2b' | 'b2c';
+  tag: string;
+  title: string;
+  img: string;
+  task: string;
+  solution: string;
+  specs: string;
+  result: string;
+}): ProjectCase {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const slugBase = input.title
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яіїєґ]+/gi, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 36);
+  const id = `${slugBase || 'case'}-${Date.now().toString(36)}`;
+  const minSortRow = db.prepare('SELECT MIN(sort_order) as min_sort FROM projects').get();
+  const nextSort = Number(minSortRow?.min_sort ?? 1) - 1;
+
+  db.prepare(`
+    INSERT INTO projects (
+      id, seg, tag, title, img, task, solution, specs, result, sort_order, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    input.seg === 'b2b' ? 'b2b' : 'b2c',
+    input.tag.trim() || (input.seg === 'b2b' ? 'B2B · Одеса' : 'B2C · Одеса'),
+    input.title.trim(),
+    input.img.trim() || '/assets/energocomfort/house_6kw.png',
+    input.task.trim(),
+    input.solution.trim(),
+    input.specs.trim(),
+    input.result.trim(),
+    nextSort,
+    now,
+    now,
+  );
+
+  return getProjectCaseById(id)!;
+}
+
+export function updateProjectCase(
+  id: string,
+  patch: Partial<{
+    seg: 'b2b' | 'b2c';
+    tag: string;
+    title: string;
+    img: string;
+    task: string;
+    solution: string;
+    specs: string;
+    result: string;
+  }>,
+): ProjectCase | null {
+  const db = getDb();
+  const existing = getProjectCaseById(id);
+  if (!existing) return null;
+
+  const seg = patch.seg === 'b2b' || patch.seg === 'b2c' ? patch.seg : existing.seg;
+  const tag = patch.tag !== undefined ? patch.tag.trim() : existing.tag;
+  const title = patch.title !== undefined ? patch.title.trim() : existing.title;
+  const img = patch.img !== undefined ? patch.img.trim() : existing.img;
+  const task = patch.task !== undefined ? patch.task.trim() : existing.task;
+  const solution = patch.solution !== undefined ? patch.solution.trim() : existing.solution;
+  const specs = patch.specs !== undefined ? patch.specs.trim() : existing.specs;
+  const result = patch.result !== undefined ? patch.result.trim() : existing.result;
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    UPDATE projects
+    SET seg = ?, tag = ?, title = ?, img = ?, task = ?, solution = ?, specs = ?, result = ?, updated_at = ?
+    WHERE id = ?
+  `).run(seg, tag, title, img, task, solution, specs, result, now, id);
+
+  return getProjectCaseById(id);
+}
+
+export function deleteProjectCase(id: string): boolean {
+  const db = getDb();
+  const res = db.prepare('DELETE FROM projects WHERE id = ?').run(id);
+  return Number(res.changes) > 0;
+}
+
+const DEFAULT_SOCIAL_LINKS: SocialLinksConfig = {
+  telegram: 'https://t.me/+380507777172',
+  instagram: '',
+  facebook: 'https://www.facebook.com/energocomfort.shop',
+  youtube: '',
+  viber: '',
+  tiktok: '',
+};
+
+export function getSocialLinks(): SocialLinksConfig {
+  const raw = getSetting('social_links_json');
+  if (!raw) return { ...DEFAULT_SOCIAL_LINKS };
+  try {
+    const parsed = JSON.parse(raw) as Partial<SocialLinksConfig>;
+    return {
+      telegram: typeof parsed.telegram === 'string' ? parsed.telegram : DEFAULT_SOCIAL_LINKS.telegram,
+      instagram: typeof parsed.instagram === 'string' ? parsed.instagram : '',
+      facebook: typeof parsed.facebook === 'string' ? parsed.facebook : DEFAULT_SOCIAL_LINKS.facebook,
+      youtube: typeof parsed.youtube === 'string' ? parsed.youtube : '',
+      viber: typeof parsed.viber === 'string' ? parsed.viber : '',
+      tiktok: typeof parsed.tiktok === 'string' ? parsed.tiktok : '',
+    };
+  } catch {
+    return { ...DEFAULT_SOCIAL_LINKS };
+  }
+}
+
+export function saveSocialLinks(links: SocialLinksConfig): void {
+  setSetting('social_links_json', JSON.stringify(links));
+}
+
+export function listSitemapProductEntries(): Array<{ id: string; updatedAt: string }> {
+  const db = getDb();
+  const rows = db.prepare('SELECT id, updated_at FROM products ORDER BY id ASC').all();
+  return rows.map((r) => ({
+    id: String(r.id),
+    updatedAt: String(r.updated_at || new Date().toISOString()),
+  }));
+}
+
+export function getRecentCatalogAndProjectChanges(limit = 12): RecentChangeRecord[] {
+  const db = getDb();
+  const safeLimit = Math.max(1, Math.min(30, Math.round(limit)));
+  const rows = db
+    .prepare(
+      `SELECT kind, id, title, updated_at FROM (
+         SELECT 'product' AS kind, id, title, updated_at FROM products
+         UNION ALL
+         SELECT 'project' AS kind, id, title, updated_at FROM projects
+       )
+       ORDER BY updated_at DESC
+       LIMIT ?`,
+    )
+    .all(safeLimit);
+
+  return rows.map((r) => ({
+    kind: String(r.kind) === 'project' ? 'project' : 'product',
+    id: String(r.id),
+    title: String(r.title),
+    updatedAt: String(r.updated_at),
+  }));
+}
+
+export function getStorageDiagnostics(): StorageDiagnostics {
+  const db = getDb();
+  const uploadsDir = getUploadsDir();
+  let dbSizeBytes = 0;
+  try {
+    dbSizeBytes = fs.statSync(DB_PATH).size;
+  } catch {
+    dbSizeBytes = 0;
+  }
+  let uploadsCount = 0;
+  try {
+    uploadsCount = fs.readdirSync(uploadsDir).filter((f) => !f.startsWith('.')).length;
+  } catch {
+    uploadsCount = 0;
+  }
+  const prodCnt = Number(db.prepare('SELECT COUNT(*) as cnt FROM products').get()?.cnt ?? 0);
+  const projCnt = Number(db.prepare('SELECT COUNT(*) as cnt FROM projects').get()?.cnt ?? 0);
+  const dealCnt = Number(db.prepare('SELECT COUNT(*) as cnt FROM deals').get()?.cnt ?? 0);
+
+  return {
+    dataDir: DATA_DIR,
+    dbPath: DB_PATH,
+    dbSizeBytes,
+    uploadsDir,
+    uploadsCount,
+    productsCount: prodCnt,
+    projectsCount: projCnt,
+    dealsCount: dealCnt,
+    isCustomVolume: Boolean(process.env.DATA_DIR?.trim()),
+  };
+}
+
+export function createSqliteBackupCopy(): string {
+  const db = getDb();
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const filename = `energocomfort-backup-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.db`;
+  const targetPath = path.resolve(DATA_DIR, filename);
+  if (!targetPath.startsWith(DATA_DIR + path.sep)) {
+    throw new Error('Invalid backup path');
+  }
+  db.prepare('VACUUM INTO ?').run(targetPath);
+  return targetPath;
+}
+
+

@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --navy: #0d1f33;
+    --navy-mid: #16324f;
+    --blue: #1769aa;
+    --blue-hover: #12568c;
+    --cyan: #169374;
+    --amber: #f59e0b;
+    --amber-hover: #d97706;
+    --ink: #172636;
+    --muted: #52657a;
+    --line: #e2e8f0;
+    --bg: #f6f8fb;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: #ffffff;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    text-wrap: balance;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
