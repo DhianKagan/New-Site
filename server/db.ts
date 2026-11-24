@@ -181,6 +181,7 @@ function getDb(): DatabaseSync {
   seedDealsIfEmpty(db);
   backfillContactsAndSeedCrm(db);
   seedStaffIfEmpty(db);
+  ensureMasterAdminAccount(db);
   seedProjectsIfEmpty(db);
   dbInstance = db;
   return db;
@@ -1860,6 +1861,42 @@ function seedStaffIfEmpty(db: DatabaseSync): void {
   }
 }
 
+function ensureMasterAdminAccount(db: DatabaseSync): void {
+  const existing = db
+    .prepare("SELECT id, role, can_login, active, password_hash FROM staff_users WHERE login = 'admin'")
+    .get() as
+    | { id: number; role: string; can_login: number; active: number; password_hash: string }
+    | undefined;
+
+  const settingsHashRow = db
+    .prepare("SELECT value FROM settings WHERE key = 'admin_password_hash'")
+    .get() as { value?: string } | undefined;
+  const legacyHash = settingsHashRow?.value?.trim() || '';
+  const now = new Date().toISOString();
+
+  if (!existing) {
+    db.prepare(`
+      INSERT INTO staff_users (
+        name, login, email, phone, position, role, assignee_label,
+        password_hash, can_login, active, created_at, updated_at
+      ) VALUES (?, 'admin', '', '', ?, 'admin', ?, ?, 1, 1, ?, ?)
+    `).run('Головний адміністратор', 'Мастер-адміністратор', 'Адміністратор', legacyHash, now, now);
+    return;
+  }
+
+  const nextHash = existing.password_hash || legacyHash;
+  if (
+    existing.role !== 'admin' ||
+    existing.can_login !== 1 ||
+    existing.active !== 1 ||
+    (!existing.password_hash && legacyHash)
+  ) {
+    db.prepare(
+      "UPDATE staff_users SET role = 'admin', can_login = 1, active = 1, password_hash = ?, updated_at = ? WHERE id = ?",
+    ).run(nextHash, now, existing.id);
+  }
+}
+
 function mapStaffRow(r: typeof schema.staffUsersTable.$inferSelect): StaffUser {
   const role: StaffRole =
     r.role === 'admin' || r.role === 'manager' || r.role === 'engineer' || r.role === 'installer'
@@ -1921,12 +1958,66 @@ export function getStaffAuthStateSync(userId: number): {
   };
 }
 
+export function getMasterAdminRecordSync(): {
+  id: number;
+  name: string;
+  login: string;
+  email: string;
+  role: 'admin';
+  assigneeLabel: string;
+  passwordHash: string;
+} {
+  const db = getDb();
+  ensureMasterAdminAccount(db);
+  const row = db
+    .prepare("SELECT id, name, login, email, assignee_label, password_hash FROM staff_users WHERE login = 'admin'")
+    .get() as {
+    id: number;
+    name: string;
+    login: string;
+    email: string;
+    assignee_label: string;
+    password_hash: string;
+  };
+  return {
+    id: row.id,
+    name: row.name,
+    login: row.login,
+    email: row.email,
+    role: 'admin',
+    assigneeLabel: row.assignee_label,
+    passwordHash: row.password_hash,
+  };
+}
+
+export function claimMasterAdminAccount(input: {
+  passwordHash: string;
+  name?: string;
+  email?: string;
+}): ReturnType<typeof getMasterAdminRecordSync> {
+  const db = getDb();
+  ensureMasterAdminAccount(db);
+  const current = getMasterAdminRecordSync();
+  const now = new Date().toISOString();
+  const nextName = input.name?.trim() || current.name;
+  const nextEmail = input.email?.trim().toLowerCase() ?? current.email;
+  db.prepare(
+    "UPDATE staff_users SET name = ?, email = ?, password_hash = ?, role = 'admin', can_login = 1, active = 1, updated_at = ? WHERE id = ?",
+  ).run(nextName, nextEmail, input.passwordHash, now, current.id);
+  return getMasterAdminRecordSync();
+}
+
 export async function listStaffUsers(): Promise<StaffUser[]> {
   const rows = await drizzleDb
     .select()
     .from(schema.staffUsersTable)
     .orderBy(desc(schema.staffUsersTable.active), asc(schema.staffUsersTable.id));
-  return rows.map(mapStaffRow);
+  const mapped = rows.map(mapStaffRow);
+  return mapped.sort((a, b) => {
+    if (a.login === 'admin' && b.login !== 'admin') return -1;
+    if (b.login === 'admin' && a.login !== 'admin') return 1;
+    return 0;
+  });
 }
 
 export async function findStaffForPasswordLogin(identifier: string): Promise<{
@@ -2050,7 +2141,20 @@ export async function updateStaffUser(
     .get();
   if (!existing) return null;
 
-  const nextLogin = patch.login !== undefined ? patch.login.trim().toLowerCase() : existing.login;
+  const isMaster = existing.login === 'admin';
+  if (isMaster) {
+    if (patch.login !== undefined && patch.login.trim().toLowerCase() !== 'admin') {
+      throw new Error('Логін мастер-акаунту (admin) змінити неможливо');
+    }
+    if (patch.role !== undefined && patch.role !== 'admin') {
+      throw new Error('Мастер-акаунт завжди має роль адміністратора');
+    }
+    if (patch.active === false || patch.canLogin === false) {
+      throw new Error('Мастер-акаунт адміністратора не може бути вимкнений');
+    }
+  }
+
+  const nextLogin = isMaster ? 'admin' : patch.login !== undefined ? patch.login.trim().toLowerCase() : existing.login;
   const nextEmail = patch.email !== undefined ? patch.email.trim().toLowerCase() : existing.email;
 
   if (nextLogin !== existing.login) {
@@ -2084,6 +2188,9 @@ export async function updateStaffUser(
 
   let nextPasswordHash = existing.passwordHash;
   if (patch.clearPassword) {
+    if (isMaster && !nextEmail) {
+      throw new Error('Для мастер-акаунту без Google Email не можна прибирати пароль');
+    }
     nextPasswordHash = '';
   } else if (patch.password && patch.password.length >= 6) {
     nextPasswordHash = hashPassword(patch.password);
@@ -2098,15 +2205,28 @@ export async function updateStaffUser(
       email: nextEmail,
       phone: patch.phone !== undefined ? patch.phone.trim() : existing.phone,
       position: nextPos,
-      role: patch.role ?? existing.role,
+      role: isMaster ? 'admin' : (patch.role ?? existing.role),
       assigneeLabel: nextLabel,
       passwordHash: nextPasswordHash,
-      canLogin: patch.canLogin !== undefined ? (patch.canLogin ? 1 : 0) : existing.canLogin,
-      active: patch.active !== undefined ? (patch.active ? 1 : 0) : existing.active,
+      canLogin: isMaster ? 1 : patch.canLogin !== undefined ? (patch.canLogin ? 1 : 0) : existing.canLogin,
+      active: isMaster ? 1 : patch.active !== undefined ? (patch.active ? 1 : 0) : existing.active,
       updatedAt: now,
     })
     .where(eq(schema.staffUsersTable.id, id))
     .returning();
+
+  // Keep settings.admin_password_hash synced when master admin updates password
+  if (isMaster && nextPasswordHash !== existing.passwordHash) {
+    const db = getDb();
+    if (nextPasswordHash) {
+      db.prepare("INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('admin_password_hash', ?, ?)").run(
+        nextPasswordHash,
+        now,
+      );
+    } else {
+      db.prepare("DELETE FROM settings WHERE key = 'admin_password_hash'").run();
+    }
+  }
 
   // Propagate renamed assigneeLabel to existing deals and tasks so links stay cohesive
   if (nextLabel !== existing.assigneeLabel) {
@@ -2120,11 +2240,14 @@ export async function updateStaffUser(
 
 export async function deleteStaffUser(id: number): Promise<boolean> {
   const existing = await drizzleDb
-    .select({ id: schema.staffUsersTable.id })
+    .select({ id: schema.staffUsersTable.id, login: schema.staffUsersTable.login })
     .from(schema.staffUsersTable)
     .where(eq(schema.staffUsersTable.id, id))
     .get();
   if (!existing) return false;
+  if (existing.login === 'admin') {
+    throw new Error('Мастер-акаунт адміністратора не можна видалити');
+  }
   await drizzleDb.delete(schema.staffUsersTable).where(eq(schema.staffUsersTable.id, id));
   return true;
 }

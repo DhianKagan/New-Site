@@ -958,8 +958,13 @@ export function CrmView({
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>{tr('Внутрішня CRM та управління каталогом', 'CRM и управление магазином')}</span>
               {currentUser && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-[#0d1f33]">
-                  {currentUser.name} ·{' '}
+                <button
+                  type="button"
+                  onClick={() => setCrmTab('staff')}
+                  title={tr('Перейти до свого профілю та пароля', 'Перейти к своему профилю и паролю')}
+                  className="inline-flex items-center gap-1 rounded-md bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-[#0d1f33] cursor-pointer transition-colors"
+                >
+                  {currentUser.name} (@{currentUser.login}) ·{' '}
                   <span className="text-[#1769aa]">
                     {currentUser.role === 'admin'
                       ? tr('Адміністратор', 'Администратор')
@@ -969,7 +974,7 @@ export function CrmView({
                           ? tr('Інженер', 'Инженер')
                           : tr('Монтаж', 'Монтаж')}
                   </span>
-                </span>
+                </button>
               )}
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-[#0d1f33]">
@@ -1232,6 +1237,7 @@ export function CrmView({
             tasks={tasks}
             authFetch={authFetch}
             onRefreshStaff={loadStaff}
+            onRefreshProfile={loadCurrentUser}
             onRefreshDeals={onRefreshDeals}
             onRefreshTasks={loadTasks}
           />

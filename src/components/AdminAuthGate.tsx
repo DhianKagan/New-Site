@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Lock, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Lock, ShieldCheck, ArrowLeft, Eye, EyeOff, Wand2, Copy, Check } from 'lucide-react';
 import type { AdminAuthStatus } from '../types.ts';
 import { signInWithGooglePopup } from '../lib/firebaseAuth.ts';
 import { tr } from '../lib/i18n.ts';
@@ -11,15 +11,45 @@ interface AdminAuthGateProps {
   onBackToStore: () => void;
 }
 
+function generateStrongPassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  const bytes = new Uint8Array(length);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+}
+
 export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, onBackToStore }: AdminAuthGateProps) {
   const [identifier, setIdentifier] = useState('');
+  const [setupName, setSetupName] = useState('Головний адміністратор');
+  const [setupEmail, setSetupEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedPwd, setCopiedPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const isSetup = status.mode === 'setup';
+
+  function handleGenerateSetupPassword() {
+    const generated = generateStrongPassword(12);
+    setPassword(generated);
+    setConfirmPassword(generated);
+    setShowPassword(true);
+    setCopiedPwd(false);
+  }
+
+  async function handleCopySetupPassword() {
+    if (!password) return;
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopiedPwd(true);
+      window.setTimeout(() => setCopiedPwd(false), 2000);
+    } catch {
+      setCopiedPwd(false);
+    }
+  }
 
   async function handleGoogleLogin() {
     setError('');
@@ -70,7 +100,11 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
     try {
       const endpoint = isSetup ? '/api/admin/auth/setup' : '/api/admin/auth/login';
       const payload = isSetup
-        ? { password }
+        ? {
+            name: setupName.trim() || 'Головний адміністратор',
+            email: setupEmail.trim().toLowerCase(),
+            password,
+          }
         : { identifier: identifier.trim(), password };
       const resp = await fetch(endpoint, {
         method: 'POST',
@@ -109,22 +143,36 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
             {isSetup ? <ShieldCheck className="w-5 h-5 text-[#f59e0b]" /> : <Lock className="w-5 h-5 text-[#f59e0b]" />}
           </div>
           <div>
-            <div className="text-[11px] font-bold text-[#1769aa]">{tr('Energo Comfort · Адмін-панель', 'Energo Comfort · Панель администратора')}</div>
+            <div className="text-[11px] font-bold text-[#1769aa]">
+              {tr('Energo Comfort · Адмін-панель', 'Energo Comfort · Панель администратора')}
+            </div>
             <h1 className="text-lg font-extrabold text-[#0d1f33]">
-              {isSetup ? tr('Вхід або перше налаштування', 'Вход или первичная настройка') : tr('Вхід до CRM та налаштувань', 'Вход в CRM и настройки')}
+              {isSetup
+                ? tr('Створення мастер-акаунту адміна', 'Создание мастер-аккаунта админа')
+                : tr('Вхід до CRM та налаштувань', 'Вход в CRM и настройки')}
             </h1>
           </div>
         </div>
 
         <p className="text-xs text-[#52657a] leading-relaxed mb-5">
           {isSetup
-            ? tr('Увійдіть через Google-акаунт адміністратора або створіть резервний пароль для доступу до угод CRM, управління цінами та пікселів.', 'Войдите через аккаунт администратора Google или создайте резервный пароль для доступа к сделкам CRM, ценам и пикселям аналитики.')
-            : tr('Увійдіть через Google, за логіном співробітника або головним паролем адміністратора для роботи в CRM.', 'Войдите через Google, по логину сотрудника или главному паролю администратора для работы в CRM.')}
+            ? tr(
+                'Задайте пароль для мастер-акаунту @admin (повні права в CRM) або увійдіть через Google. Потім у вкладці «Персонал» ви зможете призначити паролі співробітникам.',
+                'Задайте пароль для мастер-аккаунта @admin (полные права в CRM) или войдите через Google. Затем во вкладке «Персонал» вы сможете выдать пароли сотрудникам.',
+              )
+            : tr(
+                'Увійдіть через Google, за логіном (@admin або співробітника) чи залиште логін порожнім для входу в мастер-акаунт.',
+                'Войдите через Google, по логину (@admin или сотрудника) либо оставьте логин пустым для входа в мастер-аккаунт.',
+              )}
         </p>
 
         {!apiAvailable && (
           <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
-            <strong>{tr('Серверне API зараз недоступне', 'Серверное API сейчас недоступно')}</strong> {tr('(сайт відкрито в автономному статичному режимі). Вітрина, каталог із 250 товарів і кошик працюють, але вхід до CRM і збереження угод потребують запущеного сервера', '(сайт открыт в автономном статическом режиме). Магазин, каталог из 250 товаров и корзина работают, но для входа в CRM и сохранения сделок нужен запущенный сервер')}{' '}
+            <strong>{tr('Серверне API зараз недоступне', 'Серверное API сейчас недоступно')}</strong>{' '}
+            {tr(
+              '(сайт відкрито в автономному статичному режимі). Вітрина, каталог із 250 товарів і кошик працюють, але вхід до CRM і збереження угод потребують запущеного сервера',
+              '(сайт открыт в автономном статическом режиме). Магазин, каталог из 250 товаров и корзина работают, но для входа в CRM и сохранения сделок нужен запущенный сервер',
+            )}{' '}
             <code className="font-mono">node server.ts</code>.
           </div>
         )}
@@ -155,7 +203,11 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
                   d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
                 />
               </svg>
-              <span>{googleSubmitting ? tr('Виконується вхід через Google...', 'Выполняется вход через Google…') : tr('Увійти через Google', 'Войти через Google')}</span>
+              <span>
+                {googleSubmitting
+                  ? tr('Виконується вхід через Google...', 'Выполняется вход через Google…')
+                  : tr('Увійти через Google', 'Войти через Google')}
+              </span>
             </button>
 
             <div className="relative flex items-center justify-center my-4">
@@ -168,11 +220,49 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5" noValidate={false}>
-          {!isSetup && (
+          {isSetup ? (
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-[#0d1f33]">{tr('Логін мастер-акаунту', 'Логин мастер-аккаунта')}</span>
+                <span className="font-mono font-bold text-[#1769aa] bg-white px-2 py-0.5 rounded border border-slate-200">
+                  @admin
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label htmlFor="setup-name" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    {tr('Ім’я керівника', 'Имя руководителя')}
+                  </label>
+                  <input
+                    id="setup-name"
+                    type="text"
+                    value={setupName}
+                    onChange={(e) => setSetupName(e.target.value)}
+                    disabled={!apiAvailable || submitting || googleSubmitting}
+                    className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="setup-email" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    Google Email <span className="font-normal text-slate-400">({tr('опц.')})</span>
+                  </label>
+                  <input
+                    id="setup-email"
+                    type="email"
+                    value={setupEmail}
+                    onChange={(e) => setSetupEmail(e.target.value)}
+                    placeholder="owner@gmail.com"
+                    disabled={!apiAvailable || submitting || googleSubmitting}
+                    className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
             <div>
               <label htmlFor="admin-identifier" className="block text-xs font-bold text-[#0d1f33] mb-1">
-                {tr('Логін або Email співробітника', 'Логин или Email сотрудника')}{' '}
-                <span className="font-normal text-slate-400">({tr('необов’язково', 'необязательно')})</span>
+                {tr('Логін або Email', 'Логин или Email')}{' '}
+                <span className="font-normal text-slate-400">({tr('або порожньо для @admin', 'или пусто для @admin')})</span>
               </label>
               <input
                 id="admin-identifier"
@@ -182,29 +272,63 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
                 disabled={!apiAvailable || submitting || googleSubmitting}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={tr('alex або manager@company.ua (порожньо — головний адмін)', 'alex или email (пусто — главный админ)')}
+                placeholder={tr('admin, alex або manager@company.ua', 'admin, alex или email')}
                 className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
               />
             </div>
           )}
 
           <div>
-            <label htmlFor="admin-password" className="block text-xs font-bold text-[#0d1f33] mb-1">
-              {isSetup ? tr('Новий пароль адміністратора', 'Новый пароль администратора') : tr('Пароль', 'Пароль')}
-            </label>
-            <input
-              id="admin-password"
-              name="password"
-              type="password"
-              required
-              minLength={isSetup ? 6 : 1}
-              autoComplete={isSetup ? 'new-password' : 'current-password'}
-              disabled={!apiAvailable || submitting || googleSubmitting}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : tr('Введіть пароль CRM', 'Введите пароль CRM')}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="admin-password" className="block text-xs font-bold text-[#0d1f33]">
+                {isSetup ? tr('Пароль мастер-акаунту', 'Пароль мастер-аккаунта') : tr('Пароль', 'Пароль')}
+              </label>
+              {isSetup && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateSetupPassword}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    {tr('Згенерувати', 'Сгенерировать')}
+                  </button>
+                  {password && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCopySetupPassword()}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#169374] hover:underline cursor-pointer"
+                    >
+                      {copiedPwd ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedPwd ? tr('Скопійовано', 'Скопировано') : tr('Копіювати', 'Копировать')}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                id="admin-password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                minLength={isSetup ? 6 : 1}
+                autoComplete={isSetup ? 'new-password' : 'current-password'}
+                disabled={!apiAvailable || submitting || googleSubmitting}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : tr('Введіть пароль CRM', 'Введите пароль CRM')}
+                className="w-full pl-3.5 pr-10 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? tr('Сховати пароль', 'Скрыть пароль') : tr('Показати пароль', 'Показать пароль')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0d1f33] p-1 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {isSetup && (
@@ -215,7 +339,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
               <input
                 id="admin-password-confirm"
                 name="confirmPassword"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 minLength={6}
                 autoComplete="new-password"
@@ -242,7 +366,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
             {submitting
               ? tr('Перевірка...', 'Проверка…')
               : isSetup
-                ? tr('Створити пароль та увійти', 'Создать пароль и войти')
+                ? tr('Створити мастер-акаунт та увійти', 'Создать мастер-аккаунт и войти')
                 : tr('Увійти в CRM', 'Войти в CRM')}
           </button>
         </form>

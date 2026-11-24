@@ -10,7 +10,25 @@ import {
   useTable,
   type SortingState,
 } from '@tanstack/react-table';
-import { ArrowUpDown, KeyRound, Mail, Pencil, Phone, Plus, Search, Shield, Trash2, UserCheck, UserX } from 'lucide-react';
+import {
+  ArrowUpDown,
+  Check,
+  Copy,
+  Crown,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Mail,
+  Pencil,
+  Phone,
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  UserCheck,
+  UserX,
+  Wand2,
+} from 'lucide-react';
 import type { CrmSessionUser, CrmTask, Deal, StaffRole, StaffUser } from '../../types.ts';
 import { tr } from '../../lib/i18n.ts';
 import { Badge } from '../ui/badge.tsx';
@@ -27,6 +45,7 @@ interface StaffTabProps {
   tasks: CrmTask[];
   authFetch: (url: string, init?: RequestInit) => Promise<Response>;
   onRefreshStaff: () => Promise<void>;
+  onRefreshProfile?: () => Promise<void>;
   onRefreshDeals: () => Promise<void>;
   onRefreshTasks: () => Promise<void>;
 }
@@ -49,6 +68,13 @@ const ROLE_LABELS: Record<StaffRole, { uk: string; ru: string; variant: 'dark' |
   installer: { uk: 'Монтаж', ru: 'Монтаж', variant: 'warning' },
 };
 
+function generateStrongPassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  const bytes = new Uint8Array(length);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+}
+
 export function StaffTab({
   staff,
   currentUser,
@@ -56,10 +82,11 @@ export function StaffTab({
   tasks,
   authFetch,
   onRefreshStaff,
+  onRefreshProfile,
   onRefreshDeals,
   onRefreshTasks,
 }: StaffTabProps) {
-  const isAdmin = !currentUser || currentUser.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin';
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | StaffRole>('all');
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -75,11 +102,21 @@ export function StaffTab({
   const [fRole, setFRole] = useState<StaffRole>('manager');
   const [fAssigneeLabel, setFAssigneeLabel] = useState('');
   const [fPassword, setFPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedPwd, setCopiedPwd] = useState(false);
   const [fClearPassword, setFClearPassword] = useState(false);
   const [fCanLogin, setFCanLogin] = useState(true);
   const [fActive, setFActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formErr, setFormErr] = useState('');
+
+  const selfMember = useMemo(
+    () => (currentUser?.userId ? staff.find((m) => m.id === currentUser.userId) ?? null : null),
+    [staff, currentUser?.userId],
+  );
+
+  const editingIsMaster = editingMember?.login === 'admin';
+  const editingIsSelfOnly = Boolean(editingMember && !isAdmin && currentUser?.userId === editingMember.id);
 
   const workloadByLabel = useMemo(() => {
     const map = new Map<string, { deals: number; openTasks: number }>();
@@ -114,6 +151,7 @@ export function StaffTab({
   }, [staff, query, roleFilter]);
 
   function openCreateModal() {
+    if (!isAdmin) return;
     setEditingMember(null);
     setFName('');
     setFLogin('');
@@ -123,6 +161,8 @@ export function StaffTab({
     setFRole('manager');
     setFAssigneeLabel('');
     setFPassword('');
+    setShowPassword(false);
+    setCopiedPwd(false);
     setFClearPassword(false);
     setFCanLogin(true);
     setFActive(true);
@@ -131,6 +171,9 @@ export function StaffTab({
   }
 
   function openEditModal(m: StaffUser) {
+    const isSelf = currentUser?.userId === m.id;
+    if (!isAdmin && !isSelf) return;
+
     setEditingMember(m);
     setFName(m.name);
     setFLogin(m.login);
@@ -140,6 +183,8 @@ export function StaffTab({
     setFRole(m.role);
     setFAssigneeLabel(m.assigneeLabel);
     setFPassword('');
+    setShowPassword(false);
+    setCopiedPwd(false);
     setFClearPassword(false);
     setFCanLogin(m.canLogin);
     setFActive(m.active);
@@ -147,12 +192,42 @@ export function StaffTab({
     setModalOpen(true);
   }
 
+  function handleGeneratePassword() {
+    const pwd = generateStrongPassword(12);
+    setFPassword(pwd);
+    setFClearPassword(false);
+    setShowPassword(true);
+    setCopiedPwd(false);
+  }
+
+  async function handleCopyPassword() {
+    if (!fPassword) return;
+    try {
+      await navigator.clipboard.writeText(fPassword);
+      setCopiedPwd(true);
+      window.setTimeout(() => setCopiedPwd(false), 2000);
+    } catch {
+      setCopiedPwd(false);
+    }
+  }
+
   async function handleSaveMember(e: FormEvent) {
     e.preventDefault();
     setFormErr('');
     setActionMsg('');
 
-    if (fCanLogin && !fPassword && !fEmail.trim() && !(editingMember?.hasPassword && !fClearPassword)) {
+    if (!editingMember && !isAdmin) {
+      setFormErr(tr('Створювати нових користувачів може лише адміністратор', 'Создавать новых пользователей может только администратор'));
+      return;
+    }
+
+    if (
+      !editingIsSelfOnly &&
+      fCanLogin &&
+      !fPassword &&
+      !fEmail.trim() &&
+      !(editingMember?.hasPassword && !fClearPassword)
+    ) {
       setFormErr(
         tr(
           'Щоб дозволити вхід у CRM, задайте пароль (мін. 6 символів) або вкажіть Google Email',
@@ -164,21 +239,30 @@ export function StaffTab({
 
     setSaving(true);
     try {
-      const payload: Record<string, unknown> = {
-        name: fName.trim(),
-        login: fLogin.trim().toLowerCase(),
-        email: fEmail.trim().toLowerCase(),
-        phone: fPhone.trim(),
-        position: fPosition.trim(),
-        role: fRole,
-        assigneeLabel: fAssigneeLabel.trim(),
-        canLogin: fCanLogin,
-        active: fActive,
-      };
+      const payload: Record<string, unknown> = editingIsSelfOnly
+        ? {
+            name: fName.trim(),
+            email: fEmail.trim().toLowerCase(),
+            phone: fPhone.trim(),
+            position: fPosition.trim(),
+            assigneeLabel: fAssigneeLabel.trim(),
+          }
+        : {
+            name: fName.trim(),
+            login: editingIsMaster ? 'admin' : fLogin.trim().toLowerCase(),
+            email: fEmail.trim().toLowerCase(),
+            phone: fPhone.trim(),
+            position: fPosition.trim(),
+            role: editingIsMaster ? 'admin' : fRole,
+            assigneeLabel: fAssigneeLabel.trim(),
+            canLogin: editingIsMaster ? true : fCanLogin,
+            active: editingIsMaster ? true : fActive,
+          };
+
       if (fPassword.trim()) {
         payload.password = fPassword;
       }
-      if (editingMember && fClearPassword) {
+      if (!editingIsSelfOnly && editingMember && fClearPassword) {
         payload.clearPassword = true;
       }
 
@@ -195,7 +279,12 @@ export function StaffTab({
       }
 
       setModalOpen(false);
-      await Promise.all([onRefreshStaff(), onRefreshDeals(), onRefreshTasks()]);
+      await Promise.all([
+        onRefreshStaff(),
+        onRefreshProfile ? onRefreshProfile() : Promise.resolve(),
+        onRefreshDeals(),
+        onRefreshTasks(),
+      ]);
       setActionMsg(
         editingMember
           ? tr(`Профіль «${data.member.name}» оновлено`, `Профиль «${data.member.name}» обновлён`)
@@ -209,6 +298,7 @@ export function StaffTab({
   }
 
   async function handleToggleActive(m: StaffUser) {
+    if (!isAdmin) return;
     setActionMsg('');
     const resp = await authFetch(`/api/crm/staff/${m.id}`, {
       method: 'PATCH',
@@ -224,6 +314,7 @@ export function StaffTab({
   }
 
   async function handleDeleteMember(m: StaffUser) {
+    if (!isAdmin) return;
     setActionMsg('');
     const resp = await authFetch(`/api/crm/staff/${m.id}`, { method: 'DELETE' });
     const data = (await resp.json()) as { error?: string };
@@ -243,10 +334,17 @@ export function StaffTab({
           cell: (info) => {
             const m = info.row.original;
             const isSelf = currentUser?.userId === m.id;
+            const isMaster = m.login === 'admin';
             return (
               <div>
-                <div className="font-bold text-[#0d1f33] flex items-center gap-1.5">
+                <div className="font-bold text-[#0d1f33] flex flex-wrap items-center gap-1.5">
                   <span>{m.name}</span>
+                  {isMaster && (
+                    <Badge variant="dark" className="gap-1">
+                      <Crown className="w-3 h-3 text-amber-400" />
+                      {tr('Мастер', 'Мастер')}
+                    </Badge>
+                  )}
                   {isSelf && <Badge variant="info">{tr('Ви', 'Вы')}</Badge>}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-0.5">
@@ -287,21 +385,21 @@ export function StaffTab({
           },
         }),
         columnHelper.accessor('canLogin', {
-          header: () => <span>{tr('Вхід у CRM', 'Вход в CRM')}</span>,
+          header: () => <span>{tr('Вхід і пароль', 'Вход и пароль')}</span>,
           cell: (info) => {
             const m = info.row.original;
             if (!m.active) {
               return <Badge variant="danger">{tr('Вимкнено', 'Отключён')}</Badge>;
             }
             if (!m.canLogin) {
-              return <Badge variant="default">{tr('Лише виконавець', 'Только исполнитель')}</Badge>;
+              return <Badge variant="default">{tr('Без входу (лише виконавець)', 'Без входа (только исполнитель)')}</Badge>;
             }
             return (
               <div className="flex flex-wrap items-center gap-1">
                 {m.hasPassword && (
                   <Badge variant="success" className="gap-1">
                     <KeyRound className="w-3 h-3" />
-                    {tr('Пароль', 'Пароль')}
+                    {tr('Пароль задано', 'Пароль задан')}
                   </Badge>
                 )}
                 {m.email && <Badge variant="info">Google</Badge>}
@@ -317,9 +415,13 @@ export function StaffTab({
             const w = workloadByLabel.get(info.row.original.assigneeLabel) ?? { deals: 0, openTasks: 0 };
             return (
               <div className="text-[11px] font-mono tabular-nums text-slate-600">
-                <span>{tr('Угод', 'Сделок')}: <strong className="text-[#0d1f33]">{w.deals}</strong></span>
+                <span>
+                  {tr('Угод', 'Сделок')}: <strong className="text-[#0d1f33]">{w.deals}</strong>
+                </span>
                 <span className="mx-1.5">·</span>
-                <span>{tr('Задач', 'Задач')}: <strong className="text-[#1769aa]">{w.openTasks}</strong></span>
+                <span>
+                  {tr('Задач', 'Задач')}: <strong className="text-[#1769aa]">{w.openTasks}</strong>
+                </span>
               </div>
             );
           },
@@ -330,19 +432,39 @@ export function StaffTab({
           cell: (info) => {
             const m = info.row.original;
             const isSelf = currentUser?.userId === m.id;
-            if (!isAdmin) return null;
+            const isMaster = m.login === 'admin';
+            const canEditThisRow = isAdmin || isSelf;
+            if (!canEditThisRow) {
+              return (
+                <div className="text-right text-[11px] text-slate-400">
+                  {tr('Тільки перегляд', 'Только просмотр')}
+                </div>
+              );
+            }
             return (
               <div className="flex items-center justify-end gap-1.5">
                 <button
                   type="button"
                   onClick={() => openEditModal(m)}
-                  title={tr('Редагувати профіль і пароль', 'Редактировать профиль и пароль')}
+                  title={
+                    isSelf
+                      ? tr('Редагувати свій профіль і пароль', 'Редактировать свой профиль и пароль')
+                      : tr('Редагувати профіль і задати пароль', 'Редактировать профиль и задать пароль')
+                  }
                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
                 >
-                  <Pencil className="w-3 h-3 text-[#1769aa]" />
-                  {tr('Змінити', 'Изменить')}
+                  {m.canLogin && !m.hasPassword ? (
+                    <KeyRound className="w-3 h-3 text-amber-600" />
+                  ) : (
+                    <Pencil className="w-3 h-3 text-[#1769aa]" />
+                  )}
+                  {isSelf && !isAdmin
+                    ? tr('Мій профіль / Пароль', 'Мой профиль / Пароль')
+                    : !m.hasPassword && m.login !== 'admin'
+                      ? tr('Задати пароль', 'Задать пароль')
+                      : tr('Змінити', 'Изменить')}
                 </button>
-                {!isSelf && (
+                {isAdmin && !isSelf && !isMaster && (
                   <>
                     <button
                       type="button"
@@ -443,12 +565,20 @@ export function StaffTab({
           </div>
         </div>
 
-        {isAdmin && (
-          <Button type="button" variant="primary" onClick={openCreateModal}>
-            <Plus className="w-3.5 h-3.5" />
-            {tr('Додати співробітника', 'Добавить сотрудника')}
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {selfMember && (
+            <Button type="button" variant="outline" onClick={() => openEditModal(selfMember)}>
+              <KeyRound className="w-3.5 h-3.5 text-[#1769aa]" />
+              {tr('Мій профіль / Пароль', 'Мой профиль / Пароль')}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button type="button" variant="primary" onClick={openCreateModal}>
+              <Plus className="w-3.5 h-3.5" />
+              {tr('Додати співробітника', 'Добавить сотрудника')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {actionMsg && (
@@ -503,11 +633,16 @@ export function StaffTab({
       <div className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
         <Shield className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
         <div>
-          <strong className="text-[#0d1f33]">{tr('Як працюють облікові записи та ролі:', 'Как работают учётные записи и роли:')}</strong>{' '}
-          {tr(
-            'Усі активні співробітники автоматично з’являються у списку відповідальних в угодах і задачах. Якщо увімкнено вхід у CRM, співробітник може авторизуватися за своїм логіном і паролем (або через прив’язаний Google Email). Роль «Адміністратор» відкриває управління персоналом, бекапи БД, Telegram та аналітику.',
-            'Все активные сотрудники автоматически появляются в списке ответственных в сделках и задачах. Если включён вход в CRM, сотрудник может входить по личному логину и паролю (или через привязанный Google Email). Роль «Администратор» открывает управление персоналом, бэкапы БД, Telegram и аналитику.',
-          )}
+          <strong className="text-[#0d1f33]">{tr('Права доступу та паролі:', 'Права доступа и пароли:')}</strong>{' '}
+          {isAdmin
+            ? tr(
+                'Ви увійшли як адміністратор і маєте повний доступ: можете створювати акаунти, призначати й скидати паролі будь-кому зі співробітників, змінювати ролі та налаштування CRM. Для нових або базових співробітників натисніть «Задати пароль» — система надійно хешує його на сервері.',
+                'Вы вошли как администратор и имеете полный доступ: можете создавать аккаунты, задавать и сбрасывать пароли любому сотруднику, менять роли и настройки CRM. Для базовых профилей нажмите «Задать пароль» — пароль надёжно хэшируется на сервере.',
+              )
+            : tr(
+                'Звичайні користувачі можуть переглядати склад команди та редагувати лише власний профіль і свій пароль. Додавання співробітників, зміна ролей і редагування інших акаунтів доступні тільки адміністратору.',
+                'Обычные пользователи могут видеть список команды и редактировать только свой профиль и свой пароль. Добавление сотрудников, смена ролей и редактирование чужих аккаунтов доступны только администратору.',
+              )}
         </div>
       </div>
 
@@ -517,14 +652,21 @@ export function StaffTab({
           <DialogHeader>
             <DialogTitle>
               {editingMember
-                ? tr(`Профіль: ${editingMember.name}`, `Профиль: ${editingMember.name}`)
+                ? editingIsSelfOnly
+                  ? tr(`Мій профіль: ${editingMember.name}`, `Мой профиль: ${editingMember.name}`)
+                  : tr(`Профіль: ${editingMember.name}`, `Профиль: ${editingMember.name}`)
                 : tr('Новий співробітник / акаунт CRM', 'Новый сотрудник / аккаунт CRM')}
             </DialogTitle>
             <DialogDescription>
-              {tr(
-                'Налаштуйте відображення у списку відповідальних, роль та облікові дані для входу',
-                'Настройте отображение в списке ответственных, роль и данные для входа',
-              )}
+              {editingIsSelfOnly
+                ? tr(
+                    'Ви можете оновити свої контактні дані та змінити пароль для входу',
+                    'Вы можете обновить свои контактные данные и сменить пароль для входа',
+                  )
+                : tr(
+                    'Налаштуйте відображення у списку відповідальних, роль та облікові дані для входу',
+                    'Настройте отображение в списке ответственных, роль и данные для входа',
+                  )}
             </DialogDescription>
           </DialogHeader>
 
@@ -564,8 +706,9 @@ export function StaffTab({
                 <select
                   id="staff-role"
                   value={fRole}
+                  disabled={!isAdmin || editingIsMaster}
                   onChange={(e) => setFRole(e.target.value as StaffRole)}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold disabled:bg-slate-100 disabled:text-slate-500"
                 >
                   <option value="admin">{tr('Адміністратор (повний доступ)', 'Администратор (полный доступ)')}</option>
                   <option value="manager">{tr('Менеджер (угоди, задачі, каталог)', 'Менеджер (сделки, задачи, каталог)')}</option>
@@ -581,7 +724,9 @@ export function StaffTab({
                   id="staff-label"
                   value={fAssigneeLabel}
                   onChange={(e) => setFAssigneeLabel(e.target.value)}
-                  placeholder={fName ? `${fName.trim()} (${fPosition.trim().toLowerCase()})` : tr('Автоматично з імені й посади', 'Автоматически из имени и должности')}
+                  placeholder={
+                    fName ? `${fName.trim()} (${fPosition.trim().toLowerCase()})` : tr('Автоматично з імені й посади', 'Автоматически из имени и должности')
+                  }
                 />
               </div>
             </div>
@@ -594,10 +739,11 @@ export function StaffTab({
                 <Input
                   id="staff-login"
                   required
+                  disabled={!isAdmin || editingIsMaster}
                   value={fLogin}
                   onChange={(e) => setFLogin(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
                   placeholder="andrii"
-                  className="font-mono"
+                  className="font-mono disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </div>
               <div>
@@ -626,51 +772,100 @@ export function StaffTab({
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={fActive}
-                    onChange={(e) => setFActive(e.target.checked)}
-                    className="accent-[#169374]"
-                  />
-                  {tr('Активний у списках відповідальних', 'Активен в списках ответственных')}
-                </label>
-                <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={fCanLogin}
-                    onChange={(e) => setFCanLogin(e.target.checked)}
-                    className="accent-[#1769aa]"
-                  />
-                  {tr('Дозволити вхід до CRM', 'Разрешить вход в CRM')}
-                </label>
-              </div>
-
-              {fCanLogin && (
-                <div>
-                  <label htmlFor="staff-password" className="block font-bold text-[#0d1f33] mb-1">
-                    {editingMember?.hasPassword
-                      ? tr('Новий пароль (залиште порожнім, щоб не змінювати)', 'Новый пароль (оставьте пустым, чтобы не менять)')
-                      : tr('Пароль для входу (мін. 6 символів)', 'Пароль для входа (мин. 6 символов)')}
+              {isAdmin && !editingIsMaster ? (
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={fActive}
+                      onChange={(e) => setFActive(e.target.checked)}
+                      className="accent-[#169374]"
+                    />
+                    {tr('Активний у списках відповідальних', 'Активен в списках ответственных')}
                   </label>
-                  <Input
-                    id="staff-password"
-                    type="password"
-                    minLength={fPassword ? 6 : undefined}
-                    autoComplete="new-password"
-                    value={fPassword}
-                    onChange={(e) => {
-                      setFPassword(e.target.value);
-                      if (e.target.value) setFClearPassword(false);
-                    }}
-                    placeholder={
-                      editingMember?.hasPassword
-                        ? '••••••••'
-                        : tr('Задайте пароль або залиште порожнім для входу через Google', 'Задайте пароль или оставьте пустым для входа через Google')
-                    }
-                  />
-                  {editingMember?.hasPassword && (
+                  <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={fCanLogin}
+                      onChange={(e) => setFCanLogin(e.target.checked)}
+                      className="accent-[#1769aa]"
+                    />
+                    {tr('Дозволити вхід до CRM', 'Разрешить вход в CRM')}
+                  </label>
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-500">
+                  {editingIsMaster
+                    ? tr(
+                        'Мастер-акаунт @admin завжди активний і має повні права адміністратора.',
+                        'Мастер-аккаунт @admin всегда активен и имеет полные права администратора.',
+                      )
+                    : tr(
+                        'Логін, роль та статус доступу може змінювати лише адміністратор.',
+                        'Логин, роль и статус доступа может изменять только администратор.',
+                      )}
+                </div>
+              )}
+
+              {(fCanLogin || editingIsMaster) && (
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                    <label htmlFor="staff-password" className="block font-bold text-[#0d1f33]">
+                      {editingMember?.hasPassword
+                        ? tr('Новий пароль (залиште порожнім, щоб не змінювати)', 'Новый пароль (оставьте пустым, чтобы не менять)')
+                        : tr('Пароль для входу (мін. 6 символів)', 'Пароль для входа (мин. 6 символов)')}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleGeneratePassword}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                      >
+                        <Wand2 className="w-3 h-3" />
+                        {tr('Згенерувати', 'Сгенерировать')}
+                      </button>
+                      {fPassword && (
+                        <button
+                          type="button"
+                          onClick={() => void handleCopyPassword()}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#169374] hover:underline cursor-pointer"
+                        >
+                          {copiedPwd ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          {copiedPwd ? tr('Скопійовано', 'Скопировано') : tr('Копіювати', 'Копировать')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <Input
+                      id="staff-password"
+                      type={showPassword ? 'text' : 'password'}
+                      minLength={fPassword ? 6 : undefined}
+                      autoComplete="new-password"
+                      value={fPassword}
+                      onChange={(e) => {
+                        setFPassword(e.target.value);
+                        if (e.target.value) setFClearPassword(false);
+                      }}
+                      className="pr-9"
+                      placeholder={
+                        editingMember?.hasPassword
+                          ? '••••••••'
+                          : tr('Задайте пароль або натисніть «Згенерувати»', 'Задайте пароль или нажмите «Сгенерировать»')
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? tr('Сховати пароль', 'Скрыть пароль') : tr('Показати пароль', 'Показать пароль')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0d1f33] p-0.5 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {isAdmin && editingMember?.hasPassword && !editingIsMaster && (
                     <label className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-slate-600 cursor-pointer">
                       <input
                         type="checkbox"

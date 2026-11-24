@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
 import {
+  claimMasterAdminAccount,
   createContact,
   createDeal,
   createNote,
@@ -23,6 +24,7 @@ import {
   findStaffForPasswordLogin,
   getCatalogFacets,
   getContactDetail,
+  getMasterAdminRecordSync,
   getProductById,
   getPublicAnalyticsConfig,
   getRecentCatalogAndProjectChanges,
@@ -55,6 +57,7 @@ import {
 } from './server/db.ts';
 import {
   adminLoginSchema,
+  adminSetupSchema,
   analyticsPutSchema,
   contactCreateSchema,
   contactPatchSchema,
@@ -637,7 +640,8 @@ async function startServer() {
   // Admin Authentication API
   app.get('/api/admin/auth/status', (_req, res) => {
     const hasEnvPassword = Boolean(process.env.ADMIN_PASSWORD?.trim());
-    const hasDbHash = Boolean(getSetting('admin_password_hash'));
+    const master = getMasterAdminRecordSync();
+    const hasDbHash = Boolean(getSetting('admin_password_hash') || master.passwordHash);
     const configured = hasEnvPassword || hasDbHash;
     res.json({
       configured,
@@ -648,31 +652,42 @@ async function startServer() {
 
   app.post('/api/admin/auth/setup', authRateLimit, (req, res) => {
     const envPass = process.env.ADMIN_PASSWORD?.trim();
-    if (envPass || getSetting('admin_password_hash')) {
-      res.status(409).json({ error: 'Пароль адміністратора вже налаштовано. Використовуйте форму входу.' });
+    const masterExisting = getMasterAdminRecordSync();
+    if (envPass || getSetting('admin_password_hash') || masterExisting.passwordHash) {
+      res.status(409).json({ error: 'Мастер-акаунт адміністратора вже налаштовано. Використовуйте форму входу.' });
       return;
     }
 
-    const body = (req.body ?? {}) as { password?: string };
-    const password = String(body.password ?? '');
-    if (password.length < 6 || password.length > 128) {
-      res.status(400).json({ error: 'Пароль має містити від 6 до 128 символів' });
+    const parsed = adminSetupSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані налаштування' });
       return;
     }
 
-    const inserted = setSettingIfAbsent('admin_password_hash', hashPassword(password));
+    const passwordHash = hashPassword(parsed.data.password);
+    const inserted = setSettingIfAbsent('admin_password_hash', passwordHash);
     if (!inserted) {
       res.status(409).json({ error: 'Пароль адміністратора вже створено.' });
       return;
     }
 
+    const master = claimMasterAdminAccount({
+      passwordHash,
+      name: parsed.data.name || 'Головний адміністратор',
+      email: parsed.data.email || '',
+    });
+
+    if (parsed.data.email && !getSetting('admin_emails')) {
+      setSettingIfAbsent('admin_emails', parsed.data.email);
+    }
+
     const adminUser = {
-      userId: null,
-      name: 'Адміністратор',
-      login: 'admin',
-      email: '',
+      userId: master.id,
+      name: master.name,
+      login: master.login,
+      email: master.email,
       role: 'admin' as const,
-      assigneeLabel: 'Адміністратор',
+      assigneeLabel: master.assigneeLabel,
     };
     res.status(201).json({ token: createSessionToken(adminUser), user: adminUser });
   });
@@ -685,65 +700,70 @@ async function startServer() {
     }
 
     const { identifier, password } = parsed.data;
+    const normalizedId = identifier.trim().toLowerCase();
 
-    // 1) Personal CRM staff account login (by login or corporate email)
-    if (identifier) {
-      const found = await findStaffForPasswordLogin(identifier);
-      if (
-        !found ||
-        !found.user.active ||
-        !found.user.canLogin ||
-        !found.passwordHash ||
-        !verifyScryptPassword(password, found.passwordHash)
-      ) {
-        res.status(401).json({ error: 'Невірний логін/email або пароль, чи обліковий запис вимкнено' });
+    // 1) Master admin account login (blank identifier OR login/email matching master 'admin')
+    const master = getMasterAdminRecordSync();
+    const isMasterAttempt =
+      !normalizedId || normalizedId === 'admin' || (Boolean(master.email) && normalizedId === master.email.toLowerCase());
+
+    if (isMasterAttempt) {
+      const adminUser = {
+        userId: master.id,
+        name: master.name,
+        login: master.login,
+        email: master.email,
+        role: 'admin' as const,
+        assigneeLabel: master.assigneeLabel,
+      };
+
+      const envPass = process.env.ADMIN_PASSWORD?.trim();
+      if (envPass) {
+        if (!verifyEnvPassword(password, envPass)) {
+          res.status(401).json({ error: 'Невірний пароль адміністратора' });
+          return;
+        }
+        res.json({ token: createSessionToken(adminUser), user: adminUser });
         return;
       }
 
-      const sessionUser = {
-        userId: found.user.id,
-        name: found.user.name,
-        login: found.user.login,
-        email: found.user.email,
-        role: found.user.role,
-        assigneeLabel: found.user.assigneeLabel,
-      };
-      res.json({ token: createSessionToken(sessionUser), user: sessionUser });
-      return;
-    }
+      const storedHash = master.passwordHash || getSetting('admin_password_hash');
+      if (!storedHash) {
+        res.status(400).json({ error: 'Пароль мастер-адміністратора ще не налаштовано' });
+        return;
+      }
 
-    // 2) Master admin password login (process.env.ADMIN_PASSWORD or claimed hash)
-    const adminUser = {
-      userId: null,
-      name: 'Адміністратор',
-      login: 'admin',
-      email: '',
-      role: 'admin' as const,
-      assigneeLabel: 'Адміністратор',
-    };
-
-    const envPass = process.env.ADMIN_PASSWORD?.trim();
-    if (envPass) {
-      if (!verifyEnvPassword(password, envPass)) {
+      if (!verifyScryptPassword(password, storedHash)) {
         res.status(401).json({ error: 'Невірний пароль адміністратора' });
         return;
       }
+
       res.json({ token: createSessionToken(adminUser), user: adminUser });
       return;
     }
 
-    const storedHash = getSetting('admin_password_hash');
-    if (!storedHash) {
-      res.status(400).json({ error: 'Пароль адміністратора ще не налаштовано' });
+    // 2) Personal CRM staff account login (by login or corporate email)
+    const found = await findStaffForPasswordLogin(identifier);
+    if (
+      !found ||
+      !found.user.active ||
+      !found.user.canLogin ||
+      !found.passwordHash ||
+      !verifyScryptPassword(password, found.passwordHash)
+    ) {
+      res.status(401).json({ error: 'Невірний логін/email або пароль, чи обліковий запис вимкнено' });
       return;
     }
 
-    if (!verifyScryptPassword(password, storedHash)) {
-      res.status(401).json({ error: 'Невірний пароль адміністратора' });
-      return;
-    }
-
-    res.json({ token: createSessionToken(adminUser), user: adminUser });
+    const sessionUser = {
+      userId: found.user.id,
+      name: found.user.name,
+      login: found.user.login,
+      email: found.user.email,
+      role: found.user.role,
+      assigneeLabel: found.user.assigneeLabel,
+    };
+    res.json({ token: createSessionToken(sessionUser), user: sessionUser });
   });
 
   app.post('/api/admin/auth/google', authRateLimit, async (req, res) => {
@@ -768,10 +788,13 @@ async function startServer() {
     const staffMatch = await findStaffForGoogleLogin(verified.email);
     const staffCanGoogleLogin = Boolean(staffMatch && staffMatch.active && staffMatch.canLogin);
     const isAllowlistedAdmin = effective.includes(verified.email);
+    const master = getMasterAdminRecordSync();
 
     if (!isAllowlistedAdmin && !staffCanGoogleLogin) {
       if (effective.length === 0) {
-        const hasPassword = Boolean(process.env.ADMIN_PASSWORD?.trim() || getSetting('admin_password_hash'));
+        const hasPassword = Boolean(
+          process.env.ADMIN_PASSWORD?.trim() || getSetting('admin_password_hash') || master.passwordHash,
+        );
         if (hasPassword) {
           res.status(403).json({
             error: `Доступ через Google для ${verified.email} ще не відкритий: додайте email у розділі «Персонал» або через ADMIN_EMAILS.`,
@@ -803,12 +826,12 @@ async function startServer() {
             assigneeLabel: staffMatch.assigneeLabel,
           }
         : {
-            userId: null,
-            name: verified.name || verified.email.split('@')[0] || 'Адміністратор',
-            login: verified.email.split('@')[0] || 'admin',
+            userId: master.id,
+            name: verified.name || master.name,
+            login: master.login,
             email: verified.email,
             role: 'admin' as const,
-            assigneeLabel: verified.name || 'Адміністратор',
+            assigneeLabel: master.assigneeLabel,
           };
 
     res.json({ token: createSessionToken(sessionUser), email: verified.email, user: sessionUser });
@@ -832,6 +855,10 @@ async function startServer() {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані співробітника' });
       return;
     }
+    if (parsed.data.login === 'admin') {
+      res.status(409).json({ error: 'Логін admin зарезервовано за мастер-акаунтом' });
+      return;
+    }
     if (parsed.data.canLogin && !parsed.data.password && !parsed.data.email) {
       res.status(400).json({ error: 'Щоб увімкнути вхід у CRM, задайте пароль (мін. 6 символів) або Google Email' });
       return;
@@ -844,24 +871,56 @@ async function startServer() {
     }
   });
 
-  app.patch('/api/crm/staff/:id', requireRoles('admin'), async (req, res) => {
+  // Admin can edit any staff member; non-admin users can ONLY edit their own profile & password
+  app.patch('/api/crm/staff/:id', async (req, res) => {
     const staffId = Number(req.params.id);
     if (!Number.isFinite(staffId) || staffId <= 0) {
       res.status(400).json({ error: 'Некоректний ID співробітника' });
       return;
     }
-    const parsed = staffPatchSchema.safeParse(req.body ?? {});
+
+    const currentUser = getCrmUser(req);
+    const isAdmin = currentUser?.role === 'admin';
+    const isSelf = currentUser?.userId !== null && currentUser?.userId === staffId;
+
+    if (!isAdmin && !isSelf) {
+      res.status(403).json({ error: 'Ви можете редагувати лише власний обліковий запис' });
+      return;
+    }
+
+    const rawBody = (req.body ?? {}) as Record<string, unknown>;
+    if (!isAdmin) {
+      const restrictedKeys = ['role', 'active', 'canLogin', 'login', 'clearPassword'];
+      if (restrictedKeys.some((k) => Object.prototype.hasOwnProperty.call(rawBody, k))) {
+        res.status(403).json({ error: 'Лише адміністратор може змінювати логін, роль або права доступу' });
+        return;
+      }
+    }
+
+    const parsed = staffPatchSchema.safeParse(rawBody);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні поля співробітника' });
       return;
     }
-    const currentUser = getCrmUser(req);
-    if (currentUser?.userId === staffId && (parsed.data.active === false || parsed.data.canLogin === false)) {
+
+    if (isSelf && (parsed.data.active === false || parsed.data.canLogin === false)) {
       res.status(400).json({ error: 'Неможливо вимкнути власний поточний обліковий запис' });
       return;
     }
+
+    const patchData = isAdmin
+      ? parsed.data
+      : {
+          name: parsed.data.name,
+          email: parsed.data.email,
+          phone: parsed.data.phone,
+          position: parsed.data.position,
+          assigneeLabel: parsed.data.assigneeLabel,
+          password: parsed.data.password,
+        };
+
     try {
-      const member = await updateStaffUser(staffId, parsed.data);
+      const member = await updateStaffUser(staffId, patchData);
       if (!member) {
         res.status(404).json({ error: 'Співробітника не знайдено' });
         return;
@@ -883,12 +942,16 @@ async function startServer() {
       res.status(400).json({ error: 'Неможливо видалити власний поточний обліковий запис' });
       return;
     }
-    const ok = await deleteStaffUser(staffId);
-    if (!ok) {
-      res.status(404).json({ error: 'Співробітника не знайдено' });
-      return;
+    try {
+      const ok = await deleteStaffUser(staffId);
+      if (!ok) {
+        res.status(404).json({ error: 'Співробітника не знайдено' });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Не вдалося видалити акаунт' });
     }
-    res.json({ ok: true });
   });
 
   app.get('/api/crm/status', (_req, res) => {

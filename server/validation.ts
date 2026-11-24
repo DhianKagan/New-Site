@@ -163,6 +163,19 @@ export const adminLoginSchema = z.object({
   password: z.string().min(1, 'Введіть пароль').max(128),
 });
 
+export const adminSetupSchema = z.object({
+  name: z.string().trim().max(100).optional().default('Головний адміністратор'),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(160)
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Некоректний Email')
+    .optional()
+    .default(''),
+  password: z.string().min(6, 'Пароль має містити від 6 до 128 символів').max(128),
+});
+
 export const productCreateSchema = z.object({
   title: z.string().trim().min(1, 'Вкажіть назву товару').max(220),
   sku: z.string().max(64).optional().default(''),
