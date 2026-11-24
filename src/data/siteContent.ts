@@ -125,6 +125,8 @@ export const MONTAGE_SERVICES: ServiceItem[] = [
     category: 'montage',
     kicker: 'Монтаж під ключ · B2C / B2B',
     title: 'Гібридні сонячні електростанції',
+    image: '/assets/energocomfort/house_6kw.png',
+    imageAlt: 'Сонячні панелі на даху приватного будинку',
     priceLabel: 'Індивідуальний кошторис · 2–5 днів',
     summary: 'Поєднують генерацію від сонця, накопичення енергії в LiFePO4 АКБ та інтелектуальну роботу з мережею.',
     bullets: [
@@ -138,6 +140,8 @@ export const MONTAGE_SERVICES: ServiceItem[] = [
     category: 'montage',
     kicker: 'Економія та генерація · B2B / B2C',
     title: 'Мережеві сонячні електростанції',
+    image: '/assets/energocomfort/sto_110kw.jpg',
+    imageAlt: 'Промислова мережева СЕС на даху сервісного центру',
     priceLabel: 'Для власного споживання та продажу',
     summary: 'Максимальне заміщення денного споживання електроенергії для підприємств, СТО, готелів та приватних домогосподарств.',
     bullets: [
@@ -151,6 +155,8 @@ export const MONTAGE_SERVICES: ServiceItem[] = [
     category: 'montage',
     kicker: 'Автономність без панелей · Одеса',
     title: 'Системи резервного живлення',
+    image: '/assets/energocomfort/backup_deye_8kw.jpg',
+    imageAlt: 'Інвертор резервного живлення у приватному будинку',
     priceLabel: 'Від $500 за 1 кВт (робота + захист)',
     summary: 'Рішення для квартир, приватних будинків і бізнесу, де критично пережити планові й аварійні блекаути без шуму генератора.',
     bullets: [
@@ -164,6 +170,8 @@ export const MONTAGE_SERVICES: ServiceItem[] = [
     category: 'montage',
     kicker: 'Промислові та домашні СНЕ',
     title: 'Системи накопичення електроенергії (СНЕ)',
+    image: '/assets/energocomfort/kit_battery_30kwh_real.jpg',
+    imageAlt: 'Акумуляторна система накопичення електроенергії',
     priceLabel: 'Вартість договірна · LV / HV',
     summary: 'Високовольтні та 48-вольтові LiFePO4 масиви для тривалої автономної роботи та згладжування пікових навантажень.',
     bullets: [
@@ -180,6 +188,8 @@ export const EXTRA_SERVICES: ServiceItem[] = [
     category: 'extra',
     kicker: 'Передпроєктне обстеження',
     title: 'Аудит споживання електроенергії',
+    image: '/assets/energocomfort/office_16kw.png',
+    imageAlt: 'Сонячна система на даху офісного об’єкта для енергоаудиту',
     priceLabel: 'За тарифом за м² / об’єкт',
     summary: 'Детальний інструментальний аналіз реального споживання, пускових струмів та фазного навантаження об’єкта.',
     bullets: [
@@ -193,6 +203,8 @@ export const EXTRA_SERVICES: ServiceItem[] = [
     category: 'extra',
     kicker: 'Інженерна документація',
     title: 'Проєктування СЕС',
+    image: '/assets/energocomfort/factory_110kw.png',
+    imageAlt: 'Сонячна електростанція промислового об’єкта',
     priceLabel: 'Індивідуальний технічний проєкт',
     summary: 'Розробка однолінійних схем, специфікацій кабельно-провідникової продукції, заземлення та кріплень.',
     bullets: [
@@ -206,6 +218,8 @@ export const EXTRA_SERVICES: ServiceItem[] = [
     category: 'extra',
     kicker: 'Регламентний сервіс',
     title: 'Обслуговування СЕС',
+    image: '/assets/energocomfort/hotel_35kw.png',
+    imageAlt: 'Сонячна електростанція готельного комплексу',
     priceLabel: 'Разовий виїзд або сервісний договір',
     summary: 'Планове та аварійне обслуговування сонячних станцій, тепловізійний контроль і оновлення прошивок інверторів.',
     bullets: [
@@ -219,6 +233,8 @@ export const EXTRA_SERVICES: ServiceItem[] = [
     category: 'extra',
     kicker: 'Юридичний та технічний супровід',
     title: 'Оформлення «зеленого тарифу» / активного споживача',
+    image: '/assets/energocomfort/recreation_36kw.jpg',
+    imageAlt: 'Сонячні панелі на даху бази відпочинку',
     priceLabel: 'Повний супровід документів',
     summary: 'Підготовка технічних умов, проєкту двонаправленого лічильника та повного пакета документів для мережі.',
     bullets: [

@@ -76,6 +76,8 @@ export interface ServiceItem {
   category: 'montage' | 'extra';
   kicker: string;
   title: string;
+  image?: string;
+  imageAlt?: string;
   priceLabel: string;
   summary: string;
   bullets: string[];
