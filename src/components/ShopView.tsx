@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { tr } from '../lib/i18n.ts';
+import { filterAndRankProductsBySearch } from '../lib/shopSearch.ts';
 
 interface ShopViewProps {
   products: Product[];
@@ -32,6 +33,11 @@ export function ShopView({
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    setCat(initialCategory);
+    setPage(1);
+  }, [initialCategory]);
+
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: products.length, kits: 0, inverters: 0, batteries: 0, panels: 0, parts: 0 };
     for (const p of products) {
@@ -49,29 +55,22 @@ export function ShopView({
   }, [products]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = products.filter((p) => {
+    const baseFiltered = products.filter((p) => {
       if (cat !== 'all' && p.cat !== cat) return false;
       if (brand !== 'all' && p.brand !== brand) return false;
       if (inStockOnly && !p.inStock) return false;
-      if (q) {
-        const hit =
-          p.title.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q);
-        if (!hit) return false;
-      }
       return true;
     });
 
+    const searched = filterAndRankProductsBySearch(baseFiltered, query, sort === 'default');
+
     if (sort === 'asc') {
-      return [...list].sort((a, b) => (a.price || 999999) - (b.price || 999999));
+      return [...searched].sort((a, b) => (a.price || 999999) - (b.price || 999999));
     }
     if (sort === 'desc') {
-      return [...list].sort((a, b) => b.price - a.price);
+      return [...searched].sort((a, b) => b.price - a.price);
     }
-    return list;
+    return searched;
   }, [products, cat, brand, inStockOnly, query, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -143,17 +142,40 @@ export function ShopView({
           {/* Search, Brand, Stock, Sort */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 mb-7">
             <div className="lg:col-span-5 relative">
+              <label htmlFor="shop-equipment-search" className="sr-only">
+                {tr('Пошук обладнання за назвою або SKU', 'Поиск оборудования по названию или SKU')}
+              </label>
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
+                id="shop-equipment-search"
                 type="search"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder={tr('Пошук за моделлю, потужністю або SKU (напр. Deye 12, 10018)...', 'Поиск по модели, мощности или SKU (например, Deye 12, 10018)…')}
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:border-[#1769aa]"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' && query) {
+                    setQuery('');
+                    setPage(1);
+                  }
+                }}
+                placeholder={tr('Пошук за назвою або SKU (напр. Deye 8kW, 10018)...', 'Поиск по названию или SKU (напр. Deye 8kW, 10018)…')}
+                className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:border-[#1769aa]"
               />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery('');
+                    setPage(1);
+                  }}
+                  aria-label={tr('Очистити пошук', 'Очистить поиск')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-[#0d1f33] hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             <div className="lg:col-span-3">
@@ -200,12 +222,19 @@ export function ShopView({
             </label>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
-            <span>
-              {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#0d1f33]">{filtered.length}</strong>
-            </span>
+          <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 mb-4">
+            <div className="flex items-center gap-3">
+              <span>
+                {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#0d1f33] tabular-nums">{filtered.length}</strong>
+              </span>
+              {query.trim() && (
+                <span className="text-[11px] text-[#1769aa] font-semibold">
+                  {tr('Пошук:', 'Поиск:')} «{query.trim()}»
+                </span>
+              )}
+            </div>
             {totalPages > 1 && (
-              <span className="font-mono">
+              <span className="font-mono tabular-nums">
                 {tr('Сторінка', 'Страница')} {safePage} {tr('з', 'из')} {totalPages}
               </span>
             )}

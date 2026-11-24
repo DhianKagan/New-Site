@@ -433,7 +433,11 @@ export default function App() {
     }
 
     document.title = title;
-    const canonicalUrl = `${window.location.origin}${window.location.pathname}`;
+    const canonicalPath =
+      view === 'shop' && !selectedProduct && shopInitialCat !== 'all'
+        ? `/shop?cat=${encodeURIComponent(shopInitialCat)}`
+        : window.location.pathname;
+    const canonicalUrl = `${window.location.origin}${canonicalPath}`;
 
     const ensureMeta = (attrName: 'name' | 'property', key: string, content: string) => {
       let el = document.querySelector(`meta[${attrName}="${key}"]`);

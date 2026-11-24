@@ -30,6 +30,7 @@ import {
   getCustomerAccountDetail,
   getCustomerAuthStateSync,
   getCustomerProfileById,
+  getLatestCatalogOrProjectUpdatedAt,
   getMasterAdminRecordSync,
   getProductById,
   getPublicAnalyticsConfig,
@@ -47,6 +48,7 @@ import {
   listProducts,
   listProjectCases,
   listRecentAnalyticsEvents,
+  listSitemapCategoryEntries,
   listSitemapProductEntries,
   listStaffUsers,
   listTasks,
@@ -67,6 +69,7 @@ import {
   updateTask,
   upsertGoogleCustomerAccount,
 } from './server/db.ts';
+import { escapeXml, generateSitemapXml } from './server/sitemap.ts';
 import {
   adminLoginSchema,
   adminSetupSchema,
@@ -181,15 +184,6 @@ function getBaseUrl(req: express.Request): string {
   return 'https://energocomfort.shop';
 }
 
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
 function escapeHtmlAttr(value: string): string {
   return escapeXml(value);
 }
@@ -225,9 +219,44 @@ function buildRouteSeoHtml(template: string, req: express.Request): string {
   let canonicalPath = rawPath;
 
   if (rawPath === '/shop') {
-    title = 'Каталог обладнання СЕС та резервного живлення — Energo Comfort';
-    description =
-      'Каталог інверторів Deye, SolaX, Solis, акумуляторів LiFePO4, сонячних панелей та готових комплектів в Одесі з доставкою по Україні.';
+    const rawCat = typeof req.query.cat === 'string' ? req.query.cat.trim() : '';
+    const catMeta: Record<ProductCategory, { title: string; description: string }> = {
+      kits: {
+        title: 'Готові комплекти резервного живлення та СЕС — Energo Comfort',
+        description:
+          'Готові комплекти резервного живлення та сонячних електростанцій під ключ в Одесі: інвертори Deye та акумулятори LiFePO4.',
+      },
+      inverters: {
+        title: 'Гібридні та мережеві інвертори Deye, SolaX, Solis — Energo Comfort',
+        description:
+          'Гібридні й мережеві інвертори Deye, SolaX, Solis, Must зі складу в Одесі з офіційною гарантією та доставкою по Україні.',
+      },
+      batteries: {
+        title: 'Акумулятори LiFePO4 Deye, Dyness в Одесі — Energo Comfort',
+        description:
+          'Акумуляторні батареї LiFePO4 на 24V, 48V та високовольтні модулі для систем резервного живлення та СЕС в Одесі.',
+      },
+      panels: {
+        title: 'Сонячні панелі Jinko, Trina, JA Solar в Одесі — Energo Comfort',
+        description:
+          'Монокристалічні сонячні панелі N-Type та Bifacial від Jinko Solar, Trina Solar, JA Solar, Tongwei в Одесі.',
+      },
+      parts: {
+        title: 'Комплектуючі та захист AC/DC для СЕС — Energo Comfort',
+        description:
+          'Автоматика захисту AC/DC, ОПН, кабелі, кріплення, перемикачі та щити для сонячних електростанцій зі складу в Одесі.',
+      },
+    };
+    const matchedCat = ALLOWED_PRODUCT_CATS.find((c) => c === rawCat);
+    if (matchedCat) {
+      title = catMeta[matchedCat].title;
+      description = catMeta[matchedCat].description;
+      canonicalPath = `/shop?cat=${encodeURIComponent(matchedCat)}`;
+    } else {
+      title = 'Каталог обладнання СЕС та резервного живлення — Energo Comfort';
+      description =
+        'Каталог інверторів Deye, SolaX, Solis, акумуляторів LiFePO4, сонячних панелей та готових комплектів в Одесі з доставкою по Україні.';
+    }
   } else if (rawPath.startsWith('/shop/')) {
     const prodId = decodeURIComponent(rawPath.slice('/shop/'.length).split('/')[0] || '');
     const product = prodId ? getProductById(prodId) : null;
@@ -446,32 +475,14 @@ async function startServer() {
 
   app.get('/sitemap.xml', (req, res) => {
     const baseUrl = getBaseUrl(req);
-    const today = new Date().toISOString().slice(0, 10);
-    const staticPages = [
-      { path: '/', priority: '1.0', changefreq: 'daily' },
-      { path: '/shop', priority: '0.9', changefreq: 'daily' },
-      { path: '/services', priority: '0.8', changefreq: 'weekly' },
-      { path: '/projects', priority: '0.8', changefreq: 'weekly' },
-      { path: '/contacts', priority: '0.7', changefreq: 'monthly' },
-      { path: '/payment-delivery', priority: '0.6', changefreq: 'monthly' },
-      { path: '/public-offer', priority: '0.4', changefreq: 'monthly' },
-    ];
-    const productUrls = listSitemapProductEntries();
+    const xml = generateSitemapXml({
+      baseUrl,
+      categories: listSitemapCategoryEntries(),
+      products: listSitemapProductEntries(),
+      infoLastMod: getLatestCatalogOrProjectUpdatedAt(),
+    });
 
-    const xml = [
-      '<?xml version="1.0" encoding="UTF-8"?>',
-      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-      ...staticPages.map(
-        (page) =>
-          `  <url><loc>${escapeXml(`${baseUrl}${page.path}`)}</loc><lastmod>${today}</lastmod><changefreq>${page.changefreq}</changefreq><priority>${page.priority}</priority></url>`,
-      ),
-      ...productUrls.map((entry) => {
-        const lastmod = entry.updatedAt ? entry.updatedAt.slice(0, 10) : today;
-        return `  <url><loc>${escapeXml(`${baseUrl}/shop/${encodeURIComponent(entry.id)}`)}</loc><lastmod>${escapeXml(lastmod)}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
-      }),
-      '</urlset>',
-    ].join('\n');
-
+    res.setHeader('Cache-Control', 'public, max-age=300');
     res.type('application/xml; charset=utf-8').send(xml);
   });
 

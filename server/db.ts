@@ -1338,13 +1338,41 @@ export function saveSocialLinks(links: SocialLinksConfig): void {
   setSetting('social_links_json', JSON.stringify(links));
 }
 
-export function listSitemapProductEntries(): Array<{ id: string; updatedAt: string }> {
+export function listSitemapProductEntries(): Array<{ id: string; title: string; img: string; updatedAt: string }> {
   const db = getDb();
-  const rows = db.prepare('SELECT id, updated_at FROM products ORDER BY id ASC').all();
+  const rows = db.prepare('SELECT id, title, img, updated_at FROM products ORDER BY id ASC').all();
   return rows.map((r) => ({
     id: String(r.id),
+    title: String(r.title || ''),
+    img: String(r.img || ''),
     updatedAt: String(r.updated_at || new Date().toISOString()),
   }));
+}
+
+export function listSitemapCategoryEntries(): Array<{ cat: string; updatedAt: string; itemCount: number }> {
+  const db = getDb();
+  const rows = db
+    .prepare('SELECT cat, MAX(updated_at) AS last_updated, COUNT(*) AS item_count FROM products GROUP BY cat ORDER BY cat ASC')
+    .all();
+  return rows.map((r) => ({
+    cat: String(r.cat || ''),
+    updatedAt: String(r.last_updated || new Date().toISOString()),
+    itemCount: Number(r.item_count || 0),
+  }));
+}
+
+export function getLatestCatalogOrProjectUpdatedAt(): string {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT MAX(updated_at) AS latest FROM (
+         SELECT MAX(updated_at) AS updated_at FROM products
+         UNION ALL
+         SELECT MAX(updated_at) AS updated_at FROM projects
+       )`,
+    )
+    .get() as { latest?: string | null } | undefined;
+  return String(row?.latest || new Date().toISOString());
 }
 
 export function getRecentCatalogAndProjectChanges(limit = 12): RecentChangeRecord[] {
