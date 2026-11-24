@@ -1,5 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Check, ArrowRight, CheckCircle2, PhoneCall, Send } from 'lucide-react';
+import {
+  Calculator,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  ArrowRight,
+  CheckCircle2,
+  PhoneCall,
+  Send,
+  Truck,
+  Zap,
+} from 'lucide-react';
 import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
 import { BRAND_PARTNERS, COMPANY_INFO, FAQ_ITEMS } from '../data/siteContent.ts';
 import { ProductCard } from './ProductCard.tsx';
@@ -722,33 +734,94 @@ export function HomeView({
       </section>
 
       {/* Process & FAQ */}
-      <section className="py-14 bg-[#f6f8fb] border-t border-slate-200">
+      <section className="py-16 bg-gradient-to-br from-[#eff6fc] via-white to-[#f6f8fb] border-t border-slate-200">
         <div className="max-w-[1180px] mx-auto px-5">
-          <div className="max-w-2xl mb-6">
-            <div className="text-xs font-extrabold text-[#1769aa] mb-1.5">Порядок співпраці</div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33]">
-              Як ми працюємо: від розрахунку до запуску
-            </h2>
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#1769aa]/15 bg-white px-3 py-1 text-xs font-extrabold text-[#1769aa]">
+                <span className="h-2 w-2 rounded-full bg-[#f59e0b]" /> Порядок співпраці
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33]">
+                Як ми працюємо: від розрахунку до запуску
+              </h2>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-[#52657a]">
+              Один інженерний маршрут — від першої розмови до системи, готової до роботи.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div className="relative mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="pointer-events-none absolute left-[12%] right-[12%] top-6 hidden h-px bg-gradient-to-r from-[#1769aa]/10 via-[#1769aa]/40 to-[#f59e0b]/50 lg:block" />
             {[
-              ['01. Консультація', 'Уточнюємо задачу, прилади та 1 чи 3 фази мережі.'],
-              ['02. Розрахунок і проєкт', 'Формуємо 1–2 сумісні конфігурації та прозорий кошторис.'],
-              ['03. Поставка і монтаж', 'Доставляємо зі складу в Одесі та виконуємо акуратний монтаж.'],
-              ['04. Запуск і сервіс', 'Перевіряємо під навантаженням, підключаємо моніторинг та гарантію.'],
-            ].map(([title, desc]) => (
-              <article key={title} className="bg-white border border-slate-200 rounded-xl p-5">
-                <h3 className="text-sm font-extrabold text-[#0d1f33] mb-1.5">{title}</h3>
-                <p className="text-xs text-[#52657a] leading-relaxed">{desc}</p>
+              {
+                number: '01',
+                title: 'Консультація',
+                desc: 'Уточнюємо вашу задачу, прилади та тип електромережі.',
+                detail: 'Знайомимось із вашим об’єктом',
+                Icon: PhoneCall,
+              },
+              {
+                number: '02',
+                title: 'Розрахунок і проєкт',
+                desc: 'Підбираємо сумісне обладнання та готуємо зрозумілий кошторис.',
+                detail: 'Погоджуємо конфігурацію',
+                Icon: Calculator,
+              },
+              {
+                number: '03',
+                title: 'Поставка і монтаж',
+                desc: 'Комплектуємо систему та встановлюємо її на об’єкті.',
+                detail: 'Працюємо за погодженим планом',
+                Icon: Truck,
+              },
+              {
+                number: '04',
+                title: 'Запуск і сервіс',
+                desc: 'Перевіряємо систему, налаштовуємо моніторинг і гарантійний супровід.',
+                detail: 'Передаємо готову систему',
+                Icon: Zap,
+              },
+            ].map(({ number, title, desc, detail, Icon }) => (
+              <article
+                key={number}
+                className="group relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#1769aa]/35 hover:shadow-lg"
+              >
+                <div className="relative mb-5 flex items-center justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eff6fc] text-[#1769aa] ring-4 ring-white transition-colors group-hover:bg-[#1769aa] group-hover:text-white">
+                    <Icon className="h-5 w-5" strokeWidth={2.2} />
+                  </span>
+                  <span className="font-mono text-2xl font-extrabold tracking-tight text-slate-200 group-hover:text-[#1769aa]/25">
+                    {number}
+                  </span>
+                </div>
+                <h3 className="mb-2 text-base font-extrabold text-[#0d1f33]">{title}</h3>
+                <p className="min-h-12 text-xs leading-relaxed text-[#52657a]">{desc}</p>
+                <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-[11px] font-bold text-[#1769aa]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" /> {detail}
+                </div>
               </article>
             ))}
           </div>
 
-          <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-xl overflow-hidden">
-            <h3 className="px-5 py-4 border-b border-slate-200 text-sm font-extrabold text-[#0d1f33]">
-              Відповіді на часті питання
-            </h3>
+          <div className="mb-12 flex flex-col gap-4 rounded-2xl bg-[#0d1f33] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7">
+            <div>
+              <p className="font-extrabold">Є питання щодо вашого об’єкта?</p>
+              <p className="mt-1 text-xs text-slate-300">Почнемо з короткої консультації та підкажемо наступний крок.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenLeadModal('Консультація щодо вашого об’єкта')}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#f59e0b] px-4 text-sm font-extrabold text-[#0d1f33] transition-colors hover:bg-[#fbbf24]"
+            >
+              Обговорити проєкт <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-1 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-sm font-extrabold text-[#0d1f33]">Відповіді на часті питання</h3>
+              <span className="text-xs text-[#52657a]">Щоб простіше було зробити перший крок</span>
+            </div>
             {FAQ_ITEMS.map((item, idx) => {
               const isOpen = openFaq === idx;
               return (
