@@ -2,7 +2,7 @@ import { X, ShoppingBag, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
-import { getActiveLocale, tr } from '../lib/i18n.ts';
+import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення під ключ',
@@ -23,9 +23,11 @@ interface ProductModalProps {
 export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, usdUahRate }: ProductModalProps) {
   if (!product) return null;
   const isRussian = getActiveLocale() === 'ru';
-  const title = isRussian ? product.titleRu ?? product.title : product.title;
-  const specs = isRussian ? product.specsRu ?? product.specs : product.specs;
-  const description = isRussian ? product.descriptionRu ?? product.description : product.description;
+  const title = isRussian ? product.titleRu ?? localizeCatalogText(product.title) : product.title;
+  const specs = isRussian
+    ? product.specsRu ?? product.specs.map(([key, value]) => [localizeCatalogText(key), localizeCatalogText(value)] as [string, string])
+    : product.specs;
+  const description = isRussian ? product.descriptionRu ?? localizeCatalogText(product.description) : product.description;
   const canBuyDirect = !product.isKit && product.price > 0;
 
   return (

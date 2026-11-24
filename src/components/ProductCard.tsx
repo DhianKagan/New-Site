@@ -2,7 +2,7 @@ import { ShoppingBag, ArrowUpRight } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
-import { getActiveLocale, tr } from '../lib/i18n.ts';
+import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення',
@@ -22,7 +22,10 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, usdUahRate }: ProductCardProps) {
   const isRussian = getActiveLocale() === 'ru';
-  const specs = isRussian ? product.specsRu ?? product.specs : product.specs;
+  const specs = isRussian
+    ? product.specsRu ?? product.specs.map(([key, value]) => [localizeCatalogText(key), localizeCatalogText(value)] as [string, string])
+    : product.specs;
+  const localizedTitle = isRussian ? product.titleRu ?? localizeCatalogText(product.title) : product.title;
   const canBuyDirect = !product.isKit && product.price > 0;
 
   return (
@@ -57,7 +60,7 @@ export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, us
             className="text-left block w-full cursor-pointer group"
           >
             <h3 className="text-[15px] font-bold text-[#0d1f33] leading-snug line-clamp-2 group-hover:text-[#1769aa] transition-colors">
-              {product.titleRu ? tr(product.title, product.titleRu) : product.title}
+              {localizedTitle}
             </h3>
           </button>
 
