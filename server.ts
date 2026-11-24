@@ -6,6 +6,7 @@ import express from 'express';
 import {
   claimMasterAdminAccount,
   createContact,
+  createCustomerAccountByCrm,
   createDeal,
   createNote,
   createProduct,
@@ -14,6 +15,7 @@ import {
   createStaffUser,
   createTask,
   deleteContact,
+  deleteCustomerAccount,
   deleteDeal,
   deleteNote,
   deleteProduct,
@@ -25,6 +27,7 @@ import {
   findStaffForPasswordLogin,
   getCatalogFacets,
   getContactDetail,
+  getCustomerAccountDetail,
   getCustomerAuthStateSync,
   getCustomerProfileById,
   getMasterAdminRecordSync,
@@ -37,6 +40,7 @@ import {
   getStorageDiagnostics,
   getUploadsDir,
   listContacts,
+  listCustomerAccounts,
   listCustomerDeals,
   listDeals,
   listNotes,
@@ -54,6 +58,7 @@ import {
   setSetting,
   setSettingIfAbsent,
   updateContact,
+  updateCustomerAccountByCrm,
   updateCustomerProfile,
   updateDeal,
   updateProduct,
@@ -70,6 +75,8 @@ import {
   clientRegisterSchema,
   contactCreateSchema,
   contactPatchSchema,
+  crmCustomerCreateSchema,
+  crmCustomerPatchSchema,
   dealPatchSchema,
   isSafeExternalUrl,
   isSafeImageUrl,
@@ -114,7 +121,7 @@ import type { DealStage, ProductCategory, SocialLinksConfig } from './src/types.
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT) || 3000;
-const HOST = process.env.HOST || (IS_PROD ? '0.0.0.0' : '127.0.0.1');
+const HOST = process.env.HOST || '0.0.0.0';
 
 const EXCHANGE_RATE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 let cachedUsdUahRate: { rate: number; exchangedate: string; fetchedAt: number } | null = null;
@@ -364,10 +371,24 @@ function sanitizeProductSpecs(raw: unknown): [string, string][] {
 
 async function startServer() {
   const app = express();
+  app.disable('x-powered-by');
   app.set('trust proxy', 1);
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
   app.use('/api/crm/upload', express.json({ limit: '6mb' }));
   app.use(express.json({ limit: '1mb' }));
-  app.use('/uploads', express.static(getUploadsDir()));
+  app.use(
+    '/uploads',
+    express.static(getUploadsDir(), {
+      dotfiles: 'deny',
+      setHeaders: (res) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+      },
+    }),
+  );
 
   const formRateLimit = createRateLimiter({
     windowMs: 10 * 60_000,
@@ -809,14 +830,45 @@ async function startServer() {
       return;
     }
 
+    // Check Staff User by Login or Email + Password
+    const staffRecord = await findStaffForPasswordLogin(normalizedId);
+    if (
+      staffRecord &&
+      staffRecord.passwordHash &&
+      verifyScryptPassword(password, staffRecord.passwordHash)
+    ) {
+      if (!staffRecord.user.active || !staffRecord.user.canLogin) {
+        res.status(403).json({
+          error: 'Обліковий запис співробітника вимкнено адміністратором',
+        });
+        return;
+      }
+      loginBruteGuard.recordSuccess(clientIp, normalizedId);
+      const staffUser = {
+        userId: staffRecord.user.id,
+        name: staffRecord.user.name,
+        login: staffRecord.user.login,
+        email: staffRecord.user.email,
+        role: staffRecord.user.role,
+        assigneeLabel: staffRecord.user.assigneeLabel,
+      };
+      res.json({ accountType: 'staff', token: createSessionToken(staffUser), user: staffUser });
+      return;
+    }
+
     // Check Customer Account by Email + Password
     const customerRecord = normalizedId.includes('@') ? await findCustomerForPasswordLogin(normalizedId) : null;
     if (
       customerRecord &&
-      customerRecord.customer.active &&
       customerRecord.passwordHash &&
       verifyScryptPassword(password, customerRecord.passwordHash)
     ) {
+      if (!customerRecord.customer.active) {
+        res.status(403).json({
+          error: 'Обліковий запис клієнта вимкнено адміністратором',
+        });
+        return;
+      }
       loginBruteGuard.recordSuccess(clientIp, normalizedId);
       const client = customerRecord.customer;
       const token = createClientSessionToken({
@@ -987,57 +1039,67 @@ async function startServer() {
   app.use('/api/client', createRequireClientAuth(getCustomerAuthStateSync));
 
   app.get('/api/client/me', async (req, res) => {
-    const client = getClientUser(req);
-    if (!client) {
-      res.status(401).json({ error: 'Потрібна авторизація' });
-      return;
+    try {
+      const client = getClientUser(req);
+      if (!client) {
+        res.status(401).json({ error: 'Потрібна авторизація' });
+        return;
+      }
+      const customer = await getCustomerProfileById(client.customerId);
+      if (!customer) {
+        res.status(404).json({ error: 'Профіль клієнта не знайдено' });
+        return;
+      }
+      const deals = listCustomerDeals({ id: customer.id, email: customer.email, phone: customer.phone });
+      res.json({ customer, deals });
+    } catch (err) {
+      console.error('GET /api/client/me error:', err);
+      res.status(500).json({ error: 'Помилка завантаження кабінету клієнта' });
     }
-    const customer = await getCustomerProfileById(client.customerId);
-    if (!customer) {
-      res.status(404).json({ error: 'Профіль клієнта не знайдено' });
-      return;
-    }
-    const deals = listCustomerDeals({ id: customer.id, email: customer.email, phone: customer.phone });
-    res.json({ customer, deals });
   });
 
   app.patch('/api/client/profile', async (req, res) => {
-    const client = getClientUser(req);
-    if (!client) {
-      res.status(401).json({ error: 'Потрібна авторизація' });
-      return;
-    }
-    const parsed = clientProfilePatchSchema.safeParse(req.body ?? {});
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані профілю' });
-      return;
-    }
-
-    let nextPhone: string | undefined;
-    if (parsed.data.phone !== undefined) {
-      if (parsed.data.phone.trim() === '') {
-        nextPhone = '';
-      } else {
-        const normalized = normalizePhoneInput(parsed.data.phone.trim());
-        if (!normalized) {
-          res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
-          return;
-        }
-        nextPhone = normalized;
+    try {
+      const client = getClientUser(req);
+      if (!client) {
+        res.status(401).json({ error: 'Потрібна авторизація' });
+        return;
       }
-    }
+      const parsed = clientProfilePatchSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані профілю' });
+        return;
+      }
 
-    const updated = await updateCustomerProfile(client.customerId, {
-      name: parsed.data.name,
-      phone: nextPhone,
-      city: parsed.data.city,
-    });
-    if (!updated) {
-      res.status(404).json({ error: 'Профіль клієнта не знайдено' });
-      return;
+      let nextPhone: string | undefined;
+      if (parsed.data.phone !== undefined) {
+        if (parsed.data.phone.trim() === '') {
+          nextPhone = '';
+        } else {
+          const normalized = normalizePhoneInput(parsed.data.phone.trim());
+          if (!normalized) {
+            res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
+            return;
+          }
+          nextPhone = normalized;
+        }
+      }
+
+      const updated = await updateCustomerProfile(client.customerId, {
+        name: parsed.data.name,
+        phone: nextPhone,
+        city: parsed.data.city,
+      });
+      if (!updated) {
+        res.status(404).json({ error: 'Профіль клієнта не знайдено' });
+        return;
+      }
+      const deals = listCustomerDeals({ id: updated.id, email: updated.email, phone: updated.phone });
+      res.json({ customer: updated, deals });
+    } catch (err) {
+      console.error('PATCH /api/client/profile error:', err);
+      res.status(500).json({ error: 'Помилка збереження профілю клієнта' });
     }
-    const deals = listCustomerDeals({ id: updated.id, email: updated.email, phone: updated.phone });
-    res.json({ customer: updated, deals });
   });
 
   // Protected CRM APIs
@@ -1155,6 +1217,119 @@ async function startServer() {
     }
   });
 
+  // Registered Client Accounts: all CRM staff can view database & order history; Admin has full CRUD management
+  app.get('/api/crm/customers', async (_req, res) => {
+    try {
+      const customers = await listCustomerAccounts();
+      res.json({ customers });
+    } catch (err) {
+      console.error('GET /api/crm/customers error:', err);
+      res.status(500).json({ error: 'Помилка завантаження бази клієнтів' });
+    }
+  });
+
+  app.get('/api/crm/customers/:id', async (req, res) => {
+    const customerId = Number(req.params.id);
+    if (!Number.isFinite(customerId) || customerId <= 0) {
+      res.status(400).json({ error: 'Некоректний ID клієнта' });
+      return;
+    }
+    try {
+      const detail = await getCustomerAccountDetail(customerId);
+      if (!detail) {
+        res.status(404).json({ error: 'Клієнта не знайдено' });
+        return;
+      }
+      res.json(detail);
+    } catch (err) {
+      console.error('GET /api/crm/customers/:id error:', err);
+      res.status(500).json({ error: 'Помилка завантаження картки клієнта' });
+    }
+  });
+
+  app.post('/api/crm/customers', requireRoles('admin'), async (req, res) => {
+    const parsed = crmCustomerCreateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані клієнта' });
+      return;
+    }
+    let normalizedPhone = '';
+    if (parsed.data.phone.trim()) {
+      const clean = normalizePhoneInput(parsed.data.phone.trim());
+      if (!clean) {
+        res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
+        return;
+      }
+      normalizedPhone = clean;
+    }
+    try {
+      const customer = await createCustomerAccountByCrm({
+        ...parsed.data,
+        phone: normalizedPhone,
+      });
+      res.status(201).json({ customer });
+    } catch (err) {
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Не вдалося створити клієнта' });
+    }
+  });
+
+  app.patch('/api/crm/customers/:id', requireRoles('admin'), async (req, res) => {
+    const customerId = Number(req.params.id);
+    if (!Number.isFinite(customerId) || customerId <= 0) {
+      res.status(400).json({ error: 'Некоректний ID клієнта' });
+      return;
+    }
+    const parsed = crmCustomerPatchSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані клієнта' });
+      return;
+    }
+    let nextPhone: string | undefined;
+    if (parsed.data.phone !== undefined) {
+      if (parsed.data.phone.trim() === '') {
+        nextPhone = '';
+      } else {
+        const clean = normalizePhoneInput(parsed.data.phone.trim());
+        if (!clean) {
+          res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
+          return;
+        }
+        nextPhone = clean;
+      }
+    }
+    try {
+      const customer = await updateCustomerAccountByCrm(customerId, {
+        ...parsed.data,
+        ...(nextPhone !== undefined ? { phone: nextPhone } : {}),
+      });
+      if (!customer) {
+        res.status(404).json({ error: 'Клієнта не знайдено' });
+        return;
+      }
+      res.json({ customer });
+    } catch (err) {
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Не вдалося оновити клієнта' });
+    }
+  });
+
+  app.delete('/api/crm/customers/:id', requireRoles('admin'), async (req, res) => {
+    const customerId = Number(req.params.id);
+    if (!Number.isFinite(customerId) || customerId <= 0) {
+      res.status(400).json({ error: 'Некоректний ID клієнта' });
+      return;
+    }
+    try {
+      const ok = await deleteCustomerAccount(customerId);
+      if (!ok) {
+        res.status(404).json({ error: 'Клієнта не знайдено' });
+        return;
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Не вдалося видалити клієнта' });
+    }
+  });
+
   app.get('/api/crm/status', (_req, res) => {
     res.json({
       telegramConfigured: isTelegramConfigured(),
@@ -1188,7 +1363,7 @@ async function startServer() {
     res.json({ deal: updated });
   });
 
-  app.delete('/api/crm/deals/:id', (req, res) => {
+  app.delete('/api/crm/deals/:id', requireRoles('admin', 'manager'), (req, res) => {
     const dealId = Number(req.params.id);
     if (!Number.isFinite(dealId) || dealId <= 0) {
       res.status(400).json({ error: 'Некоректний ID угоди' });
@@ -1273,7 +1448,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/crm/contacts/:id', async (req, res) => {
+  app.delete('/api/crm/contacts/:id', requireRoles('admin', 'manager'), async (req, res) => {
     const contactId = Number(req.params.id);
     if (!Number.isFinite(contactId) || contactId <= 0) {
       res.status(400).json({ error: 'Некоректний ID контакту' });
@@ -1513,6 +1688,27 @@ async function startServer() {
       return;
     }
 
+    const isValidJpg = buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const isValidPng =
+      buffer.length >= 8 &&
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47 &&
+      buffer[4] === 0x0d &&
+      buffer[5] === 0x0a &&
+      buffer[6] === 0x1a &&
+      buffer[7] === 0x0a;
+    const isValidWebp =
+      buffer.length >= 12 &&
+      buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+
+    if ((ext === 'jpg' && !isValidJpg) || (ext === 'png' && !isValidPng) || (ext === 'webp' && !isValidWebp)) {
+      res.status(400).json({ error: 'Вміст файлу не відповідає формату зображення JPG, PNG або WebP' });
+      return;
+    }
+
     const uploadsDir = getUploadsDir();
     const filename = `project-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
     const targetPath = path.resolve(uploadsDir, filename);
@@ -1586,8 +1782,18 @@ async function startServer() {
     const targetUrl = rawUrl || `${getBaseUrl(req)}/api/telegram/webhook`;
     try {
       const parsed = new URL(targetUrl);
-      if (parsed.protocol !== 'https:') {
-        res.status(400).json({ ok: false, error: 'Telegram Webhook вимагає HTTPS-адресу' });
+      const host = parsed.hostname.toLowerCase();
+      const isPrivateHost =
+        host === 'localhost' ||
+        host === '::1' ||
+        host.endsWith('.local') ||
+        /^127\./.test(host) ||
+        /^10\./.test(host) ||
+        /^192\.168\./.test(host) ||
+        /^169\.254\./.test(host) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+      if (parsed.protocol !== 'https:' || isPrivateHost) {
+        res.status(400).json({ ok: false, error: 'Telegram Webhook вимагає публічну HTTPS-адресу' });
         return;
       }
     } catch {
@@ -1606,6 +1812,17 @@ async function startServer() {
 
   // Ready-to-use Telegram Bot Webhook (for Railway deployment)
   app.post('/api/telegram/webhook', async (req, res) => {
+    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+    if (expectedSecret) {
+      const providedSecret = String(req.headers['x-telegram-bot-api-secret-token'] || '');
+      const a = Buffer.from(providedSecret);
+      const b = Buffer.from(expectedSecret);
+      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        res.status(403).json({ ok: false });
+        return;
+      }
+    }
+
     const update = (req.body ?? {}) as {
       message?: {
         chat?: { id: number };
@@ -1622,16 +1839,18 @@ async function startServer() {
     }
 
     const chatId = msg.chat.id;
-    const text = (msg.text ?? '').trim();
+    const text = (msg.text ?? '').trim().slice(0, 1500);
     const senderName = [msg.from?.first_name, msg.from?.username ? `@${msg.from.username}` : '']
       .filter(Boolean)
-      .join(' ');
+      .join(' ')
+      .slice(0, 120);
 
     if (msg.contact?.phone_number) {
+      const normalized = normalizePhoneInput(msg.contact.phone_number) || msg.contact.phone_number.slice(0, 32);
       const deal = createDeal({
         type: 'lead',
-        customerName: msg.contact.first_name || senderName || 'Telegram клієнт',
-        phone: msg.contact.phone_number,
+        customerName: (msg.contact.first_name || senderName || 'Telegram клієнт').slice(0, 120),
+        phone: normalized,
         city: 'Одеса (Telegram Bot)',
         channel: 'Telegram',
         topic: 'Заявка з Telegram-бота',
@@ -1663,10 +1882,11 @@ async function startServer() {
     } else if (text.length >= 6) {
       const phoneMatch = text.match(/(\+?\d[\d\s\-()]{7,18}\d)/);
       if (phoneMatch) {
+        const normalized = normalizePhoneInput(phoneMatch[1]) || phoneMatch[1].slice(0, 32);
         const deal = createDeal({
           type: 'lead',
           customerName: senderName || 'Telegram клієнт',
-          phone: phoneMatch[1],
+          phone: normalized,
           city: 'Одеса (Telegram Bot)',
           channel: 'Telegram',
           topic: 'Повідомлення у Telegram-боті',

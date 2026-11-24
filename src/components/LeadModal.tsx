@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { X, CheckCircle2, ArrowRight } from 'lucide-react';
-import type { Deal } from '../types.ts';
+import type { CustomerProfile, Deal } from '../types.ts';
 import { track, trackEvent, type LeadPayload, type Placement, type Property, type Scenario } from '../lib/analytics.ts';
 import { tr } from '../lib/i18n.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
@@ -10,6 +10,8 @@ interface LeadModalProps {
   initialTopic: string;
   initialNotes?: string;
   estimatedTotalUsd?: number;
+  clientToken?: string | null;
+  clientCustomer?: CustomerProfile | null;
   onClose: () => void;
   onCreated: (deal: Deal) => void;
   onOpenCrm: () => void;
@@ -21,6 +23,8 @@ export function LeadModal({
   initialTopic,
   initialNotes = '',
   estimatedTotalUsd,
+  clientToken,
+  clientCustomer,
   onClose,
   onCreated,
   onOpenCrm,
@@ -44,8 +48,13 @@ export function LeadModal({
       setError('');
       setCreatedDeal(null);
       formStarted.current = false;
+      if (clientCustomer) {
+        if (!customerName && clientCustomer.name) setCustomerName(clientCustomer.name);
+        if (!phone && clientCustomer.phone) setPhone(formatUaPhone(clientCustomer.phone));
+        if (clientCustomer.city) setCity(clientCustomer.city);
+      }
     }
-  }, [open, initialNotes]);
+  }, [open, initialNotes, clientCustomer]);
 
   function getScenario(topic: string): Scenario {
     if (/сес|соняч|solar/i.test(topic)) return 'solar';
@@ -91,7 +100,10 @@ export function LeadModal({
     try {
       const resp = await fetch('/api/leads', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(clientToken ? { Authorization: `Bearer ${clientToken}` } : {}),
+        },
         body: JSON.stringify({
           customerName: leadPayload.name,
           phone: leadPayload.phone,

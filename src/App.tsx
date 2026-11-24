@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { ShoppingBag, Menu, X, PhoneCall, Send } from 'lucide-react';
+import { ShoppingBag, Menu, X, PhoneCall, Send, User } from 'lucide-react';
 import type {
   AdminAuthStatus,
   AnalyticsConfig,
   CartItem,
+  CustomerProfile,
   Deal,
   Product,
   ProductCategory,
   ProjectCase,
   SocialLinksConfig,
+  UnifiedAuthResult,
 } from './types.ts';
 import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
 import { initAnalytics, track, trackEvent, type Placement } from './lib/analytics.ts';
@@ -19,7 +21,8 @@ import { ServicesView } from './components/ServicesView.tsx';
 import { ProjectsView } from './components/ProjectsView.tsx';
 import { ContactsView } from './components/ContactsView.tsx';
 import { CrmView } from './components/CrmView.tsx';
-import { AdminAuthGate } from './components/AdminAuthGate.tsx';
+import { AuthPortalView } from './components/AuthPortalView.tsx';
+import { ClientCabinetView } from './components/ClientCabinetView.tsx';
 import { ProductModal } from './components/ProductModal.tsx';
 import { CaseModal } from './components/CaseModal.tsx';
 import { LeadModal } from './components/LeadModal.tsx';
@@ -30,7 +33,17 @@ import { InfoPage } from './components/InfoPage.tsx';
 import { formatUahFromUsd } from './lib/currency.ts';
 import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 
-type AppView = 'home' | 'shop' | 'services' | 'projects' | 'contacts' | 'payment-delivery' | 'offer' | 'crm';
+type AppView =
+  | 'home'
+  | 'shop'
+  | 'services'
+  | 'projects'
+  | 'contacts'
+  | 'payment-delivery'
+  | 'offer'
+  | 'login'
+  | 'account'
+  | 'crm';
 
 const CART_STORAGE_KEY = 'ec_cart_v1';
 const VALID_CATS: ProductCategory[] = ['kits', 'inverters', 'batteries', 'panels', 'parts'];
@@ -48,38 +61,50 @@ function parseRouteFromLocation(): {
   view: AppView;
   cat: ProductCategory | 'all';
   productId: string | null;
+  authMode: 'login' | 'register';
 } {
   if (typeof window === 'undefined') {
-    return { view: 'home', cat: 'all', productId: null };
+    return { view: 'home', cat: 'all', productId: null, authMode: 'login' };
   }
   const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
   const params = new URLSearchParams(window.location.search);
   const qCat = params.get('cat');
   const cat: ProductCategory | 'all' = qCat && VALID_CATS.includes(qCat as ProductCategory) ? (qCat as ProductCategory) : 'all';
+  const authMode: 'login' | 'register' = params.get('mode') === 'register' ? 'register' : 'login';
 
   if (pathname === '/shop') {
-    return { view: 'shop', cat, productId: null };
+    return { view: 'shop', cat, productId: null, authMode };
   }
   if (pathname.startsWith('/shop/')) {
     const rawId = pathname.slice('/shop/'.length).split('/')[0];
-    return { view: 'shop', cat: 'all', productId: rawId ? decodeURIComponent(rawId) : null };
+    return { view: 'shop', cat: 'all', productId: rawId ? decodeURIComponent(rawId) : null, authMode };
   }
-  if (pathname === '/services') return { view: 'services', cat: 'all', productId: null };
-  if (pathname === '/projects') return { view: 'projects', cat: 'all', productId: null };
-  if (pathname === '/contacts') return { view: 'contacts', cat: 'all', productId: null };
-  if (pathname === '/payment-delivery') return { view: 'payment-delivery', cat: 'all', productId: null };
-  if (pathname === '/public-offer') return { view: 'offer', cat: 'all', productId: null };
-  if (pathname === '/crm') return { view: 'crm', cat: 'all', productId: null };
-  return { view: 'home', cat: 'all', productId: null };
+  if (pathname === '/services') return { view: 'services', cat: 'all', productId: null, authMode };
+  if (pathname === '/projects') return { view: 'projects', cat: 'all', productId: null, authMode };
+  if (pathname === '/contacts') return { view: 'contacts', cat: 'all', productId: null, authMode };
+  if (pathname === '/payment-delivery') return { view: 'payment-delivery', cat: 'all', productId: null, authMode };
+  if (pathname === '/public-offer') return { view: 'offer', cat: 'all', productId: null, authMode };
+  if (pathname === '/login') return { view: 'login', cat: 'all', productId: null, authMode };
+  if (pathname === '/account') return { view: 'account', cat: 'all', productId: null, authMode };
+  if (pathname === '/crm') return { view: 'crm', cat: 'all', productId: null, authMode };
+  return { view: 'home', cat: 'all', productId: null, authMode };
 }
 
-function buildPathForRoute(view: AppView, cat: ProductCategory | 'all', productId?: string | null): string {
+function buildPathForRoute(
+  view: AppView,
+  cat: ProductCategory | 'all',
+  productId?: string | null,
+  authMode?: 'login' | 'register',
+): string {
   if (productId) {
     return `/shop/${encodeURIComponent(productId)}`;
   }
   if (view === 'home') return '/';
   if (view === 'shop') {
     return cat !== 'all' ? `/shop?cat=${encodeURIComponent(cat)}` : '/shop';
+  }
+  if (view === 'login') {
+    return authMode === 'register' ? '/login?mode=register' : '/login';
   }
   if (view === 'offer') return '/public-offer';
   return `/${view}`;
@@ -88,6 +113,7 @@ function buildPathForRoute(view: AppView, cat: ProductCategory | 'all', productI
 export default function App() {
   const initialRoute = parseRouteFromLocation();
   const [view, setView] = useState<AppView>(initialRoute.view);
+  const [authPortalMode, setAuthPortalMode] = useState<'login' | 'register'>(initialRoute.authMode);
   const [shopInitialCat, setShopInitialCat] = useState<ProductCategory | 'all'>(initialRoute.cat);
   const [pendingProductId, setPendingProductId] = useState<string | null>(initialRoute.productId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -110,9 +136,12 @@ export default function App() {
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [usdUahRate, setUsdUahRate] = useState<number | null>(null);
 
-  // Admin auth token held strictly in React memory (never persisted to localStorage)
+  // Auth tokens held strictly in React memory (never persisted to localStorage)
   const [adminToken, setAdminToken] = useState<string | null>(null);
-  const [authStatus, setAuthStatus] = useState<AdminAuthStatus>({ configured: true, mode: 'login' });
+  const [clientToken, setClientToken] = useState<string | null>(null);
+  const [clientCustomer, setClientCustomer] = useState<CustomerProfile | null>(null);
+  const [cabinetRefreshTrigger, setCabinetRefreshTrigger] = useState(0);
+  const [authStatus, setAuthStatus] = useState<AdminAuthStatus>({ configured: true, mode: 'login', googleEnabled: true });
   const [apiAvailable, setApiAvailable] = useState(true);
 
   // Cart state persisted in localStorage
@@ -207,7 +236,7 @@ export default function App() {
 
   const fetchAuthStatus = useCallback(async () => {
     try {
-      const resp = await fetch('/api/admin/auth/status');
+      const resp = await fetch('/api/auth/status');
       const isJson = resp.headers.get('content-type')?.includes('application/json');
       if (resp.ok && isJson) {
         const data = (await resp.json()) as AdminAuthStatus;
@@ -325,6 +354,7 @@ export default function App() {
     function handlePopState() {
       const parsed = parseRouteFromLocation();
       setView(parsed.view);
+      setAuthPortalMode(parsed.authMode);
       setShopInitialCat(parsed.cat);
       if (parsed.productId) {
         const match = products.find((p) => p.id === parsed.productId);
@@ -348,7 +378,7 @@ export default function App() {
       'Сонячні електростанції та резервне живлення в Одесі: інвертори Deye, SolaX, Solis, АКБ LiFePO4, панелі та монтаж під ключ із гарантією. Замовте розрахунок!';
     let ogImage = `${window.location.origin}/assets/energocomfort/sto_110kw.jpg`;
     let ogType = 'website';
-    const isCrm = view === 'crm';
+    const isPrivateView = view === 'crm' || view === 'login' || view === 'account';
 
     if (selectedProduct) {
       const priceText = selectedProduct.price > 0 ? formatUahFromUsd(selectedProduct.price, usdUahRate) : 'За запитом';
@@ -394,7 +424,11 @@ export default function App() {
       title = 'Публічна оферта та гарантія — Energo Comfort';
       description =
         'Умови публічного договору купівлі-продажу, гарантійного обслуговування та повернення обладнання в інтернет-магазині Energo Comfort.';
-    } else if (isCrm) {
+    } else if (view === 'login') {
+      title = 'Вхід та реєстрація — Energo Comfort';
+    } else if (view === 'account') {
+      title = 'Особистий кабінет — Energo Comfort';
+    } else if (view === 'crm') {
       title = 'CRM — Energo Comfort';
     }
 
@@ -412,7 +446,7 @@ export default function App() {
     };
 
     ensureMeta('name', 'description', description);
-    ensureMeta('name', 'robots', isCrm ? 'noindex, nofollow' : 'index, follow');
+    ensureMeta('name', 'robots', isPrivateView ? 'noindex, nofollow' : 'index, follow');
     ensureMeta('property', 'og:type', ogType);
     ensureMeta('property', 'og:title', title);
     ensureMeta('property', 'og:description', description);
@@ -454,7 +488,7 @@ export default function App() {
     };
 
     const jsonLdEl = document.getElementById('ec-jsonld');
-    if (jsonLdEl && !isCrm) {
+    if (jsonLdEl && !isPrivateView) {
       if (selectedProduct) {
         jsonLdEl.textContent = JSON.stringify({
           '@context': 'https://schema.org',
@@ -518,6 +552,8 @@ export default function App() {
           contacts: 'Контакти',
           'payment-delivery': 'Оплата і доставка',
           offer: 'Публічна оферта',
+          login: 'Вхід та реєстрація',
+          account: 'Особистий кабінет',
           crm: 'CRM',
         };
         const pageTypeMap: Record<AppView, string> = {
@@ -528,6 +564,8 @@ export default function App() {
           contacts: 'ContactPage',
           'payment-delivery': 'WebPage',
           offer: 'WebPage',
+          login: 'WebPage',
+          account: 'WebPage',
           crm: 'WebPage',
         };
         jsonLdEl.textContent = JSON.stringify({
@@ -569,23 +607,30 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   });
 
-  function navigateTo(nextView: AppView, cat?: ProductCategory | 'all') {
+  function navigateTo(
+    nextView: AppView,
+    cat?: ProductCategory | 'all',
+    authMode: 'login' | 'register' = 'login',
+  ) {
     const resolvedCat = nextView === 'shop' ? cat ?? 'all' : 'all';
     if (nextView === 'shop') {
       setShopInitialCat(resolvedCat);
     }
-    if (nextView === 'crm' && !adminToken) {
+    if (nextView === 'login') {
+      setAuthPortalMode(authMode);
+    }
+    if ((nextView === 'crm' || nextView === 'login' || nextView === 'account') && !adminToken) {
       void fetchAuthStatus();
     }
     setSelectedProduct(null);
     setView(nextView);
     setMobileMenuOpen(false);
-    const targetUrl = buildPathForRoute(nextView, resolvedCat, null);
+    const targetUrl = buildPathForRoute(nextView, resolvedCat, null, authMode);
     if (window.location.pathname + window.location.search !== targetUrl) {
       window.history.pushState({}, '', targetUrl);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (nextView !== 'crm') {
+    if (nextView !== 'crm' && nextView !== 'login' && nextView !== 'account') {
       trackEvent('page_view', {
         page_path: targetUrl,
         page_title: nextView,
@@ -593,10 +638,50 @@ export default function App() {
     }
   }
 
-  function handleNavAnchor(e: MouseEvent<HTMLAnchorElement>, nextView: AppView, cat?: ProductCategory | 'all') {
+  function handleUnifiedAuthenticated(result: UnifiedAuthResult) {
+    if (result.accountType === 'staff') {
+      setAdminToken(result.token);
+      setClientToken(null);
+      setClientCustomer(null);
+      void fetchAuthStatus();
+      navigateTo('crm');
+      return;
+    }
+    setClientToken(result.token);
+    setClientCustomer(result.customer ?? null);
+    setAdminToken(null);
+    setCabinetRefreshTrigger((n) => n + 1);
+    navigateTo('account');
+  }
+
+  const handleClientLogout = useCallback(() => {
+    setClientToken(null);
+    setClientCustomer(null);
+    void signOutFirebase();
+    setSelectedProduct(null);
+    setView('home');
+    setMobileMenuOpen(false);
+    if (window.location.pathname + window.location.search !== '/') {
+      window.history.pushState({}, '', '/');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleAdminLogout = useCallback(() => {
+    setAdminToken(null);
+    void signOutFirebase();
+    void fetchAuthStatus();
+  }, [fetchAuthStatus]);
+
+  function handleNavAnchor(
+    e: MouseEvent<HTMLAnchorElement>,
+    nextView: AppView,
+    cat?: ProductCategory | 'all',
+    authMode: 'login' | 'register' = 'login',
+  ) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
-    navigateTo(nextView, cat);
+    navigateTo(nextView, cat, authMode);
   }
 
   function handleSelectProduct(product: Product) {
@@ -736,20 +821,45 @@ export default function App() {
                 type="button"
                 onClick={() => navigateTo('home')}
                 className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                  view !== 'crm' ? 'bg-white/15 text-white' : 'text-slate-300 hover:text-white'
+                  view !== 'crm' && view !== 'login' && view !== 'account'
+                    ? 'bg-white/15 text-white'
+                    : 'text-slate-300 hover:text-white'
                 }`}
               >
                 {tr('Магазин')}
               </button>
-              <button
-                type="button"
-                onClick={() => navigateTo('crm')}
-                className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                  view === 'crm' ? 'bg-[#f59e0b] text-[#0d1f33]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
-                }`}
-              >
-                {crmButtonLabel}
-              </button>
+              {adminToken ? (
+                <button
+                  type="button"
+                  onClick={() => navigateTo('crm')}
+                  className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                    view === 'crm' ? 'bg-[#f59e0b] text-[#0d1f33]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
+                  }`}
+                >
+                  {crmButtonLabel}
+                </button>
+              ) : clientToken ? (
+                <button
+                  type="button"
+                  onClick={() => navigateTo('account')}
+                  className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                    view === 'account' ? 'bg-[#1769aa] text-white' : 'bg-white/10 text-sky-200 hover:bg-white/20'
+                  }`}
+                >
+                  <User className="w-3 h-3" />
+                  <span className="max-w-[90px] truncate">{clientCustomer?.name?.split(' ')[0] || tr('Кабінет', 'Кабинет')}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => navigateTo('login', undefined, 'login')}
+                  className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                    view === 'login' ? 'bg-[#f59e0b] text-[#0d1f33]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
+                  }`}
+                >
+                  {tr('Увійти / Реєстрація', 'Войти / Регистрация')}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -873,7 +983,11 @@ export default function App() {
                 ['contacts', '/contacts', tr('Контакти')],
                 ['payment-delivery', '/payment-delivery', tr('Оплата і доставка')],
                 ['offer', '/public-offer', tr('Публічна оферта')],
-                ['crm', '/crm', crmButtonLabel],
+                ...(adminToken
+                  ? ([['crm', '/crm', crmButtonLabel]] as const)
+                  : clientToken
+                    ? ([['account', '/account', tr('Особистий кабінет', 'Личный кабинет')]] as const)
+                    : ([['login', '/login', tr('Увійти / Реєстрація', 'Войти / Регистрация')]] as const)),
               ] as const
             ).map(([v, href, label]) => (
               <a
@@ -979,6 +1093,41 @@ export default function App() {
               />
             )}
 
+            {view === 'login' && (
+              <AuthPortalView
+                status={authStatus}
+                apiAvailable={apiAvailable}
+                initialMode={authPortalMode}
+                onAuthenticated={handleUnifiedAuthenticated}
+                onBackToStore={() => navigateTo('home')}
+              />
+            )}
+
+            {view === 'account' &&
+              (clientToken ? (
+                <ClientCabinetView
+                  clientToken={clientToken}
+                  initialCustomer={clientCustomer}
+                  products={products}
+                  usdUahRate={usdUahRate}
+                  refreshTrigger={cabinetRefreshTrigger}
+                  onCustomerUpdated={setClientCustomer}
+                  onAddToCart={handleAddToCart}
+                  onOpenLeadModal={(topic, estUsd, notes) => openLeadModal(topic, estUsd, 'section', notes)}
+                  onNavigateShop={() => navigateTo('shop', 'all')}
+                  onBackToStore={() => navigateTo('home')}
+                  onLogout={handleClientLogout}
+                />
+              ) : (
+                <AuthPortalView
+                  status={authStatus}
+                  apiAvailable={apiAvailable}
+                  initialMode="login"
+                  onAuthenticated={handleUnifiedAuthenticated}
+                  onBackToStore={() => navigateTo('home')}
+                />
+              ))}
+
             {view === 'crm' &&
               (adminToken ? (
                 <CrmView
@@ -993,21 +1142,15 @@ export default function App() {
                   onRefreshProjects={fetchProjects}
                   onSocialLinksUpdated={setSocialLinks}
                   onAnalyticsUpdated={(cfg) => initAnalytics(cfg)}
-                  onLogout={() => {
-                    setAdminToken(null);
-                    void signOutFirebase();
-                    void fetchAuthStatus();
-                  }}
+                  onLogout={handleAdminLogout}
                   onBackToStore={() => navigateTo('home')}
                 />
               ) : (
-                <AdminAuthGate
+                <AuthPortalView
                   status={authStatus}
                   apiAvailable={apiAvailable}
-                  onAuthenticated={(token) => {
-                    setAdminToken(token);
-                    void fetchAuthStatus();
-                  }}
+                  initialMode="login"
+                  onAuthenticated={handleUnifiedAuthenticated}
                   onBackToStore={() => navigateTo('home')}
                 />
               ))}
@@ -1086,13 +1229,31 @@ export default function App() {
                   <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block hover:text-white">
                     {tr('Публічна оферта')}
                   </a>
-                  <a
-                    href="/crm"
-                    onClick={(e) => handleNavAnchor(e, 'crm')}
-                    className="block text-amber-300 hover:text-amber-200"
-                  >
-                    {crmButtonLabel}
-                  </a>
+                  {adminToken ? (
+                    <a
+                      href="/crm"
+                      onClick={(e) => handleNavAnchor(e, 'crm')}
+                      className="block text-amber-300 hover:text-amber-200"
+                    >
+                      {crmButtonLabel}
+                    </a>
+                  ) : clientToken ? (
+                    <a
+                      href="/account"
+                      onClick={(e) => handleNavAnchor(e, 'account')}
+                      className="block hover:text-white"
+                    >
+                      {tr('Особистий кабінет', 'Личный кабинет')}
+                    </a>
+                  ) : (
+                    <a
+                      href="/login"
+                      onClick={(e) => handleNavAnchor(e, 'login')}
+                      className="block text-amber-300 hover:text-amber-200"
+                    >
+                      {tr('Увійти / Реєстрація', 'Войти / Регистрация')}
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -1169,8 +1330,13 @@ export default function App() {
         initialTopic={leadTopic}
         initialNotes={leadNotes}
         estimatedTotalUsd={leadEstimateUsd}
+        clientToken={clientToken}
+        clientCustomer={clientCustomer}
         onClose={() => setLeadModalOpen(false)}
-        onCreated={() => void fetchDeals()}
+        onCreated={() => {
+          void fetchDeals();
+          setCabinetRefreshTrigger((n) => n + 1);
+        }}
         onOpenCrm={() => navigateTo('crm')}
         placement={leadPlacement}
       />
@@ -1178,11 +1344,16 @@ export default function App() {
       <CartDrawer
         open={cartOpen}
         items={cart}
+        clientToken={clientToken}
+        clientCustomer={clientCustomer}
         onClose={() => setCartOpen(false)}
         onUpdateQty={handleUpdateCartQty}
         onRemove={handleRemoveFromCart}
         onClearCart={() => setCart([])}
-        onOrderCreated={() => void fetchDeals()}
+        onOrderCreated={() => {
+          void fetchDeals();
+          setCabinetRefreshTrigger((n) => n + 1);
+        }}
         onOpenCrm={() => navigateTo('crm')}
         usdUahRate={usdUahRate}
       />

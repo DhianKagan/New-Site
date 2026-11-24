@@ -1,6 +1,6 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { X, Minus, Plus, Trash2, ShoppingBag, CheckCircle2, ArrowRight } from 'lucide-react';
-import type { CartItem, Deal } from '../types.ts';
+import type { CartItem, CustomerProfile, Deal } from '../types.ts';
 import { tr } from '../lib/i18n.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { track, trackEvent } from '../lib/analytics.ts';
@@ -10,6 +10,8 @@ import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 interface CartDrawerProps {
   open: boolean;
   items: CartItem[];
+  clientToken?: string | null;
+  clientCustomer?: CustomerProfile | null;
   onClose: () => void;
   onUpdateQty: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
@@ -22,6 +24,8 @@ interface CartDrawerProps {
 export function CartDrawer({
   open,
   items,
+  clientToken,
+  clientCustomer,
   onClose,
   onUpdateQty,
   onRemove,
@@ -41,6 +45,16 @@ export function CartDrawer({
   const [error, setError] = useState('');
   const [confirmedDeal, setConfirmedDeal] = useState<Deal | null>(null);
   const checkoutStarted = useRef(false);
+
+  useEffect(() => {
+    if (open && clientCustomer) {
+      if (!customerName && clientCustomer.name) setCustomerName(clientCustomer.name);
+      if (!phone && clientCustomer.phone) setPhone(formatUaPhone(clientCustomer.phone));
+      if (clientCustomer.city && city === 'Одеса (самовивіз / доставка)') {
+        setCity(clientCustomer.city);
+      }
+    }
+  }, [open, clientCustomer]);
 
   if (!open) return null;
 
@@ -68,7 +82,10 @@ export function CartDrawer({
     try {
       const resp = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(clientToken ? { Authorization: `Bearer ${clientToken}` } : {}),
+        },
         body: JSON.stringify({
           customerName: customerName.trim() || 'Покупець магазину',
           phone: normalizedPhone,

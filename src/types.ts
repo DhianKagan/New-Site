@@ -235,6 +235,12 @@ export interface CustomerProfile {
   updatedAt: string;
 }
 
+export interface CrmCustomer extends CustomerProfile {
+  dealsCount: number;
+  activeDealsCount: number;
+  totalUsd: number;
+}
+
 export interface ClientSessionUser {
   customerId: number;
   name: string;

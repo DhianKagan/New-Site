@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   ArrowLeft,
+  BookOpen,
   CheckCircle2,
   ClipboardList,
+  GitBranch,
   LogOut,
   Mail,
   MapPin,
@@ -10,13 +12,18 @@ import {
   Phone,
   RefreshCw,
   ShoppingBag,
+  Sliders,
   Sparkles,
   User,
 } from 'lucide-react';
-import type { CustomerProfile, Deal, DealStage } from '../types.ts';
+import type { CustomerProfile, Deal, DealStage, Product } from '../types.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 import { tr } from '../lib/i18n.ts';
+import { SolarConstructorTab } from './cabinet/SolarConstructorTab.tsx';
+import { SystemSchemesTab } from './cabinet/SystemSchemesTab.tsx';
+import { TechGuideTab } from './cabinet/TechGuideTab.tsx';
+import { SmartImage } from './SmartImage.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
 import { Card } from './ui/card.tsx';
@@ -25,38 +32,45 @@ import { Input } from './ui/input.tsx';
 interface ClientCabinetViewProps {
   clientToken: string;
   initialCustomer: CustomerProfile | null;
+  products: Product[];
   usdUahRate: number | null;
   onCustomerUpdated: (customer: CustomerProfile) => void;
-  onOpenLeadModal: (topic: string) => void;
+  onAddToCart: (product: Product) => void;
+  onOpenLeadModal: (topic: string, estimatedTotalUsd?: number, notes?: string) => void;
   onNavigateShop: () => void;
   onBackToStore: () => void;
   onLogout: () => void;
   refreshTrigger?: number;
 }
 
+type CabinetTab = 'overview' | 'constructor' | 'schemes' | 'guide';
+
 const STAGE_META: Record<
   DealStage,
-  { uk: string; ru: string; variant: 'warning' | 'info' | 'success' | 'neutral' }
+  { uk: string; ru: string; variant: 'warning' | 'info' | 'success' | 'default' }
 > = {
   new: { uk: 'Нова заявка', ru: 'Новая заявка', variant: 'info' },
   audit: { uk: 'Інженерний аудит', ru: 'Инженерный аудит', variant: 'warning' },
   proposal: { uk: 'КП підготовлено', ru: 'КП подготовлено', variant: 'info' },
   fulfillment: { uk: 'Комплектація / монтаж', ru: 'Комплектация / монтаж', variant: 'warning' },
   done: { uk: 'Виконано', ru: 'Выполнено', variant: 'success' },
-  archived: { uk: 'Архів', ru: 'Архив', variant: 'neutral' },
+  archived: { uk: 'Архів', ru: 'Архив', variant: 'default' },
 };
 
 export function ClientCabinetView({
   clientToken,
   initialCustomer,
+  products,
   usdUahRate,
   onCustomerUpdated,
+  onAddToCart,
   onOpenLeadModal,
   onNavigateShop,
   onBackToStore,
   onLogout,
   refreshTrigger = 0,
 }: ClientCabinetViewProps) {
+  const [activeTab, setActiveTab] = useState<CabinetTab>('overview');
   const [customer, setCustomer] = useState<CustomerProfile | null>(initialCustomer);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,15 +83,23 @@ export function ClientCabinetView({
   const [profileNotice, setProfileNotice] = useState('');
   const [profileError, setProfileError] = useState('');
 
+  const onCustomerUpdatedRef = useRef(onCustomerUpdated);
+  onCustomerUpdatedRef.current = onCustomerUpdated;
+  const onLogoutRef = useRef(onLogout);
+  onLogoutRef.current = onLogout;
+  const hasLoadedOnceRef = useRef(false);
+
   const loadCabinet = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedOnceRef.current) {
+      setLoading(true);
+    }
     setLoadError('');
     try {
       const resp = await fetch('/api/client/me', {
         headers: { Authorization: `Bearer ${clientToken}` },
       });
       if (resp.status === 401) {
-        onLogout();
+        onLogoutRef.current();
         return;
       }
       const data = (await resp.json()) as { customer?: CustomerProfile; deals?: Deal[]; error?: string };
@@ -85,18 +107,19 @@ export function ClientCabinetView({
         setLoadError(data.error || tr('Не вдалося завантажити дані кабінету', 'Не удалось загрузить данные кабинета'));
         return;
       }
+      hasLoadedOnceRef.current = true;
       setCustomer(data.customer);
       setDeals(Array.isArray(data.deals) ? data.deals : []);
       setName(data.customer.name);
       setPhone(data.customer.phone ? formatUaPhone(data.customer.phone) : '');
       setCity(data.customer.city || 'Одеса');
-      onCustomerUpdated(data.customer);
+      onCustomerUpdatedRef.current(data.customer);
     } catch {
       setLoadError(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
     } finally {
       setLoading(false);
     }
-  }, [clientToken, onCustomerUpdated, onLogout]);
+  }, [clientToken]);
 
   useEffect(() => {
     void loadCabinet();
@@ -176,13 +199,13 @@ export function ClientCabinetView({
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
-              variant="secondary"
+              variant="accent"
               size="sm"
-              onClick={() => onOpenLeadModal(tr('Розрахунок системи з особистого кабінету', 'Расчёт системы из личного кабинета'))}
+              onClick={() => setActiveTab('constructor')}
               className="bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] border-0 font-bold"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              {tr('Новий розрахунок', 'Новый расчёт')}
+              {tr('Конструктор СЕС', 'Конструктор СЭС')}
             </Button>
             <Button variant="outline" size="sm" onClick={onNavigateShop} className="bg-white/10 text-white border-white/20 hover:bg-white/20">
               <ShoppingBag className="w-3.5 h-3.5" />
@@ -199,11 +222,154 @@ export function ClientCabinetView({
             </Button>
           </div>
         </div>
+
+        {/* Interactive Cabinet Sub-Navigation */}
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-5 flex items-center gap-1.5 overflow-x-auto pb-3">
+          {(
+            [
+              ['overview', ClipboardList, tr('Огляд та замовлення', 'Обзор и заказы')],
+              ['constructor', Sliders, tr('Конструктор СЕС і навантажень', 'Конструктор СЭС и нагрузок')],
+              ['schemes', GitBranch, tr('Схеми підключення', 'Схемы подключения')],
+              ['guide', BookOpen, tr('Панелі, АКБ та інвертори', 'Панели, АКБ и инверторы')],
+            ] as const
+          ).map(([tabId, Icon, label]) => {
+            const active = activeTab === tabId;
+            return (
+              <button
+                key={tabId}
+                type="button"
+                onClick={() => setActiveTab(tabId)}
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                  active
+                    ? 'bg-white text-[#0d1f33] shadow-sm'
+                    : 'bg-white/10 text-slate-200 hover:bg-white/15 hover:text-white'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${active ? 'text-[#1769aa]' : 'text-[#f59e0b]'}`} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="max-w-[1180px] mx-auto px-4 sm:px-5 pt-6 space-y-6">
-        {/* KPI Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {activeTab === 'constructor' && (
+          <SolarConstructorTab
+            products={products}
+            usdUahRate={usdUahRate}
+            onAddToCart={onAddToCart}
+            onOpenLeadModal={onOpenLeadModal}
+          />
+        )}
+
+        {activeTab === 'schemes' && <SystemSchemesTab onOpenLeadModal={onOpenLeadModal} />}
+
+        {activeTab === 'guide' && <TechGuideTab products={products} onOpenLeadModal={onOpenLeadModal} />}
+
+        {activeTab === 'overview' && (
+          <>
+            {/* Interactive Tools Quick-Launch */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                type="button"
+                onClick={() => setActiveTab('constructor')}
+                className="text-left rounded-xl bg-white border border-slate-200 hover:border-[#1769aa] hover:shadow-md transition-all cursor-pointer group overflow-hidden flex flex-col"
+              >
+                <div className="relative h-28 w-full overflow-hidden bg-[#0d1f33]">
+                  <SmartImage
+                    src="/assets/energocomfort/backup_deye_8kw.jpg"
+                    alt={tr('Конструктор станції і навантажень', 'Конструктор станции и нагрузок')}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0d1f33]/80 via-[#0d1f33]/20 to-transparent" />
+                  <span className="absolute top-2.5 left-2.5 w-8 h-8 rounded-lg bg-amber-500 text-[#0d1f33] flex items-center justify-center shadow-sm">
+                    <Sliders className="w-4 h-4" />
+                  </span>
+                  <span className="absolute bottom-2.5 right-3 text-[11px] font-bold text-white bg-[#0d1f33]/75 px-2 py-0.5 rounded-md">
+                    {tr('Відкрити →', 'Открыть →')}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <div className="text-sm font-extrabold text-[#0d1f33]">
+                    {tr('Конструктор станції і навантажень', 'Конструктор станции и нагрузок')}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    {tr(
+                      'Зберіть список приладів, змоделюйте 24-годинний баланс і підберіть комплект зі складу.',
+                      'Соберите список приборов, смоделируйте 24-часовой баланс и подберите комплект со склада.',
+                    )}
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('schemes')}
+                className="text-left rounded-xl bg-white border border-slate-200 hover:border-[#1769aa] hover:shadow-md transition-all cursor-pointer group overflow-hidden flex flex-col"
+              >
+                <div className="relative h-28 w-full overflow-hidden bg-[#0d1f33]">
+                  <SmartImage
+                    src="/assets/energocomfort/house_6kw.png"
+                    alt={tr('Інтерактивні схеми підключення', 'Интерактивные схемы подключения')}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0d1f33]/80 via-[#0d1f33]/20 to-transparent" />
+                  <span className="absolute top-2.5 left-2.5 w-8 h-8 rounded-lg bg-[#1769aa] text-white flex items-center justify-center shadow-sm">
+                    <GitBranch className="w-4 h-4" />
+                  </span>
+                  <span className="absolute bottom-2.5 right-3 text-[11px] font-bold text-white bg-[#0d1f33]/75 px-2 py-0.5 rounded-md">
+                    {tr('Відкрити →', 'Открыть →')}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <div className="text-sm font-extrabold text-[#0d1f33]">
+                    {tr('Інтерактивні схеми підключення', 'Интерактивные схемы подключения')}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    {tr(
+                      'Подивіться, як працює ДБЖ, гібридна СЕС або АВР у блекаут, і які захисти обов’язкові.',
+                      'Посмотрите, как работает ИБП, гибридная СЭС или АВР в блэкаут, и какие защиты обязательны.',
+                    )}
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('guide')}
+                className="text-left rounded-xl bg-white border border-slate-200 hover:border-[#1769aa] hover:shadow-md transition-all cursor-pointer group overflow-hidden flex flex-col"
+              >
+                <div className="relative h-28 w-full overflow-hidden bg-[#0d1f33]">
+                  <SmartImage
+                    src="/assets/energocomfort/kit_battery_30kwh_real.jpg"
+                    alt={tr('Гід по панелях, АКБ та інверторах', 'Гид по панелям, АКБ и инверторам')}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0d1f33]/80 via-[#0d1f33]/20 to-transparent" />
+                  <span className="absolute top-2.5 left-2.5 w-8 h-8 rounded-lg bg-[#169374] text-white flex items-center justify-center shadow-sm">
+                    <BookOpen className="w-4 h-4" />
+                  </span>
+                  <span className="absolute bottom-2.5 right-3 text-[11px] font-bold text-white bg-[#0d1f33]/75 px-2 py-0.5 rounded-md">
+                    {tr('Відкрити →', 'Открыть →')}
+                  </span>
+                </div>
+                <div className="p-4">
+                  <div className="text-sm font-extrabold text-[#0d1f33]">
+                    {tr('Гід по панелях, АКБ та інверторах', 'Гид по панелям, АКБ и инверторам')}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    {tr(
+                      'Порівняння TOPCon vs PERC vs Bifacial, калькулятор окупності LiFePO4 і підбір під дах.',
+                      'Сравнение TOPCon vs PERC vs Bifacial, калькулятор окупаемости LiFePO4 и подбор под крышу.',
+                    )}
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* KPI Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="p-4 flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#1769aa] flex items-center justify-center shrink-0">
               <ClipboardList className="w-5 h-5" />
@@ -321,17 +487,29 @@ export function ClientCabinetView({
                       </div>
 
                       {deal.items.length > 0 && (
-                        <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3 space-y-1.5">
-                          {deal.items.map((item, idx) => (
-                            <div key={`${item.productId}-${idx}`} className="flex items-center justify-between gap-2 text-xs">
-                              <span className="text-[#0d1f33] font-medium truncate">
-                                {item.title} <span className="text-slate-400">× {item.qty}</span>
-                              </span>
-                              <span className="font-mono font-bold text-slate-700 shrink-0">
-                                {formatUahFromUsd(item.price * item.qty, usdUahRate)}
-                              </span>
-                            </div>
-                          ))}
+                        <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3 space-y-2">
+                          {deal.items.map((item, idx) => {
+                            const matchedProd = products.find((p) => p.id === item.productId);
+                            return (
+                              <div key={`${item.productId}-${idx}`} className="flex items-center justify-between gap-2.5 text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {matchedProd?.img && (
+                                    <SmartImage
+                                      src={matchedProd.img}
+                                      alt={item.title}
+                                      className="w-8 h-8 rounded-md object-cover border border-slate-200 bg-white shrink-0"
+                                    />
+                                  )}
+                                  <span className="text-[#0d1f33] font-medium truncate">
+                                    {item.title} <span className="text-slate-400">× {item.qty}</span>
+                                  </span>
+                                </div>
+                                <span className="font-mono font-bold text-slate-700 shrink-0">
+                                  {formatUahFromUsd(item.price * item.qty, usdUahRate)}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -440,6 +618,8 @@ export function ClientCabinetView({
             </form>
           </Card>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

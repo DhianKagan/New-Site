@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { ArrowLeft, Eye, EyeOff, Lock, ShieldAlert, UserPlus } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { ArrowLeft, Check, Copy, Eye, EyeOff, Lock, ShieldAlert, ShieldCheck, UserPlus, Wand2 } from 'lucide-react';
 import type { AdminAuthStatus, UnifiedAuthResult } from '../types.ts';
 import { signInWithGooglePopup } from '../lib/firebaseAuth.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
@@ -13,6 +13,13 @@ interface AuthPortalViewProps {
   onBackToStore: () => void;
 }
 
+function generateStrongPassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  const bytes = new Uint8Array(length);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+}
+
 export function AuthPortalView({
   status,
   apiAvailable = true,
@@ -20,7 +27,7 @@ export function AuthPortalView({
   onAuthenticated,
   onBackToStore,
 }: AuthPortalViewProps) {
-  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register' | 'setup'>(initialMode);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -28,18 +35,49 @@ export function AuthPortalView({
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regCity, setRegCity] = useState('Одеса');
+  const [setupName, setSetupName] = useState('Головний адміністратор');
+  const [setupEmail, setSetupEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [copiedPwd, setCopiedPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [isLockedOut, setIsLockedOut] = useState(false);
 
-  const isRegister = mode === 'register';
+  useEffect(() => {
+    setMode(initialMode);
+    setError('');
+    setIsLockedOut(false);
+  }, [initialMode]);
 
-  function switchMode(nextMode: 'login' | 'register') {
+  const isRegister = mode === 'register';
+  const isSetup = mode === 'setup';
+
+  function switchMode(nextMode: 'login' | 'register' | 'setup') {
     setMode(nextMode);
     setError('');
     setIsLockedOut(false);
+    setPassword('');
+    setConfirmPassword('');
+  }
+
+  function handleGenerateSetupPassword() {
+    const generated = generateStrongPassword(12);
+    setPassword(generated);
+    setConfirmPassword(generated);
+    setShowPassword(true);
+    setCopiedPwd(false);
+  }
+
+  async function handleCopySetupPassword() {
+    if (!password) return;
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopiedPwd(true);
+      window.setTimeout(() => setCopiedPwd(false), 2000);
+    } catch {
+      setCopiedPwd(false);
+    }
   }
 
   async function handleGoogleLogin() {
@@ -70,7 +108,13 @@ export function AuthPortalView({
       if (message.includes('popup-closed-by-user')) {
         setError(tr('Вікно входу Google було закрито до завершення авторизації', 'Окно входа Google было закрыто до завершения авторизации'));
       } else if (message.includes('unauthorized-domain')) {
-        setError(tr('Домен ще не додано в налаштування авторизації', 'Домен ещё не добавлен в настройки авторизации'));
+        const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        setError(
+          tr(
+            `Домен ${host} ще не додано в Authorized domains у Firebase Console`,
+            `Домен ${host} ещё не добавлен в Authorized domains в Firebase Console`,
+          ),
+        );
       } else {
         setError(tr('Не вдалося виконати вхід через Google', 'Не удалось выполнить вход через Google'));
       }
@@ -84,7 +128,16 @@ export function AuthPortalView({
     setError('');
     setIsLockedOut(false);
 
-    if (isRegister) {
+    if (isSetup) {
+      if (password.length < 6) {
+        setError(tr('Пароль має містити щонайменше 6 символів', 'Пароль должен содержать минимум 6 символов'));
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError(tr('Паролі не співпадають', 'Пароли не совпадают'));
+        return;
+      }
+    } else if (isRegister) {
       if (regName.trim().length < 2) {
         setError(tr('Вкажіть ваше ім’я (мінімум 2 символи)', 'Укажите ваше имя (минимум 2 символа)'));
         return;
@@ -118,19 +171,29 @@ export function AuthPortalView({
 
     setSubmitting(true);
     try {
-      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-      const payload = isRegister
+      const endpoint = isSetup
+        ? '/api/admin/auth/setup'
+        : isRegister
+          ? '/api/auth/register'
+          : '/api/auth/login';
+      const payload = isSetup
         ? {
-            name: regName.trim(),
-            email: regEmail.trim().toLowerCase(),
-            phone: regPhone.trim() ? `+${regPhone.replace(/\D/g, '')}` : '',
-            city: regCity.trim() || 'Одеса',
+            name: setupName.trim() || 'Головний адміністратор',
+            email: setupEmail.trim().toLowerCase(),
             password,
           }
-        : {
-            identifier: identifier.trim(),
-            password,
-          };
+        : isRegister
+          ? {
+              name: regName.trim(),
+              email: regEmail.trim().toLowerCase(),
+              phone: regPhone.trim() ? `+${regPhone.replace(/\D/g, '')}` : '',
+              city: regCity.trim() || 'Одеса',
+              password,
+            }
+          : {
+              identifier: identifier.trim(),
+              password,
+            };
 
       const resp = await fetch(endpoint, {
         method: 'POST',
@@ -160,8 +223,8 @@ export function AuthPortalView({
   }
 
   return (
-    <div className="bg-[#f6f8fb] min-h-[calc(100vh-140px)] flex items-center justify-center p-5">
-      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-7 shadow-sm">
+    <div className="bg-[#f6f8fb] min-h-[calc(100vh-140px)] flex flex-col items-center py-8 px-4">
+      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-7 shadow-sm my-auto">
         <button
           type="button"
           onClick={onBackToStore}
@@ -173,51 +236,66 @@ export function AuthPortalView({
 
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-[#0d1f33] text-white flex items-center justify-center shrink-0">
-            {isRegister ? <UserPlus className="w-5 h-5 text-[#f59e0b]" /> : <Lock className="w-5 h-5 text-[#f59e0b]" />}
+            {isSetup ? (
+              <ShieldCheck className="w-5 h-5 text-[#f59e0b]" />
+            ) : isRegister ? (
+              <UserPlus className="w-5 h-5 text-[#f59e0b]" />
+            ) : (
+              <Lock className="w-5 h-5 text-[#f59e0b]" />
+            )}
           </div>
           <div>
             <div className="text-[11px] font-bold text-[#1769aa]">Energo Comfort</div>
             <h1 className="text-lg font-extrabold text-[#0d1f33]">
-              {isRegister
-                ? tr('Реєстрація клієнта', 'Регистрация клиента')
-                : tr('Вхід до акаунту', 'Вход в аккаунт')}
+              {isSetup
+                ? tr('Перше налаштування адміністратора', 'Первая настройка администратора')
+                : isRegister
+                  ? tr('Реєстрація акаунту', 'Регистрация аккаунта')
+                  : tr('Вхід до акаунту', 'Вход в аккаунт')}
             </h1>
           </div>
         </div>
 
         <p className="text-xs text-[#52657a] leading-relaxed mb-5">
-          {isRegister
+          {isSetup
             ? tr(
-                'Створіть особистий кабінет через Google або Email, щоб відстежувати замовлення та розрахунки сонячної станції.',
-                'Создайте личный кабинет через Google или Email, чтобы отслеживать заказы и расчёты солнечной станции.',
+                'Задайте пароль головного адміністратора (логін admin) для першого запуску CRM.',
+                'Задайте пароль главного администратора (логин admin) для первого запуска CRM.',
               )
-            : tr(
-                'Увійдіть через Google або за Email і паролем для доступу до особистого кабінету чи робочого простору.',
-                'Войдите через Google или по Email и паролю для доступа к личному кабинету или рабочему пространству.',
-              )}
+            : isRegister
+              ? tr(
+                  'Створіть особистий кабінет через Google або Email, щоб відстежувати замовлення та розрахунки сонячної станції.',
+                  'Создайте личный кабинет через Google или Email, чтобы отслеживать заказы и расчёты солнечной станции.',
+                )
+              : tr(
+                  'Єдина форма входу для клієнтів, співробітників та адміністратора — через Google або за Email/логіном і паролем.',
+                  'Единая форма входа для клиентов, сотрудников и администратора — через Google или по Email/логину и паролю.',
+                )}
         </p>
 
-        {/* Clean Mode Switcher */}
-        <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl mb-5">
-          <button
-            type="button"
-            onClick={() => switchMode('login')}
-            className={`py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-              !isRegister ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
-            }`}
-          >
-            {tr('Увійти', 'Войти')}
-          </button>
-          <button
-            type="button"
-            onClick={() => switchMode('register')}
-            className={`py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-              isRegister ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
-            }`}
-          >
-            {tr('Реєстрація', 'Регистрация')}
-          </button>
-        </div>
+        {/* Universal Mode Switcher: Login | Register */}
+        {!isSetup && (
+          <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl mb-5">
+            <button
+              type="button"
+              onClick={() => switchMode('login')}
+              className={`py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                !isRegister ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
+              }`}
+            >
+              {tr('Увійти', 'Войти')}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('register')}
+              className={`py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                isRegister ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
+              }`}
+            >
+              {tr('Реєстрація', 'Регистрация')}
+            </button>
+          </div>
+        )}
 
         {!apiAvailable && (
           <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
@@ -229,7 +307,7 @@ export function AuthPortalView({
           </div>
         )}
 
-        {status.googleEnabled && apiAvailable && (
+        {!isSetup && status.googleEnabled !== false && apiAvailable && (
           <div className="mb-5">
             <button
               type="button"
@@ -267,14 +345,52 @@ export function AuthPortalView({
             <div className="relative flex items-center justify-center my-4">
               <div className="border-t border-slate-200 w-full" />
               <span className="bg-white px-3 text-[11px] font-semibold text-slate-400 whitespace-nowrap">
-                {isRegister ? tr('або за Email', 'или по Email') : tr('або за Email та паролем', 'или по Email и паролю')}
+                {isRegister ? tr('або за Email', 'или по Email') : tr('або за Email / логіном та паролем', 'или по Email / логину и паролю')}
               </span>
             </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {isRegister ? (
+          {isSetup ? (
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-bold text-[#0d1f33]">{tr('Майстер-логін', 'Мастер-логин')}</span>
+                <span className="font-mono font-bold text-[#1769aa] bg-white px-2 py-0.5 rounded border border-slate-200">
+                  admin
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label htmlFor="setup-name" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    {tr('Ім’я керівника', 'Имя руководителя')}
+                  </label>
+                  <input
+                    id="setup-name"
+                    type="text"
+                    value={setupName}
+                    onChange={(e) => setSetupName(e.target.value)}
+                    disabled={!apiAvailable || submitting || googleSubmitting}
+                    className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="setup-email" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    Google Email <span className="font-normal text-slate-400">({tr('опц.', 'опц.')})</span>
+                  </label>
+                  <input
+                    id="setup-email"
+                    type="email"
+                    value={setupEmail}
+                    onChange={(e) => setSetupEmail(e.target.value)}
+                    placeholder="owner@gmail.com"
+                    disabled={!apiAvailable || submitting || googleSubmitting}
+                    className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : isRegister ? (
             <>
               <div>
                 <label htmlFor="auth-reg-name" className="block text-xs font-bold text-[#0d1f33] mb-1">
@@ -357,28 +473,52 @@ export function AuthPortalView({
                 disabled={!apiAvailable || submitting || googleSubmitting}
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="name@example.com"
+                placeholder="name@example.com / admin"
                 className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
               />
             </div>
           )}
 
           <div>
-            <label htmlFor="auth-password" className="block text-xs font-bold text-[#0d1f33] mb-1">
-              {tr('Пароль', 'Пароль')}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="auth-password" className="block text-xs font-bold text-[#0d1f33]">
+                {tr('Пароль', 'Пароль')}
+              </label>
+              {isSetup && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateSetupPassword}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    {tr('Згенерувати', 'Сгенерировать')}
+                  </button>
+                  {password && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCopySetupPassword()}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#169374] hover:underline cursor-pointer"
+                    >
+                      {copiedPwd ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedPwd ? tr('Скопійовано', 'Скопировано') : tr('Копіювати', 'Копировать')}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="relative">
               <input
                 id="auth-password"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={isRegister ? 6 : 1}
-                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                minLength={isRegister || isSetup ? 6 : 1}
+                autoComplete={isRegister || isSetup ? 'new-password' : 'current-password'}
                 disabled={!apiAvailable || submitting || googleSubmitting}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isRegister ? tr('Мінімум 6 символів', 'Минимум 6 символов') : '••••••••'}
+                placeholder={isRegister || isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : '••••••••'}
                 className="w-full pl-3.5 pr-10 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
               />
               <button
@@ -392,7 +532,7 @@ export function AuthPortalView({
             </div>
           </div>
 
-          {isRegister && (
+          {(isRegister || isSetup) && (
             <div>
               <label htmlFor="auth-password-confirm" className="block text-xs font-bold text-[#0d1f33] mb-1">
                 {tr('Підтвердіть пароль', 'Подтвердите пароль')}
@@ -435,11 +575,58 @@ export function AuthPortalView({
           >
             {submitting
               ? tr('Зачекайте...', 'Подождите…')
-              : isRegister
-                ? tr('Створити акаунт', 'Создать аккаунт')
-                : tr('Увійти', 'Войти')}
+              : isSetup
+                ? tr('Створити майстер-акаунт та увійти', 'Создать мастер-аккаунт и войти')
+                : isRegister
+                  ? tr('Зареєструватися', 'Зарегистрироваться')
+                  : tr('Увійти', 'Войти')}
           </button>
         </form>
+
+        {/* Bottom quick switchers */}
+        <div className="mt-5 pt-4 border-t border-slate-100 space-y-2 text-center text-xs">
+          {isSetup ? (
+            <button
+              type="button"
+              onClick={() => switchMode('login')}
+              className="font-bold text-[#1769aa] hover:underline cursor-pointer"
+            >
+              {tr('Повернутися до звичайного входу', 'Вернуться к обычному входу')}
+            </button>
+          ) : isRegister ? (
+            <div className="text-slate-500">
+              {tr('Вже є акаунт?', 'Уже есть аккаунт?')}{' '}
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="font-bold text-[#1769aa] hover:underline cursor-pointer"
+              >
+                {tr('Увійти', 'Войти')}
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => switchMode('register')}
+                className="w-full py-2 px-4 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-[#0d1f33] text-xs font-bold transition-colors cursor-pointer"
+              >
+                {tr('Реєстрація нового акаунту', 'Регистрация нового аккаунта')}
+              </button>
+              {status.mode === 'setup' && apiAvailable && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('setup')}
+                    className="text-[11px] font-semibold text-slate-400 hover:text-[#1769aa] cursor-pointer"
+                  >
+                    {tr('Перший запуск: налаштувати пароль адміністратора', 'Первый запуск: настроить пароль администратора')}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

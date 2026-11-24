@@ -9,6 +9,7 @@ import { hashPassword } from './auth.ts';
 import type {
   Contact,
   ContactSegment,
+  CrmCustomer,
   CrmNote,
   CrmTask,
   CustomerProfile,
@@ -2512,11 +2513,11 @@ export async function updateCustomerProfile(
   // Backfill customer_id on existing deals matching this email or phone so history stays linked
   const db = getDb();
   db.prepare(
-    'UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = "" THEN ? ELSE customer_email END WHERE customer_id IS NULL AND LOWER(customer_email) = ?',
+    "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND LOWER(customer_email) = ?",
   ).run(customerId, existing.email.toLowerCase(), existing.email.toLowerCase());
   if (nextPhone) {
     db.prepare(
-      'UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = "" THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?',
+      "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?",
     ).run(customerId, existing.email.toLowerCase(), nextPhone);
   }
 
@@ -2553,6 +2554,196 @@ export async function deleteCustomerAccount(customerId: number): Promise<boolean
   if (!existing) return false;
   await drizzleDb.delete(schema.customerAccountsTable).where(eq(schema.customerAccountsTable.id, customerId));
   return true;
+}
+
+function enrichCrmCustomer(row: typeof schema.customerAccountsTable.$inferSelect): CrmCustomer {
+  const profile = mapCustomerRow(row);
+  const deals = listCustomerDeals({ id: profile.id, email: profile.email, phone: profile.phone });
+  const activeDealsCount = deals.filter((d) => d.stage !== 'done' && d.stage !== 'archived').length;
+  const totalUsd = deals.reduce((sum, d) => sum + (Number(d.totalUsd) || 0), 0);
+  return {
+    ...profile,
+    dealsCount: deals.length,
+    activeDealsCount,
+    totalUsd,
+  };
+}
+
+export async function listCustomerAccounts(): Promise<CrmCustomer[]> {
+  const rows = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .orderBy(desc(schema.customerAccountsTable.id));
+  return rows.map(enrichCrmCustomer);
+}
+
+export async function getCustomerAccountDetail(customerId: number): Promise<{
+  customer: CrmCustomer;
+  deals: Deal[];
+} | null> {
+  const row = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.id, customerId))
+    .get();
+  if (!row) return null;
+  const profile = mapCustomerRow(row);
+  const deals = listCustomerDeals({ id: profile.id, email: profile.email, phone: profile.phone });
+  return {
+    customer: {
+      ...profile,
+      dealsCount: deals.length,
+      activeDealsCount: deals.filter((d) => d.stage !== 'done' && d.stage !== 'archived').length,
+      totalUsd: deals.reduce((sum, d) => sum + (Number(d.totalUsd) || 0), 0),
+    },
+    deals,
+  };
+}
+
+export async function createCustomerAccountByCrm(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  password?: string;
+  active?: boolean;
+}): Promise<CrmCustomer> {
+  const emailNorm = input.email.trim().toLowerCase();
+  const existingStaff = await drizzleDb
+    .select({ id: schema.staffUsersTable.id })
+    .from(schema.staffUsersTable)
+    .where(eq(schema.staffUsersTable.email, emailNorm))
+    .get();
+  if (existingStaff) {
+    throw new Error('Цей Email вже використовується співробітником CRM');
+  }
+
+  const existing = await drizzleDb
+    .select({ id: schema.customerAccountsTable.id })
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.email, emailNorm))
+    .get();
+  if (existing) {
+    throw new Error('Клієнт із таким Email вже зареєстрований');
+  }
+
+  const now = new Date().toISOString();
+  const cleanPhone = input.phone?.trim() ? normalizeContactPhone(input.phone.trim()) : '';
+  const pwd = (input.password ?? '').trim();
+
+  const [inserted] = await drizzleDb
+    .insert(schema.customerAccountsTable)
+    .values({
+      name: input.name.trim(),
+      email: emailNorm,
+      phone: cleanPhone,
+      city: (input.city ?? '').trim() || 'Одеса',
+      firebaseUid: '',
+      passwordHash: pwd ? hashPassword(pwd) : '',
+      authProvider: pwd ? 'password' : 'google',
+      active: input.active === false ? 0 : 1,
+      lastLoginAt: '',
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  const db = getDb();
+  db.prepare(
+    "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND LOWER(customer_email) = ?",
+  ).run(inserted.id, emailNorm, emailNorm);
+  if (cleanPhone) {
+    db.prepare(
+      "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?",
+    ).run(inserted.id, emailNorm, cleanPhone);
+  }
+
+  return enrichCrmCustomer(inserted);
+}
+
+export async function updateCustomerAccountByCrm(
+  customerId: number,
+  patch: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    city?: string;
+    password?: string;
+    clearPassword?: boolean;
+    active?: boolean;
+  },
+): Promise<CrmCustomer | null> {
+  const existing = await drizzleDb
+    .select()
+    .from(schema.customerAccountsTable)
+    .where(eq(schema.customerAccountsTable.id, customerId))
+    .get();
+  if (!existing) return null;
+
+  const nextEmail = patch.email !== undefined ? patch.email.trim().toLowerCase() : existing.email;
+  if (nextEmail !== existing.email) {
+    const conflictStaff = await drizzleDb
+      .select({ id: schema.staffUsersTable.id })
+      .from(schema.staffUsersTable)
+      .where(eq(schema.staffUsersTable.email, nextEmail))
+      .get();
+    if (conflictStaff) {
+      throw new Error('Цей Email вже закріплено за співробітником CRM');
+    }
+    const conflictCustomer = await drizzleDb
+      .select({ id: schema.customerAccountsTable.id })
+      .from(schema.customerAccountsTable)
+      .where(eq(schema.customerAccountsTable.email, nextEmail))
+      .get();
+    if (conflictCustomer && conflictCustomer.id !== customerId) {
+      throw new Error('Інший клієнт вже використовує цей Email');
+    }
+  }
+
+  const nextName = patch.name !== undefined ? patch.name.trim() || existing.name : existing.name;
+  const nextPhone =
+    patch.phone !== undefined ? (patch.phone.trim() ? normalizeContactPhone(patch.phone.trim()) : '') : existing.phone;
+  const nextCity = patch.city !== undefined ? patch.city.trim() || existing.city : existing.city;
+  const nextActive = patch.active !== undefined ? (patch.active ? 1 : 0) : existing.active;
+
+  let nextPasswordHash = existing.passwordHash;
+  if (patch.clearPassword) {
+    nextPasswordHash = '';
+  } else if (patch.password && patch.password.trim()) {
+    nextPasswordHash = hashPassword(patch.password.trim());
+  }
+
+  const hasGoogle = Boolean(existing.firebaseUid) || existing.authProvider === 'google' || existing.authProvider === 'both';
+  const hasPwd = Boolean(nextPasswordHash);
+  const nextProvider = hasGoogle && hasPwd ? 'both' : hasPwd ? 'password' : 'google';
+  const now = new Date().toISOString();
+
+  const [updated] = await drizzleDb
+    .update(schema.customerAccountsTable)
+    .set({
+      name: nextName,
+      email: nextEmail,
+      phone: nextPhone,
+      city: nextCity,
+      passwordHash: nextPasswordHash,
+      authProvider: nextProvider,
+      active: nextActive,
+      updatedAt: now,
+    })
+    .where(eq(schema.customerAccountsTable.id, customerId))
+    .returning();
+
+  const db = getDb();
+  db.prepare(
+    "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND LOWER(customer_email) = ?",
+  ).run(customerId, nextEmail, nextEmail);
+  if (nextPhone) {
+    db.prepare(
+      "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?",
+    ).run(customerId, nextEmail, nextPhone);
+  }
+
+  return enrichCrmCustomer(updated);
 }
 
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Search,
   Download,
@@ -33,6 +33,7 @@ import type {
   AnalyticsConfig,
   AnalyticsEventRecord,
   Contact,
+  CrmCustomer,
   CrmSessionUser,
   CrmTask,
   Deal,
@@ -48,7 +49,7 @@ import type {
 import { SmartImage } from './SmartImage.tsx';
 import { SocialIcons } from './SocialIcons.tsx';
 import { DealsDataTable } from './crm/DealsDataTable.tsx';
-import { ContactsTab } from './crm/ContactsTab.tsx';
+import { ClientsUnifiedTab } from './crm/ClientsUnifiedTab.tsx';
 import { TasksTab } from './crm/TasksTab.tsx';
 import { StaffTab } from './crm/StaffTab.tsx';
 import { tr } from '../lib/i18n.ts';
@@ -100,8 +101,9 @@ export function CrmView({
   onBackToStore,
 }: CrmViewProps) {
   const [crmTab, setCrmTab] = useState<
-    'pipeline' | 'table' | 'contacts' | 'tasks' | 'staff' | 'catalog' | 'projects' | 'analytics' | 'social' | 'deploy'
+    'pipeline' | 'table' | 'clients' | 'tasks' | 'staff' | 'catalog' | 'projects' | 'analytics' | 'social' | 'deploy'
   >('pipeline');
+  const [customers, setCustomers] = useState<CrmCustomer[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [tasks, setTasks] = useState<CrmTask[]>([]);
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
@@ -123,6 +125,7 @@ export function CrmView({
         onRefreshDeals(),
         onRefreshCatalog(),
         onRefreshProjects(),
+        loadCustomers(),
         loadContacts(),
         loadTasks(),
         loadStaff(),
@@ -231,17 +234,20 @@ export function CrmView({
     setSocialForm(socialLinks);
   }, [socialLinks]);
 
+  const onLogoutRef = useRef(onLogout);
+  onLogoutRef.current = onLogout;
+
   const authFetch = useCallback(
     async (url: string, init?: RequestInit): Promise<Response> => {
       const headers = new Headers(init?.headers);
       headers.set('Authorization', `Bearer ${adminToken}`);
       const resp = await fetch(url, { ...init, headers });
       if (resp.status === 401) {
-        onLogout();
+        onLogoutRef.current();
       }
       return resp;
     },
-    [adminToken, onLogout],
+    [adminToken],
   );
 
   const loadAnalytics = useCallback(async () => {
@@ -289,6 +295,14 @@ export function CrmView({
     }
   }, [authFetch]);
 
+  const loadCustomers = useCallback(async () => {
+    const resp = await authFetch('/api/crm/customers');
+    if (resp.ok) {
+      const data = (await resp.json()) as { customers?: CrmCustomer[] };
+      if (Array.isArray(data.customers)) setCustomers(data.customers);
+    }
+  }, [authFetch]);
+
   const loadContacts = useCallback(async () => {
     const resp = await authFetch('/api/crm/contacts');
     if (resp.ok) {
@@ -324,12 +338,13 @@ export function CrmView({
   useEffect(() => {
     void loadCurrentUser();
     void loadStaff();
+    void loadCustomers();
     void loadAnalytics();
     void loadAdminEmails();
     void loadDiagnostics();
     void loadContacts();
     void loadTasks();
-  }, [loadCurrentUser, loadStaff, loadAnalytics, loadAdminEmails, loadDiagnostics, loadContacts, loadTasks]);
+  }, [loadCurrentUser, loadStaff, loadCustomers, loadAnalytics, loadAdminEmails, loadDiagnostics, loadContacts, loadTasks]);
 
   const assigneeOptions = useMemo(() => {
     const set = new Set<string>();
@@ -356,15 +371,32 @@ export function CrmView({
     const ordersCount = active.filter((d) => d.type === 'order').length;
     const pipelineUsd = active.reduce((s, d) => s + d.totalUsd, 0);
     const openTasksCount = tasks.filter((t) => t.status !== 'done').length;
+
+    const seenPhones = new Set<string>();
+    const seenEmails = new Set<string>();
+    let unifiedClientsCount = 0;
+    for (const c of customers) {
+      unifiedClientsCount += 1;
+      if (c.email) seenEmails.add(c.email.trim().toLowerCase());
+      const p = c.phone.replace(/\D/g, '').slice(-9);
+      if (p.length === 9) seenPhones.add(p);
+    }
+    for (const ct of contacts) {
+      const em = ct.email.trim().toLowerCase();
+      const ph = ct.phone.replace(/\D/g, '').slice(-9);
+      if ((em && seenEmails.has(em)) || (ph.length === 9 && seenPhones.has(ph))) continue;
+      unifiedClientsCount += 1;
+    }
+
     return {
       total: active.length,
       newCount,
       ordersCount,
       pipelineUsd,
       openTasksCount,
-      contactsCount: contacts.length,
+      contactsCount: unifiedClientsCount,
     };
-  }, [deals, tasks, contacts]);
+  }, [deals, tasks, contacts, customers]);
 
   const filteredDeals = useMemo(() => {
     const q = dealQuery.trim().toLowerCase();
@@ -1052,7 +1084,7 @@ export function CrmView({
                     items: [
                       { id: 'pipeline', label: tr('Воронка угод'), Icon: LayoutDashboard, badge: metrics.newCount > 0 ? metrics.newCount : null },
                       { id: 'table', label: tr('Таблиця замовлень'), Icon: Table2, badge: metrics.total },
-                      { id: 'contacts', label: tr('Контакти'), Icon: Users, badge: contacts.length },
+                      { id: 'clients', label: tr('Клієнти та контакти', 'Клиенты и контакты'), Icon: Users, badge: metrics.contactsCount },
                       { id: 'tasks', label: tr('Задачі', 'Задачи'), Icon: CheckSquare, badge: metrics.openTasksCount },
                     ],
                   },
@@ -1255,11 +1287,14 @@ export function CrmView({
           />
         )}
 
-        {/* TAB 2B: CONTACTS (TanStack Table + Contact 360 Dialog + Notes/Tasks) */}
-        {crmTab === 'contacts' && (
-          <ContactsTab
+        {/* TAB 2A: UNIFIED CLIENTS & CONTACTS */}
+        {crmTab === 'clients' && (
+          <ClientsUnifiedTab
+            customers={customers}
             contacts={contacts}
+            currentUser={currentUser}
             authFetch={authFetch}
+            onRefreshCustomers={loadCustomers}
             onRefreshContacts={loadContacts}
             onRefreshTasks={loadTasks}
             onOpenDeal={(d) => setSelectedDeal(d)}

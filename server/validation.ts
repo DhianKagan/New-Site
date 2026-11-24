@@ -269,3 +269,26 @@ export const clientProfilePatchSchema = z.object({
   phone: z.string().trim().max(40).optional(),
   city: z.string().trim().min(1, 'Вкажіть місто').max(80).optional(),
 });
+
+export const crmCustomerCreateSchema = z.object({
+  name: z.string().trim().min(2, 'Вкажіть ім’я клієнта (мінімум 2 символи)').max(120),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(160)
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Вкажіть коректний Email'),
+  phone: z.string().trim().max(40).optional().default(''),
+  city: z.string().trim().max(80).optional().default('Одеса'),
+  password: z
+    .string()
+    .max(128)
+    .refine((v) => !v || v.length >= 6, 'Пароль має містити щонайменше 6 символів')
+    .optional()
+    .default(''),
+  active: z.boolean().optional().default(true),
+});
+
+export const crmCustomerPatchSchema = crmCustomerCreateSchema.partial().extend({
+  clearPassword: z.boolean().optional(),
+});
