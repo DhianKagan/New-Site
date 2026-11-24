@@ -2,6 +2,7 @@ import { Check, ArrowRight } from 'lucide-react';
 import { EXTRA_SERVICES, MONTAGE_SERVICES } from '../data/siteContent.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { SmartImage } from './SmartImage.tsx';
+import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 interface ServicesViewProps {
   onBackHome: () => void;
@@ -10,6 +11,7 @@ interface ServicesViewProps {
 }
 
 export function ServicesView({ onBackHome, onOrderService, usdUahRate }: ServicesViewProps) {
+  const isRussian = getActiveLocale() === 'ru';
   const formatPriceLabel = (label: string) =>
     label.replace(/\$(\d+(?:[.,]\d+)?)/g, (_match, amount: string) =>
       formatUahFromUsd(Number(amount.replace(',', '.')), usdUahRate),
@@ -18,7 +20,7 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
     <div>
       <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label="Хлібні крихти" className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-500 mb-2">
             <a
               href="/"
               onClick={(e) => {
@@ -29,17 +31,16 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
               }}
               className="text-[#1769aa] font-bold hover:underline"
             >
-              Головна
+              {tr('Головна')}
             </a>
             <span aria-hidden="true">/</span>
-            <span>Послуги монтажу та інжинірингу</span>
+            <span>{tr('Послуги монтажу та інжинірингу')}</span>
           </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
-            Послуги монтажу СЕС та додатковий інженерний сервіс
+            {tr('Послуги монтажу СЕС та додатковий інженерний сервіс')}
           </h1>
           <p className="text-sm text-[#52657a] max-w-2xl">
-            Власний монтажний підрозділ в Одесі та Одеській області. Від аудиту електромережі до пусконалагодження і
-            юридичного супроводу «зеленого тарифу».
+            {tr('Власний монтажний підрозділ в Одесі та Одеській області. Від аудиту електромережі до пусконалагодження і юридичного супроводу «зеленого тарифу».', 'Своя монтажная команда в Одессе и области: от аудита электросети и пусконаладки до сопровождения оформления «зелёного тарифа».')}
           </p>
         </div>
       </section>
@@ -48,8 +49,8 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
         <div className="max-w-[1180px] mx-auto px-5 space-y-12">
           <div>
             <div className="mb-6">
-              <div className="text-xs font-extrabold text-[#1769aa] mb-1">Напрямок 01</div>
-              <h2 className="text-2xl font-extrabold text-[#0d1f33]">Послуги монтажу під ключ</h2>
+              <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Напрямок 01')}</div>
+              <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Послуги монтажу під ключ')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -64,11 +65,11 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                     </div>
                   )}
                   <div className="p-6 pt-1">
-                    <div className="text-[11px] font-bold text-[#1769aa] mb-1">{svc.kicker}</div>
-                    <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{svc.title}</h3>
-                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{svc.summary}</p>
+                    <div className="text-[11px] font-bold text-[#1769aa] mb-1">{isRussian ? svc.kickerRu ?? svc.kicker : svc.kicker}</div>
+                    <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
+                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
                     <ul className="space-y-2 text-xs text-slate-700">
-                      {svc.bullets.map((b) => (
+                      {(isRussian ? svc.bulletsRu ?? svc.bullets : svc.bullets).map((b) => (
                         <li key={b} className="flex items-start gap-2">
                           <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
                           <span>{b}</span>
@@ -78,13 +79,13 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                   </div>
 
                   <div className="mx-6 pt-4 pb-6 border-t border-slate-100 flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(svc.priceLabel)}</span>
+                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(isRussian ? svc.priceLabelRu ?? svc.priceLabel : svc.priceLabel)}</span>
                     <button
                       type="button"
                       onClick={() => onOrderService(`Послуга: ${svc.title}`)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
                     >
-                      Замовити
+                      {tr('Замовити', 'Заказать')}
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -95,8 +96,8 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
 
           <div className="pt-4 border-t border-slate-200">
             <div className="mb-6">
-              <div className="text-xs font-extrabold text-[#1769aa] mb-1">Напрямок 02</div>
-              <h2 className="text-2xl font-extrabold text-[#0d1f33]">Додаткові інженерні послуги</h2>
+              <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Напрямок 02')}</div>
+              <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Додаткові інженерні послуги')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -111,11 +112,11 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                     </div>
                   )}
                   <div className="p-6 pt-1">
-                    <div className="text-[11px] font-bold text-[#1769aa] mb-1">{svc.kicker}</div>
-                    <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{svc.title}</h3>
-                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{svc.summary}</p>
+                    <div className="text-[11px] font-bold text-[#1769aa] mb-1">{isRussian ? svc.kickerRu ?? svc.kicker : svc.kicker}</div>
+                    <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
+                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
                     <ul className="space-y-2 text-xs text-slate-700">
-                      {svc.bullets.map((b) => (
+                      {(isRussian ? svc.bulletsRu ?? svc.bullets : svc.bullets).map((b) => (
                         <li key={b} className="flex items-start gap-2">
                           <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
                           <span>{b}</span>
@@ -125,13 +126,13 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                   </div>
 
                   <div className="mx-6 pt-4 pb-6 border-t border-slate-200 flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(svc.priceLabel)}</span>
+                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(isRussian ? svc.priceLabelRu ?? svc.priceLabel : svc.priceLabel)}</span>
                     <button
                       type="button"
                       onClick={() => onOrderService(`Додаткова послуга: ${svc.title}`)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
                     >
-                      Залишити заявку
+                      {tr('Залишити заявку', 'Оставить заявку')}
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>

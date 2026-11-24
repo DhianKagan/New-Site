@@ -2,6 +2,7 @@ import { ShoppingBag, ArrowUpRight } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
+import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення',
@@ -20,6 +21,11 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, usdUahRate }: ProductCardProps) {
+  const isRussian = getActiveLocale() === 'ru';
+  const specs = isRussian
+    ? product.specsRu ?? product.specs.map(([key, value]) => [localizeCatalogText(key), localizeCatalogText(value)] as [string, string])
+    : product.specs;
+  const localizedTitle = isRussian ? product.titleRu ?? localizeCatalogText(product.title) : product.title;
   const canBuyDirect = !product.isKit && product.price > 0;
 
   return (
@@ -41,7 +47,7 @@ export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, us
       <div className="p-4 flex-1 flex flex-col justify-between gap-3">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 mb-1.5 truncate">
-            <span>{CAT_LABELS[product.cat] || product.cat}</span>
+            <span>{tr(CAT_LABELS[product.cat] || product.cat)}</span>
             <span aria-hidden="true">·</span>
             <span className="text-[#0d1f33] font-semibold">{product.brand}</span>
             <span aria-hidden="true">·</span>
@@ -54,13 +60,13 @@ export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, us
             className="text-left block w-full cursor-pointer group"
           >
             <h3 className="text-[15px] font-bold text-[#0d1f33] leading-snug line-clamp-2 group-hover:text-[#1769aa] transition-colors">
-              {product.title}
+              {localizedTitle}
             </h3>
           </button>
 
-          {product.specs.length > 0 && (
+          {specs.length > 0 && (
             <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
-              {product.specs.slice(0, 3).map(([k, v]) => (
+              {specs.slice(0, 3).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-2 text-xs">
                   <span className="text-slate-500">{k}</span>
                   <span className="font-semibold text-[#0d1f33] text-right truncate">{v}</span>
@@ -84,7 +90,7 @@ export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, us
                 )}
               </div>
             ) : (
-              <span className="font-mono text-sm font-bold text-[#1769aa]">За запитом</span>
+              <span className="font-mono text-sm font-bold text-[#1769aa]">{tr('За запитом')}</span>
             )}
             <div
               className={`text-[11px] font-semibold mt-0.5 ${
@@ -92,10 +98,10 @@ export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, us
               }`}
             >
               {product.isKit
-                ? 'Інженерний підбір'
+                ? tr('Інженерний підбір')
                 : product.inStock
-                  ? 'В наявності · Одеса'
-                  : 'Під замовлення'}
+                  ? tr('В наявності · Одеса')
+                  : tr('Під замовлення')}
             </div>
           </div>
 
