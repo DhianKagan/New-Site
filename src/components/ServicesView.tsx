@@ -1,6 +1,7 @@
 import { Check, ArrowRight } from 'lucide-react';
 import { EXTRA_SERVICES, MONTAGE_SERVICES } from '../data/siteContent.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
+import { SmartImage } from './SmartImage.tsx';
 
 interface ServicesViewProps {
   onBackHome: () => void;
@@ -55,9 +56,14 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
               {MONTAGE_SERVICES.map((svc) => (
                 <article
                   key={svc.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between gap-5"
+                  className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between gap-5"
                 >
-                  <div>
+                  {svc.image && (
+                    <div className="h-40 bg-slate-100">
+                      <SmartImage src={svc.image} alt={svc.imageAlt ?? svc.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="p-6 pt-1">
                     <div className="text-[11px] font-bold text-[#1769aa] mb-1">{svc.kicker}</div>
                     <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{svc.title}</h3>
                     <p className="text-xs text-[#52657a] leading-relaxed mb-4">{svc.summary}</p>
@@ -71,7 +77,7 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                     </ul>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                  <div className="mx-6 pt-4 pb-6 border-t border-slate-100 flex items-center justify-between gap-3">
                     <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(svc.priceLabel)}</span>
                     <button
                       type="button"
@@ -97,9 +103,14 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
               {EXTRA_SERVICES.map((svc) => (
                 <article
                   key={svc.id}
-                  className="bg-[#f6f8fb] border border-slate-200 rounded-2xl p-6 flex flex-col justify-between gap-5"
+                  className="bg-[#f6f8fb] border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between gap-5"
                 >
-                  <div>
+                  {svc.image && (
+                    <div className="h-40 bg-slate-100">
+                      <SmartImage src={svc.image} alt={svc.imageAlt ?? svc.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="p-6 pt-1">
                     <div className="text-[11px] font-bold text-[#1769aa] mb-1">{svc.kicker}</div>
                     <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{svc.title}</h3>
                     <p className="text-xs text-[#52657a] leading-relaxed mb-4">{svc.summary}</p>
@@ -113,7 +124,7 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                     </ul>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3">
+                  <div className="mx-6 pt-4 pb-6 border-t border-slate-200 flex items-center justify-between gap-3">
                     <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(svc.priceLabel)}</span>
                     <button
                       type="button"
