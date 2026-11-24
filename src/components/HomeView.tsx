@@ -1,10 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Check, ArrowRight, CheckCircle2, PhoneCall, Send } from 'lucide-react';
+import {
+  Calculator,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  ArrowRight,
+  CheckCircle2,
+  PhoneCall,
+  Send,
+  Truck,
+  Zap,
+} from 'lucide-react';
 import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
 import { BRAND_PARTNERS, COMPANY_INFO, FAQ_ITEMS } from '../data/siteContent.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { trackEvent } from '../lib/analytics.ts';
+import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 interface HomeViewProps {
   products: Product[];
@@ -39,6 +52,7 @@ export function HomeView({
   onOpenCrm,
   usdUahRate,
 }: HomeViewProps) {
+  const isRussian = getActiveLocale() === 'ru';
   const [showcaseTab, setShowcaseTab] = useState<ShowcaseTab>('backup-kits');
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
@@ -213,10 +227,10 @@ export function HomeView({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
             <div className="lg:col-span-7 flex flex-col justify-center">
               <div className="text-xs font-extrabold text-[#1769aa] tracking-wide mb-2.5">
-                Резервне живлення · Сонячні електростанції · Одеса
+                {tr('Резервне живлення · Сонячні електростанції · Одеса')}
               </div>
               <h1 className="text-[clamp(2rem,3.8vw,2.75rem)] font-extrabold text-[#0d1f33] leading-[1.1] tracking-tight mb-4 max-w-xl">
-                Енергія, на яку можна <span className="text-[#1769aa]">покластися</span>
+                {tr('Енергія, на яку можна')} <span className="text-[#1769aa]">{tr('покластися')}</span>
               </h1>
               <p className="text-[15px] text-[#52657a] leading-relaxed mb-6 max-w-xl">
                 Проєктування, офіційне постачання обладнання (Deye, SolaX, Solis, Dyness, Trina) та сертифікований
@@ -229,7 +243,7 @@ export function HomeView({
                   onClick={() => onOpenLeadModal('Безкоштовний розрахунок системи з першого екрана')}
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer shadow-xs"
                 >
-                  Розрахувати систему за 15 хв
+                  {tr('Розрахувати систему за 15 хв')}
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <a
@@ -242,7 +256,7 @@ export function HomeView({
                   }}
                   className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-[#0d1f33] text-sm font-bold transition-colors whitespace-nowrap"
                 >
-                  Каталог ({products.length})
+                  {tr('Каталог')} ({products.length})
                 </a>
                 {telegramUrl && (
                   <a
@@ -309,15 +323,15 @@ export function HomeView({
               <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-xs font-semibold text-slate-600">
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
-                  Розрахунок під прилади
+                  {tr('Розрахунок під прилади')}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
-                  Офіс в Одесі (Європейська 93)
+                  {tr('Офіс в Одесі (Європейська 93)')}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
-                  Офіційна гарантія
+                  {tr('Офіційна гарантія')}
                 </span>
               </div>
             </div>
@@ -332,20 +346,20 @@ export function HomeView({
                   <button
                     type="button"
                     onClick={() => onSelectCase(activeHeroCase)}
-                    aria-label={`Детальніше про об’єкт: ${activeHeroCase.title}`}
+                    aria-label={`${tr('Детальніше про об’єкт', 'Подробнее об объекте')}: ${isRussian ? activeHeroCase.titleRu ?? activeHeroCase.title : activeHeroCase.title}`}
                     className="block relative w-full h-full text-left cursor-pointer"
                   >
                     <SmartImage
                       key={`${activeHeroCase.id}-${activeHeroCase.img}`}
                       src={activeHeroCase.img}
-                      alt={`${activeHeroCase.title} — ${activeHeroCase.specs} | Energo Comfort Одеса`}
+                      alt={`${isRussian ? activeHeroCase.titleRu ?? activeHeroCase.title : activeHeroCase.title} — ${isRussian ? activeHeroCase.specsRu ?? activeHeroCase.specs : activeHeroCase.specs} | Energo Comfort Одеса`}
                       priority
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/15 flex flex-col justify-between p-5 text-white">
                       <div className="flex items-center justify-between gap-2">
                         <span className="px-2.5 py-1 rounded-md bg-black/55 backdrop-blur-xs border border-white/15 text-[11px] font-bold text-sky-200">
-                          {activeHeroCase.tag}
+                          {isRussian ? activeHeroCase.tagRu ?? activeHeroCase.tag : activeHeroCase.tag}
                         </span>
                         <span className="px-2 py-0.5 rounded bg-black/55 backdrop-blur-xs border border-white/15 font-mono text-[11px] font-bold text-white tabular-nums">
                           {safeHeroIdx + 1} / {projects.length}
@@ -355,10 +369,10 @@ export function HomeView({
                       <div className="flex items-end justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-[11px] font-semibold text-sky-200 mb-0.5 line-clamp-1">
-                            {activeHeroCase.title}
+                            {isRussian ? activeHeroCase.titleRu ?? activeHeroCase.title : activeHeroCase.title}
                           </div>
                           <div className="text-sm sm:text-base font-extrabold leading-snug line-clamp-2">
-                            {activeHeroCase.specs || activeHeroCase.solution}
+                            {(isRussian ? activeHeroCase.specsRu ?? activeHeroCase.specs : activeHeroCase.specs) || activeHeroCase.solution}
                           </div>
                         </div>
                         <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-sky-200 whitespace-nowrap shrink-0 group-hover:text-white">
@@ -700,18 +714,18 @@ export function HomeView({
                 className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150"
               >
                 <div className="relative h-48 bg-[#0d1f33]">
-                  <SmartImage src={c.img} alt={c.title} className="w-full h-full object-cover" />
+                  <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent text-[11px] font-bold text-white">
-                    {c.tag}
+                    {isRussian ? c.tagRu ?? c.tag : c.tag}
                   </div>
                 </div>
                 <div className="p-4 flex-1 flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-extrabold text-[#0d1f33] mb-1">{c.title}</h3>
+                    <h3 className="text-base font-extrabold text-[#0d1f33] mb-1">{isRussian ? c.titleRu ?? c.title : c.title}</h3>
                     <p className="text-xs text-[#52657a] line-clamp-2 leading-relaxed">{c.task}</p>
                   </div>
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] font-bold">
-                    <span className="font-mono text-[#0d1f33] truncate">{c.specs}</span>
+                    <span className="font-mono text-[#0d1f33] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
                     <span className="text-[#1769aa] shrink-0">Деталі →</span>
                   </div>
                 </div>
@@ -722,33 +736,94 @@ export function HomeView({
       </section>
 
       {/* Process & FAQ */}
-      <section className="py-14 bg-[#f6f8fb] border-t border-slate-200">
+      <section className="py-16 bg-gradient-to-br from-[#eff6fc] via-white to-[#f6f8fb] border-t border-slate-200">
         <div className="max-w-[1180px] mx-auto px-5">
-          <div className="max-w-2xl mb-6">
-            <div className="text-xs font-extrabold text-[#1769aa] mb-1.5">Порядок співпраці</div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33]">
-              Як ми працюємо: від розрахунку до запуску
-            </h2>
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#1769aa]/15 bg-white px-3 py-1 text-xs font-extrabold text-[#1769aa]">
+                <span className="h-2 w-2 rounded-full bg-[#f59e0b]" /> {tr('Порядок співпраці')}
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33]">
+                {tr('Як ми працюємо: від розрахунку до запуску')}
+              </h2>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-[#52657a]">
+              {tr('Один інженерний маршрут — від першої розмови до системи, готової до роботи.', 'Один понятный путь — от первого разговора до готовой к работе системы.')}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div className="relative mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="pointer-events-none absolute left-[12%] right-[12%] top-6 hidden h-px bg-gradient-to-r from-[#1769aa]/10 via-[#1769aa]/40 to-[#f59e0b]/50 lg:block" />
             {[
-              ['01. Консультація', 'Уточнюємо задачу, прилади та 1 чи 3 фази мережі.'],
-              ['02. Розрахунок і проєкт', 'Формуємо 1–2 сумісні конфігурації та прозорий кошторис.'],
-              ['03. Поставка і монтаж', 'Доставляємо зі складу в Одесі та виконуємо акуратний монтаж.'],
-              ['04. Запуск і сервіс', 'Перевіряємо під навантаженням, підключаємо моніторинг та гарантію.'],
-            ].map(([title, desc]) => (
-              <article key={title} className="bg-white border border-slate-200 rounded-xl p-5">
-                <h3 className="text-sm font-extrabold text-[#0d1f33] mb-1.5">{title}</h3>
-                <p className="text-xs text-[#52657a] leading-relaxed">{desc}</p>
+              {
+                number: '01',
+                title: 'Консультація',
+                desc: 'Уточнюємо вашу задачу, прилади та тип електромережі.',
+                detail: 'Знайомимось із вашим об’єктом',
+                Icon: PhoneCall,
+              },
+              {
+                number: '02',
+                title: 'Розрахунок і проєкт',
+                desc: 'Підбираємо сумісне обладнання та готуємо зрозумілий кошторис.',
+                detail: 'Погоджуємо конфігурацію',
+                Icon: Calculator,
+              },
+              {
+                number: '03',
+                title: 'Поставка і монтаж',
+                desc: 'Комплектуємо систему та встановлюємо її на об’єкті.',
+                detail: 'Працюємо за погодженим планом',
+                Icon: Truck,
+              },
+              {
+                number: '04',
+                title: 'Запуск і сервіс',
+                desc: 'Перевіряємо систему, налаштовуємо моніторинг і гарантійний супровід.',
+                detail: 'Передаємо готову систему',
+                Icon: Zap,
+              },
+            ].map(({ number, title, desc, detail, Icon }) => (
+              <article
+                key={number}
+                className="group relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#1769aa]/35 hover:shadow-lg"
+              >
+                <div className="relative mb-5 flex items-center justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eff6fc] text-[#1769aa] ring-4 ring-white transition-colors group-hover:bg-[#1769aa] group-hover:text-white">
+                    <Icon className="h-5 w-5" strokeWidth={2.2} />
+                  </span>
+                  <span className="font-mono text-2xl font-extrabold tracking-tight text-slate-200 group-hover:text-[#1769aa]/25">
+                    {number}
+                  </span>
+                </div>
+                <h3 className="mb-2 text-base font-extrabold text-[#0d1f33]">{tr(title)}</h3>
+                <p className="min-h-12 text-xs leading-relaxed text-[#52657a]">{tr(desc)}</p>
+                <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-[11px] font-bold text-[#1769aa]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" /> {tr(detail)}
+                </div>
               </article>
             ))}
           </div>
 
-          <div className="max-w-3xl mx-auto bg-white border border-slate-200 rounded-xl overflow-hidden">
-            <h3 className="px-5 py-4 border-b border-slate-200 text-sm font-extrabold text-[#0d1f33]">
-              Відповіді на часті питання
-            </h3>
+          <div className="mb-12 flex flex-col gap-4 rounded-2xl bg-[#0d1f33] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7">
+            <div>
+              <p className="font-extrabold">{tr('Є питання щодо вашого об’єкта?', 'Есть вопросы по вашему объекту?')}</p>
+              <p className="mt-1 text-xs text-slate-300">{tr('Почнемо з короткої консультації та підкажемо наступний крок.', 'Начнём с короткой консультации и подскажем следующий шаг.')}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenLeadModal('Консультація щодо вашого об’єкта')}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#f59e0b] px-4 text-sm font-extrabold text-[#0d1f33] transition-colors hover:bg-[#fbbf24]"
+            >
+              {tr('Обговорити проєкт')} <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-1 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-sm font-extrabold text-[#0d1f33]">{tr('Відповіді на часті питання')}</h3>
+              <span className="text-xs text-[#52657a]">{tr('Щоб простіше було зробити перший крок')}</span>
+            </div>
             {FAQ_ITEMS.map((item, idx) => {
               const isOpen = openFaq === idx;
               return (
@@ -759,7 +834,7 @@ export function HomeView({
                     onClick={() => setOpenFaq(isOpen ? null : idx)}
                     className="w-full px-5 py-3.5 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-bold text-[#0d1f33] hover:bg-slate-50 cursor-pointer"
                   >
-                    <span>{item.q}</span>
+                    <span>{tr(item.q)}</span>
                     <ChevronDown
                       className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-150 ${
                         isOpen ? 'rotate-180' : ''
@@ -767,7 +842,7 @@ export function HomeView({
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-5 pb-4 text-xs sm:text-[13px] text-[#52657a] leading-relaxed">{item.a}</div>
+                    <div className="px-5 pb-4 text-xs sm:text-[13px] text-[#52657a] leading-relaxed">{tr(item.a)}</div>
                   )}
                 </div>
               );

@@ -19,6 +19,12 @@ import {
   Share2,
   Link2,
   ExternalLink,
+  Activity,
+  BriefcaseBusiness,
+  ChartNoAxesCombined,
+  LayoutDashboard,
+  Package,
+  Table2,
 } from 'lucide-react';
 import type {
   AnalyticsConfig,
@@ -34,6 +40,7 @@ import type {
 } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { SocialIcons } from './SocialIcons.tsx';
+import { tr } from '../lib/i18n.ts';
 
 interface CrmViewProps {
   adminToken: string;
@@ -88,6 +95,25 @@ export function CrmView({
   const [dealTypeFilter, setDealTypeFilter] = useState<'all' | 'order' | 'lead'>('all');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [savingDeal, setSavingDeal] = useState(false);
+  const [refreshingCrm, setRefreshingCrm] = useState(false);
+  const [draggedDealId, setDraggedDealId] = useState<number | null>(null);
+  const [dropTargetStage, setDropTargetStage] = useState<DealStage | null>(null);
+  const [dealActionMsg, setDealActionMsg] = useState('');
+
+  async function refreshWorkspace() {
+    setRefreshingCrm(true);
+    setDealActionMsg('');
+    try {
+      await Promise.all([onRefreshDeals(), onRefreshCatalog(), onRefreshProjects()]);
+      if (crmTab === 'analytics') await loadAnalytics();
+      if (crmTab === 'deploy' || crmTab === 'catalog') await loadDiagnostics();
+      setDealActionMsg(tr('Дані оновлено', 'Данные обновлены'));
+    } catch {
+      setDealActionMsg(tr('Не вдалося оновити дані. Спробуйте ще раз.', 'Не удалось обновить данные. Попробуйте ещё раз.'));
+    } finally {
+      setRefreshingCrm(false);
+    }
+  }
 
   // Catalog Manager state
   const [catQuery, setCatQuery] = useState('');
@@ -303,12 +329,19 @@ export function CrmView({
       if (resp.ok) {
         const data = (await resp.json()) as { deal: Deal };
         await onRefreshDeals();
+        setDealActionMsg(tr('Етап угоди оновлено', 'Этап сделки обновлён'));
         if (selectedDeal?.id === dealId) {
           setSelectedDeal(data.deal);
         }
+      } else {
+        setDealActionMsg(tr('Не вдалося оновити угоду', 'Не удалось обновить сделку'));
       }
+    } catch {
+      setDealActionMsg(tr('Помилка з’єднання під час оновлення угоди', 'Ошибка соединения при обновлении сделки'));
     } finally {
       setSavingDeal(false);
+      setDraggedDealId(null);
+      setDropTargetStage(null);
     }
   }
 
@@ -816,92 +849,112 @@ export function CrmView({
   }
 
   return (
-    <div className="bg-[#f6f8fb] min-h-[calc(100vh-140px)] pb-12">
-      {/* CRM Top Sub-header */}
-      <div className="bg-white border-b border-slate-200 py-5">
-        <div className="max-w-[1280px] mx-auto px-5 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+    <div className="min-h-[calc(100vh-140px)] bg-[#f3f6fa] pb-12">
+      <div className="bg-gradient-to-r from-[#0d1f33] via-[#12304b] to-[#17466a] text-white shadow-sm">
+        <div className="mx-auto max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
               <button
                 type="button"
                 onClick={onBackToStore}
-                className="inline-flex items-center gap-1 text-[#1769aa] font-bold hover:underline cursor-pointer"
+                className="mb-3 inline-flex items-center gap-1.5 text-xs font-bold text-sky-200 transition-colors hover:text-white"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Повернутися на вітрину
+                <ArrowLeft className="h-3.5 w-3.5" /> {tr('Повернутися на вітрину')}
               </button>
-              <span>/</span>
-              <span>Внутрішня CRM та управління каталогом</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#0d1f33]">
-              Energo Comfort CRM · Замовлення, ліди та склад
-            </h1>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-xl">
-              {(
-                [
-                  ['pipeline', 'Воронка угод'],
-                  ['table', 'Таблиця замовлень'],
-                  ['catalog', `Каталог (${products.length})`],
-                  ['projects', `Об’єкти (${projectsList.length})`],
-                  ['analytics', 'Аналітика (Pixel + GA4)'],
-                  ['social', 'Соцмережі та SEO'],
-                  ['deploy', 'Бекап · Telegram · Вхід'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    setCrmTab(id);
-                    if (id === 'analytics') void loadAnalytics();
-                    if (id === 'deploy' || id === 'catalog') void loadDiagnostics();
-                  }}
-                  className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-                    crmTab === id ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+              <div className="mb-1 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.18em] text-sky-200">
+                <Activity className="h-3.5 w-3.5" /> {tr('Внутрішня CRM та управління каталогом', 'CRM и управление магазином')}
+              </div>
+              <h1 className="text-xl font-extrabold sm:text-2xl">Energo Comfort CRM</h1>
+              <p className="mt-1 text-xs text-slate-300 sm:text-sm">
+                {tr('Замовлення, клієнти, каталог і робочі інструменти', 'Заказы, клиенты, каталог и рабочие инструменты')}
+              </p>
             </div>
 
-            <button
-              type="button"
-              onClick={onLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Вийти
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void refreshWorkspace()}
+                disabled={refreshingCrm}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 text-xs font-bold text-white transition-colors hover:bg-white/20 disabled:opacity-60"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshingCrm ? 'animate-spin' : ''}`} />
+                {refreshingCrm ? tr('Оновлюємо…', 'Обновляем…') : tr('Оновити дані', 'Обновить данные')}
+              </button>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-3 text-xs font-extrabold text-[#0d1f33] transition-colors hover:bg-sky-50"
+              >
+                <LogOut className="h-3.5 w-3.5" /> {tr('Вийти')}
+              </button>
+            </div>
           </div>
+
+          {dealActionMsg && (
+            <div className="mt-3 inline-flex rounded-lg border border-emerald-200/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-semibold text-emerald-100" role="status">
+              {dealActionMsg}
+            </div>
+          )}
+
+          <nav role="tablist" aria-label={tr('Навігація CRM', 'Навигация CRM')} className="mt-5 flex gap-2 overflow-x-auto pb-1">
+            {(
+              [
+                ['pipeline', 'Воронка угод', LayoutDashboard, metrics.newCount ? `${metrics.newCount}` : ''],
+                ['table', 'Таблиця замовлень', Table2, ''],
+                ['catalog', 'Каталог обладнання', Package, `${products.length}`],
+                ['projects', 'Реальні об’єкти', BriefcaseBusiness, `${projectsList.length}`],
+                ['analytics', 'Аналітика', ChartNoAxesCombined, ''],
+                ['social', 'Соцмережі та SEO', Share2, ''],
+                ['deploy', 'Налаштування і резервні копії', Activity, ''],
+              ] as const
+            ).map(([id, label, Icon, badge]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={crmTab === id}
+                onClick={() => {
+                  setCrmTab(id);
+                  if (id === 'analytics') void loadAnalytics();
+                  if (id === 'deploy' || id === 'catalog') void loadDiagnostics();
+                }}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-xs font-bold transition-all ${
+                  crmTab === id
+                    ? 'bg-white text-[#0d1f33] shadow-md'
+                    : 'border border-white/10 bg-white/[0.06] text-slate-200 hover:bg-white/[0.14] hover:text-white'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tr(label)}</span>
+                {badge && <span className={`rounded-md px-1.5 py-0.5 text-[10px] ${crmTab === id ? 'bg-[#eff6fc] text-[#1769aa]' : 'bg-white/10 text-slate-200'}`}>{badge}</span>}
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
 
-      <div className="max-w-[1280px] mx-auto px-5 pt-6 space-y-6">
+      <div className="mx-auto max-w-[1440px] space-y-6 px-4 pt-6 sm:px-6 lg:px-8">
         {/* Clean KPI Summary Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-500">Усього активних угод</div>
-            <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{metrics.total}</div>
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 xl:gap-4">
+          <div className="rounded-2xl border border-slate-200 border-t-[3px] border-t-[#1769aa] bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500"><span>{tr('Усього активних угод')}</span><BriefcaseBusiness className="h-4 w-4 text-[#1769aa]" /></div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-[#0d1f33] tabular-nums">{metrics.total}</div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-500">Нових заявок до обробки</div>
-            <div className="font-mono text-2xl font-extrabold text-[#1769aa] mt-1 tabular-nums">
+          <div className="rounded-2xl border border-slate-200 border-t-[3px] border-t-amber-400 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500"><span>{tr('Нових заявок до обробки')}</span><Activity className="h-4 w-4 text-amber-500" /></div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-[#1769aa] tabular-nums">
               {metrics.newCount}
             </div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-500">Замовлень із кошика</div>
-            <div className="font-mono text-2xl font-extrabold text-[#169374] mt-1 tabular-nums">
+          <div className="rounded-2xl border border-slate-200 border-t-[3px] border-t-emerald-500 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500"><span>{tr('Замовлень із кошика')}</span><Package className="h-4 w-4 text-[#169374]" /></div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-[#169374] tabular-nums">
               {metrics.ordersCount}
             </div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-xs font-semibold text-slate-500">Сума у воронці</div>
-            <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">
+          <div className="rounded-2xl border border-slate-200 border-t-[3px] border-t-indigo-500 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-500"><span>{tr('Сума у воронці')}</span><ChartNoAxesCombined className="h-4 w-4 text-indigo-500" /></div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-[#0d1f33] tabular-nums">
               ${metrics.pipelineUsd.toLocaleString('uk-UA')}
             </div>
           </div>
@@ -938,19 +991,27 @@ export function CrmView({
                       dealTypeFilter === id ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600'
                     }`}
                   >
-                    {label}
+                    {tr(label)}
                   </button>
                 ))}
               </div>
             </div>
 
+            {crmTab === 'pipeline' && (
+              <span className="text-xs font-medium text-slate-500">
+                {tr('Перетягніть картку в інший стовпець, щоб змінити етап', 'Перетащите карточку в другой столбец, чтобы изменить этап')}
+              </span>
+            )}
+            <span className="text-xs font-semibold text-slate-500" aria-live="polite">
+              {tr('Показано', 'Показано')} {filteredDeals.length} {tr('із', 'из')} {metrics.total}
+            </span>
             <button
               type="button"
               onClick={exportCsv}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap"
             >
               <Download className="w-3.5 h-3.5" />
-              Завантажити CSV
+              {tr('Завантажити CSV')}
             </button>
           </div>
         )}
@@ -962,30 +1023,73 @@ export function CrmView({
               const stageDeals = filteredDeals.filter((d) => d.stage === stage.id);
               const stageSum = stageDeals.reduce((s, d) => s + d.totalUsd, 0);
               return (
-                <div key={stage.id} className="bg-white border border-slate-200 rounded-xl p-3 space-y-3">
+                <div
+                  key={stage.id}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDropTargetStage(stage.id);
+                  }}
+                  onDragLeave={() => setDropTargetStage((current) => (current === stage.id ? null : current))}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const dealId = Number(event.dataTransfer.getData('text/plain'));
+                    setDropTargetStage(null);
+                    setDraggedDealId(null);
+                    if (dealId && draggedDealId === dealId) void handlePatchDeal(dealId, { stage: stage.id });
+                  }}
+                  className={`min-h-52 rounded-2xl border p-3 transition-colors ${
+                    dropTargetStage === stage.id
+                      ? 'border-[#1769aa] bg-sky-50 ring-2 ring-[#1769aa]/20'
+                      : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <div className="space-y-3">
                   <div className="pb-2.5 border-b border-slate-200 flex items-center justify-between gap-2">
                     <div>
-                      <div className={`text-xs font-extrabold ${stage.colorClass}`}>{stage.label}</div>
+                      <div className={`text-xs font-extrabold ${stage.colorClass}`}>{tr(stage.label)}</div>
                       <div className="font-mono text-[11px] text-slate-500 mt-0.5 tabular-nums">
-                        {stageDeals.length} угод · ${stageSum.toLocaleString('uk-UA')}
+                        {stageDeals.length} {tr('угод', 'сделок')} · ${stageSum.toLocaleString('ru-RU')}
                       </div>
                     </div>
                   </div>
 
                   {stageDeals.length === 0 ? (
-                    <div className="py-6 text-center text-[11px] text-slate-400">Немає угод на цьому етапі</div>
+                    <div className="rounded-xl border border-dashed border-slate-200 py-6 text-center text-[11px] text-slate-400">{tr('Немає угод на цьому етапі')}</div>
                   ) : (
                     <div className="space-y-2.5">
                       {stageDeals.map((deal) => (
                         <article
                           key={deal.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${tr('Відкрити угоду', 'Открыть сделку')} ${deal.dealNumber}: ${deal.customerName}`}
                           onClick={() => setSelectedDeal(deal)}
-                          className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-[#1769aa] transition-colors cursor-pointer space-y-1.5"
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setSelectedDeal(deal);
+                            }
+                          }}
+                          draggable
+                          onDragStart={(event) => {
+                            event.dataTransfer.setData('text/plain', String(deal.id));
+                            event.dataTransfer.effectAllowed = 'move';
+                            setDraggedDealId(deal.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggedDealId(null);
+                            setDropTargetStage(null);
+                          }}
+                          className={`cursor-grab space-y-1.5 rounded-xl border p-3 transition-all active:cursor-grabbing ${
+                            draggedDealId === deal.id
+                              ? 'scale-[0.98] border-[#1769aa] bg-sky-50 opacity-60'
+                              : 'border-slate-200 bg-slate-50/70 hover:-translate-y-0.5 hover:border-[#1769aa] hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#1769aa]'
+                          }`}
                         >
                           <div className="flex items-center justify-between gap-2 text-[11px]">
                             <span className="font-mono font-bold text-[#0d1f33]">{deal.dealNumber}</span>
                             <span className="text-slate-500 font-semibold">
-                              {deal.type === 'order' ? 'Кошик' : 'Заявка'}
+                              {deal.type === 'order' ? tr('Кошик') : tr('Заявка')}
                             </span>
                           </div>
                           <div className="text-xs font-bold text-[#0d1f33] line-clamp-2">{deal.topic}</div>
@@ -995,13 +1099,14 @@ export function CrmView({
                           <div className="pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-[11px]">
                             <span className="text-slate-500 truncate">{deal.city}</span>
                             <span className="font-mono font-bold text-[#0d1f33] tabular-nums">
-                              {deal.totalUsd > 0 ? `$${deal.totalUsd.toLocaleString('uk-UA')}` : 'Розрахунок'}
+                              {deal.totalUsd > 0 ? `$${deal.totalUsd.toLocaleString('ru-RU')}` : tr('Розрахунок', 'Расчёт')}
                             </span>
                           </div>
                         </article>
                       ))}
                     </div>
                   )}
+                  </div>
                 </div>
               );
             })}
@@ -1016,19 +1121,19 @@ export function CrmView({
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500">
                     <th className="py-2.5 px-4">ID</th>
-                    <th className="py-2.5 px-4">Тип</th>
-                    <th className="py-2.5 px-4">Клієнт / Контакт</th>
-                    <th className="py-2.5 px-4">Задача або позиції</th>
-                    <th className="py-2.5 px-4">Етап</th>
-                    <th className="py-2.5 px-4 text-right">Сума</th>
-                    <th className="py-2.5 px-4 text-right">Дії</th>
+                    <th className="py-2.5 px-4">{tr('Тип')}</th>
+                    <th className="py-2.5 px-4">{tr('Клієнт / Контакт')}</th>
+                    <th className="py-2.5 px-4">{tr('Задача або позиції')}</th>
+                    <th className="py-2.5 px-4">{tr('Етап')}</th>
+                    <th className="py-2.5 px-4 text-right">{tr('Сума')}</th>
+                    <th className="py-2.5 px-4 text-right">{tr('Дії')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {filteredDeals.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-10 text-center text-slate-500">
-                        Угод за вибраним фільтром не знайдено
+                        {tr('Угод за вибраним фільтром не знайдено')}
                       </td>
                     </tr>
                   ) : (
@@ -1038,7 +1143,7 @@ export function CrmView({
                           {d.dealNumber}
                         </td>
                         <td className="py-2.5 px-4 whitespace-nowrap text-slate-600">
-                          {d.type === 'order' ? 'Кошик' : 'Лід'} · {d.channel}
+                          {d.type === 'order' ? tr('Кошик') : tr('Лід')} · {d.channel}
                         </td>
                         <td className="py-2.5 px-4">
                           <div className="font-bold text-[#0d1f33]">{d.customerName}</div>
@@ -1062,7 +1167,7 @@ export function CrmView({
                           >
                             {STAGES.map((s) => (
                               <option key={s.id} value={s.id}>
-                                {s.label}
+                                {tr(s.label)}
                               </option>
                             ))}
                           </select>
@@ -1076,7 +1181,7 @@ export function CrmView({
                             onClick={() => setSelectedDeal(d)}
                             className="text-xs font-bold text-[#1769aa] hover:underline mr-3 cursor-pointer"
                           >
-                            Деталі
+                            {tr('Деталі')}
                           </button>
                           <button
                             type="button"
@@ -2214,11 +2319,11 @@ export function CrmView({
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                 <div>
-                  <div className="text-slate-500">Клієнт</div>
+                  <div className="text-slate-500">{tr('Клієнт')}</div>
                   <div className="font-bold text-[#0d1f33] mt-0.5">{selectedDeal.customerName}</div>
                 </div>
                 <div>
-                  <div className="text-slate-500">Телефон</div>
+                  <div className="text-slate-500">{tr('Телефон')}</div>
                   <div className="font-mono font-bold text-[#0d1f33] mt-0.5">{selectedDeal.phone}</div>
                 </div>
                 <div>
@@ -2233,14 +2338,14 @@ export function CrmView({
 
               {selectedDeal.loads.length > 0 && (
                 <div>
-                  <div className="font-bold text-slate-500 mb-1">Критичні прилади</div>
+                  <div className="font-bold text-slate-500 mb-1">{tr('Критичні прилади')}</div>
                   <div className="text-[#0d1f33] font-semibold">{selectedDeal.loads.join(' · ')}</div>
                 </div>
               )}
 
               {selectedDeal.items.length > 0 && (
                 <div>
-                  <div className="font-bold text-slate-500 mb-1.5">Склад замовлення</div>
+                  <div className="font-bold text-slate-500 mb-1.5">{tr('Склад замовлення')}</div>
                   <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
                     {selectedDeal.items.map((it) => (
                       <div key={it.productId} className="p-2.5 flex items-center justify-between gap-2">
@@ -2256,7 +2361,7 @@ export function CrmView({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Етап воронки</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Етап воронки')}</label>
                   <select
                     value={selectedDeal.stage}
                     disabled={savingDeal}
@@ -2271,7 +2376,7 @@ export function CrmView({
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Відповідальний</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Відповідальний')}</label>
                   <select
                     value={selectedDeal.assignee}
                     disabled={savingDeal}
@@ -2288,7 +2393,7 @@ export function CrmView({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-600 mb-1">Бюджет / Сума угоди (USD)</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Бюджет / Сума угоди (USD)')}</label>
                 <input
                   type="number"
                   min="0"
@@ -2299,7 +2404,7 @@ export function CrmView({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-600 mb-1">Нотатки інженера / менеджера</label>
+                <label className="block font-bold text-slate-600 mb-1">{tr('Нотатки інженера / менеджера')}</label>
                 <textarea
                   rows={3}
                   defaultValue={selectedDeal.notes}
@@ -2312,14 +2417,14 @@ export function CrmView({
               <div className="flex items-center justify-between pt-2 border-t border-slate-200">
                 <div className="inline-flex items-center gap-1.5 text-slate-500">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#169374]" />
-                  <span>Зміни зберігаються в SQLite автоматично</span>
+                  <span>{tr('Зміни зберігаються в SQLite автоматично')}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleDeleteDeal(selectedDeal.id)}
                   className="text-red-600 font-bold hover:underline cursor-pointer"
                 >
-                  Видалити угоду
+                  {tr('Видалити угоду')}
                 </button>
               </div>
             </div>

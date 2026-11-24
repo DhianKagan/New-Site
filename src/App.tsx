@@ -28,6 +28,7 @@ import { SmartImage } from './components/SmartImage.tsx';
 import { SocialIcons } from './components/SocialIcons.tsx';
 import { InfoPage } from './components/InfoPage.tsx';
 import { formatUahFromUsd } from './lib/currency.ts';
+import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 
 type AppView = 'home' | 'shop' | 'services' | 'projects' | 'contacts' | 'payment-delivery' | 'offer' | 'crm';
 
@@ -90,6 +91,16 @@ export default function App() {
   const [shopInitialCat, setShopInitialCat] = useState<ProductCategory | 'all'>(initialRoute.cat);
   const [pendingProductId, setPendingProductId] = useState<string | null>(initialRoute.productId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [locale, setLocale] = useState<Locale>(() => getSavedLocale());
+
+  useEffect(() => {
+    setActiveLocale(locale);
+  }, [locale]);
+
+  function changeLocale(nextLocale: Locale) {
+    setActiveLocale(nextLocale);
+    setLocale(nextLocale);
+  }
 
   const [products, setProducts] = useState<Product[]>([]);
   const [projects, setProjects] = useState<ProjectCase[]>(PROJECTS);
@@ -631,7 +642,9 @@ export default function App() {
 
   const cartTotalCount = cart.reduce((s, i) => s + i.qty, 0);
   const activeDealsCount = deals.filter((d) => d.stage !== 'archived').length;
-  const crmButtonLabel = adminToken ? `Адмін / CRM (${activeDealsCount})` : 'Адмін / CRM';
+  const crmButtonLabel = adminToken
+    ? `${tr('Адмін / CRM')} (${activeDealsCount})`
+    : tr('Адмін / CRM');
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#172636]">
@@ -649,6 +662,22 @@ export default function App() {
             </a>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="inline-flex items-center rounded-md border border-white/15 bg-white/5 p-0.5" aria-label="Мова сайту">
+              {(['uk', 'ru'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  lang={option}
+                  aria-pressed={locale === option}
+                  onClick={() => changeLocale(option)}
+                  className={`rounded px-2 py-1 text-[10px] font-extrabold transition-colors ${
+                    locale === option ? 'bg-white text-[#0d1f33]' : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {option.toUpperCase()}
+                </button>
+              ))}
+            </div>
             <div className="hidden sm:block">
               <SocialIcons links={socialLinks} variant="header" />
             </div>
@@ -660,7 +689,7 @@ export default function App() {
                   view !== 'crm' ? 'bg-white/15 text-white' : 'text-slate-300 hover:text-white'
                 }`}
               >
-                Магазин
+                {tr('Магазин')}
               </button>
               <button
                 type="button"
@@ -705,7 +734,7 @@ export default function App() {
                 view === 'home' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Головна
+              {tr('Головна')}
             </a>
             <a
               href="/shop"
@@ -714,7 +743,7 @@ export default function App() {
                 view === 'shop' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Обладнання
+              {tr('Обладнання')}
             </a>
             <a
               href="/services"
@@ -723,7 +752,7 @@ export default function App() {
                 view === 'services' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Послуги
+              {tr('Послуги')}
             </a>
             <a
               href="/projects"
@@ -732,7 +761,7 @@ export default function App() {
                 view === 'projects' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Проєкти
+              {tr('Проєкти')}
             </a>
             <a
               href="/contacts"
@@ -741,7 +770,7 @@ export default function App() {
                 view === 'contacts' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
-              Контакти
+              {tr('Контакти')}
             </a>
           </nav>
 
@@ -752,19 +781,19 @@ export default function App() {
               onClick={() => openLeadModal('Підбір рішення з шапки сайту')}
               className="inline-flex items-center justify-center h-9 px-2.5 sm:px-3.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <span className="min-[440px]:hidden">Підібрати</span>
-              <span className="hidden min-[440px]:inline">Підібрати рішення</span>
+              <span className="min-[440px]:hidden">{tr('Підібрати')}</span>
+              <span className="hidden min-[440px]:inline">{tr('Підібрати рішення')}</span>
             </button>
 
             <button
               type="button"
               onClick={handleOpenCart}
-              aria-label={`Кошик (${cartTotalCount})`}
-              title="Кошик обладнання"
+              aria-label={`${tr('Кошик')} (${cartTotalCount})`}
+              title={tr('Кошик обладнання', 'Корзина оборудования')}
               className="inline-flex items-center justify-center gap-1.5 h-9 px-2.5 xl:px-3.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <ShoppingBag className="w-4 h-4 text-[#f59e0b] shrink-0" />
-              <span className="hidden xl:inline">Кошик</span>
+              <span className="hidden xl:inline">{tr('Кошик')}</span>
               <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
                 {cartTotalCount}
               </span>
@@ -773,7 +802,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen((v) => !v)}
-              aria-label="Меню"
+              aria-label={tr('Меню', 'Меню')}
               aria-expanded={mobileMenuOpen}
               className="lg:hidden w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-[#0d1f33] cursor-pointer shrink-0"
             >
@@ -787,13 +816,13 @@ export default function App() {
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-2">
             {(
               [
-                ['home', '/', 'Головна'],
-                ['shop', '/shop', `Обладнання (${products.length})`],
-                ['services', '/services', 'Послуги монтажу та інжинірингу'],
-                ['projects', '/projects', `Реалізовані проєкти (${projects.length})`],
-                ['contacts', '/contacts', 'Контакти'],
-                ['payment-delivery', '/payment-delivery', 'Оплата і доставка'],
-                ['offer', '/public-offer', 'Публічна оферта'],
+                ['home', '/', tr('Головна')],
+                ['shop', '/shop', `${tr('Обладнання')} (${products.length})`],
+                ['services', '/services', tr('Послуги монтажу та інжинірингу')],
+                ['projects', '/projects', `${tr('Реалізовані проєкти')} (${projects.length})`],
+                ['contacts', '/contacts', tr('Контакти')],
+                ['payment-delivery', '/payment-delivery', tr('Оплата і доставка')],
+                ['offer', '/public-offer', tr('Публічна оферта')],
                 ['crm', '/crm', crmButtonLabel],
               ] as const
             ).map(([v, href, label]) => (
@@ -814,10 +843,10 @@ export default function App() {
               }}
               className="block w-full text-center px-3 py-2.5 rounded-lg bg-[#1769aa] text-white text-sm font-bold"
             >
-              Підібрати рішення
+              {tr('Підібрати рішення')}
             </button>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-500">Ми в соцмережах:</span>
+              <span className="text-xs font-semibold text-slate-500">{tr('Ми в соцмережах:', 'Мы в соцсетях:')}</span>
               <SocialIcons links={socialLinks} variant="light" />
             </div>
           </div>
