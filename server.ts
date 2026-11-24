@@ -399,6 +399,33 @@ ${itemsXml}
     });
   });
 
+  let usdRateCache: { rate: number; fetchedAt: number } | null = null;
+  app.get('/api/public/exchange-rate', async (_req, res) => {
+    if (usdRateCache && Date.now() - usdRateCache.fetchedAt < 6 * 60 * 60 * 1000) {
+      res.json({ currency: 'USD', rate: usdRateCache.rate, source: 'NBU', fetchedAt: new Date(usdRateCache.fetchedAt).toISOString() });
+      return;
+    }
+    try {
+      const response = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json', {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) throw new Error(`NBU responded ${response.status}`);
+      const rows = (await response.json()) as { cc?: string; rate?: number }[];
+      const rate = rows.find((row) => row.cc === 'USD')?.rate;
+      if (!rate || !Number.isFinite(rate)) throw new Error('NBU USD exchange rate is missing');
+      usdRateCache = { rate, fetchedAt: Date.now() };
+      res.json({ currency: 'USD', rate, source: 'NBU', fetchedAt: new Date(usdRateCache.fetchedAt).toISOString() });
+    } catch (error) {
+      console.error('Unable to fetch NBU exchange rate:', error);
+      if (usdRateCache) {
+        res.json({ currency: 'USD', rate: usdRateCache.rate, source: 'NBU', fetchedAt: new Date(usdRateCache.fetchedAt).toISOString(), stale: true });
+        return;
+      }
+      res.status(503).json({ error: 'Курс НБУ тимчасово недоступний' });
+    }
+  });
+
   app.get('/api/projects', (_req, res) => {
     res.json({ projects: listProjectCases() });
   });

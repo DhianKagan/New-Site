@@ -1,6 +1,7 @@
 import { X, ShoppingBag, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
+import { formatUahFromUsd } from '../lib/currency.ts';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення під ключ',
@@ -15,9 +16,10 @@ interface ProductModalProps {
   onClose: () => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
+  usdUahRate: number | null;
 }
 
-export function ProductModal({ product, onClose, onAddToCart, onRequestQuote }: ProductModalProps) {
+export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, usdUahRate }: ProductModalProps) {
   if (!product) return null;
   const canBuyDirect = !product.isKit && product.price > 0;
 
@@ -70,11 +72,11 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote }: 
                 {product.price > 0 ? (
                   <>
                     <span className="font-mono text-2xl font-extrabold text-[#0d1f33] tabular-nums">
-                      ${product.price.toLocaleString('uk-UA')}
+                      {formatUahFromUsd(product.price, usdUahRate)}
                     </span>
                     {product.oldPrice > product.price && (
                       <span className="font-mono text-sm text-slate-400 line-through tabular-nums">
-                        ${product.oldPrice.toLocaleString('uk-UA')}
+                        {formatUahFromUsd(product.oldPrice, usdUahRate)}
                       </span>
                     )}
                   </>

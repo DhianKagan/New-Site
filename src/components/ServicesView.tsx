@@ -1,12 +1,18 @@
 import { Check, ArrowRight } from 'lucide-react';
 import { EXTRA_SERVICES, MONTAGE_SERVICES } from '../data/siteContent.ts';
+import { formatUahFromUsd } from '../lib/currency.ts';
 
 interface ServicesViewProps {
   onBackHome: () => void;
   onOrderService: (topic: string) => void;
+  usdUahRate: number | null;
 }
 
-export function ServicesView({ onBackHome, onOrderService }: ServicesViewProps) {
+export function ServicesView({ onBackHome, onOrderService, usdUahRate }: ServicesViewProps) {
+  const formatPriceLabel = (label: string) =>
+    label.replace(/\$(\d+(?:[.,]\d+)?)/g, (_match, amount: string) =>
+      formatUahFromUsd(Number(amount.replace(',', '.')), usdUahRate),
+    );
   return (
     <div>
       <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
@@ -66,7 +72,7 @@ export function ServicesView({ onBackHome, onOrderService }: ServicesViewProps) 
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{svc.priceLabel}</span>
+                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(svc.priceLabel)}</span>
                     <button
                       type="button"
                       onClick={() => onOrderService(`Послуга: ${svc.title}`)}
@@ -108,7 +114,7 @@ export function ServicesView({ onBackHome, onOrderService }: ServicesViewProps) 
                   </div>
 
                   <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{svc.priceLabel}</span>
+                    <span className="font-mono text-xs font-bold text-[#0d1f33]">{formatPriceLabel(svc.priceLabel)}</span>
                     <button
                       type="button"
                       onClick={() => onOrderService(`Додаткова послуга: ${svc.title}`)}
