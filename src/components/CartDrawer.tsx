@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { X, Minus, Plus, Trash2, ShoppingBag, CheckCircle2, ArrowRight } from 'lucide-react';
 import type { CartItem, Deal } from '../types.ts';
+import { tr } from '../lib/i18n.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { trackEvent } from '../lib/analytics.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
@@ -102,7 +103,7 @@ export function CartDrawer({
           <div className="flex items-center gap-2.5">
             <ShoppingBag className="w-4 h-4 text-[#1769aa]" />
             <h3 className="text-base font-extrabold text-[#0d1f33]">
-              Кошик обладнання <span className="font-mono text-sm text-slate-500">({totalQty})</span>
+              {tr('Кошик обладнання', 'Корзина оборудования')} <span className="font-mono text-sm text-slate-500">({totalQty})</span>
             </h3>
           </div>
           <button
@@ -111,7 +112,7 @@ export function CartDrawer({
               setConfirmedDeal(null);
               onClose();
             }}
-            aria-label="Закрити кошик"
+            aria-label={tr('Закрити кошик', 'Закрыть корзину')}
             className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -124,13 +125,13 @@ export function CartDrawer({
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
                 <div className="flex items-center gap-2 text-[#169374] font-bold text-sm mb-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Запит на замовлення {confirmedDeal.dealNumber} надіслано</span>
+                  <span>{tr('Запит на замовлення', 'Запрос на заказ')} {confirmedDeal.dealNumber} {tr('надіслано', 'отправлен')}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed">
-                  Сума: <strong className="font-mono">{formatUahFromUsd(confirmedDeal.totalUsd, usdUahRate)}</strong> · Позицій:{' '}
+                  {tr('Сума:', 'Сумма:')} <strong className="font-mono">{formatUahFromUsd(confirmedDeal.totalUsd, usdUahRate)}</strong> · {tr('Позицій:', 'Позиций:')}{' '}
                   {confirmedDeal.items.length}
                   <br />
-                  Замовлення передано у CRM менеджерам Energo Comfort та зафіксовано на номер {confirmedDeal.phone}.
+                  {tr(`Замовлення передано у CRM менеджерам Energo Comfort та зафіксовано на номер ${confirmedDeal.phone}.`, `Заказ передан менеджерам Energo Comfort в CRM. Контактный номер: ${confirmedDeal.phone}.`)}
                 </p>
               </div>
               <button
@@ -142,16 +143,16 @@ export function CartDrawer({
                 }}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer"
               >
-                Відкрити замовлення у CRM
+                {tr('Відкрити замовлення у CRM', 'Открыть заказ в CRM')}
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center border border-dashed border-slate-200 rounded-xl p-6 bg-slate-50">
               <ShoppingBag className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-bold text-[#0d1f33] mb-1">Кошик порожній</p>
+              <p className="text-sm font-bold text-[#0d1f33] mb-1">{tr('Кошик порожній', 'Корзина пуста')}</p>
               <p className="text-xs text-slate-500">
-                Додайте інвертор, LiFePO4 акумулятор, сонячну панель або автоматику захисту з розділу «Обладнання».
+                {tr('Додайте інвертор, LiFePO4 акумулятор, сонячну панель або автоматику захисту з розділу «Обладнання».', 'Добавьте инвертор, аккумулятор LiFePO4, солнечную панель или защитную автоматику из раздела «Оборудование».')}
               </p>
             </div>
           ) : (
@@ -177,7 +178,7 @@ export function CartDrawer({
                         <button
                           type="button"
                           onClick={() => onUpdateQty(item.id, -1)}
-                          aria-label="Зменшити кількість"
+                          aria-label={tr('Зменшити кількість', 'Уменьшить количество')}
                           className="w-6 h-6 rounded border border-slate-300 bg-white flex items-center justify-center text-slate-700 hover:bg-slate-100 cursor-pointer"
                         >
                           <Minus className="w-3 h-3" />
@@ -186,7 +187,7 @@ export function CartDrawer({
                         <button
                           type="button"
                           onClick={() => onUpdateQty(item.id, 1)}
-                          aria-label="Збільшити кількість"
+                          aria-label={tr('Збільшити кількість', 'Увеличить количество')}
                           className="w-6 h-6 rounded border border-slate-300 bg-white flex items-center justify-center text-slate-700 hover:bg-slate-100 cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
@@ -194,7 +195,7 @@ export function CartDrawer({
                         <button
                           type="button"
                           onClick={() => onRemove(item.id)}
-                          aria-label="Видалити"
+                          aria-label={tr('Видалити', 'Удалить')}
                           className="ml-auto text-slate-400 hover:text-red-600 cursor-pointer p-1"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -206,10 +207,10 @@ export function CartDrawer({
               </div>
 
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-sm font-extrabold text-[#0d1f33]">
-                <span>Разом ({totalQty} од.):</span>
+                <span>{tr('Разом', 'Итого')} ({totalQty} {tr('од.', 'шт.')}):</span>
                 <span className="font-mono text-lg tabular-nums">{formatUahFromUsd(subtotal, usdUahRate)}</span>
               </div>
-              <p className="text-[11px] text-slate-500">Ціни перераховані за офіційним курсом НБУ. Остаточну суму в гривнях підтвердить менеджер під час узгодження замовлення.</p>
+              <p className="text-[11px] text-slate-500">{tr('Ціни перераховані за офіційним курсом НБУ. Остаточну суму в гривнях підтвердить менеджер під час узгодження замовлення.', 'Цены пересчитаны по официальному курсу НБУ. Итоговую сумму в гривнах менеджер подтвердит при согласовании заказа.')}</p>
 
               <form onSubmit={handleCheckout} className="space-y-3 pt-2 border-t border-slate-200">
                 <div className="hidden" aria-hidden="true">
@@ -221,12 +222,12 @@ export function CartDrawer({
                     onChange={(e) => setWebsite(e.target.value)}
                   />
                 </div>
-                <div className="text-xs font-bold text-[#0d1f33]">Оформлення замовлення</div>
+                <div className="text-xs font-bold text-[#0d1f33]">{tr('Оформлення замовлення', 'Оформление заказа')}</div>
                 <input
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Ваше ім’я або компанія"
+                  placeholder={tr('Ваше ім’я або компанія', 'Ваше имя или компания')}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
                 />
                 <input
@@ -234,7 +235,7 @@ export function CartDrawer({
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Телефон * (+38 0__ ___ __ __)"
+                  placeholder={tr('Телефон * (+38 0__ ___ __ __)', 'Телефон * (+38 0__ ___ __ __)')}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
                 />
                 <div className="grid grid-cols-2 gap-2.5">
@@ -242,7 +243,7 @@ export function CartDrawer({
                     type="text"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="Місто / Нова Пошта"
+                    placeholder={tr('Місто / Нова Пошта', 'Город / Новая Почта')}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                   />
                   <select
@@ -250,7 +251,7 @@ export function CartDrawer({
                     onChange={(e) => setChannel(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:border-[#1769aa]"
                   >
-                    <option value="Телефон">Дзвінок</option>
+                    <option value="Телефон">{tr('Дзвінок')}</option>
                     <option value="Telegram">Telegram</option>
                     <option value="Viber">Viber</option>
                   </select>
@@ -259,7 +260,7 @@ export function CartDrawer({
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Коментар щодо доставки, ПДВ/ФОП або сумісності"
+                  placeholder={tr('Коментар щодо доставки, ПДВ/ФОП або сумісності', 'Комментарий по доставке, НДС/ФЛП или совместимости')}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                 />
 
@@ -272,7 +273,7 @@ export function CartDrawer({
                     className="mt-1 accent-[#1769aa]"
                   />
                   <span>
-                    Ознайомився(-лася) з <a href="/public-offer" target="_blank" rel="noreferrer" className="font-bold text-[#1769aa] underline">проєктом публічної оферти</a> та підтверджую, що заявка є запитом на підтвердження замовлення.
+                    {tr('Ознайомився(-лася) з', 'Я ознакомился(-лась) с')} <a href="/public-offer" target="_blank" rel="noreferrer" className="font-bold text-[#1769aa] underline">{tr('проєктом публічної оферти', 'проектом публичной оферты')}</a> {tr('та підтверджую, що заявка є запитом на підтвердження замовлення.', 'и подтверждаю, что заявка является запросом на подтверждение заказа.')}
                   </span>
                 </label>
 
@@ -283,7 +284,7 @@ export function CartDrawer({
                   disabled={submitting}
                   className="w-full py-3 px-4 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] disabled:opacity-60 text-[#0d1f33] hover:text-white text-sm font-extrabold transition-colors cursor-pointer"
                 >
-                  {submitting ? 'Надсилаємо...' : 'Надіслати запит на замовлення'}
+                  {submitting ? tr('Надсилаємо...') : tr('Надіслати запит на замовлення', 'Отправить запрос на заказ')}
                 </button>
               </form>
             </>

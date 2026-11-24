@@ -27,16 +27,16 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
               }}
               className="text-[#1769aa] font-bold hover:underline"
             >
-              Головна
+              {tr('Головна')}
             </a>
             <span aria-hidden="true">/</span>
-            <span>Контакти та інформація</span>
+            <span>{tr('Контакти та інформація')}</span>
           </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
-            Ми на зв’язку та раді відповісти на ваші питання
+            {tr('Ми на зв’язку та раді відповісти на ваші питання')}
           </h1>
           <p className="text-sm text-[#52657a] max-w-2xl">
-            Головний офіс, склад обладнання та інженерний відділ компанії Energo Comfort в Одесі.
+            {tr('Головний офіс, склад обладнання та інженерний відділ компанії Energo Comfort в Одесі.')}
           </p>
         </div>
       </section>
@@ -45,16 +45,16 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
         <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-6 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
             <div className="mb-6">
-              <div className="text-xs font-extrabold text-[#1769aa] mb-1">Контакти</div>
-              <h2 className="text-2xl font-extrabold text-[#0d1f33]">Зв’яжіться з нами</h2>
-              <p className="mt-2 text-sm text-[#52657a]">Проконсультуємо щодо обладнання, монтажу та підбору системи.</p>
+              <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Контакти')}</div>
+              <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Зв’яжіться з нами')}</h2>
+              <p className="mt-2 text-sm text-[#52657a]">{tr('Проконсультуємо щодо обладнання, монтажу та підбору системи.')}</p>
             </div>
 
             <div className="space-y-5">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><MapPin className="h-5 w-5" /></span>
                 <div>
-                  <p className="text-xs font-bold text-[#52657a]">Головний офіс</p>
+                  <p className="text-xs font-bold text-[#52657a]">{tr('Головний офіс')}</p>
                   <p className="mt-1 text-sm font-bold text-[#0d1f33]">{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
                 </div>
               </div>
@@ -62,7 +62,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Phone className="h-5 w-5" /></span>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-[#52657a]">Телефони</p>
+                  <p className="text-xs font-bold text-[#52657a]">{tr('Телефони')}</p>
                   <a href={COMPANY_INFO.phone1Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone1}</a>
                   <a href={COMPANY_INFO.phone2Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone2 })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone2}</a>
                 </div>
@@ -71,7 +71,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Mail className="h-5 w-5" /></span>
                 <div>
-                  <p className="text-xs font-bold text-[#52657a]">Електронна пошта</p>
+                  <p className="text-xs font-bold text-[#52657a]">{tr('Електронна пошта')}</p>
                   <a href={`mailto:${COMPANY_INFO.email}`} className="mt-1 block break-all text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.email}</a>
                 </div>
               </div>
@@ -79,7 +79,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
               <div className="flex items-center gap-3 border-t border-slate-100 pt-5">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Clock className="h-5 w-5" /></span>
                 <div>
-                  <p className="text-xs font-bold text-[#52657a]">Графік роботи</p>
+                  <p className="text-xs font-bold text-[#52657a]">{tr('Графік роботи')}</p>
                   <p className="mt-1 text-sm font-bold text-[#0d1f33]">{COMPANY_INFO.schedule}</p>
                 </div>
               </div>
@@ -88,8 +88,8 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-5">
               <SocialIcons links={socialLinks} variant="light" />
               <div className="flex flex-wrap gap-2">
-                <a href={COMPANY_INFO.phone1Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#1769aa] px-4 text-sm font-bold text-white hover:bg-[#12568c]">Зателефонувати</a>
-                <button type="button" onClick={() => onOpenLeadModal('Консультація зі сторінки Контакти')} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-[#0d1f33] hover:bg-slate-50">Замовити дзвінок</button>
+                <a href={COMPANY_INFO.phone1Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#1769aa] px-4 text-sm font-bold text-white hover:bg-[#12568c]">{tr('Зателефонувати')}</a>
+                <button type="button" onClick={() => onOpenLeadModal('Консультація зі сторінки Контакти')} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-[#0d1f33] hover:bg-slate-50">{tr('Замовити дзвінок')}</button>
               </div>
             </div>
           </div>
@@ -110,28 +110,25 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
       <section className="bg-white py-10 sm:py-12">
         <div className="mx-auto max-w-[1180px] px-5">
           <div className="rounded-2xl border border-slate-200 bg-[#f6f8fb] p-6 sm:p-8">
-              <div className="text-xs font-extrabold text-[#1769aa]">Про компанію та умови</div>
-              <h2 className="text-xl font-extrabold text-[#0d1f33]">Гарантія, повернення та оферта</h2>
+              <div className="text-xs font-extrabold text-[#1769aa]">{tr('Про компанію та умови')}</div>
+              <h2 className="text-xl font-extrabold text-[#0d1f33]">{tr('Гарантія, повернення та оферта')}</h2>
               <div className="space-y-3 text-xs text-[#52657a] leading-relaxed">
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" />
                   <p>
-                    <strong className="text-[#0d1f33]">Офіційне постачання:</strong> прямі поставки інверторів Deye,
-                    SolaX Power, Solis, Huawei та LiFePO4 АКБ з офіційною гарантією виробника.
+                    <strong className="text-[#0d1f33]">{tr('Офіційне постачання:', 'Официальные поставки:')}</strong> {tr('прямі поставки інверторів Deye, SolaX Power, Solis, Huawei та LiFePO4 АКБ з офіційною гарантією виробника.', 'прямые поставки инверторов Deye, SolaX Power, Solis, Huawei и LiFePO4 аккумуляторов с официальной гарантией производителя.')}
                   </p>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" />
                   <p>
-                    <strong className="text-[#0d1f33]">Повернення та обмін (14 днів):</strong> згідно із Законом України
-                    «Про захист прав споживачів» за збереження пломб, товарного вигляду та повної комплектації.
+                    <strong className="text-[#0d1f33]">{tr('Повернення та обмін (14 днів):', 'Возврат и обмен (14 дней):')}</strong> {tr('згідно із Законом України «Про захист прав споживачів» за збереження пломб, товарного вигляду та повної комплектації.', 'в соответствии с Законом Украины «О защите прав потребителей» при сохранении пломб, товарного вида и полной комплектации.')}
                   </p>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" />
                   <p>
-                    <strong className="text-[#0d1f33]">Конфіденційність та публічна оферта:</strong> персональні дані
-                    використовуються виключно для інженерного розрахунку, оформлення замовлень і гарантійного супроводу.
+                    <strong className="text-[#0d1f33]">{tr('Конфіденційність та публічна оферта:', 'Конфиденциальность и публичная оферта:')}</strong> {tr('персональні дані використовуються виключно для інженерного розрахунку, оформлення замовлень і гарантійного супроводу.', 'персональные данные используются только для инженерного расчёта, оформления заказов и гарантийного обслуживания.')}
                   </p>
                 </div>
               </div>
