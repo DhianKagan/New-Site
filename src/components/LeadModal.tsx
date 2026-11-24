@@ -178,7 +178,7 @@ export function LeadModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">Телефон *</label>
+                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Телефон *')}</label>
                   <input
                     type="tel"
                     required
