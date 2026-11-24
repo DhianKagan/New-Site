@@ -138,7 +138,7 @@ export default function App() {
     const updateStickyVisibility = () => {
       const viewport = window.visualViewport;
       const keyboardOpen = Boolean(viewport && viewport.height < window.innerHeight * 0.72);
-      setStickyCtaVisible(window.scrollY > window.innerHeight * 0.75 && !keyboardOpen);
+      setStickyCtaVisible(window.scrollY > window.innerHeight && !keyboardOpen);
     };
     window.addEventListener('scroll', updateStickyVisibility, { passive: true });
     window.addEventListener('resize', updateStickyVisibility);
