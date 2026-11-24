@@ -388,7 +388,7 @@ export function HomeView({
                           e.stopPropagation();
                           setHeroIdx((prev) => (prev - 1 + projects.length) % projects.length);
                         }}
-                        aria-label="Попередній об’єкт"
+                        aria-label={tr('Попередній об’єкт', 'Предыдущий объект')}
                         className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-[#0d1f33]/75 hover:bg-[#1769aa] text-white border border-white/30 backdrop-blur-xs flex items-center justify-center transition-colors cursor-pointer shadow-md"
                       >
                         <ChevronLeft className="w-5 h-5" />
@@ -399,7 +399,7 @@ export function HomeView({
                           e.stopPropagation();
                           setHeroIdx((prev) => (prev + 1) % projects.length);
                         }}
-                        aria-label="Наступний об’єкт"
+                        aria-label={tr('Наступний об’єкт', 'Следующий объект')}
                         className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-[#0d1f33]/75 hover:bg-[#1769aa] text-white border border-white/30 backdrop-blur-xs flex items-center justify-center transition-colors cursor-pointer shadow-md"
                       >
                         <ChevronRight className="w-5 h-5" />
@@ -721,7 +721,7 @@ export function HomeView({
                   </div>
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] font-bold">
                     <span className="font-mono text-[#0d1f33] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
-                    <span className="text-[#1769aa] shrink-0">Деталі →</span>
+                    <span className="text-[#1769aa] shrink-0">{tr('Деталі')} →</span>
                   </div>
                 </div>
               </article>
@@ -887,10 +887,10 @@ export function HomeView({
                   onChange={(e) => setTaskType(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg border border-white/25 bg-[#0d1f33] text-white text-xs font-semibold focus:outline-none focus:border-sky-400"
                 >
-                  <option>Резервне живлення (квартира / дім)</option>
-                  <option>Сонячна електростанція для дому</option>
-                  <option>Рішення для бізнесу / СТО (380 В)</option>
-                  <option>Підбір комплектуючих із каталогу</option>
+                  <option value="Резервне живлення (квартира / дім)">{tr('Резервне живлення (квартира / дім)', 'Резервное питание (квартира / дом)')}</option>
+                  <option value="Сонячна електростанція для дому">{tr('Сонячна електростанція для дому', 'Солнечная электростанция для дома')}</option>
+                  <option value="Рішення для бізнесу / СТО (380 В)">{tr('Рішення для бізнесу / СТО (380 В)', 'Решение для бизнеса / СТО (380 В)')}</option>
+                  <option value="Підбір комплектуючих із каталогу">{tr('Підбір комплектуючих із каталогу', 'Подбор комплектующих из каталога')}</option>
                 </select>
               </div>
               <div>

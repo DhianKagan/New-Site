@@ -970,7 +970,7 @@ export function CrmView({
                   type="search"
                   value={dealQuery}
                   onChange={(e) => setDealQuery(e.target.value)}
-                  placeholder="Пошук за номером, телефоном, клієнтом..."
+                  placeholder={tr('Пошук за номером, телефоном, клієнтом...')}
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                 />
               </div>
@@ -1186,7 +1186,7 @@ export function CrmView({
                           <button
                             type="button"
                             onClick={() => handleDeleteDeal(d.id)}
-                            aria-label="Видалити угоду"
+                            aria-label={tr('Видалити угоду')}
                             className="text-slate-400 hover:text-red-600 cursor-pointer align-middle"
                           >
                             <Trash2 className="w-3.5 h-3.5 inline" />
@@ -1221,12 +1221,12 @@ export function CrmView({
                   onChange={(e) => setCatFilter(e.target.value as 'all' | ProductCategory)}
                   className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-[#0d1f33]"
                 >
-                  <option value="all">Усі категорії ({products.length})</option>
-                  <option value="kits">Готові рішення</option>
-                  <option value="inverters">Інвертори</option>
-                  <option value="batteries">Акумулятори</option>
-                  <option value="panels">Сонячні панелі</option>
-                  <option value="parts">Комплектуючі</option>
+                  <option value="all">{tr('Усі категорії', 'Все категории')} ({products.length})</option>
+                  <option value="kits">{tr('Готові рішення')}</option>
+                  <option value="inverters">{tr('Інвертори')}</option>
+                  <option value="batteries">{tr('Акумулятори')}</option>
+                  <option value="panels">{tr('Сонячні панелі')}</option>
+                  <option value="parts">{tr('Комплектуючі')}</option>
                 </select>
               </div>
               <button
@@ -1250,12 +1250,12 @@ export function CrmView({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500">
-                      <th className="py-2.5 px-4">Фото / SKU</th>
-                      <th className="py-2.5 px-4">Товар та категорія</th>
-                      <th className="py-2.5 px-4">Бренд</th>
-                      <th className="py-2.5 px-4">Наявність</th>
-                      <th className="py-2.5 px-4 text-right">Ціна USD</th>
-                      <th className="py-2.5 px-4 text-right">Дії</th>
+                      <th className="py-2.5 px-4">{tr('Фото / SKU', 'Фото / SKU')}</th>
+                      <th className="py-2.5 px-4">{tr('Товар та категорія', 'Товар и категория')}</th>
+                      <th className="py-2.5 px-4">{tr('Бренд')}</th>
+                      <th className="py-2.5 px-4">{tr('Наявність', 'Наличие')}</th>
+                      <th className="py-2.5 px-4 text-right">{tr('Ціна USD', 'Цена USD')}</th>
+                      <th className="py-2.5 px-4 text-right">{tr('Дії')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
@@ -1283,7 +1283,7 @@ export function CrmView({
                                 <button
                                   type="button"
                                   onClick={() => openEditProductModal(p)}
-                                  title="Змінити фото та характеристики"
+                                  title={tr('Змінити фото та характеристики', 'Изменить фото и характеристики')}
                                   className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center hover:border-[#1769aa] cursor-pointer"
                                 >
                                   <SmartImage
@@ -1339,7 +1339,7 @@ export function CrmView({
                                   type="button"
                                   disabled={isBusy}
                                   onClick={() => void handleToggleStockQuick(p)}
-                                  title="Натисніть, щоб швидко перемкнути наявність"
+                                  title={tr('Натисніть, щоб швидко перемкнути наявність', 'Нажмите, чтобы быстро изменить наличие')}
                                   className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
                                     p.inStock
                                       ? 'bg-emerald-50 border-emerald-200 text-[#169374] hover:bg-emerald-100'
@@ -1362,7 +1362,7 @@ export function CrmView({
                                       if (e.key === 'Enter') void saveQuickEdit(p);
                                       if (e.key === 'Escape') setQuickEditId(null);
                                     }}
-                                    placeholder="Ціна"
+                                    placeholder={tr('Ціна', 'Цена')}
                                     className="w-20 px-2 py-1 rounded border border-[#1769aa] text-right font-mono text-xs bg-white"
                                   />
                                   <input
@@ -1370,8 +1370,8 @@ export function CrmView({
                                     min="0"
                                     value={quickOldPrice}
                                     onChange={(e) => setQuickOldPrice(e.target.value)}
-                                    placeholder="Стара"
-                                    title="Стара ціна (закреслена)"
+                                    placeholder={tr('Стара', 'Старая')}
+                                    title={tr('Стара ціна (закреслена)', 'Старая цена (зачёркнута)')}
                                     className="w-16 px-2 py-1 rounded border border-slate-300 text-right font-mono text-[11px] text-slate-500 bg-white"
                                   />
                                 </div>
@@ -1537,7 +1537,7 @@ export function CrmView({
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Сегмент</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{tr('Сегмент', 'Сегмент')}</label>
                     <select
                       value={projSeg}
                       onChange={(e) => {
@@ -1549,28 +1549,28 @@ export function CrmView({
                       }}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:border-[#1769aa]"
                     >
-                      <option value="b2c">B2C (Для дому / квартири)</option>
-                      <option value="b2b">B2B (Для бізнесу)</option>
+                      <option value="b2c">B2C ({tr('Для дому / квартири', 'Для дома / квартиры')})</option>
+                      <option value="b2b">B2B ({tr('Для бізнесу', 'Для бизнеса')})</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Локація / мітка</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{tr('Локація / мітка', 'Локация / метка')}</label>
                     <input
                       type="text"
                       value={projTag}
                       onChange={(e) => setProjTag(e.target.value)}
-                      placeholder="B2C · Одеса, Таїрова"
+                      placeholder={tr('B2C · Одеса, Таїрова', 'B2C · Одесса, Таирова')}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Назва об’єкта *</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{tr('Назва об’єкта *', 'Название объекта *')}</label>
                     <input
                       type="text"
                       required
                       value={projTitle}
                       onChange={(e) => setProjTitle(e.target.value)}
-                      placeholder="Наприклад: Приватний будинок 180 м² у Совіньйоні"
+                      placeholder={tr('Наприклад: Приватний будинок 180 м² у Совіньйоні', 'Например: Частный дом 180 м² в Совиньоне')}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                     />
                   </div>
@@ -1586,7 +1586,7 @@ export function CrmView({
                         type="text"
                         value={projSpecs}
                         onChange={(e) => setProjSpecs(e.target.value)}
-                        placeholder="PV 10 кВт · Інвертор Deye 12 кВт · АКБ 15 кВт·год"
+                        placeholder={tr('PV 10 кВт · Інвертор Deye 12 кВт · АКБ 15 кВт·год', 'PV 10 кВт · Инвертор Deye 12 кВт · АКБ 15 кВт·ч')}
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
                       />
                     </div>
@@ -1623,7 +1623,7 @@ export function CrmView({
                   </div>
 
                   <div className="md:col-span-4">
-                    <div className="text-[11px] font-bold text-slate-600 mb-1">Попередній перегляд фото</div>
+                    <div className="text-[11px] font-bold text-slate-600 mb-1">{tr('Попередній перегляд фото', 'Предварительный просмотр фото')}</div>
                     <div className="h-28 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
                       <SmartImage src={projImg} alt={projTitle || 'Прев’ю'} className="w-full h-full object-cover" />
                     </div>
@@ -1632,32 +1632,32 @@ export function CrmView({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Задача клієнта</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{tr('Задача клієнта', 'Задача клиента')}</label>
                     <textarea
                       rows={3}
                       value={projTask}
                       onChange={(e) => setProjTask(e.target.value)}
-                      placeholder="Яку проблему потрібно було вирішити..."
+                      placeholder={tr('Яку проблему потрібно було вирішити...', 'Какую задачу нужно было решить…')}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Реалізоване рішення</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{tr('Реалізоване рішення', 'Реализованное решение')}</label>
                     <textarea
                       rows={3}
                       value={projSolution}
                       onChange={(e) => setProjSolution(e.target.value)}
-                      placeholder="Яке обладнання встановили (панелі, інвертор, АКБ)..."
+                      placeholder={tr('Яке обладнання встановили (панелі, інвертор, АКБ)...', 'Какое оборудование установили (панели, инвертор, аккумулятор)…')}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Результат</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">{tr('Результат', 'Результат')}</label>
                     <textarea
                       rows={3}
                       value={projResult}
                       onChange={(e) => setProjResult(e.target.value)}
-                      placeholder="Автономність, економія, стабільна робота..."
+                      placeholder={tr('Автономність, економія, стабільна робота...', 'Автономность, экономия, стабильная работа…')}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                     />
                   </div>
@@ -1733,7 +1733,7 @@ export function CrmView({
                 className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-6 space-y-4"
               >
                 <div>
-                  <div className="text-xs font-extrabold text-[#1769aa]">Налаштування трекінгу</div>
+                  <div className="text-xs font-extrabold text-[#1769aa]">{tr('Налаштування трекінгу', 'Настройки аналитики')}</div>
                   <h2 className="text-lg font-extrabold text-[#0d1f33]">Meta Pixel та Google Analytics 4</h2>
                   <p className="text-xs text-[#52657a] mt-1 leading-relaxed">
                     Введіть ID прямо тут (або задайте у Railway Variables `META_PIXEL_ID` / `GA4_MEASUREMENT_ID`) —
@@ -1747,7 +1747,7 @@ export function CrmView({
                     type="text"
                     value={metaPixelId}
                     onChange={(e) => setMetaPixelId(e.target.value)}
-                    placeholder="Наприклад: 123456789012345"
+                    placeholder={tr('Наприклад: 123456789012345', 'Например: 123456789012345')}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
                   />
                 </div>
@@ -1758,7 +1758,7 @@ export function CrmView({
                     type="text"
                     value={ga4MeasurementId}
                     onChange={(e) => setGa4MeasurementId(e.target.value)}
-                    placeholder="Наприклад: G-XXXXXXXXXX"
+                    placeholder={tr('Наприклад: G-XXXXXXXXXX', 'Например: G-XXXXXXXXXX')}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
                   />
                 </div>
@@ -1771,7 +1771,7 @@ export function CrmView({
                     type="text"
                     value={gtmContainerId}
                     onChange={(e) => setGtmContainerId(e.target.value)}
-                    placeholder="Наприклад: GTM-XXXXXXX"
+                    placeholder={tr('Наприклад: GTM-XXXXXXX', 'Например: GTM-XXXXXXX')}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
                   />
                 </div>
@@ -1808,59 +1808,59 @@ export function CrmView({
 
               <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-6 space-y-4">
                 <div>
-                  <div className="text-xs font-extrabold text-[#169374]">Матриця конверсійних подій</div>
-                  <h2 className="text-lg font-extrabold text-[#0d1f33]">Які події вже підключені на сайті</h2>
+                  <div className="text-xs font-extrabold text-[#169374]">{tr('Матриця конверсійних подій', 'События конверсии')}</div>
+                  <h2 className="text-lg font-extrabold text-[#0d1f33]">{tr('Які події вже підключені на сайті', 'Какие события уже подключены на сайте')}</h2>
                 </div>
 
                 <div className="overflow-x-auto border border-slate-200 rounded-xl">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500">
-                        <th className="py-2 px-3">Дія користувача</th>
+                        <th className="py-2 px-3">{tr('Дія користувача', 'Действие пользователя')}</th>
                         <th className="py-2 px-3">Meta Pixel (fbq)</th>
                         <th className="py-2 px-3">GA4 (gtag)</th>
-                        <th className="py-2 px-3">Параметри</th>
+                        <th className="py-2 px-3">{tr('Параметри', 'Параметры')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       <tr>
-                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">Перехід між сторінками</td>
+                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">{tr('Перехід між сторінками', 'Переход между страницами')}</td>
                         <td className="py-2 px-3 font-mono text-[#1769aa]">PageView</td>
                         <td className="py-2 px-3 font-mono text-[#169374]">page_view</td>
                         <td className="py-2 px-3 text-slate-600">page_path, page_title</td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">Перегляд картки товару</td>
+                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">{tr('Перегляд картки товару', 'Просмотр карточки товара')}</td>
                         <td className="py-2 px-3 font-mono text-[#1769aa]">ViewContent</td>
                         <td className="py-2 px-3 font-mono text-[#169374]">view_item</td>
                         <td className="py-2 px-3 text-slate-600">item_id (SKU), item_name, value, USD</td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">Натискання «У кошик»</td>
+                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">{tr('Натискання «У кошик»', 'Нажатие «В корзину»')}</td>
                         <td className="py-2 px-3 font-mono text-[#1769aa]">AddToCart</td>
                         <td className="py-2 px-3 font-mono text-[#169374]">add_to_cart</td>
                         <td className="py-2 px-3 text-slate-600">item_id, item_name, value, USD</td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">Відкриття кошика з товарами</td>
+                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">{tr('Відкриття кошика з товарами', 'Открытие корзины с товарами')}</td>
                         <td className="py-2 px-3 font-mono text-[#1769aa]">InitiateCheckout</td>
                         <td className="py-2 px-3 font-mono text-[#169374]">begin_checkout</td>
                         <td className="py-2 px-3 text-slate-600">value, items_count, USD</td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">Оформлення замовлення</td>
+                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">{tr('Оформлення замовлення', 'Оформление заказа')}</td>
                         <td className="py-2 px-3 font-mono text-[#1769aa]">Purchase</td>
                         <td className="py-2 px-3 font-mono text-[#169374]">purchase</td>
                         <td className="py-2 px-3 text-slate-600">transaction_id (EC-XXXX), value, USD</td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">Відправка форми розрахунку</td>
+                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">{tr('Відправка форми розрахунку', 'Отправка формы расчёта')}</td>
                         <td className="py-2 px-3 font-mono text-[#1769aa]">Lead</td>
                         <td className="py-2 px-3 font-mono text-[#169374]">generate_lead</td>
                         <td className="py-2 px-3 text-slate-600">lead_topic, value</td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">Клік по номеру телефону</td>
+                        <td className="py-2 px-3 font-semibold text-[#0d1f33]">{tr('Клік по номеру телефону', 'Нажатие на номер телефона')}</td>
                         <td className="py-2 px-3 font-mono text-[#1769aa]">Contact</td>
                         <td className="py-2 px-3 font-mono text-[#169374]">contact</td>
                         <td className="py-2 px-3 text-slate-600">phone</td>
@@ -1874,7 +1874,7 @@ export function CrmView({
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
               <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#0d1f33]">Журнал останніх подій на сайті</h3>
+                  <h3 className="text-sm font-extrabold text-[#0d1f33]">{tr('Журнал останніх подій на сайті', 'Журнал последних событий на сайте')}</h3>
                   <p className="text-[11px] text-slate-500">
                     Показує реальні події, які відправились у Meta Pixel та Google Analytics під час роботи клієнтів.
                   </p>
@@ -1892,10 +1892,10 @@ export function CrmView({
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500">
-                      <th className="py-2 px-4">Час</th>
+                      <th className="py-2 px-4">{tr('Час', 'Время')}</th>
                       <th className="py-2 px-4">Meta Event</th>
                       <th className="py-2 px-4">GA4 Event</th>
-                      <th className="py-2 px-4">Параметри події</th>
+                      <th className="py-2 px-4">{tr('Параметри події', 'Параметры события')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -2009,7 +2009,7 @@ export function CrmView({
                   <Globe className="w-3.5 h-3.5" />
                   SEO, Sitemap та Товарні XML-фіди
                 </div>
-                <h2 className="text-lg font-extrabold text-[#0d1f33]">Посилання для Google та Meta Catalog</h2>
+                <h2 className="text-lg font-extrabold text-[#0d1f33]">{tr('Посилання для Google та Meta Catalog', 'Ссылки для Google и каталога Meta')}</h2>
                 <p className="text-xs text-[#52657a] mt-1 leading-relaxed">
                   Файли генеруються сервером динамічно безпосередньо з бази SQLite — кожен новий або оновлений товар
                   одразу потрапляє у Sitemap і товарний фід.
@@ -2067,7 +2067,7 @@ export function CrmView({
               </div>
 
               <div className="p-3.5 rounded-xl bg-sky-50/70 border border-sky-200 text-[11px] text-[#0d1f33] leading-relaxed">
-                <strong>Людські URL:</strong> сторінки <code className="font-mono">/shop</code>,{' '}
+                <strong>{tr('Людські URL:', 'Понятные URL:')}</strong> {tr('сторінки', 'страницы')} <code className="font-mono">/shop</code>,{' '}
                 <code className="font-mono">/services</code>, <code className="font-mono">/projects</code>,{' '}
                 <code className="font-mono">/contacts</code> та картки товарів{' '}
                 <code className="font-mono">/shop/&lt;id&gt;</code> оновлюють адресний рядок,{' '}
@@ -2085,8 +2085,8 @@ export function CrmView({
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-xs font-extrabold text-[#1769aa]">Збереження даних і резервні копії</div>
-                  <h2 className="text-lg font-extrabold text-[#0d1f33]">SQLite Volume, Фото та Бекап</h2>
+                  <div className="text-xs font-extrabold text-[#1769aa]">{tr('Збереження даних і резервні копії', 'Хранение данных и резервные копии')}</div>
+                  <h2 className="text-lg font-extrabold text-[#0d1f33]">{tr('SQLite Volume, Фото та Бекап', 'SQLite Volume, фотографии и резервная копия')}</h2>
                 </div>
                 <button
                   type="button"
@@ -2104,24 +2104,24 @@ export function CrmView({
               {storageInfo && (
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">Каталог даних (DATA_DIR):</span>
+                    <span className="text-slate-500">{tr('Каталог даних (DATA_DIR):', 'Каталог данных (DATA_DIR):')}</span>
                     <code className="font-mono font-bold text-[#0d1f33]">{storageInfo.dataDir}</code>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">База даних SQLite:</span>
+                    <span className="text-slate-500">{tr('База даних SQLite:', 'База данных SQLite:')}</span>
                     <span className="font-mono font-semibold text-[#0d1f33]">
                       {Math.round(storageInfo.dbSizeBytes / 1024)} КБ · {storageInfo.productsCount} тов. /{' '}
                       {storageInfo.projectsCount} об’єктів / {storageInfo.dealsCount} угод
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">Завантажені фото (/uploads):</span>
+                    <span className="text-slate-500">{tr('Завантажені фото (/uploads):', 'Загруженные фото (/uploads):')}</span>
                     <span className="font-mono font-semibold text-[#0d1f33]">
                       {storageInfo.uploadsCount} файлів ({storageInfo.uploadsDir})
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-slate-500">Постійний Volume (Railway):</span>
+                    <span className="text-slate-500">{tr('Постійний Volume (Railway):', 'Постоянный том (Railway):')}</span>
                     <span className={`font-bold ${storageInfo.isCustomVolume ? 'text-[#169374]' : 'text-amber-700'}`}>
                       {storageInfo.isCustomVolume ? 'Підключено (DATA_DIR задано)' : 'Локальна папка (задайте DATA_DIR=/data)'}
                     </span>
@@ -2140,19 +2140,19 @@ export function CrmView({
 
             {/* Telegram Bot Test + One-Click Webhook Setup */}
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-              <div className="text-xs font-extrabold text-[#169374]">Інтеграція Telegram Bot</div>
-              <h2 className="text-lg font-extrabold text-[#0d1f33]">Сповіщення менеджеру та Webhook</h2>
+              <div className="text-xs font-extrabold text-[#169374]">{tr('Інтеграція Telegram Bot', 'Интеграция Telegram-бота')}</div>
+              <h2 className="text-lg font-extrabold text-[#0d1f33]">{tr('Сповіщення менеджеру та Webhook', 'Уведомления менеджеру и Webhook')}</h2>
 
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-[#0d1f33]">Змінні оточення Telegram:</span>
+                  <span className="font-semibold text-[#0d1f33]">{tr('Змінні оточення Telegram:', 'Переменные окружения Telegram:')}</span>
                   <span className={`font-bold ${telegramConfigured ? 'text-[#169374]' : 'text-amber-700'}`}>
                     {telegramConfigured ? 'Підключено' : 'Очікує TELEGRAM_BOT_TOKEN'}
                   </span>
                 </div>
                 {webhookStatus && (
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-slate-500">Поточний Webhook URL:</span>
+                    <span className="text-slate-500">{tr('Поточний Webhook URL:', 'Текущий Webhook URL:')}</span>
                     <span className="font-mono text-[11px] text-[#0d1f33] truncate max-w-[260px]">
                       {webhookStatus.url || 'Не встановлено'}
                     </span>
@@ -2201,7 +2201,7 @@ export function CrmView({
             <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#0d1f33]">Останні зміни карток товарів та об’єктів у БД</h3>
+                  <h3 className="text-sm font-extrabold text-[#0d1f33]">{tr('Останні зміни карток товарів та об’єктів у БД', 'Последние изменения товаров и объектов в базе данных')}</h3>
                   <p className="text-[11px] text-slate-500">
                     Кожне редагування або додавання товару/об’єкта фіксується в SQLite із точним часом оновлення.
                   </p>
@@ -2217,7 +2217,7 @@ export function CrmView({
               </div>
               <div className="divide-y divide-slate-100 text-xs">
                 {recentChanges.length === 0 ? (
-                  <div className="p-6 text-center text-slate-400">Поки немає записів про зміни</div>
+                  <div className="p-6 text-center text-slate-400">{tr('Поки немає записів про зміни', 'Пока нет записей об изменениях')}</div>
                 ) : (
                   recentChanges.map((item) => (
                     <div key={`${item.kind}-${item.id}`} className="px-6 py-2.5 flex items-center justify-between gap-3">
@@ -2327,11 +2327,11 @@ export function CrmView({
                   <div className="font-mono font-bold text-[#0d1f33] mt-0.5">{selectedDeal.phone}</div>
                 </div>
                 <div>
-                  <div className="text-slate-500">Місто / Об’єкт</div>
+                  <div className="text-slate-500">{tr('Місто / Об’єкт')}</div>
                   <div className="font-semibold text-[#0d1f33] mt-0.5">{selectedDeal.city}</div>
                 </div>
                 <div>
-                  <div className="text-slate-500">Канал зв’язку</div>
+                  <div className="text-slate-500">{tr('Канал зв’язку')}</div>
                   <div className="font-semibold text-[#0d1f33] mt-0.5">{selectedDeal.channel}</div>
                 </div>
               </div>
@@ -2409,7 +2409,7 @@ export function CrmView({
                   rows={3}
                   defaultValue={selectedDeal.notes}
                   onBlur={(e) => handlePatchDeal(selectedDeal.id, { notes: e.target.value })}
-                  placeholder="Додайте нотатку по об’єкту..."
+                  placeholder={tr('Додайте нотатку по об’єкту...')}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300"
                 />
               </div>
@@ -2464,13 +2464,13 @@ export function CrmView({
             <form onSubmit={handleSaveProductModal} className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-600 mb-1">Назва товару *</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Назва товару *', 'Название товара *')}</label>
                   <input
                     type="text"
                     required
                     value={prodTitle}
                     onChange={(e) => setProdTitle(e.target.value)}
-                    placeholder="Наприклад, Гібридний інвертор Deye SUN-8K-SG01LP1-EU"
+                    placeholder={tr('Наприклад, Гібридний інвертор Deye SUN-8K-SG01LP1-EU', 'Например, гибридный инвертор Deye SUN-8K-SG01LP1-EU')}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-[#0d1f33]"
                   />
                 </div>
@@ -2487,7 +2487,7 @@ export function CrmView({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Бренд</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Бренд')}</label>
                   <input
                     type="text"
                     value={prodBrand}
@@ -2498,7 +2498,7 @@ export function CrmView({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Категорія</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Категорія', 'Категория')}</label>
                   <select
                     value={prodCat}
                     onChange={(e) => {
@@ -2508,11 +2508,11 @@ export function CrmView({
                     }}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
                   >
-                    <option value="kits">Готові рішення</option>
-                    <option value="inverters">Інвертори</option>
-                    <option value="batteries">Акумулятори</option>
-                    <option value="panels">Сонячні панелі</option>
-                    <option value="parts">Комплектуючі</option>
+                    <option value="kits">{tr('Готові рішення')}</option>
+                    <option value="inverters">{tr('Інвертори')}</option>
+                    <option value="batteries">{tr('Акумулятори')}</option>
+                    <option value="panels">{tr('Сонячні панелі')}</option>
+                    <option value="parts">{tr('Комплектуючі')}</option>
                   </select>
                 </div>
 
@@ -2528,7 +2528,7 @@ export function CrmView({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Ціна (USD, 0 = «За запитом»)</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Ціна (USD, 0 = «За запитом»)', 'Цена (USD, 0 = «По запросу»)')}</label>
                   <input
                     type="number"
                     min="0"
@@ -2540,7 +2540,7 @@ export function CrmView({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Стара ціна (USD, закреслена)</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Стара ціна (USD, закреслена)', 'Старая цена (USD, зачёркнутая)')}</label>
                   <input
                     type="number"
                     min="0"
@@ -2567,7 +2567,7 @@ export function CrmView({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-600 mb-1">Текст статусу наявності</label>
+                  <label className="block font-bold text-slate-600 mb-1">{tr('Текст статусу наявності', 'Текст статуса наличия')}</label>
                   <input
                     type="text"
                     value={prodStatusLabel}
@@ -2580,7 +2580,7 @@ export function CrmView({
 
               {/* Photo Upload + Preview */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                <label className="block font-bold text-slate-600">Фото товару (завантаження на сервер або URL)</label>
+                <label className="block font-bold text-slate-600">{tr('Фото товару (завантаження на сервер або URL)', 'Фото товара (загрузка на сервер или URL)')}</label>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="w-16 h-16 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0 flex items-center justify-center">
                     <SmartImage
@@ -2630,12 +2630,12 @@ export function CrmView({
 
               {/* Description */}
               <div>
-                <label className="block font-bold text-slate-600 mb-1">Опис товару (відображається в картці)</label>
+                <label className="block font-bold text-slate-600 mb-1">{tr('Опис товару (відображається в картці)', 'Описание товара (отображается в карточке)')}</label>
                 <textarea
                   rows={3}
                   value={prodDescription}
                   onChange={(e) => setProdDescription(e.target.value)}
-                  placeholder="Ключові особливості, сумісність, гарантія..."
+                  placeholder={tr('Ключові особливості, сумісність, гарантія...', 'Ключевые особенности, совместимость, гарантия…')}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300"
                 />
               </div>
@@ -2643,7 +2643,7 @@ export function CrmView({
               {/* Specs key-value editor */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-600">Технічні характеристики</label>
+                  <label className="font-bold text-slate-600">{tr('Технічні характеристики', 'Технические характеристики')}</label>
                   <button
                     type="button"
                     onClick={() => setProdSpecs((prev) => [...prev, ['', '']])}
@@ -2655,7 +2655,7 @@ export function CrmView({
                 </div>
 
                 {prodSpecs.length === 0 ? (
-                  <div className="text-[11px] text-slate-400">Характеристики поки не додані</div>
+                  <div className="text-[11px] text-slate-400">{tr('Характеристики поки не додані', 'Характеристики пока не добавлены')}</div>
                 ) : (
                   <div className="space-y-1.5">
                     {prodSpecs.map(([k, v], idx) => (
@@ -2668,7 +2668,7 @@ export function CrmView({
                               prev.map((row, i) => (i === idx ? [e.target.value, row[1]] : row)),
                             )
                           }
-                          placeholder="Параметр (напр., Потужність)"
+                          placeholder={tr('Параметр (напр., Потужність)', 'Параметр (например, мощность)')}
                           className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
                         />
                         <input
@@ -2679,13 +2679,13 @@ export function CrmView({
                               prev.map((row, i) => (i === idx ? [row[0], e.target.value] : row)),
                             )
                           }
-                          placeholder="Значення (напр., 8 кВт)"
+                          placeholder={tr('Значення (напр., 8 кВт)', 'Значение (например, 8 кВт)')}
                           className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
                         />
                         <button
                           type="button"
                           onClick={() => setProdSpecs((prev) => prev.filter((_, i) => i !== idx))}
-                          aria-label="Видалити рядок"
+                          aria-label={tr('Видалити рядок', 'Удалить строку')}
                           className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -2703,7 +2703,7 @@ export function CrmView({
                   {editingProdId &&
                     (confirmDeleteProd ? (
                       <div className="inline-flex items-center gap-2">
-                        <span className="text-xs font-semibold text-red-700">Точно видалити?</span>
+                        <span className="text-xs font-semibold text-red-700">{tr('Точно видалити?', 'Точно удалить?')}</span>
                         <button
                           type="button"
                           disabled={savingProduct}

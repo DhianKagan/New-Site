@@ -45,19 +45,19 @@ export function CaseModal({ project, onClose, onQuote }: CaseModalProps) {
 
         <div className="p-6 space-y-3">
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-[11px] font-bold text-slate-500 mb-1">Задача клієнта</div>
+            <div className="text-[11px] font-bold text-slate-500 mb-1">{tr('Задача клієнта', 'Задача клиента')}</div>
             <div className="text-sm text-[#0d1f33] leading-relaxed">{isRussian ? project.taskRu ?? project.task : project.task}</div>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-[11px] font-bold text-slate-500 mb-1">Інженерне рішення та обладнання</div>
+            <div className="text-[11px] font-bold text-slate-500 mb-1">{tr('Інженерне рішення та обладнання', 'Инженерное решение и оборудование')}</div>
             <div className="text-sm text-[#0d1f33] leading-relaxed">{isRussian ? project.solutionRu ?? project.solution : project.solution}</div>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="text-[11px] font-bold text-slate-500 mb-1">Технічні параметри</div>
+            <div className="text-[11px] font-bold text-slate-500 mb-1">{tr('Технічні параметри', 'Технические параметры')}</div>
             <div className="font-mono text-xs font-semibold text-[#1769aa]">{isRussian ? project.specsRu ?? project.specs : project.specs}</div>
           </div>
           <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
-            <div className="text-[11px] font-bold text-[#169374] mb-1">Результат</div>
+            <div className="text-[11px] font-bold text-[#169374] mb-1">{tr('Результат', 'Результат')}</div>
             <div className="text-sm text-[#0d1f33] leading-relaxed">{isRussian ? project.resultRu ?? project.result : project.result}</div>
           </div>
 

@@ -87,7 +87,7 @@ export function ShopView({
     <div>
       <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label="Хлібні крихти" className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-500 mb-2">
             <a
               href="/"
               onClick={(e) => {

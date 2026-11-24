@@ -16,7 +16,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
     <div>
       <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label="Хлібні крихти" className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-500 mb-2">
             <a
               href="/"
               onClick={(e) => {
@@ -96,7 +96,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
 
           <div className="min-h-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 sm:min-h-[440px]">
             <iframe
-              title="Google Maps — Energo Comfort, Одеса, вулиця Європейська, 93"
+              title={tr('Google Maps — Energo Comfort, Одеса, вулиця Європейська, 93', 'Google Maps — Energo Comfort, Одесса, улица Европейская, 93')}
               src={`https://maps.google.com/maps?q=${encodeURIComponent(COMPANY_INFO.address)}&z=16&output=embed`}
               className="h-full min-h-[360px] w-full border-0 sm:min-h-[440px]"
               loading="lazy"

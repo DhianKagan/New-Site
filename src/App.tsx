@@ -674,7 +674,7 @@ export default function App() {
             </a>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="inline-flex items-center rounded-md border border-white/15 bg-white/5 p-0.5" aria-label="Мова сайту">
+            <div className="inline-flex items-center rounded-md border border-white/15 bg-white/5 p-0.5" aria-label={tr('Мова сайту')}>
               {(['uk', 'ru'] as const).map((option) => (
                 <button
                   key={option}
@@ -738,7 +738,7 @@ export default function App() {
           </a>
 
           {/* Zone 2: 5 concise single-line nav links (desktop lg+) */}
-          <nav aria-label="Головна навігація" className="hidden lg:flex items-center gap-5 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
+          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-5 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
             <a
               href="/"
               onClick={(e) => handleNavAnchor(e, 'home')}

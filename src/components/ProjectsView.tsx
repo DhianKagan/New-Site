@@ -18,7 +18,7 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
     <div>
       <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label="Хлібні крихти" className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-500 mb-2">
             <a
               href="/"
               onClick={(e) => {
@@ -45,7 +45,7 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
 
       <section className="py-12 bg-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <h2 className="sr-only">Кейси встановлених сонячних електростанцій та систем резервного живлення</h2>
+          <h2 className="sr-only">{tr('Кейси встановлених сонячних електростанцій та систем резервного живлення', 'Примеры установленных солнечных электростанций и систем резервного питания')}</h2>
           <div className="inline-flex flex-wrap gap-1 p-1 bg-slate-100 rounded-lg mb-7">
             <button
               type="button"
