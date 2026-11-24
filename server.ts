@@ -54,6 +54,7 @@ import type { DealStage, ProductCategory, SocialLinksConfig } from './src/types.
 
 const PORT = Number(process.env.PORT || 3000);
 const IS_PROD = process.env.NODE_ENV === 'production';
+const HOST = process.env.HOST || (IS_PROD ? '0.0.0.0' : '127.0.0.1');
 
 function isSafeImageUrl(raw: string): boolean {
   const val = raw.trim();
@@ -1237,8 +1238,8 @@ ${itemsXml}
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Energo Comfort server running on http://0.0.0.0:${PORT} (${IS_PROD ? 'production' : 'dev'})`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Energo Comfort server running on http://${HOST}:${PORT} (${IS_PROD ? 'production' : 'dev'})`);
   });
 }
 
