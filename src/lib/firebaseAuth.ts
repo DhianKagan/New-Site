@@ -10,6 +10,10 @@ function getFirebaseAuth() {
   return getAuth(app);
 }
 
+export function getFirebaseProjectId(): string {
+  return firebaseConfig?.projectId || '';
+}
+
 export async function signInWithGooglePopup(): Promise<{
   idToken: string;
   email: string;

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, Check, Copy, Eye, EyeOff, Lock, ShieldAlert, ShieldCheck, UserPlus, Wand2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, ExternalLink, Eye, EyeOff, Lock, ShieldAlert, ShieldCheck, UserPlus, Wand2 } from 'lucide-react';
 import type { AdminAuthStatus, UnifiedAuthResult } from '../types.ts';
-import { signInWithGooglePopup } from '../lib/firebaseAuth.ts';
+import { getFirebaseProjectId, signInWithGooglePopup } from '../lib/firebaseAuth.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 import { tr } from '../lib/i18n.ts';
 
@@ -43,11 +43,14 @@ export function AuthPortalView({
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [isLockedOut, setIsLockedOut] = useState(false);
+  const [unauthorizedHost, setUnauthorizedHost] = useState('');
+  const [copiedHost, setCopiedHost] = useState(false);
 
   useEffect(() => {
     setMode(initialMode);
     setError('');
     setIsLockedOut(false);
+    setUnauthorizedHost('');
   }, [initialMode]);
 
   const isRegister = mode === 'register';
@@ -57,6 +60,7 @@ export function AuthPortalView({
     setMode(nextMode);
     setError('');
     setIsLockedOut(false);
+    setUnauthorizedHost('');
     setPassword('');
     setConfirmPassword('');
   }
@@ -80,9 +84,21 @@ export function AuthPortalView({
     }
   }
 
+  async function handleCopyUnauthorizedHost() {
+    if (!unauthorizedHost) return;
+    try {
+      await navigator.clipboard.writeText(unauthorizedHost);
+      setCopiedHost(true);
+      window.setTimeout(() => setCopiedHost(false), 2000);
+    } catch {
+      setCopiedHost(false);
+    }
+  }
+
   async function handleGoogleLogin() {
     setError('');
     setIsLockedOut(false);
+    setUnauthorizedHost('');
     setGoogleSubmitting(true);
     try {
       const { idToken } = await signInWithGooglePopup();
@@ -109,6 +125,7 @@ export function AuthPortalView({
         setError(tr('Вікно входу Google було закрито до завершення авторизації', 'Окно входа Google было закрыто до завершения авторизации'));
       } else if (message.includes('unauthorized-domain')) {
         const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        setUnauthorizedHost(host);
         setError(
           tr(
             `Домен ${host} ще не додано в Authorized domains у Firebase Console`,
@@ -557,14 +574,56 @@ export function AuthPortalView({
             <div
               role="alert"
               aria-live="polite"
-              className={`p-3 rounded-lg border text-xs font-semibold flex items-start gap-2 ${
+              className={`p-3 rounded-lg border text-xs flex flex-col gap-2 ${
                 isLockedOut
                   ? 'bg-amber-50 border-amber-300 text-amber-900'
                   : 'bg-red-50 border-red-200 text-red-700'
               }`}
             >
-              {isLockedOut && <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />}
-              <span>{error}</span>
+              <div className="font-semibold flex items-start gap-2">
+                {isLockedOut && <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />}
+                <span>{error}</span>
+              </div>
+              {unauthorizedHost && (
+                <div className="pt-2 border-t border-red-200/80 text-[11px] text-[#0d1f33] space-y-2 leading-relaxed">
+                  <div>
+                    {tr(
+                      'Щоб запрацював Google-вхід на цьому домені, додайте його у Firebase Console → Authentication → Settings → Authorized domains:',
+                      'Чтобы заработал вход через Google на этом домене, добавьте его в Firebase Console → Authentication → Settings → Authorized domains:',
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <code className="px-2 py-1 rounded bg-white border border-red-200 font-mono text-[11px] font-bold text-[#0d1f33]">
+                      {unauthorizedHost}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyUnauthorizedHost()}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-50 text-[11px] font-bold text-[#0d1f33] cursor-pointer"
+                    >
+                      {copiedHost ? <Check className="w-3 h-3 text-[#169374]" /> : <Copy className="w-3 h-3" />}
+                      {copiedHost ? tr('Скопійовано', 'Скопировано') : tr('Копіювати домен', 'Копировать домен')}
+                    </button>
+                    {getFirebaseProjectId() && (
+                      <a
+                        href={`https://console.firebase.google.com/project/${encodeURIComponent(getFirebaseProjectId())}/authentication/settings`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#1769aa] hover:bg-[#12558a] text-[11px] font-bold text-white"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {tr('Відкрити Firebase Console', 'Открыть Firebase Console')}
+                      </a>
+                    )}
+                  </div>
+                  <div className="text-[#52657a]">
+                    {tr(
+                      'Або увійдіть прямо зараз через форму нижче за логіном/Email і паролем.',
+                      'Либо войдите прямо сейчас через форму ниже по логину/Email и паролю.',
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

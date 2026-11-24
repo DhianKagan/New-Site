@@ -29,6 +29,7 @@ import {
   UserCog,
   Users,
 } from 'lucide-react';
+import { getFirebaseProjectId } from '../lib/firebaseAuth.ts';
 import type {
   AnalyticsConfig,
   AnalyticsEventRecord,
@@ -2149,8 +2150,21 @@ export function CrmView({
                   <p className="text-xs text-[#52657a] mt-1">
                     Користувачі з підтвердженим email із цього списку (або зі змінної{' '}
                     <code className="font-mono text-[#0d1f33]">ADMIN_EMAILS</code>), а також співробітники з розділу{' '}
-                    <strong>Користувачі та доступ</strong> входять у CRM через Google. При перенесенні на Railway додайте
-                    ваш домен у <strong>Authentication → Settings → Authorized domains</strong> у Firebase Console.
+                    <strong>Користувачі та доступ</strong> входять у CRM через Google. Якщо використовуєте власний домен
+                    (наприклад <code className="font-mono text-[#0d1f33]">*.ai.studio</code> або Railway), додайте його в{' '}
+                    {getFirebaseProjectId() ? (
+                      <a
+                        href={`https://console.firebase.google.com/project/${encodeURIComponent(getFirebaseProjectId())}/authentication/settings`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-[#1769aa] hover:underline"
+                      >
+                        Authentication → Settings → Authorized domains
+                      </a>
+                    ) : (
+                      <strong>Authentication → Settings → Authorized domains</strong>
+                    )}{' '}
+                    у Firebase Console.
                   </p>
                 </div>
                 <div className="text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
