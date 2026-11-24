@@ -1,13 +1,16 @@
-import { MapPin, Phone, Mail, Clock, ShieldCheck } from 'lucide-react';
+import { Clock, ShieldCheck } from 'lucide-react';
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { trackEvent } from '../lib/analytics.ts';
+import { SocialIcons } from './SocialIcons.tsx';
+import type { SocialLinksConfig } from '../types.ts';
 
 interface ContactsViewProps {
   onBackHome: () => void;
   onOpenLeadModal: (topic: string) => void;
+  socialLinks: SocialLinksConfig;
 }
 
-export function ContactsView({ onBackHome, onOpenLeadModal }: ContactsViewProps) {
+export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: ContactsViewProps) {
   return (
     <div>
       <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
@@ -37,66 +40,45 @@ export function ContactsView({ onBackHome, onOpenLeadModal }: ContactsViewProps)
         </div>
       </section>
 
-      <section className="py-12 bg-white">
-        <div className="max-w-[1180px] mx-auto px-5 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-slate-200 rounded-2xl p-6 bg-white space-y-4">
-              <div className="text-xs font-extrabold text-[#1769aa]">Головний офіс та склад</div>
-              <h2 className="text-xl font-extrabold text-[#0d1f33]">{COMPANY_INFO.address}</h2>
-              <div className="space-y-3 text-sm text-slate-700 pt-2">
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-4 h-4 text-[#1769aa] shrink-0" />
-                  <span>Працюємо по всій Одесі та Одеській області</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-[#1769aa] shrink-0" />
-                  <span>Графік роботи: {COMPANY_INFO.schedule}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-[#1769aa] shrink-0" />
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono font-semibold text-[#0d1f33]">
-                    <a
-                      href={COMPANY_INFO.phone1Href}
-                      onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })}
-                      className="hover:text-[#1769aa]"
-                    >
-                      {COMPANY_INFO.phone1}
-                    </a>
-                    <a
-                      href={COMPANY_INFO.phone2Href}
-                      onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone2 })}
-                      className="hover:text-[#1769aa]"
-                    >
-                      {COMPANY_INFO.phone2}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Mail className="w-4 h-4 text-[#1769aa] shrink-0" />
-                  <a href={`mailto:${COMPANY_INFO.email}`} className="font-mono hover:text-[#1769aa]">
-                    {COMPANY_INFO.email}
-                  </a>
-                </div>
-              </div>
-              <div className="pt-3 flex flex-wrap gap-3">
-                <a
-                  href={COMPANY_INFO.phone1Href}
-                  onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })}
-                  className="px-4 py-2.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold"
-                >
-                  Зателефонувати зараз
-                </a>
-                <button
-                  type="button"
-                  onClick={() => onOpenLeadModal('Консультація зі сторінки Контакти')}
-                  className="px-4 py-2.5 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-xs font-bold cursor-pointer"
-                >
-                  Замовити зворотний дзвінок
-                </button>
-              </div>
+      <section className="bg-[#f2b83d] py-7 sm:py-10">
+        <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-6 px-4 sm:px-6 lg:grid-cols-2 lg:gap-8">
+          <div className="flex flex-col justify-center bg-[#2c3c60] px-6 py-7 text-center text-white shadow-xl sm:px-8 sm:py-9">
+            <h2 className="border-b border-white/50 pb-4 text-2xl font-extrabold">Energo Comfort</h2>
+            <h3 className="pt-4 text-lg font-bold">Головний офіс</h3>
+            <div className="my-5 space-y-1 text-sm font-semibold">
+              <p>Україна</p>
+              <p>м. Одеса, вул. Європейська 93</p>
             </div>
+            <div className="space-y-2 font-mono text-sm font-bold">
+              <a href={COMPANY_INFO.phone1Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })} className="block underline underline-offset-2">{COMPANY_INFO.phone1}</a>
+              <a href={COMPANY_INFO.phone2Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone2 })} className="block underline underline-offset-2">{COMPANY_INFO.phone2}</a>
+              <a href={`mailto:${COMPANY_INFO.email}`} className="block break-all underline underline-offset-2">{COMPANY_INFO.email}</a>
+            </div>
+            <div className="my-5 border-y border-white/50 py-4">
+              <p className="mb-3 text-sm">Приєднуйтесь до нас у соціальних мережах:</p>
+              <div className="flex justify-center"><SocialIcons links={socialLinks} variant="light" /></div>
+            </div>
+            <p className="mb-4 flex items-center justify-center gap-2 text-xs text-white/80"><Clock className="h-4 w-4" />{COMPANY_INFO.schedule}</p>
+            <a href={COMPANY_INFO.phone1Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })} className="mx-auto inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-7 text-sm font-bold text-[#2c3c60] hover:bg-slate-100">Зателефонувати нам</a>
+            <button type="button" onClick={() => onOpenLeadModal('Консультація зі сторінки Контакти')} className="mt-3 text-xs font-semibold text-white underline underline-offset-2">Замовити зворотний дзвінок</button>
+          </div>
 
-            <div className="border border-slate-200 rounded-2xl p-6 bg-[#f6f8fb] space-y-4">
+          <div className="min-h-[360px] overflow-hidden bg-slate-200 shadow-xl sm:min-h-[440px]">
+            <iframe
+              title="Google Maps — Energo Comfort, Одеса, вулиця Європейська, 93"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(COMPANY_INFO.address)}&z=16&output=embed`}
+              className="h-full min-h-[360px] w-full border-0 sm:min-h-[440px]"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-10 sm:py-12">
+        <div className="mx-auto max-w-[1180px] px-5">
+          <div className="rounded-2xl border border-slate-200 bg-[#f6f8fb] p-6 sm:p-8">
               <div className="text-xs font-extrabold text-[#1769aa]">Про компанію та умови</div>
               <h2 className="text-xl font-extrabold text-[#0d1f33]">Гарантія, повернення та оферта</h2>
               <div className="space-y-3 text-xs text-[#52657a] leading-relaxed">
@@ -122,7 +104,6 @@ export function ContactsView({ onBackHome, onOpenLeadModal }: ContactsViewProps)
                   </p>
                 </div>
               </div>
-            </div>
           </div>
         </div>
       </section>

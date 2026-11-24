@@ -10,6 +10,7 @@ interface ShopViewProps {
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   onBackHome: () => void;
+  usdUahRate: number | null;
 }
 
 const PAGE_SIZE = 24;
@@ -21,6 +22,7 @@ export function ShopView({
   onAddToCart,
   onRequestQuote,
   onBackHome,
+  usdUahRate,
 }: ShopViewProps) {
   const [cat, setCat] = useState<ProductCategory | 'all'>(initialCategory);
   const [query, setQuery] = useState('');
@@ -235,6 +237,7 @@ export function ShopView({
                   onSelect={onSelectProduct}
                   onAddToCart={onAddToCart}
                   onRequestQuote={(prod) => onRequestQuote(prod)}
+                  usdUahRate={usdUahRate}
                 />
               ))}
             </div>

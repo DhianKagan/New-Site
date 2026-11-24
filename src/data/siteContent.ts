@@ -16,10 +16,16 @@ export const COMPANY_INFO = {
 export const BRAND_PARTNERS = [
   { name: 'Deye', logo: '/assets/energocomfort/brand_deye.png', sizeClass: 'h-12 w-12 scale-[1.65]' },
   { name: 'SolaX Power', logo: '/assets/energocomfort/brand_solax.png', sizeClass: 'h-7 w-auto max-w-[104px]' },
-  { name: 'Huawei', logo: '/assets/energocomfort/brand_huawei.png', sizeClass: 'h-6 w-auto max-w-[112px]' },
-  { name: 'Solis', logo: '/assets/energocomfort/brand_solis.png', sizeClass: 'h-6 w-auto max-w-[94px]' },
+  { name: 'MUST', logo: '/assets/brands/brand_must.png', sizeClass: 'h-12 w-auto max-w-[112px]' },
   { name: 'Jinko Solar', logo: '/assets/energocomfort/brand_jinko.svg', sizeClass: 'h-7 w-auto max-w-[104px]' },
   { name: 'Dyness', logo: '/assets/energocomfort/brand_dyness.svg', sizeClass: 'h-[18px] w-auto max-w-[114px]' },
+  { name: 'Solis', logo: '/assets/energocomfort/brand_solis.png', sizeClass: 'h-8 w-auto max-w-[112px]' },
+  { name: 'BYD Energy Storage', logo: '/assets/brands/brand_byd.png', sizeClass: 'h-12 w-auto max-w-[130px]' },
+  { name: 'FelicityESS', logo: '/assets/brands/brand_felicity.png', sizeClass: 'h-10 w-auto max-w-[130px]' },
+  { name: 'Huawei', logo: '/assets/energocomfort/brand_huawei.png', sizeClass: 'h-7 w-auto max-w-[120px]' },
+  { name: 'Livoltek', logo: '/assets/brands/brand_livoltek.png', sizeClass: 'h-8 w-auto max-w-[110px]' },
+  { name: 'JA Solar', logo: '/assets/brands/brand_ja_solar.png', sizeClass: 'h-8 w-auto max-w-[122px]' },
+  { name: 'TW Solar', logo: '/assets/brands/brand_tw_solar.png', sizeClass: 'h-8 w-auto max-w-[122px]' },
 ];
 
 export const PROJECTS: ProjectCase[] = [

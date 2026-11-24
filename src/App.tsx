@@ -26,8 +26,10 @@ import { LeadModal } from './components/LeadModal.tsx';
 import { CartDrawer } from './components/CartDrawer.tsx';
 import { SmartImage } from './components/SmartImage.tsx';
 import { SocialIcons } from './components/SocialIcons.tsx';
+import { InfoPage } from './components/InfoPage.tsx';
+import { formatUahFromUsd } from './lib/currency.ts';
 
-type AppView = 'home' | 'shop' | 'services' | 'projects' | 'contacts' | 'crm';
+type AppView = 'home' | 'shop' | 'services' | 'projects' | 'contacts' | 'payment-delivery' | 'offer' | 'crm';
 
 const CART_STORAGE_KEY = 'ec_cart_v1';
 const VALID_CATS: ProductCategory[] = ['kits', 'inverters', 'batteries', 'panels', 'parts'];
@@ -64,6 +66,8 @@ function parseRouteFromLocation(): {
   if (pathname === '/services') return { view: 'services', cat: 'all', productId: null };
   if (pathname === '/projects') return { view: 'projects', cat: 'all', productId: null };
   if (pathname === '/contacts') return { view: 'contacts', cat: 'all', productId: null };
+  if (pathname === '/payment-delivery') return { view: 'payment-delivery', cat: 'all', productId: null };
+  if (pathname === '/public-offer') return { view: 'offer', cat: 'all', productId: null };
   if (pathname === '/crm') return { view: 'crm', cat: 'all', productId: null };
   return { view: 'home', cat: 'all', productId: null };
 }
@@ -76,6 +80,7 @@ function buildPathForRoute(view: AppView, cat: ProductCategory | 'all', productI
   if (view === 'shop') {
     return cat !== 'all' ? `/shop?cat=${encodeURIComponent(cat)}` : '/shop';
   }
+  if (view === 'offer') return '/public-offer';
   return `/${view}`;
 }
 
@@ -92,6 +97,7 @@ export default function App() {
   const [socialLinks, setSocialLinks] = useState<SocialLinksConfig>(DEFAULT_SOCIAL_LINKS);
   const [telegramConfigured, setTelegramConfigured] = useState(false);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [usdUahRate, setUsdUahRate] = useState<number | null>(null);
 
   // Admin auth token held strictly in React memory (never persisted to localStorage)
   const [adminToken, setAdminToken] = useState<string | null>(null);
@@ -115,6 +121,26 @@ export default function App() {
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [leadTopic, setLeadTopic] = useState('Інженерний розрахунок системи');
   const [leadEstimateUsd, setLeadEstimateUsd] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    let active = true;
+    const loadExchangeRate = async () => {
+      try {
+        const response = await fetch('/api/public/exchange-rate');
+        if (!response.ok) throw new Error('Курс НБУ тимчасово недоступний');
+        const data = (await response.json()) as { rate?: number };
+        if (active && data.rate && Number.isFinite(data.rate)) setUsdUahRate(data.rate);
+      } catch {
+        if (active) setUsdUahRate(null);
+      }
+    };
+    void loadExchangeRate();
+    const timer = window.setInterval(() => void loadExchangeRate(), 6 * 60 * 60 * 1000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -282,7 +308,7 @@ export default function App() {
     const isCrm = view === 'crm';
 
     if (selectedProduct) {
-      const priceText = selectedProduct.price > 0 ? `$${selectedProduct.price}` : 'За запитом';
+      const priceText = selectedProduct.price > 0 ? formatUahFromUsd(selectedProduct.price, usdUahRate) : 'За запитом';
       title = `${selectedProduct.title} (${priceText}) — Energo Comfort`.slice(0, 70);
       description = (
         selectedProduct.description.trim() ||
@@ -390,17 +416,17 @@ export default function App() {
               image: ogImage,
               description,
               brand: { '@type': 'Brand', name: selectedProduct.brand || 'Energo Comfort' },
-              offers: {
+              ...(selectedProduct.price > 0 && usdUahRate ? { offers: {
                 '@type': 'Offer',
                 url: canonicalUrl,
-                priceCurrency: 'USD',
-                price: selectedProduct.price > 0 ? selectedProduct.price : 0,
+                priceCurrency: 'UAH',
+                price: Math.round(selectedProduct.price * usdUahRate),
                 itemCondition: 'https://schema.org/NewCondition',
                 availability: selectedProduct.inStock
                   ? 'https://schema.org/InStock'
                   : 'https://schema.org/PreOrder',
                 seller: { '@type': 'Organization', name: 'Energo Comfort' },
-              },
+              } } : {}),
             },
             {
               '@type': 'BreadcrumbList',
@@ -439,6 +465,8 @@ export default function App() {
           services: 'Послуги монтажу та інжинірингу',
           projects: 'Реалізовані об’єкти',
           contacts: 'Контакти',
+          'payment-delivery': 'Оплата і доставка',
+          offer: 'Публічна оферта',
           crm: 'CRM',
         };
         const pageTypeMap: Record<AppView, string> = {
@@ -447,6 +475,8 @@ export default function App() {
           services: 'Service',
           projects: 'CollectionPage',
           contacts: 'ContactPage',
+          'payment-delivery': 'WebPage',
+          offer: 'WebPage',
           crm: 'WebPage',
         };
         jsonLdEl.textContent = JSON.stringify({
@@ -470,7 +500,7 @@ export default function App() {
         });
       }
     }
-  }, [view, shopInitialCat, selectedProduct, products.length, projects.length]);
+  }, [view, shopInitialCat, selectedProduct, products.length, projects.length, usdUahRate]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -761,7 +791,9 @@ export default function App() {
                 ['shop', '/shop', `Обладнання (${products.length})`],
                 ['services', '/services', 'Послуги монтажу та інжинірингу'],
                 ['projects', '/projects', `Реалізовані проєкти (${projects.length})`],
-                ['contacts', '/contacts', 'Контакти та умови'],
+                ['contacts', '/contacts', 'Контакти'],
+                ['payment-delivery', '/payment-delivery', 'Оплата і доставка'],
+                ['offer', '/public-offer', 'Публічна оферта'],
                 ['crm', '/crm', crmButtonLabel],
               ] as const
             ).map(([v, href, label]) => (
@@ -807,6 +839,7 @@ export default function App() {
           <>
             {view === 'home' && (
               <HomeView
+                usdUahRate={usdUahRate}
                 products={products}
                 projects={projects}
                 telegramUrl={socialLinks.telegram}
@@ -824,6 +857,7 @@ export default function App() {
 
             {view === 'shop' && (
               <ShopView
+                usdUahRate={usdUahRate}
                 key={shopInitialCat}
                 products={products}
                 initialCategory={shopInitialCat}
@@ -836,6 +870,7 @@ export default function App() {
 
             {view === 'services' && (
               <ServicesView
+                usdUahRate={usdUahRate}
                 onBackHome={() => navigateTo('home')}
                 onOrderService={(topic) => openLeadModal(topic)}
               />
@@ -851,8 +886,17 @@ export default function App() {
 
             {view === 'contacts' && (
               <ContactsView
+                socialLinks={socialLinks}
                 onBackHome={() => navigateTo('home')}
                 onOpenLeadModal={(topic) => openLeadModal(topic)}
+              />
+            )}
+
+            {(view === 'payment-delivery' || view === 'offer') && (
+              <InfoPage
+                type={view}
+                usdUahRate={usdUahRate}
+                onBackHome={() => navigateTo('home')}
               />
             )}
 
@@ -955,7 +999,13 @@ export default function App() {
                     onClick={(e) => handleNavAnchor(e, 'contacts')}
                     className="block hover:text-white"
                   >
-                    Повернення та публічна оферта
+                    Контакти
+                  </a>
+                  <a href="/payment-delivery" onClick={(e) => handleNavAnchor(e, 'payment-delivery')} className="block hover:text-white">
+                    Оплата і доставка
+                  </a>
+                  <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block hover:text-white">
+                    Публічна оферта
                   </a>
                   <a
                     href="/crm"
@@ -1019,6 +1069,7 @@ export default function App() {
         onClose={handleCloseProductModal}
         onAddToCart={handleAddToCart}
         onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+        usdUahRate={usdUahRate}
       />
 
       <CaseModal
@@ -1045,6 +1096,7 @@ export default function App() {
         onClearCart={() => setCart([])}
         onOrderCreated={() => void fetchDeals()}
         onOpenCrm={() => navigateTo('crm')}
+        usdUahRate={usdUahRate}
       />
     </div>
   );

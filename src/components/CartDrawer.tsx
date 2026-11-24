@@ -3,6 +3,7 @@ import { X, Minus, Plus, Trash2, ShoppingBag, CheckCircle2, ArrowRight } from 'l
 import type { CartItem, Deal } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { trackEvent } from '../lib/analytics.ts';
+import { formatUahFromUsd } from '../lib/currency.ts';
 
 interface CartDrawerProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface CartDrawerProps {
   onClearCart: () => void;
   onOrderCreated: (deal: Deal) => void;
   onOpenCrm: () => void;
+  usdUahRate: number | null;
 }
 
 export function CartDrawer({
@@ -24,6 +26,7 @@ export function CartDrawer({
   onClearCart,
   onOrderCreated,
   onOpenCrm,
+  usdUahRate,
 }: CartDrawerProps) {
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
@@ -31,6 +34,7 @@ export function CartDrawer({
   const [channel, setChannel] = useState('Телефон');
   const [notes, setNotes] = useState('');
   const [website, setWebsite] = useState('');
+  const [acceptedOffer, setAcceptedOffer] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirmedDeal, setConfirmedDeal] = useState<Deal | null>(null);
@@ -120,10 +124,10 @@ export function CartDrawer({
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
                 <div className="flex items-center gap-2 text-[#169374] font-bold text-sm mb-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Замовлення {confirmedDeal.dealNumber} підтверджено</span>
+                  <span>Запит на замовлення {confirmedDeal.dealNumber} надіслано</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed">
-                  Сума: <strong className="font-mono">${confirmedDeal.totalUsd.toLocaleString('uk-UA')}</strong> · Позицій:{' '}
+                  Сума: <strong className="font-mono">{formatUahFromUsd(confirmedDeal.totalUsd, usdUahRate)}</strong> · Позицій:{' '}
                   {confirmedDeal.items.length}
                   <br />
                   Замовлення передано у CRM менеджерам Energo Comfort та зафіксовано на номер {confirmedDeal.phone}.
@@ -164,9 +168,9 @@ export function CartDrawer({
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold text-[#0d1f33] line-clamp-2">{item.title}</div>
                       <div className="font-mono text-[11px] text-slate-500 mt-0.5 tabular-nums">
-                        ${item.price.toLocaleString('uk-UA')} × {item.qty} ={' '}
+                        {formatUahFromUsd(item.price, usdUahRate)} × {item.qty} ={' '}
                         <strong className="text-[#0d1f33]">
-                          ${(item.price * item.qty).toLocaleString('uk-UA')}
+                          {formatUahFromUsd(item.price * item.qty, usdUahRate)}
                         </strong>
                       </div>
                       <div className="flex items-center gap-1.5 mt-2">
@@ -203,8 +207,9 @@ export function CartDrawer({
 
               <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-sm font-extrabold text-[#0d1f33]">
                 <span>Разом ({totalQty} од.):</span>
-                <span className="font-mono text-lg tabular-nums">${subtotal.toLocaleString('uk-UA')}</span>
+                <span className="font-mono text-lg tabular-nums">{formatUahFromUsd(subtotal, usdUahRate)}</span>
               </div>
+              <p className="text-[11px] text-slate-500">Ціни перераховані за офіційним курсом НБУ. Остаточну суму в гривнях підтвердить менеджер під час узгодження замовлення.</p>
 
               <form onSubmit={handleCheckout} className="space-y-3 pt-2 border-t border-slate-200">
                 <div className="hidden" aria-hidden="true">
@@ -258,6 +263,19 @@ export function CartDrawer({
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                 />
 
+                <label className="flex items-start gap-2 text-[11px] leading-5 text-slate-600">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={acceptedOffer}
+                    onChange={(e) => setAcceptedOffer(e.target.checked)}
+                    className="mt-1 accent-[#1769aa]"
+                  />
+                  <span>
+                    Ознайомився(-лася) з <a href="/public-offer" target="_blank" rel="noreferrer" className="font-bold text-[#1769aa] underline">проєктом публічної оферти</a> та підтверджую, що заявка є запитом на підтвердження замовлення.
+                  </span>
+                </label>
+
                 {error && <div className="text-xs font-semibold text-red-600">{error}</div>}
 
                 <button
@@ -265,7 +283,7 @@ export function CartDrawer({
                   disabled={submitting}
                   className="w-full py-3 px-4 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] disabled:opacity-60 text-[#0d1f33] hover:text-white text-sm font-extrabold transition-colors cursor-pointer"
                 >
-                  {submitting ? 'Оформлюємо...' : 'Підтвердити замовлення'}
+                  {submitting ? 'Надсилаємо...' : 'Надіслати запит на замовлення'}
                 </button>
               </form>
             </>

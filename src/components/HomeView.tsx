@@ -19,6 +19,7 @@ interface HomeViewProps {
   onSelectCase: (project: ProjectCase) => void;
   onLeadCreated: (deal: Deal) => void;
   onOpenCrm: () => void;
+  usdUahRate: number | null;
 }
 
 type ShowcaseTab = 'backup-kits' | 'solar-kits' | 'hardware';
@@ -36,6 +37,7 @@ export function HomeView({
   onSelectCase,
   onLeadCreated,
   onOpenCrm,
+  usdUahRate,
 }: HomeViewProps) {
   const [showcaseTab, setShowcaseTab] = useState<ShowcaseTab>('backup-kits');
   const [heroIdx, setHeroIdx] = useState(0);
@@ -537,6 +539,7 @@ export function HomeView({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {activeShowcase.map((prod) => (
               <ProductCard
+                usdUahRate={usdUahRate}
                 key={prod.id}
                 product={prod}
                 onSelect={onSelectProduct}
