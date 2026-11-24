@@ -31,17 +31,16 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
               }}
               className="text-[#1769aa] font-bold hover:underline"
             >
-              Головна
+              {tr('Головна')}
             </a>
             <span aria-hidden="true">/</span>
-            <span>Послуги монтажу та інжинірингу</span>
+            <span>{tr('Послуги монтажу та інжинірингу')}</span>
           </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
-            Послуги монтажу СЕС та додатковий інженерний сервіс
+            {tr('Послуги монтажу СЕС та додатковий інженерний сервіс')}
           </h1>
           <p className="text-sm text-[#52657a] max-w-2xl">
-            Власний монтажний підрозділ в Одесі та Одеській області. Від аудиту електромережі до пусконалагодження і
-            юридичного супроводу «зеленого тарифу».
+            {tr('Власний монтажний підрозділ в Одесі та Одеській області. Від аудиту електромережі до пусконалагодження і юридичного супроводу «зеленого тарифу».', 'Своя монтажная команда в Одессе и области: от аудита электросети и пусконаладки до сопровождения оформления «зелёного тарифа».')}
           </p>
         </div>
       </section>
@@ -50,8 +49,8 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
         <div className="max-w-[1180px] mx-auto px-5 space-y-12">
           <div>
             <div className="mb-6">
-              <div className="text-xs font-extrabold text-[#1769aa] mb-1">Напрямок 01</div>
-              <h2 className="text-2xl font-extrabold text-[#0d1f33]">Послуги монтажу під ключ</h2>
+              <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Напрямок 01')}</div>
+              <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Послуги монтажу під ключ')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -97,8 +96,8 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
 
           <div className="pt-4 border-t border-slate-200">
             <div className="mb-6">
-              <div className="text-xs font-extrabold text-[#1769aa] mb-1">Напрямок 02</div>
-              <h2 className="text-2xl font-extrabold text-[#0d1f33]">Додаткові інженерні послуги</h2>
+              <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Напрямок 02')}</div>
+              <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Додаткові інженерні послуги')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

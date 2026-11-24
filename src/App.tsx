@@ -977,13 +977,13 @@ export default function App() {
                   className="h-12 w-auto bg-white rounded-lg p-1.5 mb-3"
                 />
                 <p className="text-xs text-slate-400 leading-relaxed mb-3.5">
-                  Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.
+                  {tr('Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.', 'Системы резервного питания и солнечные электростанции под ключ в Одессе и области.')}
                 </p>
                 <SocialIcons links={socialLinks} variant="footer" />
               </div>
 
               <div>
-                <h2 className="text-xs font-extrabold text-white mb-3">Обладнання</h2>
+                <h2 className="text-xs font-extrabold text-white mb-3">{tr('Обладнання')}</h2>
                 <div className="space-y-1.5 text-xs text-slate-400">
                   {(
                     [
@@ -1000,41 +1000,41 @@ export default function App() {
                       onClick={(e) => handleNavAnchor(e, 'shop', c)}
                       className="block hover:text-white"
                     >
-                      {label}
+                      {tr(label)}
                     </a>
                   ))}
                 </div>
               </div>
 
               <div>
-                <h2 className="text-xs font-extrabold text-white mb-3">Компанія та сервіс</h2>
+                <h2 className="text-xs font-extrabold text-white mb-3">{tr('Компанія та сервіс', 'Компания и сервис')}</h2>
                 <div className="space-y-1.5 text-xs text-slate-400">
                   <a
                     href="/services"
                     onClick={(e) => handleNavAnchor(e, 'services')}
                     className="block hover:text-white"
                   >
-                    Послуги монтажу та інжинірингу
+                    {tr('Послуги монтажу та інжинірингу')}
                   </a>
                   <a
                     href="/projects"
                     onClick={(e) => handleNavAnchor(e, 'projects')}
                     className="block hover:text-white"
                   >
-                    Реалізовані об’єкти ({projects.length})
+                    {tr('Реалізовані об’єкти')} ({projects.length})
                   </a>
                   <a
                     href="/contacts"
                     onClick={(e) => handleNavAnchor(e, 'contacts')}
                     className="block hover:text-white"
                   >
-                    Контакти
+                    {tr('Контакти')}
                   </a>
                   <a href="/payment-delivery" onClick={(e) => handleNavAnchor(e, 'payment-delivery')} className="block hover:text-white">
-                    Оплата і доставка
+                    {tr('Оплата і доставка')}
                   </a>
                   <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block hover:text-white">
-                    Публічна оферта
+                    {tr('Публічна оферта')}
                   </a>
                   <a
                     href="/crm"
@@ -1047,9 +1047,9 @@ export default function App() {
               </div>
 
               <div>
-                <h2 className="text-xs font-extrabold text-white mb-3">Контакти · Одеса</h2>
+                <h2 className="text-xs font-extrabold text-white mb-3">{tr('Контакти · Одеса', 'Контакты · Одесса')}</h2>
                 <div className="space-y-1.5 text-xs text-slate-400">
-                  <p>{COMPANY_INFO.address}</p>
+                  <p>{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
                   <a href={COMPANY_INFO.phone1Href} className="block font-mono hover:text-white">
                     {COMPANY_INFO.phone1}
                   </a>
@@ -1065,7 +1065,7 @@ export default function App() {
 
             <div className="mt-8 pt-5 border-t border-white/10 text-[11px] text-slate-500 flex flex-wrap justify-between gap-2">
               <span>© 2026 Energo Comfort · energocomfort.shop</span>
-              <span>Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina</span>
+              <span>{tr('Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina', 'Официальное оборудование Deye, SolaX, Solis, Dyness, Trina')}</span>
             </div>
           </div>
         </footer>
@@ -1080,7 +1080,7 @@ export default function App() {
             className="flex-1 h-8 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
           >
             <PhoneCall className="w-3.5 h-3.5 text-[#1769aa]" />
-            Зателефонувати
+            {tr('Зателефонувати')}
           </a>
           <button
             type="button"

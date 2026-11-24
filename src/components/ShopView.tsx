@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
+import { tr } from '../lib/i18n.ts';
 
 interface ShopViewProps {
   products: Product[];
@@ -97,34 +98,33 @@ export function ShopView({
               }}
               className="text-[#1769aa] font-bold hover:underline"
             >
-              Головна
+              {tr('Головна')}
             </a>
             <span aria-hidden="true">/</span>
-            <span>Каталог обладнання</span>
+            <span>{tr('Каталог обладнання')}</span>
           </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
-            Обладнання та готові рішення Energo Comfort
+            {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
           </h1>
           <p className="text-sm text-[#52657a] max-w-2xl">
-            Повний каталог позицій із energocomfort.shop ({products.length} товарів). Окремі інвертори, АКБ, панелі та
-            захист додаються у кошик; готові комплекти підключаються через інженерний розрахунок.
+            {tr('Повний каталог позицій із energocomfort.shop', 'Полный каталог товаров energocomfort.shop')} ({products.length} {tr('товарів', 'товаров')}). {tr('Окремі інвертори, АКБ, панелі та захист додаються у кошик; готові комплекти підключаються через інженерний розрахунок.', 'Отдельные инверторы, аккумуляторы, панели и защита добавляются в корзину; готовые комплекты подбираются инженером.')}
           </p>
         </div>
       </section>
 
       <section className="py-10 bg-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <h2 className="sr-only">Фільтри та перелік обладнання</h2>
+          <h2 className="sr-only">{tr('Фільтри та перелік обладнання', 'Фильтры и каталог оборудования')}</h2>
           {/* Category Filter Tabs */}
           <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl mb-5 w-fit max-w-full">
             {(
               [
-                ['all', `Усі товари (${counts.all})`],
-                ['kits', `Готові рішення (${counts.kits})`],
-                ['inverters', `Інвертори (${counts.inverters})`],
-                ['batteries', `Акумулятори (${counts.batteries})`],
-                ['panels', `Сонячні панелі (${counts.panels})`],
-                ['parts', `Комплектуючі (${counts.parts})`],
+                ['all', 'Усі товари'],
+                ['kits', 'Готові рішення'],
+                ['inverters', 'Інвертори'],
+                ['batteries', 'Акумулятори'],
+                ['panels', 'Сонячні панелі'],
+                ['parts', 'Комплектуючі'],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -135,7 +135,7 @@ export function ShopView({
                   cat === key ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
-                {label}
+                {tr(label)} ({counts[key]})
               </button>
             ))}
           </div>
@@ -151,7 +151,7 @@ export function ShopView({
                   setQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Пошук за моделлю, потужністю або SKU (напр. Deye 12, 10018)..."
+                placeholder={tr('Пошук за моделлю, потужністю або SKU (напр. Deye 12, 10018)...', 'Поиск по модели, мощности или SKU (например, Deye 12, 10018)…')}
                 className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:border-[#1769aa]"
               />
             </div>
@@ -165,7 +165,7 @@ export function ShopView({
                 }}
                 className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1769aa]"
               >
-                <option value="all">Усі бренди ({brands.length})</option>
+                <option value="all">{tr('Усі бренди', 'Все бренды')} ({brands.length})</option>
                 {brands.map(([bName, bCount]) => (
                   <option key={bName} value={bName}>
                     {bName} ({bCount})
@@ -180,9 +180,9 @@ export function ShopView({
                 onChange={(e) => setSort(e.target.value as 'default' | 'asc' | 'desc')}
                 className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1769aa]"
               >
-                <option value="default">Рекомендовані</option>
-                <option value="asc">Спочатку дешевші</option>
-                <option value="desc">Спочатку дорожчі</option>
+                <option value="default">{tr('Рекомендовані', 'Рекомендуемые')}</option>
+                <option value="asc">{tr('Спочатку дешевші', 'Сначала дешевле')}</option>
+                <option value="desc">{tr('Спочатку дорожчі', 'Сначала дороже')}</option>
               </select>
             </div>
 
@@ -196,25 +196,25 @@ export function ShopView({
                 }}
                 className="accent-[#169374]"
               />
-              В наявності
+              {tr('В наявності')}
             </label>
           </div>
 
           <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
             <span>
-              Знайдено позицій: <strong className="font-mono text-[#0d1f33]">{filtered.length}</strong>
+              {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#0d1f33]">{filtered.length}</strong>
             </span>
             {totalPages > 1 && (
               <span className="font-mono">
-                Сторінка {safePage} з {totalPages}
+                {tr('Сторінка', 'Страница')} {safePage} {tr('з', 'из')} {totalPages}
               </span>
             )}
           </div>
 
           {paginated.length === 0 ? (
             <div className="p-12 text-center border border-dashed border-slate-300 rounded-2xl bg-slate-50">
-              <p className="text-sm font-bold text-[#0d1f33] mb-1">За вашим запитом товарів не знайдено</p>
-              <p className="text-xs text-slate-500 mb-4">Спробуйте змінити фільтр бренду, категорію або пошуковий запит.</p>
+              <p className="text-sm font-bold text-[#0d1f33] mb-1">{tr('За вашим запитом товарів не знайдено', 'По вашему запросу товары не найдены')}</p>
+              <p className="text-xs text-slate-500 mb-4">{tr('Спробуйте змінити фільтр бренду, категорію або пошуковий запит.', 'Измените фильтр бренда, категорию или поисковый запрос.')}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -225,7 +225,7 @@ export function ShopView({
                 }}
                 className="px-4 py-2 rounded-lg bg-[#1769aa] text-white text-xs font-bold cursor-pointer"
               >
-                Скинути фільтри
+                {tr('Скинути фільтри', 'Сбросить фильтры')}
               </button>
             </div>
           ) : (

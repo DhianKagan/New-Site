@@ -2,6 +2,7 @@ import { X, ShoppingBag, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
+import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення під ключ',
@@ -21,6 +22,10 @@ interface ProductModalProps {
 
 export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, usdUahRate }: ProductModalProps) {
   if (!product) return null;
+  const isRussian = getActiveLocale() === 'ru';
+  const title = isRussian ? product.titleRu ?? product.title : product.title;
+  const specs = isRussian ? product.specsRu ?? product.specs : product.specs;
+  const description = isRussian ? product.descriptionRu ?? product.description : product.description;
   const canBuyDirect = !product.isKit && product.price > 0;
 
   return (
@@ -37,7 +42,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
           <div className="text-xs text-slate-500 font-medium flex items-center gap-2 truncate">
-            <span>{CAT_LABELS[product.cat] || product.cat}</span>
+            <span>{tr(CAT_LABELS[product.cat] || product.cat)}</span>
             <span aria-hidden="true">·</span>
             <span className="font-semibold text-[#0d1f33]">{product.brand}</span>
             <span aria-hidden="true">·</span>
@@ -46,7 +51,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
           <button
             type="button"
             onClick={onClose}
-            aria-label="Закрити"
+            aria-label={tr('Закрити')}
             className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
@@ -57,7 +62,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
           <div className="bg-[#f8fafc] border border-slate-200 rounded-xl h-72 md:h-80 overflow-hidden flex items-center justify-center">
             <SmartImage
               src={product.img}
-              alt={product.title}
+              alt={title}
               className={`w-full h-full ${product.isKit ? 'object-cover' : 'object-contain p-6'}`}
             />
           </div>
@@ -65,7 +70,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
           <div className="flex flex-col justify-between gap-4">
             <div>
               <h2 id="product-modal-title" className="text-xl font-extrabold text-[#0d1f33] leading-tight mb-3">
-                {product.title}
+                {title}
               </h2>
 
               <div className="flex items-baseline gap-3 mb-4">
@@ -81,20 +86,20 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
                     )}
                   </>
                 ) : (
-                  <span className="font-mono text-lg font-bold text-[#1769aa]">Ціна за запитом</span>
+                  <span className="font-mono text-lg font-bold text-[#1769aa]">{tr('Ціна за запитом', 'Цена по запросу')}</span>
                 )}
               </div>
 
               <div className="flex items-center gap-2 text-xs font-semibold text-[#169374] mb-4">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>
-                  {product.inStock ? 'В наявності на складі в Одесі' : 'Поставка під замовлення'} · Офіційна гарантія
+                  {isRussian ? product.statusLabelRu ?? (product.inStock ? 'В наличии на складе в Одессе' : 'Поставка под заказ') : product.inStock ? 'В наявності на складі в Одесі' : 'Поставка під замовлення'} · {tr('Офіційна гарантія')}
                 </span>
               </div>
 
-              {product.specs.length > 0 && (
+              {specs.length > 0 && (
                 <div className="border border-slate-200 rounded-xl p-3.5 bg-slate-50/70 space-y-2 mb-4">
-                  {product.specs.map(([k, v]) => (
+                  {specs.map(([k, v]) => (
                     <div key={k} className="flex justify-between text-xs gap-3">
                       <span className="text-slate-500">{k}</span>
                       <span className="font-bold text-[#0d1f33]">{v}</span>
@@ -103,9 +108,9 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
                 </div>
               )}
 
-              {product.description && (
+              {description && (
                 <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line max-h-36 overflow-y-auto pr-1">
-                  {product.description}
+                  {description}
                 </p>
               )}
             </div>
@@ -121,7 +126,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
                   className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  Додати в кошик
+                  {tr('Додати в кошик', 'Добавить в корзину')}
                 </button>
               )}
               <button
@@ -132,7 +137,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer"
               >
-                Підбір під об’єкт
+                {tr('Підбір під об’єкт', 'Подбор для объекта')}
                 <ArrowUpRight className="w-4 h-4" />
               </button>
             </div>
