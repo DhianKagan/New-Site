@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { X, Minus, Plus, Trash2, ShoppingBag, CheckCircle2, ArrowRight } from 'lucide-react';
 import type { CartItem, Deal } from '../types.ts';
 import { tr } from '../lib/i18n.ts';
 import { SmartImage } from './SmartImage.tsx';
-import { trackEvent } from '../lib/analytics.ts';
+import { track, trackEvent } from '../lib/analytics.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
+import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 
 interface CartDrawerProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function CartDrawer({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirmedDeal, setConfirmedDeal] = useState<Deal | null>(null);
+  const checkoutStarted = useRef(false);
 
   if (!open) return null;
 
@@ -49,6 +51,19 @@ export function CartDrawer({
     e.preventDefault();
     if (!items.length) return;
     setError('');
+
+    if (!isValidUaPhone(phone)) {
+      track({ name: 'form_error', field: 'phone', placement: 'section', scenario: 'unspecified' });
+      setError(tr('Вкажіть номер телефону у форматі +380 XX XXX XX XX', 'Укажите номер телефона в формате +380 XX XXX XX XX'));
+      return;
+    }
+
+    if (!acceptedOffer) {
+      setError(tr('Підтвердіть ознайомлення з проєктом публічної оферти', 'Подтвердите ознакомление с проектом публичной оферты'));
+      return;
+    }
+
+    const normalizedPhone = `+${phone.replace(/\D/g, '')}`;
     setSubmitting(true);
     try {
       const resp = await fetch('/api/orders', {
@@ -56,17 +71,18 @@ export function CartDrawer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: customerName.trim() || 'Покупець магазину',
-          phone,
+          phone: normalizedPhone,
           city,
           channel,
           notes,
           website,
+          acceptedOffer,
           items: items.map((i) => ({ productId: i.id, qty: i.qty })),
         }),
       });
       const data = (await resp.json()) as { deal?: Deal; error?: string };
       if (!resp.ok || !data.deal) {
-        setError(data.error || 'Помилка оформлення замовлення');
+        setError(data.error || tr('Помилка оформлення замовлення', 'Ошибка оформления заказа'));
       } else {
         setConfirmedDeal(data.deal);
         trackEvent('purchase', {
@@ -79,7 +95,7 @@ export function CartDrawer({
         onOrderCreated(data.deal);
       }
     } catch {
-      setError('Сервер замовлень недоступний. Оформіть замовлення телефоном: +38 (050) 777-71-72.');
+      setError(tr('Сервер замовлень недоступний. Оформіть замовлення телефоном: +38 (050) 777-71-72.', 'Сервер заказов недоступен. Оформите заказ по телефону: +38 (050) 777-71-72.'));
     } finally {
       setSubmitting(false);
     }
@@ -94,6 +110,7 @@ export function CartDrawer({
       }}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="cart-drawer-title"
     >
       <div
         className="bg-white w-full max-w-md h-full flex flex-col border-l border-slate-200 shadow-2xl"
@@ -102,7 +119,7 @@ export function CartDrawer({
         <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <ShoppingBag className="w-4 h-4 text-[#1769aa]" />
-            <h3 className="text-base font-extrabold text-[#0d1f33]">
+            <h3 id="cart-drawer-title" className="text-base font-extrabold text-[#0d1f33]">
               {tr('Кошик обладнання', 'Корзина оборудования')} <span className="font-mono text-sm text-slate-500">({totalQty})</span>
             </h3>
           </div>
@@ -210,11 +227,25 @@ export function CartDrawer({
                 <span>{tr('Разом', 'Итого')} ({totalQty} {tr('од.', 'шт.')}):</span>
                 <span className="font-mono text-lg tabular-nums">{formatUahFromUsd(subtotal, usdUahRate)}</span>
               </div>
-              <p className="text-[11px] text-slate-500">{tr('Ціни перераховані за офіційним курсом НБУ. Остаточну суму в гривнях підтвердить менеджер під час узгодження замовлення.', 'Цены пересчитаны по официальному курсу НБУ. Итоговую сумму в гривнах менеджер подтвердит при согласовании заказа.')}</p>
+              <p className="text-[11px] text-slate-500">
+                {tr('Ціни перераховані за офіційним курсом НБУ. Остаточну суму в гривнях підтвердить менеджер під час узгодження замовлення.', 'Цены пересчитаны по официальному курсу НБУ. Итоговую сумму в гривнах менеджер подтвердит при согласовании заказа.')}
+              </p>
 
-              <form onSubmit={handleCheckout} className="space-y-3 pt-2 border-t border-slate-200">
+              <form
+                onSubmit={handleCheckout}
+                onFocus={() => {
+                  if (!checkoutStarted.current) {
+                    checkoutStarted.current = true;
+                    track({ name: 'form_start', placement: 'section', scenario: 'unspecified' });
+                  }
+                }}
+                className="space-y-3 pt-2 border-t border-slate-200"
+              >
                 <div className="hidden" aria-hidden="true">
+                  <label htmlFor="cart-website">Website</label>
                   <input
+                    id="cart-website"
+                    name="website"
                     type="text"
                     tabIndex={-1}
                     autoComplete="off"
@@ -223,49 +254,95 @@ export function CartDrawer({
                   />
                 </div>
                 <div className="text-xs font-bold text-[#0d1f33]">{tr('Оформлення замовлення', 'Оформление заказа')}</div>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder={tr('Ваше ім’я або компанія', 'Ваше имя или компания')}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
-                />
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={tr('Телефон * (+38 0__ ___ __ __)', 'Телефон * (+38 0__ ___ __ __)')}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
-                />
-                <div className="grid grid-cols-2 gap-2.5">
+
+                <div>
+                  <label htmlFor="cart-customer-name" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    {tr('Ваше ім’я або компанія', 'Ваше имя или компания')}
+                  </label>
                   <input
+                    id="cart-customer-name"
+                    name="customerName"
                     type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder={tr('Місто / Нова Пошта', 'Город / Новая Почта')}
+                    autoComplete="name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder={tr('Наприклад, Сергій / ТОВ «Південь»', 'Например, Сергей / ООО «Юг»')}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="cart-phone" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    {tr('Телефон *', 'Телефон *')}
+                  </label>
+                  <input
+                    id="cart-phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    required
+                    aria-invalid={Boolean(error)}
+                    value={phone}
+                    onChange={(e) => setPhone(formatUaPhone(e.target.value))}
+                    placeholder="+380 XX XXX XX XX"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label htmlFor="cart-city" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                      {tr('Місто / Нова Пошта', 'Город / Новая Почта')}
+                    </label>
+                    <input
+                      id="cart-city"
+                      name="city"
+                      type="text"
+                      autoComplete="address-level2"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder={tr('Місто / Нова Пошта', 'Город / Новая Почта')}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cart-channel" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                      {tr('Канал зв’язку', 'Канал связи')}
+                    </label>
+                    <select
+                      id="cart-channel"
+                      name="channel"
+                      value={channel}
+                      onChange={(e) => setChannel(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:border-[#1769aa]"
+                    >
+                      <option value="Телефон">{tr('Дзвінок')}</option>
+                      <option value="Telegram">Telegram</option>
+                      <option value="Viber">Viber</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="cart-notes" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    {tr('Коментар до замовлення', 'Комментарий к заказу')}
+                  </label>
+                  <textarea
+                    id="cart-notes"
+                    name="notes"
+                    rows={2}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder={tr('Коментар щодо доставки, ПДВ/ФОП або сумісності', 'Комментарий по доставке, НДС/ФЛП или совместимости')}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
                   />
-                  <select
-                    value={channel}
-                    onChange={(e) => setChannel(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:border-[#1769aa]"
-                  >
-                    <option value="Телефон">{tr('Дзвінок')}</option>
-                    <option value="Telegram">Telegram</option>
-                    <option value="Viber">Viber</option>
-                  </select>
                 </div>
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={tr('Коментар щодо доставки, ПДВ/ФОП або сумісності', 'Комментарий по доставке, НДС/ФЛП или совместимости')}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
-                />
 
-                <label className="flex items-start gap-2 text-[11px] leading-5 text-slate-600">
+                <label htmlFor="cart-offer" className="flex items-start gap-2 text-[11px] leading-5 text-slate-600 cursor-pointer">
                   <input
+                    id="cart-offer"
+                    name="acceptedOffer"
                     type="checkbox"
                     required
                     checked={acceptedOffer}
@@ -273,11 +350,19 @@ export function CartDrawer({
                     className="mt-1 accent-[#1769aa]"
                   />
                   <span>
-                    {tr('Ознайомився(-лася) з', 'Я ознакомился(-лась) с')} <a href="/public-offer" target="_blank" rel="noreferrer" className="font-bold text-[#1769aa] underline">{tr('проєктом публічної оферти', 'проектом публичной оферты')}</a> {tr('та підтверджую, що заявка є запитом на підтвердження замовлення.', 'и подтверждаю, что заявка является запросом на подтверждение заказа.')}
+                    {tr('Ознайомився(-лася) з', 'Я ознакомился(-лась) с')}{' '}
+                    <a href="/public-offer" target="_blank" rel="noopener noreferrer" className="font-bold text-[#1769aa] underline">
+                      {tr('проєктом публічної оферти', 'проектом публичной оферты')}
+                    </a>{' '}
+                    {tr('та підтверджую, що заявка є запитом на підтвердження замовлення.', 'и подтверждаю, что заявка является запросом на подтверждение заказа.')}
                   </span>
                 </label>
 
-                {error && <div className="text-xs font-semibold text-red-600">{error}</div>}
+                {error && (
+                  <div role="alert" aria-live="polite" className="text-xs font-semibold text-red-600">
+                    {error}
+                  </div>
+                )}
 
                 <button
                   type="submit"

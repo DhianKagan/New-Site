@@ -17,7 +17,9 @@ import { BRAND_PARTNERS, COMPANY_INFO, FAQ_ITEMS } from '../data/siteContent.ts'
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
+import { formatUahFromUsd } from '../lib/currency.ts';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
+import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 
 interface HomeViewProps {
   products: Product[];
@@ -26,7 +28,12 @@ interface HomeViewProps {
   onNavigateShop: (cat?: ProductCategory | 'all') => void;
   onNavigateServices: () => void;
   onNavigateProjects: () => void;
-  onOpenLeadModal: (topic: string, estimatedTotalUsd?: number, placement?: 'hero' | 'sticky' | 'section' | 'footer') => void;
+  onOpenLeadModal: (
+    topic: string,
+    estimatedTotalUsd?: number,
+    placement?: 'hero' | 'sticky' | 'section' | 'footer',
+    initialNotes?: string,
+  ) => void;
   onSelectProduct: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onSelectCase: (project: ProjectCase) => void;
@@ -69,6 +76,11 @@ export function HomeView({
     }, 6000);
     return () => window.clearInterval(timer);
   }, [heroPaused, projects.length]);
+
+  // Payback Calculator state
+  const [monthlyKwh, setMonthlyKwh] = useState(600);
+  const [calcTariffType, setCalcTariffType] = useState<'home' | 'business'>('home');
+  const [tariffUah, setTariffUah] = useState(4.32);
 
   // Engineering Brief Form state
   const [taskType, setTaskType] = useState('Резервне живлення (квартира / дім)');
@@ -138,6 +150,83 @@ export function HomeView({
 
   const visibleCases = projects.filter((p) => caseSeg === 'all' || p.seg === caseSeg).slice(0, 6);
 
+  // Payback Calculator math (Odesa region ~1180 kWh/year per 1 kW PV)
+  const ODESA_YIELD_PER_KW = 1180;
+  const POWER_TIERS = [5, 6, 8, 10, 12, 15, 20, 30, 50, 80, 110];
+  const safeMonthlyKwh = Number.isFinite(monthlyKwh) ? Math.max(50, Math.min(50000, monthlyKwh)) : 600;
+  const safeTariffUah = Number.isFinite(tariffUah) ? Math.max(1, Math.min(30, tariffUah)) : 4.32;
+  const annualConsumptionKwh = safeMonthlyKwh * 12;
+  const rawRequiredKw = annualConsumptionKwh / ODESA_YIELD_PER_KW;
+  const recommendedKw = POWER_TIERS.reduce((best, tier) =>
+    Math.abs(tier - rawRequiredKw) < Math.abs(best - rawRequiredKw) ? tier : best,
+  POWER_TIERS[0]);
+  const estimatedAnnualGenKwh = Math.round(recommendedKw * ODESA_YIELD_PER_KW);
+  const coveredAnnualKwh = Math.min(annualConsumptionKwh, estimatedAnnualGenKwh);
+  const annualSavingsUah = Math.round(coveredAnnualKwh * safeTariffUah);
+  const monthlySavingsUah = Math.round(annualSavingsUah / 12);
+  const coveragePct = Math.min(100, Math.round((estimatedAnnualGenKwh / Math.max(annualConsumptionKwh, 1)) * 100));
+
+  function extractPowerKw(p: Product): number | null {
+    const haystack = `${p.title} ${p.specs.map(([, v]) => v).join(' ')}`;
+    const match = haystack.match(/(\d+(?:[.,]\d+)?)\s*кВт(?![\s*·]*год)/i);
+    if (!match) return null;
+    const val = Number(match[1].replace(',', '.'));
+    return Number.isFinite(val) ? val : null;
+  }
+
+  function isSolarSolution(p: Product): boolean {
+    const text = `${p.title} ${p.description}`.toLowerCase();
+    return text.includes('сес') || text.includes('соняч') || text.includes('trina') || text.includes('bifacial') || text.includes('x3-ies');
+  }
+
+  const matchedCalculatorProducts = [...products]
+    .filter((p) => p.price > 0 && (p.isKit || p.cat === 'kits' || (recommendedKw >= 20 && p.cat === 'inverters')))
+    .sort((a, b) => {
+      const aPreferKit = a.isKit || a.cat === 'kits' ? 1 : 0;
+      const bPreferKit = b.isKit || b.cat === 'kits' ? 1 : 0;
+      const aSolar = isSolarSolution(a) ? 1 : 0;
+      const bSolar = isSolarSolution(b) ? 1 : 0;
+
+      if (recommendedKw <= 15) {
+        if (aSolar !== bSolar) return bSolar - aSolar;
+        if (aPreferKit !== bPreferKit) return bPreferKit - aPreferKit;
+      } else {
+        const aKw = extractPowerKw(a) ?? 0;
+        const bKw = extractPowerKw(b) ?? 0;
+        const aHeavy = aKw >= 15 ? 1 : 0;
+        const bHeavy = bKw >= 15 ? 1 : 0;
+        if (aHeavy !== bHeavy) return bHeavy - aHeavy;
+      }
+
+      const aKw = extractPowerKw(a) ?? recommendedKw * 2;
+      const bKw = extractPowerKw(b) ?? recommendedKw * 2;
+      const diff = Math.abs(aKw - recommendedKw) - Math.abs(bKw - recommendedKw);
+      if (diff !== 0) return diff;
+      if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
+      return a.price - b.price;
+    })
+    .slice(0, 3);
+
+  const primaryCalcKit = matchedCalculatorProducts[0];
+  const primaryCalcKw = primaryCalcKit ? extractPowerKw(primaryCalcKit) : null;
+  const canUseDirectKitPrice = Boolean(
+    primaryCalcKit &&
+      primaryCalcKit.price > 0 &&
+      usdUahRate &&
+      primaryCalcKw &&
+      primaryCalcKw >= recommendedKw * 0.6 &&
+      primaryCalcKw <= recommendedKw * 1.5,
+  );
+  const indicativeCapexUah = usdUahRate
+    ? canUseDirectKitPrice && primaryCalcKit
+      ? Math.round(primaryCalcKit.price * usdUahRate)
+      : Math.round(recommendedKw * (calcTariffType === 'business' ? 760 : 840) * usdUahRate)
+    : null;
+  const paybackYears =
+    indicativeCapexUah && annualSavingsUah > 0
+      ? Number((indicativeCapexUah / annualSavingsUah).toFixed(1))
+      : null;
+
   function toggleLoad(val: string) {
     setLoads((prev) => (prev.includes(val) ? prev.filter((item) => item !== val) : [...prev, val]));
   }
@@ -146,6 +235,13 @@ export function HomeView({
     e.preventDefault();
     setFormError('');
     const scenario = getFormScenario(taskType);
+    if (!isValidUaPhone(phone)) {
+      setFormError(
+        tr('Вкажіть номер телефону у форматі +380 XX XXX XX XX', 'Укажите номер телефона в формате +380 XX XXX XX XX'),
+      );
+      track({ name: 'form_error', field: 'phone', placement: 'section', scenario });
+      return;
+    }
     setSubmitting(true);
     try {
       const resp = await fetch('/api/leads', {
@@ -160,11 +256,12 @@ export function HomeView({
           taskType,
           loads,
           website,
+          consent: true,
         }),
       });
       const data = (await resp.json()) as { deal?: Deal; error?: string };
       if (!resp.ok || !data.deal) {
-        setFormError(data.error || 'Помилка відправки заявки');
+        setFormError(data.error || tr('Помилка відправки заявки', 'Ошибка отправки заявки'));
         track({ name: 'form_error', field: 'phone', placement: 'section', scenario });
       } else {
         setCreatedBrief(data.deal);
@@ -179,7 +276,12 @@ export function HomeView({
         setCustomerName('');
       }
     } catch {
-      setFormError('Сервер заявок зараз недоступний. Зателефонуйте нам напряму: +38 (050) 777-71-72.');
+      setFormError(
+        tr(
+          'Сервер заявок зараз недоступний. Зателефонуйте нам напряму: +38 (050) 777-71-72.',
+          'Сервер заявок временно недоступен. Позвоните нам напрямую: +38 (050) 777-71-72.',
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -295,7 +397,7 @@ export function HomeView({
                           </div>
                         </div>
                         <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-sky-200 whitespace-nowrap shrink-0 group-hover:text-white">
-                          Деталі →
+                          {tr('Деталі')} →
                         </span>
                       </div>
                     </div>
@@ -416,6 +518,256 @@ export function HomeView({
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Payback Calculator + Matched Catalog Solutions */}
+      <section id="payback-calculator" className="py-14 bg-[#f6f8fb] border-b border-slate-200">
+        <div className="max-w-[1180px] mx-auto px-5">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-7">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1769aa] mb-1.5">
+                <Calculator className="w-3.5 h-3.5" />
+                <span>{tr('Онлайн-підбір за вашим лічильником', 'Онлайн-подбор по вашему счётчику')}</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+                {tr('Калькулятор окупності СЕС', 'Калькулятор окупаемости СЭС')}
+              </h2>
+              <p className="text-sm text-[#52657a]">
+                {tr(
+                  'Вкажіть середньомісячне споживання у кВт·год, щоб оцінити річну економію, орієнтовну окупність та побачити сумісні комплекти з каталогу.',
+                  'Укажите среднемесячное потребление в кВт·ч, чтобы оценить годовую экономию, ориентировочную окупаемость и подобрать комплекты из каталога.',
+                )}
+              </p>
+            </div>
+            <div className="inline-flex p-1 bg-white border border-slate-200 rounded-lg self-start lg:self-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setCalcTariffType('home');
+                  setTariffUah(4.32);
+                }}
+                className={`px-3.5 py-2 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                  calcTariffType === 'home' ? 'bg-[#0d1f33] text-white' : 'text-slate-600 hover:text-[#0d1f33]'
+                }`}
+              >
+                {tr('Дім / Квартира (4.32 ₴)', 'Дом / Квартира (4.32 ₴)')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCalcTariffType('business');
+                  setTariffUah(8.8);
+                }}
+                className={`px-3.5 py-2 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                  calcTariffType === 'business' ? 'bg-[#0d1f33] text-white' : 'text-slate-600 hover:text-[#0d1f33]'
+                }`}
+              >
+                {tr('Бізнес 380 В (8.80 ₴)', 'Бизнес 380 В (8.80 ₴)')}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+            <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between gap-5 shadow-xs">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <label htmlFor="calc-monthly-kwh" className="text-xs font-extrabold text-[#0d1f33]">
+                      {tr('Середньомісячне споживання (кВт·год)', 'Среднемесячное потребление (кВт·ч)')}
+                    </label>
+                    <span className="font-mono text-sm font-extrabold text-[#1769aa] tabular-nums">
+                      {safeMonthlyKwh.toLocaleString('uk-UA')} {tr('кВт·год/міс', 'кВт·ч/мес')}
+                    </span>
+                  </div>
+                  <input
+                    id="calc-monthly-kwh"
+                    name="monthlyKwh"
+                    type="number"
+                    min={50}
+                    max={50000}
+                    step={50}
+                    value={monthlyKwh}
+                    onChange={(e) => setMonthlyKwh(Number(e.target.value) || 0)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-base font-bold text-[#0d1f33] focus:outline-none focus:border-[#1769aa] mb-3"
+                  />
+                  <input
+                    type="range"
+                    aria-label={tr('Регулятор споживання у кВт·год на місяць', 'Регулятор потребления в кВт·ч в месяц')}
+                    min={100}
+                    max={6000}
+                    step={50}
+                    value={Math.min(6000, Math.max(100, safeMonthlyKwh))}
+                    onChange={(e) => setMonthlyKwh(Number(e.target.value))}
+                    className="w-full accent-[#1769aa] cursor-pointer"
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {[300, 600, 1000, 2500, 5000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setMonthlyKwh(preset)}
+                        className={`px-2.5 py-1 rounded-md border text-[11px] font-mono font-bold cursor-pointer transition-colors ${
+                          safeMonthlyKwh === preset
+                            ? 'bg-[#eff6fc] border-[#1769aa] text-[#1769aa]'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        {preset.toLocaleString('uk-UA')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="calc-tariff" className="block text-xs font-extrabold text-[#0d1f33] mb-1.5">
+                    {tr('Ваш тариф на електроенергію (грн/кВт·год)', 'Ваш тариф на электроэнергию (грн/кВт·ч)')}
+                  </label>
+                  <input
+                    id="calc-tariff"
+                    name="tariffUah"
+                    type="number"
+                    min={1}
+                    max={30}
+                    step={0.1}
+                    value={tariffUah}
+                    onChange={(e) => setTariffUah(Number(e.target.value) || 0)}
+                    className="w-full px-3.5 py-2 rounded-lg border border-slate-300 font-mono text-sm font-bold text-[#0d1f33] focus:outline-none focus:border-[#1769aa]"
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed pt-3 border-t border-slate-100">
+                {tr(
+                  'Орієнтовний розрахунок для Одеської області (~1 180 кВт·год/рік з 1 кВт сонячного поля) без урахування зростання тарифів та вартості монтажу.',
+                  'Ориентировочный расчёт для Одесской области (~1 180 кВт·ч/год с 1 кВт солнечных панелей) без учёта роста тарифов и стоимости монтажа.',
+                )}
+              </p>
+            </div>
+
+            <div className="lg:col-span-7 bg-[#0d1f33] text-white rounded-2xl p-6 flex flex-col justify-between gap-6">
+              <div>
+                <div className="text-xs font-bold text-[#f59e0b] mb-2">
+                  {tr('Орієнтовний результат для вашого споживання', 'Ориентировочный результат для вашего потребления')}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mt-3">
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3.5">
+                    <div className="text-[11px] text-slate-300 mb-1">{tr('Потужність СЕС', 'Мощность СЭС')}</div>
+                    <div className="font-mono text-xl font-extrabold text-white tabular-nums">
+                      {recommendedKw} {tr('кВт', 'кВт')}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3.5">
+                    <div className="text-[11px] text-slate-300 mb-1">{tr('Економія / місяць', 'Экономия / месяц')}</div>
+                    <div className="font-mono text-xl font-extrabold text-emerald-300 tabular-nums">
+                      ~{monthlySavingsUah.toLocaleString('uk-UA')} ₴
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3.5">
+                    <div className="text-[11px] text-slate-300 mb-1">{tr('Вигода за рік', 'Выгода за год')}</div>
+                    <div className="font-mono text-xl font-extrabold text-[#fbbf24] tabular-nums">
+                      ~{annualSavingsUah.toLocaleString('uk-UA')} ₴
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 p-3.5">
+                    <div className="text-[11px] text-slate-300 mb-1">{tr('Окупність (орієнт.)', 'Окупаемость (ориент.)')}</div>
+                    <div className="font-mono text-xl font-extrabold text-sky-300 tabular-nums">
+                      {paybackYears ? `~${paybackYears} ${tr('р.', 'г.')}` : '—'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-200">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-[#f59e0b]" />
+                    {tr('Генерація станції:', 'Генерация станции:')}{' '}
+                    <strong className="font-mono text-white">~{estimatedAnnualGenKwh.toLocaleString('uk-UA')} {tr('кВт·год/рік', 'кВт·ч/год')}</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    {tr('Покриття споживання:', 'Покрытие потребления:')}{' '}
+                    <strong className="font-mono text-white">{coveragePct}%</strong>
+                  </span>
+                  {indicativeCapexUah && (
+                    <span className="inline-flex items-center gap-1.5 text-slate-300">
+                      {tr('База окупності:', 'База окупаемости:')}{' '}
+                      <strong className="font-mono text-white">~{indicativeCapexUah.toLocaleString('uk-UA')} ₴</strong>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10">
+                <span className="text-xs text-slate-300 max-w-md">
+                  {tr(
+                    'Інженер перевірить ваш щит, фазність (220/380 В) та підготує точний кошторис із фіксацією ціни.',
+                    'Инженер проверит ваш щит, фазность (220/380 В) и подготовит точную смету с фиксацией цены.',
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const summaryNote = [
+                      `${tr('Споживання', 'Потребление')}: ${safeMonthlyKwh} ${tr('кВт·год/міс', 'кВт·ч/мес')}`,
+                      `${tr('Тариф', 'Тариф')}: ${safeTariffUah} грн/кВт·год (${calcTariffType === 'business' ? tr('Бізнес 380 В', 'Бизнес 380 В') : tr('Дім / Квартира', 'Дом / Квартира')})`,
+                      `${tr('Рекомендована СЕС', 'Рекомендованная СЭС')}: ${recommendedKw} кВт (~${annualSavingsUah.toLocaleString('uk-UA')} грн/рік${paybackYears ? `, окупність ~${paybackYears} р.` : ''})`,
+                      primaryCalcKit ? `${tr('Підібраний комплект', 'Подобранный комплект')}: ${primaryCalcKit.title} (SKU ${primaryCalcKit.sku}, ${formatUahFromUsd(primaryCalcKit.price, usdUahRate)})` : '',
+                    ]
+                      .filter(Boolean)
+                      .join('\n');
+                    track({ name: 'cta_click', placement: 'section', scenario: 'solar' });
+                    onOpenLeadModal(
+                      `Калькулятор окупності: СЕС ${recommendedKw} кВт (${safeMonthlyKwh} кВт·год/міс)`,
+                      primaryCalcKit?.price,
+                      'section',
+                      summaryNote,
+                    );
+                  }}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#f59e0b] hover:bg-[#fbbf24] text-[#0d1f33] text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  {tr('Отримати точний кошторис', 'Получить точную смету')}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {matchedCalculatorProducts.length > 0 && (
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <h3 className="text-base font-extrabold text-[#0d1f33]">
+                  {tr('Підібрані комплекти та рішення з каталогу під', 'Подобранные комплекты и решения из каталога под')}{' '}
+                  <span className="text-[#1769aa]">{recommendedKw} кВт</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => onNavigateShop(recommendedKw <= 15 ? 'kits' : 'inverters')}
+                  className="text-xs font-extrabold text-[#1769aa] hover:underline cursor-pointer"
+                >
+                  {tr('Переглянути всі рішення →', 'Посмотреть все решения →')}
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {matchedCalculatorProducts.map((prod) => (
+                  <ProductCard
+                    usdUahRate={usdUahRate}
+                    key={`calc-${prod.id}`}
+                    product={prod}
+                    onSelect={onSelectProduct}
+                    onAddToCart={onAddToCart}
+                    onRequestQuote={(p) =>
+                      onOpenLeadModal(
+                        `Розрахунок (${recommendedKw} кВт): ${p.title}`,
+                        p.price,
+                        'section',
+                        `${tr('Споживання', 'Потребление')}: ${safeMonthlyKwh} ${tr('кВт·год/міс', 'кВт·ч/мес')} · ${tr('Тариф', 'Тариф')}: ${safeTariffUah} грн`,
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -773,7 +1125,7 @@ export function HomeView({
           <div className="lg:col-span-5">
             <div className="text-xs font-extrabold text-[#f59e0b] mb-2">{tr('Швидкий інженерний бриф', 'Краткий бриф для инженера')}</div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-3">
-              {tr('Отримайте інженерний розрахунок під ваш оЀѢєкт', 'Получите инженерный расчёт для вашего объекта')}
+              {tr('Отримайте інженерний розрахунок під ваш об’єкт', 'Получите инженерный расчёт для вашего объекта')}
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed mb-6">
               {tr('Заявка автоматично створює картку угоди у вбудованій CRM Energo Comfort та надсилає сповіщення менеджеру у Telegram.', 'Заявка автоматически создаёт сделку во встроенной CRM Energo Comfort и отправляет уведомление менеджеру в Telegram.')}
@@ -798,7 +1150,10 @@ export function HomeView({
             className="lg:col-span-7 bg-white/[0.06] border border-white/15 rounded-2xl p-6 space-y-4"
           >
             <div className="hidden" aria-hidden="true">
+              <label htmlFor="brief-website">Website</label>
               <input
+                id="brief-website"
+                name="website"
                 type="text"
                 tabIndex={-1}
                 autoComplete="off"
@@ -808,8 +1163,10 @@ export function HomeView({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Тип задачі', 'Тип задачи')}</label>
+                <label htmlFor="brief-task" className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Тип задачі', 'Тип задачи')}</label>
                 <select
+                  id="brief-task"
+                  name="taskType"
                   value={taskType}
                   onChange={(e) => setTaskType(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg border border-white/25 bg-[#0d1f33] text-white text-xs font-semibold focus:outline-none focus:border-sky-400"
@@ -821,9 +1178,12 @@ export function HomeView({
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Район або місто', 'Район или город')}</label>
+                <label htmlFor="brief-city" className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Район або місто', 'Район или город')}</label>
                 <input
+                  id="brief-city"
+                  name="city"
                   type="text"
+                  autoComplete="address-level2"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg border border-white/25 bg-[#0d1f33] text-white text-xs font-semibold focus:outline-none focus:border-sky-400"
@@ -860,9 +1220,12 @@ export function HomeView({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Ваше ім’я')}</label>
+                <label htmlFor="brief-name" className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Ваше ім’я')}</label>
                 <input
+                  id="brief-name"
+                  name="customerName"
                   type="text"
+                  autoComplete="name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder={tr('Олексій', 'Алексей')}
@@ -870,19 +1233,26 @@ export function HomeView({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Телефон *', 'Телефон *')}</label>
+                <label htmlFor="brief-phone" className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Телефон *', 'Телефон *')}</label>
                 <input
+                  id="brief-phone"
+                  name="phone"
                   type="tel"
                   required
+                  inputMode="tel"
+                  autoComplete="tel"
+                  aria-invalid={Boolean(formError)}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+38 (0__) ___-__-__"
+                  onChange={(e) => setPhone(formatUaPhone(e.target.value))}
+                  placeholder="+380 XX XXX XX XX"
                   className="w-full px-3 py-2.5 rounded-lg border border-white/25 bg-[#0d1f33] text-white text-xs placeholder:text-slate-400 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Канал зв’язку', 'Канал связи')}</label>
+                <label htmlFor="brief-channel" className="block text-[11px] font-bold text-sky-200 mb-1.5">{tr('Канал зв’язку', 'Канал связи')}</label>
                 <select
+                  id="brief-channel"
+                  name="channel"
                   value={channel}
                   onChange={(e) => setChannel(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg border border-white/25 bg-[#0d1f33] text-white text-xs font-semibold focus:outline-none focus:border-sky-400"
@@ -894,7 +1264,7 @@ export function HomeView({
               </div>
             </div>
 
-            {formError && <div className="text-xs font-semibold text-red-300">{formError}</div>}
+            {formError && <div className="text-xs font-semibold text-red-300" role="alert" aria-live="polite">{formError}</div>}
 
             <button
               type="submit"
@@ -903,6 +1273,9 @@ export function HomeView({
             >
               {submitting ? tr('Створюємо угоду в CRM...', 'Создаём сделку в CRM…') : tr('Надіслати інженеру та отримати розрахунок', 'Отправить инженеру и получить расчёт')}
             </button>
+            <p className="text-[11px] text-slate-300/80 leading-relaxed">
+              {tr('Надсилаючи форму, ви погоджуєтесь на обробку контактних даних для підготовки інженерного розрахунку.', 'Отправляя форму, вы соглашаетесь на обработку контактных данных для подготовки инженерного расчёта.')}
+            </p>
 
             {createdBrief && (
               <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-xs text-emerald-100 flex flex-wrap items-center justify-between gap-3">

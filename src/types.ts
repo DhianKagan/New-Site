@@ -45,6 +45,7 @@ export interface DealItem {
 export interface Deal {
   id: number;
   dealNumber: string;
+  contactId?: number | null;
   type: DealType;
   stage: DealStage;
   customerName: string;
@@ -61,6 +62,52 @@ export interface Deal {
   telegramSent: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ContactSegment = 'b2c' | 'b2b';
+
+export interface Contact {
+  id: number;
+  name: string;
+  company: string;
+  phone: string;
+  email: string;
+  city: string;
+  channel: string;
+  segment: ContactSegment;
+  createdAt: string;
+  updatedAt: string;
+  dealsCount?: number;
+  totalUsd?: number;
+  openTasksCount?: number;
+}
+
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
+export type TaskPriority = 'low' | 'medium' | 'high';
+
+export interface CrmTask {
+  id: number;
+  contactId: number | null;
+  dealId: number | null;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignee: string;
+  dueDate: string;
+  createdAt: string;
+  updatedAt: string;
+  contactName?: string;
+  contactPhone?: string;
+  dealNumber?: string;
+}
+
+export interface CrmNote {
+  id: number;
+  contactId: number | null;
+  dealId: number | null;
+  author: string;
+  body: string;
+  createdAt: string;
 }
 
 export interface ProjectCase {

@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { X, CheckCircle2, ArrowRight } from 'lucide-react';
 import type { Deal } from '../types.ts';
 import { track, trackEvent, type LeadPayload, type Placement, type Property, type Scenario } from '../lib/analytics.ts';
@@ -8,6 +8,7 @@ import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 interface LeadModalProps {
   open: boolean;
   initialTopic: string;
+  initialNotes?: string;
   estimatedTotalUsd?: number;
   onClose: () => void;
   onCreated: (deal: Deal) => void;
@@ -18,6 +19,7 @@ interface LeadModalProps {
 export function LeadModal({
   open,
   initialTopic,
+  initialNotes = '',
   estimatedTotalUsd,
   onClose,
   onCreated,
@@ -28,13 +30,22 @@ export function LeadModal({
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('Одеса');
   const [channel, setChannel] = useState('Telegram');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(initialNotes);
   const [property, setProperty] = useState<Property | ''>('');
   const [website, setWebsite] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [createdDeal, setCreatedDeal] = useState<Deal | null>(null);
   const formStarted = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+      setNotes(initialNotes);
+      setError('');
+      setCreatedDeal(null);
+      formStarted.current = false;
+    }
+  }, [open, initialNotes]);
 
   function getScenario(topic: string): Scenario {
     if (/сес|соняч|solar/i.test(topic)) return 'solar';
@@ -198,7 +209,10 @@ export function LeadModal({
               }
             }}>
               <div className="hidden" aria-hidden="true">
+                <label htmlFor="lead-website">Website</label>
                 <input
+                  id="lead-website"
+                  name="website"
                   type="text"
                   tabIndex={-1}
                   autoComplete="off"
@@ -211,6 +225,7 @@ export function LeadModal({
                   <label htmlFor="lead-name" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Ваше ім’я')}</label>
                   <input
                     id="lead-name"
+                    name="customerName"
                     type="text"
                     autoComplete="name"
                     required
@@ -224,8 +239,10 @@ export function LeadModal({
                   <label htmlFor="lead-phone" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Телефон *')}</label>
                   <input
                     id="lead-phone"
+                    name="phone"
                     type="tel"
                     required
+                    aria-invalid={Boolean(error)}
                     inputMode="tel"
                     autoComplete="tel"
                     value={phone}
@@ -238,7 +255,7 @@ export function LeadModal({
 
               <div>
                 <label htmlFor="lead-property" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Тип об’єкта *', 'Тип объекта *')}</label>
-                <select id="lead-property" required value={property} onChange={(e) => setProperty(e.target.value as Property | '')} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:border-[#1769aa]">
+                <select id="lead-property" name="property" required value={property} onChange={(e) => setProperty(e.target.value as Property | '')} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:border-[#1769aa]">
                   <option value="">{tr('Оберіть варіант', 'Выберите вариант')}</option>
                   <option value="apartment">{tr('Квартира', 'Квартира')}</option>
                   <option value="house">{tr('Приватний будинок', 'Частный дом')}</option>
@@ -246,22 +263,27 @@ export function LeadModal({
                 </select>
               </div>
 
-              <details className="rounded-lg border border-slate-200 px-3 py-2">
+              <details open={Boolean(initialNotes)} className="rounded-lg border border-slate-200 px-3 py-2">
                 <summary className="cursor-pointer text-xs font-semibold text-slate-600">{tr('Додатково (необов’язково)', 'Дополнительно (необязательно)')}</summary>
                 <div className="space-y-3 pt-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Місто або район')}</label>
+                  <label htmlFor="lead-city" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Місто або район')}</label>
                   <input
+                    id="lead-city"
+                    name="city"
                     type="text"
+                    autoComplete="address-level2"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Зручний канал')}</label>
+                  <label htmlFor="lead-channel" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Зручний канал')}</label>
                   <select
+                    id="lead-channel"
+                    name="channel"
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:outline-none focus:border-[#1769aa]"
@@ -274,8 +296,10 @@ export function LeadModal({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Коментар (фази, прилади, дах)')}</label>
+                <label htmlFor="lead-notes" className="block text-xs font-bold text-[#0d1f33] mb-1">{tr('Коментар (фази, прилади, дах)')}</label>
                 <textarea
+                  id="lead-notes"
+                  name="notes"
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}

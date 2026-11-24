@@ -2,7 +2,14 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { desc, eq, or } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/sqlite-proxy';
+import * as schema from './schema.ts';
 import type {
+  Contact,
+  ContactSegment,
+  CrmNote,
+  CrmTask,
   Deal,
   DealItem,
   DealStage,
@@ -13,6 +20,8 @@ import type {
   RecentChangeRecord,
   SocialLinksConfig,
   StorageDiagnostics,
+  TaskPriority,
+  TaskStatus,
 } from '../src/types.ts';
 
 const DATA_DIR = process.env.DATA_DIR
@@ -34,6 +43,7 @@ function getDb(): DatabaseSync {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const db = new DatabaseSync(DB_PATH);
   db.exec('PRAGMA journal_mode = WAL;');
+  db.exec('PRAGMA foreign_keys = ON;');
   db.exec(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
@@ -54,9 +64,23 @@ function getDb(): DatabaseSync {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      company TEXT NOT NULL DEFAULT '',
+      phone TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT 'Одеса',
+      channel TEXT NOT NULL DEFAULT 'Telegram',
+      segment TEXT NOT NULL DEFAULT 'b2c',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS deals (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       deal_number TEXT NOT NULL UNIQUE,
+      contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
       type TEXT NOT NULL,
       stage TEXT NOT NULL DEFAULT 'new',
       customer_name TEXT NOT NULL DEFAULT '',
@@ -73,6 +97,28 @@ function getDb(): DatabaseSync {
       telegram_sent INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      contact_id INTEGER REFERENCES contacts(id) ON DELETE CASCADE,
+      deal_id INTEGER REFERENCES deals(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'todo',
+      priority TEXT NOT NULL DEFAULT 'medium',
+      assignee TEXT NOT NULL DEFAULT 'Олександр (інженер)',
+      due_date TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      contact_id INTEGER REFERENCES contacts(id) ON DELETE CASCADE,
+      deal_id INTEGER REFERENCES deals(id) ON DELETE CASCADE,
+      author TEXT NOT NULL DEFAULT 'Менеджер CRM',
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS settings (
@@ -106,11 +152,184 @@ function getDb(): DatabaseSync {
     );
   `);
 
+  // Non-destructive migration for existing deals tables created before contact_id
+  const dealCols = db.prepare('PRAGMA table_info(deals)').all() as Array<{ name: string }>;
+  if (!dealCols.some((c) => c.name === 'contact_id')) {
+    db.exec('ALTER TABLE deals ADD COLUMN contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL;');
+  }
+
   seedCatalogIfEmpty(db);
   seedDealsIfEmpty(db);
+  backfillContactsAndSeedCrm(db);
   seedProjectsIfEmpty(db);
   dbInstance = db;
   return db;
+}
+
+export const drizzleDb = drizzle(
+  async (sql, params, method) => {
+    const sqlite = getDb();
+    const stmt = sqlite.prepare(sql);
+    const bindParams = params as Array<string | number | Uint8Array | null>;
+    if (method === 'run') {
+      stmt.run(...bindParams);
+      return { rows: [] };
+    }
+    stmt.setReturnArrays(true);
+    if (method === 'get') {
+      return { rows: stmt.get(...bindParams) as unknown as unknown[] };
+    }
+    return { rows: stmt.all(...bindParams) as unknown as unknown[][] };
+  },
+  { schema },
+);
+
+function normalizeContactPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (/^380\d{9}$/.test(digits)) return `+${digits}`;
+  if (/^0\d{9}$/.test(digits)) return `+38${digits}`;
+  if (/^\d{9}$/.test(digits)) return `+380${digits}`;
+  return raw.trim();
+}
+
+function upsertContactSync(
+  db: DatabaseSync,
+  input: {
+    name: string;
+    phone: string;
+    city?: string;
+    channel?: string;
+    company?: string;
+    segment?: ContactSegment;
+  },
+): number {
+  const normalizedPhone = normalizeContactPhone(input.phone);
+  const existing = db.prepare('SELECT id, name, city, channel, company, segment FROM contacts WHERE phone = ?').get(normalizedPhone) as
+    | { id: number; name: string; city: string; channel: string; company: string; segment: string }
+    | undefined;
+  const now = new Date().toISOString();
+
+  if (existing) {
+    const nextName =
+      existing.name === 'Клієнт сайту' || existing.name === 'Клієнт із головної форми'
+        ? input.name.trim() || existing.name
+        : existing.name;
+    const nextCity = !existing.city && input.city?.trim() ? input.city.trim() : existing.city;
+    db.prepare('UPDATE contacts SET name = ?, city = ?, updated_at = ? WHERE id = ?').run(
+      nextName,
+      nextCity,
+      now,
+      existing.id,
+    );
+    return Number(existing.id);
+  }
+
+  const inferredSegment: ContactSegment =
+    input.segment ||
+    (/тов|бізнес|сто|готел|завод|ооо/i.test(`${input.name} ${input.company || ''}`) ? 'b2b' : 'b2c');
+  const res = db
+    .prepare(
+      `INSERT INTO contacts (name, company, phone, email, city, channel, segment, created_at, updated_at)
+       VALUES (?, ?, ?, '', ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      input.name.trim() || 'Клієнт сайту',
+      (input.company ?? '').trim(),
+      normalizedPhone,
+      (input.city ?? '').trim() || 'Одеса',
+      (input.channel ?? '').trim() || 'Telegram',
+      inferredSegment,
+      now,
+      now,
+    );
+  return Number(res.lastInsertRowid);
+}
+
+function backfillContactsAndSeedCrm(db: DatabaseSync): void {
+  const unlinkedDeals = db
+    .prepare('SELECT id, customer_name, phone, city, channel, task_type, topic FROM deals WHERE contact_id IS NULL')
+    .all() as Array<{
+    id: number;
+    customer_name: string;
+    phone: string;
+    city: string;
+    channel: string;
+    task_type: string;
+    topic: string;
+  }>;
+
+  for (const deal of unlinkedDeals) {
+    if (!deal.phone) continue;
+    const segment: ContactSegment = /бізнес|сто|380\s*в|тов/i.test(`${deal.customer_name} ${deal.task_type} ${deal.topic}`)
+      ? 'b2b'
+      : 'b2c';
+    const contactId = upsertContactSync(db, {
+      name: deal.customer_name || 'Клієнт сайту',
+      phone: deal.phone,
+      city: deal.city,
+      channel: deal.channel,
+      company: /тов/i.test(deal.customer_name) ? deal.customer_name : '',
+      segment,
+    });
+    db.prepare('UPDATE deals SET contact_id = ? WHERE id = ?').run(contactId, deal.id);
+  }
+
+  const seededFlag = db.prepare("SELECT value FROM settings WHERE key = 'crm_v2_seeded'").get();
+  if (seededFlag) return;
+
+  const taskCount = Number(db.prepare('SELECT COUNT(*) as cnt FROM tasks').get()?.cnt ?? 0);
+  const deals = db.prepare('SELECT id, deal_number, contact_id, stage, customer_name, notes FROM deals ORDER BY id DESC').all() as Array<{
+    id: number;
+    deal_number: string;
+    contact_id: number | null;
+    stage: string;
+    customer_name: string;
+    notes: string;
+  }>;
+
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const tomorrowStr = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 10);
+  const nowIso = now.toISOString();
+
+  if (taskCount === 0 && deals.length > 0) {
+    const insertTask = db.prepare(
+      `INSERT INTO tasks (contact_id, deal_id, title, status, priority, assignee, due_date, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const insertNote = db.prepare(
+      `INSERT INTO notes (contact_id, deal_id, author, body, created_at) VALUES (?, ?, ?, ?, ?)`,
+    );
+
+    deals.slice(0, 4).forEach((d, idx) => {
+      const taskTitle =
+        idx === 0
+          ? `Узгодити схему щита і фази (${d.deal_number})`
+          : idx === 1
+            ? `Перевірити комплектацію захисту AC/DC (${d.deal_number})`
+            : idx === 2
+              ? `Підтвердити дату виїзду інженера на об’єкт (${d.deal_number})`
+              : `Відправити гарантійний талон клієнту (${d.deal_number})`;
+      const status: TaskStatus = d.stage === 'done' ? 'done' : idx === 1 ? 'in_progress' : 'todo';
+      const priority: TaskPriority = idx === 0 ? 'high' : 'medium';
+      insertTask.run(
+        d.contact_id,
+        d.id,
+        taskTitle,
+        status,
+        priority,
+        idx % 2 === 0 ? 'Олександр (інженер)' : 'Дмитро (менеджер)',
+        idx === 0 ? todayStr : tomorrowStr,
+        nowIso,
+        nowIso,
+      );
+      if (d.notes) {
+        insertNote.run(d.contact_id, d.id, 'Система CRM', d.notes, nowIso);
+      }
+    });
+  }
+
+  db.prepare("INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES ('crm_v2_seeded', 'true', ?)").run(nowIso);
 }
 
 function seedCatalogIfEmpty(db: DatabaseSync): void {
@@ -347,6 +566,7 @@ function rowToDeal(r: Record<string, unknown>): Deal {
   return {
     id: Number(r.id),
     dealNumber: String(r.deal_number),
+    contactId: r.contact_id != null ? Number(r.contact_id) : null,
     type: String(r.type) as DealType,
     stage: String(r.stage) as DealStage,
     customerName: String(r.customer_name),
@@ -619,23 +839,41 @@ export function createDeal(input: {
       ? `Замовлення обладнання з кошика (${verifiedItems.length} поз.)`
       : input.taskType?.trim() || 'Інженерний розрахунок системи');
 
+  const customerName = (input.customerName ?? '').trim() || 'Клієнт сайту';
+  const city = (input.city ?? '').trim() || 'Одеса';
+  const channel = (input.channel ?? '').trim() || 'Telegram';
+  const taskType = (input.taskType ?? '').trim() || (input.type === 'order' ? 'Кошик / Shop' : 'Консультація');
+  const segment: ContactSegment = /бізнес|сто|380\s*в|тов/i.test(`${customerName} ${taskType} ${topic}`)
+    ? 'b2b'
+    : 'b2c';
+
+  const contactId = upsertContactSync(db, {
+    name: customerName,
+    phone: input.phone.trim(),
+    city,
+    channel,
+    company: /тов/i.test(customerName) ? customerName : '',
+    segment,
+  });
+
   const res = db
     .prepare(`
       INSERT INTO deals (
-        deal_number, type, stage, customer_name, phone, city, channel,
+        deal_number, contact_id, type, stage, customer_name, phone, city, channel,
         topic, task_type, loads_json, items_json, total_usd, assignee, notes,
         telegram_sent, created_at, updated_at
-      ) VALUES (?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+      ) VALUES (?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     `)
     .run(
       dealNumber,
+      contactId,
       input.type,
-      (input.customerName ?? '').trim() || 'Клієнт сайту',
-      input.phone.trim(),
-      (input.city ?? '').trim() || 'Одеса',
-      (input.channel ?? '').trim() || 'Telegram',
+      customerName,
+      normalizeContactPhone(input.phone.trim()),
+      city,
+      channel,
       topic,
-      (input.taskType ?? '').trim() || (input.type === 'order' ? 'Кошик / Shop' : 'Консультація'),
+      taskType,
       JSON.stringify(input.loads ?? []),
       JSON.stringify(verifiedItems),
       totalUsd,
@@ -1119,6 +1357,450 @@ export function createSqliteBackupCopy(): string {
   }
   db.prepare('VACUUM INTO ?').run(targetPath);
   return targetPath;
+}
+
+// =====================================================================
+// Drizzle ORM Relational CRM: Contacts, Tasks, Notes (with FK relations)
+// =====================================================================
+
+export async function listContacts(): Promise<Contact[]> {
+  const [contactRows, dealRows, taskRows] = await Promise.all([
+    drizzleDb.select().from(schema.contactsTable).orderBy(desc(schema.contactsTable.updatedAt)),
+    drizzleDb
+      .select({
+        contactId: schema.dealsTable.contactId,
+        totalUsd: schema.dealsTable.totalUsd,
+      })
+      .from(schema.dealsTable),
+    drizzleDb
+      .select({
+        contactId: schema.tasksTable.contactId,
+        status: schema.tasksTable.status,
+      })
+      .from(schema.tasksTable),
+  ]);
+
+  const dealStats = new Map<number, { count: number; totalUsd: number }>();
+  for (const d of dealRows) {
+    if (!d.contactId) continue;
+    const prev = dealStats.get(d.contactId) ?? { count: 0, totalUsd: 0 };
+    prev.count += 1;
+    prev.totalUsd += Number(d.totalUsd || 0);
+    dealStats.set(d.contactId, prev);
+  }
+
+  const openTasks = new Map<number, number>();
+  for (const t of taskRows) {
+    if (!t.contactId || t.status === 'done') continue;
+    openTasks.set(t.contactId, (openTasks.get(t.contactId) ?? 0) + 1);
+  }
+
+  return contactRows.map((c) => {
+    const ds = dealStats.get(c.id);
+    return {
+      id: c.id,
+      name: c.name,
+      company: c.company,
+      phone: c.phone,
+      email: c.email,
+      city: c.city,
+      channel: c.channel,
+      segment: c.segment === 'b2b' ? 'b2b' : 'b2c',
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+      dealsCount: ds?.count ?? 0,
+      totalUsd: ds?.totalUsd ?? 0,
+      openTasksCount: openTasks.get(c.id) ?? 0,
+    };
+  });
+}
+
+export async function getContactDetail(id: number): Promise<{
+  contact: Contact;
+  deals: Deal[];
+  tasks: CrmTask[];
+  notes: CrmNote[];
+} | null> {
+  const row = await drizzleDb.select().from(schema.contactsTable).where(eq(schema.contactsTable.id, id)).get();
+  if (!row) return null;
+
+  const dealRows = await drizzleDb
+    .select()
+    .from(schema.dealsTable)
+    .where(eq(schema.dealsTable.contactId, id))
+    .orderBy(desc(schema.dealsTable.id));
+  const taskRows = await listTasks({ contactId: id });
+  const noteRows = await listNotes({ contactId: id });
+
+  return {
+    contact: {
+      id: row.id,
+      name: row.name,
+      company: row.company,
+      phone: row.phone,
+      email: row.email,
+      city: row.city,
+      channel: row.channel,
+      segment: row.segment === 'b2b' ? 'b2b' : 'b2c',
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      dealsCount: dealRows.length,
+      totalUsd: dealRows.reduce((s, d) => s + Number(d.totalUsd || 0), 0),
+      openTasksCount: taskRows.filter((t) => t.status !== 'done').length,
+    },
+    deals: dealRows.map((d) => ({
+      id: d.id,
+      dealNumber: d.dealNumber,
+      contactId: d.contactId,
+      type: d.type as DealType,
+      stage: d.stage as DealStage,
+      customerName: d.customerName,
+      phone: d.phone,
+      city: d.city,
+      channel: d.channel,
+      topic: d.topic,
+      taskType: d.taskType,
+      loads: JSON.parse(d.loadsJson || '[]') as string[],
+      items: JSON.parse(d.itemsJson || '[]') as DealItem[],
+      totalUsd: d.totalUsd,
+      assignee: d.assignee,
+      notes: d.notes,
+      telegramSent: d.telegramSent === 1,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+    })),
+    tasks: taskRows,
+    notes: noteRows,
+  };
+}
+
+export async function createContact(input: {
+  name: string;
+  company?: string;
+  phone: string;
+  email?: string;
+  city?: string;
+  channel?: string;
+  segment?: ContactSegment;
+}): Promise<Contact> {
+  const normalizedPhone = normalizeContactPhone(input.phone);
+  const existing = await drizzleDb
+    .select()
+    .from(schema.contactsTable)
+    .where(eq(schema.contactsTable.phone, normalizedPhone))
+    .get();
+  if (existing) {
+    throw new Error('Контакт із таким номером телефону вже існує');
+  }
+
+  const now = new Date().toISOString();
+  const [inserted] = await drizzleDb
+    .insert(schema.contactsTable)
+    .values({
+      name: input.name.trim(),
+      company: (input.company ?? '').trim(),
+      phone: normalizedPhone,
+      email: (input.email ?? '').trim(),
+      city: (input.city ?? '').trim() || 'Одеса',
+      channel: (input.channel ?? '').trim() || 'Telegram',
+      segment: input.segment === 'b2b' ? 'b2b' : 'b2c',
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  return {
+    id: inserted.id,
+    name: inserted.name,
+    company: inserted.company,
+    phone: inserted.phone,
+    email: inserted.email,
+    city: inserted.city,
+    channel: inserted.channel,
+    segment: inserted.segment === 'b2b' ? 'b2b' : 'b2c',
+    createdAt: inserted.createdAt,
+    updatedAt: inserted.updatedAt,
+    dealsCount: 0,
+    totalUsd: 0,
+    openTasksCount: 0,
+  };
+}
+
+export async function updateContact(
+  id: number,
+  patch: Partial<{
+    name: string;
+    company: string;
+    phone: string;
+    email: string;
+    city: string;
+    channel: string;
+    segment: ContactSegment;
+  }>,
+): Promise<Contact | null> {
+  const existing = await drizzleDb.select().from(schema.contactsTable).where(eq(schema.contactsTable.id, id)).get();
+  if (!existing) return null;
+
+  const nextPhone = patch.phone !== undefined ? normalizeContactPhone(patch.phone) : existing.phone;
+  if (nextPhone !== existing.phone) {
+    const dup = await drizzleDb
+      .select({ id: schema.contactsTable.id })
+      .from(schema.contactsTable)
+      .where(eq(schema.contactsTable.phone, nextPhone))
+      .get();
+    if (dup && dup.id !== id) {
+      throw new Error('Інший контакт із таким номером телефону вже існує');
+    }
+  }
+
+  const now = new Date().toISOString();
+  const [updated] = await drizzleDb
+    .update(schema.contactsTable)
+    .set({
+      name: patch.name !== undefined ? patch.name.trim() || existing.name : existing.name,
+      company: patch.company !== undefined ? patch.company.trim() : existing.company,
+      phone: nextPhone,
+      email: patch.email !== undefined ? patch.email.trim() : existing.email,
+      city: patch.city !== undefined ? patch.city.trim() : existing.city,
+      channel: patch.channel !== undefined ? patch.channel.trim() : existing.channel,
+      segment: patch.segment === 'b2b' || patch.segment === 'b2c' ? patch.segment : existing.segment,
+      updatedAt: now,
+    })
+    .where(eq(schema.contactsTable.id, id))
+    .returning();
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    company: updated.company,
+    phone: updated.phone,
+    email: updated.email,
+    city: updated.city,
+    channel: updated.channel,
+    segment: updated.segment === 'b2b' ? 'b2b' : 'b2c',
+    createdAt: updated.createdAt,
+    updatedAt: updated.updatedAt,
+  };
+}
+
+export async function deleteContact(id: number): Promise<boolean> {
+  const existing = await drizzleDb
+    .select({ id: schema.contactsTable.id })
+    .from(schema.contactsTable)
+    .where(eq(schema.contactsTable.id, id))
+    .get();
+  if (!existing) return false;
+  await drizzleDb.delete(schema.contactsTable).where(eq(schema.contactsTable.id, id));
+  return true;
+}
+
+export async function listTasks(filters?: { contactId?: number; dealId?: number }): Promise<CrmTask[]> {
+  let rows = await drizzleDb.select().from(schema.tasksTable).orderBy(desc(schema.tasksTable.id));
+  if (filters?.contactId) {
+    rows = rows.filter((t) => t.contactId === filters.contactId);
+  }
+  if (filters?.dealId) {
+    rows = rows.filter((t) => t.dealId === filters.dealId);
+  }
+
+  const [contacts, deals] = await Promise.all([
+    drizzleDb
+      .select({ id: schema.contactsTable.id, name: schema.contactsTable.name, phone: schema.contactsTable.phone })
+      .from(schema.contactsTable),
+    drizzleDb
+      .select({ id: schema.dealsTable.id, dealNumber: schema.dealsTable.dealNumber })
+      .from(schema.dealsTable),
+  ]);
+
+  const contactMap = new Map(contacts.map((c) => [c.id, c]));
+  const dealMap = new Map(deals.map((d) => [d.id, d.dealNumber]));
+
+  return rows.map((t) => {
+    const contact = t.contactId ? contactMap.get(t.contactId) : undefined;
+    return {
+      id: t.id,
+      contactId: t.contactId,
+      dealId: t.dealId,
+      title: t.title,
+      status: (t.status as TaskStatus) || 'todo',
+      priority: (t.priority as TaskPriority) || 'medium',
+      assignee: t.assignee,
+      dueDate: t.dueDate,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+      contactName: contact?.name,
+      contactPhone: contact?.phone,
+      dealNumber: t.dealId ? dealMap.get(t.dealId) : undefined,
+    };
+  });
+}
+
+export async function createTask(input: {
+  contactId?: number | null;
+  dealId?: number | null;
+  title: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assignee?: string;
+  dueDate?: string;
+}): Promise<CrmTask> {
+  let resolvedContactId = input.contactId ?? null;
+  if (!resolvedContactId && input.dealId) {
+    const dealRow = await drizzleDb
+      .select({ contactId: schema.dealsTable.contactId })
+      .from(schema.dealsTable)
+      .where(eq(schema.dealsTable.id, input.dealId))
+      .get();
+    if (dealRow?.contactId) resolvedContactId = dealRow.contactId;
+  }
+
+  const now = new Date().toISOString();
+  const [inserted] = await drizzleDb
+    .insert(schema.tasksTable)
+    .values({
+      contactId: resolvedContactId,
+      dealId: input.dealId ?? null,
+      title: input.title.trim(),
+      status: input.status ?? 'todo',
+      priority: input.priority ?? 'medium',
+      assignee: (input.assignee ?? '').trim() || 'Олександр (інженер)',
+      dueDate: (input.dueDate ?? '').trim(),
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  const all = await listTasks();
+  return all.find((item) => item.id === inserted.id) ?? {
+    id: inserted.id,
+    contactId: inserted.contactId,
+    dealId: inserted.dealId,
+    title: inserted.title,
+    status: inserted.status as TaskStatus,
+    priority: inserted.priority as TaskPriority,
+    assignee: inserted.assignee,
+    dueDate: inserted.dueDate,
+    createdAt: inserted.createdAt,
+    updatedAt: inserted.updatedAt,
+  };
+}
+
+export async function updateTask(
+  id: number,
+  patch: Partial<{
+    contactId: number | null;
+    dealId: number | null;
+    title: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    assignee: string;
+    dueDate: string;
+  }>,
+): Promise<CrmTask | null> {
+  const existing = await drizzleDb.select().from(schema.tasksTable).where(eq(schema.tasksTable.id, id)).get();
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  await drizzleDb
+    .update(schema.tasksTable)
+    .set({
+      contactId: patch.contactId !== undefined ? patch.contactId : existing.contactId,
+      dealId: patch.dealId !== undefined ? patch.dealId : existing.dealId,
+      title: patch.title !== undefined ? patch.title.trim() || existing.title : existing.title,
+      status: patch.status ?? existing.status,
+      priority: patch.priority ?? existing.priority,
+      assignee: patch.assignee !== undefined ? patch.assignee.trim() : existing.assignee,
+      dueDate: patch.dueDate !== undefined ? patch.dueDate.trim() : existing.dueDate,
+      updatedAt: now,
+    })
+    .where(eq(schema.tasksTable.id, id));
+
+  const all = await listTasks();
+  return all.find((item) => item.id === id) ?? null;
+}
+
+export async function deleteTask(id: number): Promise<boolean> {
+  const existing = await drizzleDb
+    .select({ id: schema.tasksTable.id })
+    .from(schema.tasksTable)
+    .where(eq(schema.tasksTable.id, id))
+    .get();
+  if (!existing) return false;
+  await drizzleDb.delete(schema.tasksTable).where(eq(schema.tasksTable.id, id));
+  return true;
+}
+
+export async function listNotes(filters?: { contactId?: number; dealId?: number }): Promise<CrmNote[]> {
+  const whereClause =
+    filters?.contactId && filters?.dealId
+      ? or(eq(schema.notesTable.contactId, filters.contactId), eq(schema.notesTable.dealId, filters.dealId))
+      : filters?.contactId
+        ? eq(schema.notesTable.contactId, filters.contactId)
+        : filters?.dealId
+          ? eq(schema.notesTable.dealId, filters.dealId)
+          : undefined;
+
+  const rows = whereClause
+    ? await drizzleDb.select().from(schema.notesTable).where(whereClause).orderBy(desc(schema.notesTable.id))
+    : await drizzleDb.select().from(schema.notesTable).orderBy(desc(schema.notesTable.id));
+
+  return rows.map((n) => ({
+    id: n.id,
+    contactId: n.contactId,
+    dealId: n.dealId,
+    author: n.author,
+    body: n.body,
+    createdAt: n.createdAt,
+  }));
+}
+
+export async function createNote(input: {
+  contactId?: number | null;
+  dealId?: number | null;
+  author?: string;
+  body: string;
+}): Promise<CrmNote> {
+  let resolvedContactId = input.contactId ?? null;
+  if (!resolvedContactId && input.dealId) {
+    const dealRow = await drizzleDb
+      .select({ contactId: schema.dealsTable.contactId })
+      .from(schema.dealsTable)
+      .where(eq(schema.dealsTable.id, input.dealId))
+      .get();
+    if (dealRow?.contactId) resolvedContactId = dealRow.contactId;
+  }
+
+  const now = new Date().toISOString();
+  const [inserted] = await drizzleDb
+    .insert(schema.notesTable)
+    .values({
+      contactId: resolvedContactId,
+      dealId: input.dealId ?? null,
+      author: (input.author ?? '').trim() || 'Менеджер CRM',
+      body: input.body.trim(),
+      createdAt: now,
+    })
+    .returning();
+
+  return {
+    id: inserted.id,
+    contactId: inserted.contactId,
+    dealId: inserted.dealId,
+    author: inserted.author,
+    body: inserted.body,
+    createdAt: inserted.createdAt,
+  };
+}
+
+export async function deleteNote(id: number): Promise<boolean> {
+  const existing = await drizzleDb
+    .select({ id: schema.notesTable.id })
+    .from(schema.notesTable)
+    .where(eq(schema.notesTable.id, id))
+    .get();
+  if (!existing) return false;
+  await drizzleDb.delete(schema.notesTable).where(eq(schema.notesTable.id, id));
+  return true;
 }
 
 

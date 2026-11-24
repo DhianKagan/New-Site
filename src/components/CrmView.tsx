@@ -22,13 +22,17 @@ import {
   Activity,
   BriefcaseBusiness,
   ChartNoAxesCombined,
+  CheckSquare,
   LayoutDashboard,
   Package,
   Table2,
+  Users,
 } from 'lucide-react';
 import type {
   AnalyticsConfig,
   AnalyticsEventRecord,
+  Contact,
+  CrmTask,
   Deal,
   DealStage,
   Product,
@@ -40,6 +44,9 @@ import type {
 } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { SocialIcons } from './SocialIcons.tsx';
+import { DealsDataTable } from './crm/DealsDataTable.tsx';
+import { ContactsTab } from './crm/ContactsTab.tsx';
+import { TasksTab } from './crm/TasksTab.tsx';
 import { tr } from '../lib/i18n.ts';
 
 interface CrmViewProps {
@@ -89,8 +96,10 @@ export function CrmView({
   onBackToStore,
 }: CrmViewProps) {
   const [crmTab, setCrmTab] = useState<
-    'pipeline' | 'table' | 'catalog' | 'projects' | 'analytics' | 'social' | 'deploy'
+    'pipeline' | 'table' | 'contacts' | 'tasks' | 'catalog' | 'projects' | 'analytics' | 'social' | 'deploy'
   >('pipeline');
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [tasks, setTasks] = useState<CrmTask[]>([]);
   const [dealQuery, setDealQuery] = useState('');
   const [dealTypeFilter, setDealTypeFilter] = useState<'all' | 'order' | 'lead'>('all');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -104,7 +113,13 @@ export function CrmView({
     setRefreshingCrm(true);
     setDealActionMsg('');
     try {
-      await Promise.all([onRefreshDeals(), onRefreshCatalog(), onRefreshProjects()]);
+      await Promise.all([
+        onRefreshDeals(),
+        onRefreshCatalog(),
+        onRefreshProjects(),
+        loadContacts(),
+        loadTasks(),
+      ]);
       if (crmTab === 'analytics') await loadAnalytics();
       if (crmTab === 'deploy' || crmTab === 'catalog') await loadDiagnostics();
       setDealActionMsg(tr('Дані оновлено', 'Данные обновлены'));
@@ -266,19 +281,45 @@ export function CrmView({
     }
   }, [authFetch]);
 
+  const loadContacts = useCallback(async () => {
+    const resp = await authFetch('/api/crm/contacts');
+    if (resp.ok) {
+      const data = (await resp.json()) as { contacts?: Contact[] };
+      if (Array.isArray(data.contacts)) setContacts(data.contacts);
+    }
+  }, [authFetch]);
+
+  const loadTasks = useCallback(async () => {
+    const resp = await authFetch('/api/crm/tasks');
+    if (resp.ok) {
+      const data = (await resp.json()) as { tasks?: CrmTask[] };
+      if (Array.isArray(data.tasks)) setTasks(data.tasks);
+    }
+  }, [authFetch]);
+
   useEffect(() => {
     void loadAnalytics();
     void loadAdminEmails();
     void loadDiagnostics();
-  }, [loadAnalytics, loadAdminEmails, loadDiagnostics]);
+    void loadContacts();
+    void loadTasks();
+  }, [loadAnalytics, loadAdminEmails, loadDiagnostics, loadContacts, loadTasks]);
 
   const metrics = useMemo(() => {
     const active = deals.filter((d) => d.stage !== 'archived');
     const newCount = active.filter((d) => d.stage === 'new').length;
     const ordersCount = active.filter((d) => d.type === 'order').length;
     const pipelineUsd = active.reduce((s, d) => s + d.totalUsd, 0);
-    return { total: active.length, newCount, ordersCount, pipelineUsd };
-  }, [deals]);
+    const openTasksCount = tasks.filter((t) => t.status !== 'done').length;
+    return {
+      total: active.length,
+      newCount,
+      ordersCount,
+      pipelineUsd,
+      openTasksCount,
+      contactsCount: contacts.length,
+    };
+  }, [deals, tasks, contacts]);
 
   const filteredDeals = useMemo(() => {
     const q = dealQuery.trim().toLowerCase();
@@ -712,7 +753,442 @@ export function CrmView({
         setEmailsMsg('Список дозволених Google-акаунтів оновлено');
       }
     } catch {
-      setEmailsErr('Помилка з         </div>
+      setEmailsErr('Помилка з’єднання із сервером');
+    } finally {
+      setSavingEmails(false);
+    }
+  }
+
+  function resetProjectForm() {
+    setEditingProjectId(null);
+    setProjSeg('b2c');
+    setProjTag('B2C · Одеса');
+    setProjTitle('');
+    setProjSpecs('');
+    setProjImg('/assets/energocomfort/house_6kw.png');
+    setProjTask('');
+    setProjSolution('');
+    setProjResult('');
+    setProjectFormErr('');
+  }
+
+  function startEditProject(proj: ProjectCase) {
+    setEditingProjectId(proj.id);
+    setProjSeg(proj.seg);
+    setProjTag(proj.tag);
+    setProjTitle(proj.title);
+    setProjSpecs(proj.specs);
+    setProjImg(proj.img);
+    setProjTask(proj.task);
+    setProjSolution(proj.solution);
+    setProjResult(proj.result);
+    setProjectFormErr('');
+    setProjectFormMsg('');
+    setShowProjectForm(true);
+  }
+
+  async function handleUploadProjectPhoto(file: File) {
+    setProjectFormErr('');
+    if (file.size > 4 * 1024 * 1024) {
+      setProjectFormErr('Файл завеликий. Оберіть зображення до 4 МБ.');
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ''));
+        reader.onerror = () => reject(new Error('Не вдалося прочитати файл'));
+        reader.readAsDataURL(file);
+      });
+      const resp = await authFetch('/api/crm/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl }),
+      });
+      const data = (await resp.json()) as { url?: string; error?: string };
+      if (!resp.ok || !data.url) {
+        setProjectFormErr(data.error || 'Помилка завантаження фото');
+      } else {
+        setProjImg(data.url);
+      }
+    } catch {
+      setProjectFormErr('Не вдалося завантажити фото на сервер');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function handleSaveProject(e: FormEvent) {
+    e.preventDefault();
+    if (!projTitle.trim()) {
+      setProjectFormErr('Вкажіть назву об’єкта');
+      return;
+    }
+    setProjectFormErr('');
+    setProjectFormMsg('');
+    setSavingProject(true);
+    try {
+      const url = editingProjectId
+        ? `/api/crm/projects/${encodeURIComponent(editingProjectId)}`
+        : '/api/crm/projects';
+      const method = editingProjectId ? 'PATCH' : 'POST';
+      const resp = await authFetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seg: projSeg,
+          tag: projTag.trim(),
+          title: projTitle.trim(),
+          specs: projSpecs.trim(),
+          img: projImg.trim(),
+          task: projTask.trim(),
+          solution: projSolution.trim(),
+          result: projResult.trim(),
+        }),
+      });
+      const data = (await resp.json()) as { error?: string };
+      if (!resp.ok) {
+        setProjectFormErr(data.error || 'Помилка збереження об’єкта');
+        return;
+      }
+      await onRefreshProjects();
+      await loadDiagnostics();
+      setShowProjectForm(false);
+      setProjectFormMsg(editingProjectId ? `Об’єкт «${projTitle.trim()}» оновлено` : `Об’єкт «${projTitle.trim()}» додано`);
+      resetProjectForm();
+    } catch {
+      setProjectFormErr('Помилка з’єднання із сервером');
+    } finally {
+      setSavingProject(false);
+    }
+  }
+
+  async function handleDeleteProject(id: string, title: string) {
+    setProjectFormErr('');
+    setProjectFormMsg('');
+    const resp = await authFetch(`/api/crm/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (resp.ok) {
+      await onRefreshProjects();
+      await loadDiagnostics();
+      setProjectFormMsg(`Об’єкт «${title}» видалено`);
+    } else {
+      setProjectFormErr('Не вдалося видалити об’єкт');
+    }
+  }
+
+  async function handleTestTelegram() {
+    setTgResult('');
+    try {
+      const resp = await authFetch('/api/crm/telegram-test', { method: 'POST' });
+      const data = (await resp.json()) as { sent?: boolean; error?: string };
+      if (resp.ok && data.sent) {
+        setTgResult('Тестове повідомлення успішно надіслано у Telegram!');
+      } else {
+        setTgResult(data.error || 'Не вдалося надіслати тестове повідомлення у Telegram');
+      }
+    } catch {
+      setTgResult('Помилка з’єднання із сервером');
+    }
+  }
+
+  async function copyFeedUrl(pathSuffix: string, label: string) {
+    const fullUrl = `${window.location.origin}${pathSuffix}`;
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopiedFeed(label);
+      window.setTimeout(() => setCopiedFeed(''), 2500);
+    } catch {
+      setCopiedFeed('');
+    }
+  }
+
+  return (
+    <div className="bg-[#f6f8fb] min-h-screen py-8">
+      <div className="max-w-[1260px] mx-auto px-5 space-y-6">
+        {/* Header Bar */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-[#1769aa] mb-1">
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>{tr('Внутрішня CRM та управління каталогом', 'CRM и управление магазином')}</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-[#0d1f33]">
+              Energo Comfort — {tr('Адмін-панель', 'Панель администратора')}
+            </h1>
+            <p className="text-xs text-[#52657a] mt-0.5">
+              {tr('Замовлення, клієнти, каталог і робочі інструменти', 'Заказы, клиенты, каталог и рабочие инструменты')}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void refreshWorkspace()}
+              disabled={refreshingCrm}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer disabled:opacity-60"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshingCrm ? 'animate-spin' : ''}`} />
+              {refreshingCrm ? tr('Оновлюємо…', 'Обновляем…') : tr('Оновити дані', 'Обновить данные')}
+            </button>
+            <button
+              type="button"
+              onClick={onBackToStore}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              {tr('Повернутися на вітрину', 'Вернуться в магазин')}
+            </button>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              {tr('Вийти')}
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-[11px] font-bold text-slate-500">{tr('Усього активних угод')}</div>
+            <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{metrics.total}</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-[11px] font-bold text-slate-500">{tr('Нових заявок до обробки')}</div>
+            <div className="font-mono text-2xl font-extrabold text-[#1769aa] mt-1 tabular-nums">{metrics.newCount}</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-[11px] font-bold text-slate-500">{tr('Клієнти в базі', 'Клиенты в базе')}</div>
+            <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{metrics.contactsCount}</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-[11px] font-bold text-slate-500">{tr('Відкритих задач', 'Открытых задач')}</div>
+            <div className="font-mono text-2xl font-extrabold text-amber-600 mt-1 tabular-nums">{metrics.openTasksCount}</div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 col-span-2 lg:col-span-1">
+            <div className="text-[11px] font-bold text-slate-500">{tr('Сума у воронці')}</div>
+            <div className="font-mono text-2xl font-extrabold text-[#169374] mt-1 tabular-nums">
+              ${metrics.pipelineUsd.toLocaleString('uk-UA')}
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <nav aria-label={tr('Навігація CRM')} className="flex flex-wrap gap-1.5 p-1.5 bg-white border border-slate-200 rounded-xl">
+          {(
+            [
+              ['pipeline', tr('Воронка угод'), LayoutDashboard],
+              ['table', tr('Таблиця замовлень'), Table2],
+              ['contacts', `${tr('Контакти')} (${contacts.length})`, Users],
+              ['tasks', `${tr('Задачі', 'Задачи')} (${metrics.openTasksCount})`, CheckSquare],
+              ['catalog', `${tr('Каталог обладнання')} (${products.length})`, Package],
+              ['projects', `${tr('Реальні об’єкти')} (${projectsList.length})`, BriefcaseBusiness],
+              ['analytics', tr('Аналітика'), ChartNoAxesCombined],
+              ['social', tr('Соцмережі та SEO'), Share2],
+              ['deploy', tr('Бекап · Telegram · Вхід'), Database],
+            ] as const
+          ).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setCrmTab(id)}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                crmTab === id
+                  ? 'bg-[#0d1f33] text-white shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-[#0d1f33]'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {dealActionMsg && (
+          <div className="px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-semibold text-[#1769aa]">
+            {dealActionMsg}
+          </div>
+        )}
+
+        {/* TAB 1: KANBAN PIPELINE */}
+        {crmTab === 'pipeline' && (
+          <div className="space-y-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-slate-600">
+                {tr('Перетягніть картку в інший стовпець, щоб змінити етап', 'Перетащите карточку в другой столбец, чтобы изменить этап')}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="search"
+                    value={dealQuery}
+                    onChange={(e) => setDealQuery(e.target.value)}
+                    placeholder={tr('Пошук за номером, телефоном, клієнтом...')}
+                    className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56"
+                  />
+                </div>
+                <select
+                  value={dealTypeFilter}
+                  onChange={(e) => setDealTypeFilter(e.target.value as 'all' | 'order' | 'lead')}
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white font-semibold"
+                >
+                  <option value="all">{tr('Усі')}</option>
+                  <option value="lead">{tr('Інженерні ліди')}</option>
+                  <option value="order">{tr('Замовлень із кошика')}</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 items-start">
+              {STAGES.map((stage) => {
+                const stageDeals = filteredDeals.filter((d) => d.stage === stage.id);
+                const isDropOver = dropTargetStage === stage.id;
+                return (
+                  <div
+                    key={stage.id}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDropTargetStage(stage.id);
+                    }}
+                    onDragLeave={() => {
+                      if (dropTargetStage === stage.id) setDropTargetStage(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggedDealId !== null) {
+                        void handlePatchDeal(draggedDealId, { stage: stage.id });
+                      }
+                    }}
+                    className={`rounded-xl border p-3 space-y-2.5 min-h-[280px] transition-colors ${
+                      isDropOver ? 'border-[#1769aa] bg-sky-50/70' : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                      <span className={`text-xs font-extrabold ${stage.colorClass}`}>{tr(stage.label)}</span>
+                      <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 tabular-nums">
+                        {stageDeals.length}
+                      </span>
+                    </div>
+
+                    {stageDeals.length === 0 ? (
+                      <div className="py-10 text-center text-[11px] text-slate-400">
+                        {tr('Немає угод на цьому етапі')}
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {stageDeals.map((d) => (
+                          <div
+                            key={d.id}
+                            draggable
+                            onDragStart={() => setDraggedDealId(d.id)}
+                            onDragEnd={() => {
+                              setDraggedDealId(null);
+                              setDropTargetStage(null);
+                            }}
+                            onClick={() => setSelectedDeal(d)}
+                            className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-[#1769aa] transition-all cursor-pointer space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-1 text-[10.5px]">
+                              <span className="font-mono font-bold text-[#1769aa]">{d.dealNumber}</span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded font-bold ${
+                                  d.type === 'order' ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-[#1769aa]'
+                                }`}
+                              >
+                                {d.type === 'order' ? tr('Кошик') : tr('Лід')}
+                              </span>
+                            </div>
+                            <div className="text-xs font-bold text-[#0d1f33] line-clamp-2">{d.topic}</div>
+                            <div className="text-[11px] text-slate-600 truncate">
+                              {d.customerName} · <span className="font-mono">{d.phone}</span>
+                            </div>
+                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/70 text-[11px]">
+                              <span className="text-slate-500 truncate">{d.city}</span>
+                              <span className="font-mono font-bold text-[#0d1f33] tabular-nums">
+                                {d.totalUsd > 0 ? `$${d.totalUsd.toLocaleString('uk-UA')}` : '—'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: DEALS TABLE (TanStack Table + shadcn/ui) */}
+        {crmTab === 'table' && (
+          <DealsDataTable
+            deals={filteredDeals}
+            stages={STAGES}
+            dealQuery={dealQuery}
+            onDealQueryChange={setDealQuery}
+            dealTypeFilter={dealTypeFilter}
+            onDealTypeFilterChange={setDealTypeFilter}
+            onSelectDeal={setSelectedDeal}
+            onExportCsv={exportCsv}
+          />
+        )}
+
+        {/* TAB 2B: CONTACTS (TanStack Table + Contact 360 Dialog + Notes/Tasks) */}
+        {crmTab === 'contacts' && (
+          <ContactsTab
+            contacts={contacts}
+            authFetch={authFetch}
+            onRefreshContacts={loadContacts}
+            onRefreshTasks={loadTasks}
+            onOpenDeal={(d) => setSelectedDeal(d)}
+          />
+        )}
+
+        {/* TAB 2C: TASKS (TanStack Table + Due Dates + Status Updates) */}
+        {crmTab === 'tasks' && (
+          <TasksTab
+            tasks={tasks}
+            contacts={contacts}
+            deals={deals}
+            assignees={ASSIGNEES}
+            authFetch={authFetch}
+            onRefreshTasks={loadTasks}
+            onRefreshContacts={loadContacts}
+          />
+        )}
+
+        {/* TAB 3: CATALOG MANAGER */}
+        {crmTab === 'catalog' && (
+          <div className="space-y-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 flex-1">
+                <div className="relative flex-1 min-w-[210px] max-w-sm">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="search"
+                    value={catQuery}
+                    onChange={(e) => setCatQuery(e.target.value)}
+                    placeholder={tr('Пошук товару, SKU або бренду...', 'Поиск товара, SKU или бренда...')}
+                    className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 text-xs"
+                  />
+                </div>
+                <select
+                  value={catFilter}
+                  onChange={(e) => setCatFilter(e.target.value as 'all' | ProductCategory)}
+                  className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white font-semibold"
+                >
+                  <option value="all">{tr('Усі товари')}</option>
+                  <option value="kits">{tr('Готові рішення')}</option>
+                  <option value="inverters">{tr('Інвертори')}</option>
+                  <option value="batteries">{tr('Акумулятори')}</option>
+                  <option value="panels">{tr('Сонячні панелі')}</option>
+                  <option value="parts">{tr('Комплектуючі')}</option>
+                </select>
+              </div>
               <button
                 type="button"
                 onClick={openCreateProductModal}
@@ -1008,7 +1484,499 @@ export function CrmView({
                     {editingProjectId ? 'Редагувати об’єкт портфоліо' : 'Новий реалізований об’єкт'}
                   </h3>
                   <button
-         унти для входу в Адмінку
+                    type="button"
+                    onClick={() => {
+                      setShowProjectForm(false);
+                      resetProjectForm();
+                    }}
+                    className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">Сегмент</label>
+                    <select
+                      value={projSeg}
+                      onChange={(e) => setProjSeg(e.target.value as 'b2b' | 'b2c')}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+                    >
+                      <option value="b2c">Для дому B2C</option>
+                      <option value="b2b">Для бізнесу B2B</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-600 mb-1">Локація / тег</label>
+                    <input
+                      type="text"
+                      value={projTag}
+                      onChange={(e) => setProjTag(e.target.value)}
+                      placeholder="B2C · Одеса"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-600 mb-1">Назва об’єкта *</label>
+                    <input
+                      type="text"
+                      required
+                      value={projTitle}
+                      onChange={(e) => setProjTitle(e.target.value)}
+                      placeholder="Приватний будинок у Чорноморську"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-600 mb-1">Ключові параметри</label>
+                    <input
+                      type="text"
+                      value={projSpecs}
+                      onChange={(e) => setProjSpecs(e.target.value)}
+                      placeholder="PV 10 кВт · Гібрид Deye 8 кВт · АКБ 15 кВт·год"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+                    <label className="block font-bold text-slate-600">Фото об’єкта (завантаження на сервер або URL)</label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="w-20 h-14 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0">
+                        <SmartImage src={projImg} alt={projTitle || 'Об’єкт'} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-[200px] space-y-2">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer">
+                          <Upload className="w-3.5 h-3.5 text-[#1769aa]" />
+                          {uploadingPhoto ? 'Завантажуємо...' : 'Завантажити фото (JPG/PNG/WebP)'}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            disabled={uploadingPhoto}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) void handleUploadProjectPhoto(file);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          value={projImg}
+                          onChange={(e) => setProjImg(e.target.value)}
+                          placeholder="/assets/energocomfort/house_6kw.png"
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px] bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-600 mb-1">Задача</label>
+                    <textarea rows={2} value={projTask} onChange={(e) => setProjTask(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-600 mb-1">Інженерне рішення</label>
+                    <textarea rows={2} value={projSolution} onChange={(e) => setProjSolution(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-600 mb-1">Результат</label>
+                    <textarea rows={2} value={projResult} onChange={(e) => setProjResult(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300" />
+                  </div>
+                </div>
+
+                {projectFormErr && <div className="text-xs font-semibold text-red-600">{projectFormErr}</div>}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={savingProject}
+                    className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                  >
+                    {savingProject ? 'Зберігаємо...' : editingProjectId ? 'Зберегти зміни об’єкта' : 'Додати об’єкт'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProjectForm(false);
+                      resetProjectForm();
+                    }}
+                    className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 cursor-pointer"
+                  >
+                    Скасувати
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projectsList.map((proj) => (
+                <div key={proj.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col">
+                  <div className="relative h-40 bg-[#0d1f33]">
+                    <SmartImage src={proj.img} alt={proj.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/80 to-transparent text-[11px] font-bold text-white">
+                      {proj.tag}
+                    </div>
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col justify-between gap-3 text-xs">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-[#0d1f33] mb-1">{proj.title}</h3>
+                      <div className="font-mono text-[11px] text-[#1769aa] mb-1.5">{proj.specs}</div>
+                      <p className="text-slate-600 line-clamp-2">{proj.task}</p>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => startEditProject(proj)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-bold text-[#0d1f33] cursor-pointer"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        Редагувати
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteProject(proj.id, proj.title)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 font-bold text-red-700 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Видалити
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: ANALYTICS & PIXELS */}
+        {crmTab === 'analytics' && (
+          <div className="space-y-5">
+            <form onSubmit={handleSaveAnalytics} className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div>
+                <h2 className="text-base font-extrabold text-[#0d1f33]">Meta Pixel, Google Analytics 4 (GA4) та GTM</h2>
+                <p className="text-xs text-[#52657a] mt-0.5">
+                  Скрипти підключаються на вітрині автоматично, а ключові конверсії (`Lead`, `Purchase`, `AddToCart`) дублюються у локальний журнал.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <label className="block font-bold text-[#0d1f33] mb-1">Meta (Facebook) Pixel ID</label>
+                  <input
+                    type="text"
+                    value={metaPixelId}
+                    onChange={(e) => setMetaPixelId(e.target.value)}
+                    placeholder="123456789012345"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#0d1f33] mb-1">GA4 Measurement ID</label>
+                  <input
+                    type="text"
+                    value={ga4MeasurementId}
+                    onChange={(e) => setGa4MeasurementId(e.target.value)}
+                    placeholder="G-XXXXXXXXXX"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#0d1f33] mb-1">Google Tag Manager ID</label>
+                  <input
+                    type="text"
+                    value={gtmContainerId}
+                    onChange={(e) => setGtmContainerId(e.target.value)}
+                    placeholder="GTM-XXXXXXX"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+              </div>
+
+              <label className="inline-flex items-center gap-2 text-xs font-bold text-[#0d1f33] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={analyticsEnabled}
+                  onChange={(e) => setAnalyticsEnabled(e.target.checked)}
+                />
+                Активувати збір аналітики та відправлення подій на вітрині
+              </label>
+
+              {analyticsErr && <div className="text-xs font-semibold text-red-600">{analyticsErr}</div>}
+              {analyticsMsg && <div className="text-xs font-semibold text-[#169374]">{analyticsMsg}</div>}
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={savingAnalytics}
+                  className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                >
+                  {savingAnalytics ? 'Зберігаємо...' : 'Зберегти налаштування аналітики'}
+                </button>
+              </div>
+            </form>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-extrabold text-[#0d1f33] flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-[#1769aa]" />
+                  Останні події конверсій ({recentEvents.length})
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => void loadAnalytics()}
+                  className="text-xs font-bold text-[#1769aa] hover:underline cursor-pointer"
+                >
+                  Оновити журнал
+                </button>
+              </div>
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500">
+                      <th className="py-2 px-3">Подія</th>
+                      <th className="py-2 px-3">Meta / GA4</th>
+                      <th className="py-2 px-3">Дані</th>
+                      <th className="py-2 px-3">Час</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {recentEvents.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-6 text-center text-slate-400">Подій ще не зафіксовано</td>
+                      </tr>
+                    ) : (
+                      recentEvents.map((ev) => (
+                        <tr key={ev.id}>
+                          <td className="py-2 px-3 font-mono font-bold text-[#0d1f33]">{ev.eventName}</td>
+                          <td className="py-2 px-3 font-mono text-[11px] text-slate-600">{ev.metaEvent} / {ev.ga4Event}</td>
+                          <td className="py-2 px-3 font-mono text-[11px] text-slate-500 max-w-md truncate">
+                            {JSON.stringify(ev.payload)}
+                          </td>
+                          <td className="py-2 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                            {new Date(ev.createdAt).toLocaleString('uk-UA')}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: SOCIAL LINKS & SEO / XML FEEDS */}
+        {crmTab === 'social' && (
+          <div className="space-y-5">
+            <form onSubmit={handleSaveSocialLinks} className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0d1f33]">Соціальні мережі в шапці та футері</h2>
+                  <p className="text-xs text-[#52657a] mt-0.5">
+                    Порожні поля приховуються. Вказуйте повну HTTPS-адресу профілю чи чату.
+                  </p>
+                </div>
+                <SocialIcons links={socialForm} variant="light" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+                {(
+                  [
+                    ['telegram', 'Telegram (канал або менеджер)', 'https://t.me/energocomfort'],
+                    ['viber', 'Viber / посилання', 'https://invite.viber.com/...'],
+                    ['instagram', 'Instagram', 'https://instagram.com/energocomfort.shop'],
+                    ['facebook', 'Facebook', 'https://www.facebook.com/energocomfort.shop'],
+                    ['youtube', 'YouTube', 'https://youtube.com/@energocomfort'],
+                    ['tiktok', 'TikTok', 'https://tiktok.com/@energocomfort'],
+                  ] as const
+                ).map(([key, label, placeholder]) => (
+                  <div key={key}>
+                    <label className="block font-bold text-[#0d1f33] mb-1">{label}</label>
+                    <input
+                      type="url"
+                      value={socialForm[key]}
+                      onChange={(e) => setSocialForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {socialErr && <div className="text-xs font-semibold text-red-600">{socialErr}</div>}
+              {socialMsg && <div className="text-xs font-semibold text-[#169374]">{socialMsg}</div>}
+
+              <button
+                type="submit"
+                disabled={savingSocial}
+                className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+              >
+                {savingSocial ? 'Зберігаємо...' : 'Зберегти соцмережі'}
+              </button>
+            </form>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#1769aa]" />
+                  SEO-файли та товарні фіди для Google Shopping / Meta Catalog
+                </h3>
+                <p className="text-xs text-[#52657a] mt-0.5">
+                  Генеруються автоматично з актуальної бази товарів SQLite за поточним курсом НБУ.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                {[
+                  { path: '/sitemap.xml', title: 'Sitemap XML (Google Search Console)' },
+                  { path: '/feed.xml', title: 'Google / Meta Merchant Feed (RSS 2.0)' },
+                  { path: '/robots.txt', title: 'Robots.txt (правила індексації)' },
+                ].map((item) => (
+                  <div key={item.path} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                    <div className="font-bold text-[#0d1f33]">{item.title}</div>
+                    <div className="font-mono text-[11px] text-[#1769aa] truncate">{item.path}</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void copyFeedUrl(item.path, item.path)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-100 font-bold text-[#0d1f33] cursor-pointer"
+                      >
+                        <Link2 className="w-3 h-3" />
+                        {copiedFeed === item.path ? 'Скопійовано!' : 'Копіювати URL'}
+                      </button>
+                      <a
+                        href={item.path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-100 font-bold text-[#1769aa]"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Відкрити
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: BACKUP, TELEGRAM, STORAGE & AUTH */}
+        {crmTab === 'deploy' && (
+          <div className="space-y-5">
+            {storageInfo && (
+              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
+                      <HardDrive className="w-4 h-4 text-[#169374]" />
+                      Сховище SQLite, фото та резервна копія
+                    </h2>
+                    <p className="text-xs text-[#52657a] mt-0.5">
+                      Шлях даних: <code className="font-mono text-[#0d1f33]">{storageInfo.dataDir}</code> · Розмір БД:{' '}
+                      <strong>{Math.round(storageInfo.dbSizeBytes / 1024)} КБ</strong> · Фото у{' '}
+                      <code className="font-mono">/uploads</code>: <strong>{storageInfo.uploadsCount}</strong>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleDownloadBackup()}
+                    disabled={downloadingBackup}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                  >
+                    <Database className="w-3.5 h-3.5 text-[#f59e0b]" />
+                    {downloadingBackup ? 'Готуємо файл...' : tr('Завантажити бекап БД (.db)')}
+                  </button>
+                </div>
+
+                {backupErr && <div className="text-xs font-semibold text-red-600">{backupErr}</div>}
+
+                {recentChanges.length > 0 && (
+                  <div className="border-t border-slate-100 pt-3">
+                    <div className="text-xs font-bold text-slate-500 mb-2">Останні оновлення каталогу та проєктів у БД:</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                      {recentChanges.slice(0, 6).map((ch) => (
+                        <div key={`${ch.kind}-${ch.id}`} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                          <span className="truncate font-semibold text-[#0d1f33]">
+                            {ch.kind === 'product' ? 'Товар: ' : 'Проєкт: '}
+                            {ch.title}
+                          </span>
+                          <span className="font-mono text-[10.5px] text-slate-500 shrink-0">
+                            {new Date(ch.updatedAt).toLocaleDateString('uk-UA')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Telegram Bot & Webhook Setup */}
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0d1f33]">Інтеграція Telegram-бота та Webhook</h2>
+                  <p className="text-xs text-[#52657a] mt-0.5">
+                    Статус змінних оточення:{' '}
+                    <strong className={telegramConfigured ? 'text-[#169374]' : 'text-amber-700'}>
+                      {telegramConfigured ? 'TELEGRAM_BOT_TOKEN і CHAT_ID задані' : 'Не налаштовано у .env / Railway'}
+                    </strong>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleTestTelegram()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#1769aa]" />
+                  Надіслати тест у чат
+                </button>
+              </div>
+
+              {tgResult && (
+                <div className="px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-[#0d1f33]">
+                  {tgResult}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end pt-2 border-t border-slate-100">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">HTTPS-адреса Telegram Webhook</label>
+                  <input
+                    type="url"
+                    value={webhookUrlInput}
+                    onChange={(e) => setWebhookUrlInput(e.target.value)}
+                    placeholder="https://energocomfort.shop/api/telegram/webhook"
+                    className="w-full px-3.5 py-2 rounded-lg border border-slate-300 font-mono text-xs"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleSetupTelegramWebhook()}
+                  disabled={settingWebhook}
+                  className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+                >
+                  {settingWebhook ? 'Підключаємо...' : 'Зареєструвати Webhook'}
+                </button>
+              </div>
+
+              {webhookStatus && (
+                <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  Поточний Webhook: {webhookStatus.url || 'не встановлено'} · Черга оновлень: {webhookStatus.pendingUpdateCount}
+                  {webhookStatus.lastErrorMessage ? ` · Помилка: ${webhookStatus.lastErrorMessage}` : ''}
+                </div>
+              )}
+              {webhookErr && <div className="text-xs font-semibold text-red-600">{webhookErr}</div>}
+              {webhookMsg && <div className="text-xs font-semibold text-[#169374]">{webhookMsg}</div>}
+            </div>
+
+            {/* Google Allowlist Card */}
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0d1f33]">
+                    Дозволені Google-акаунти для входу в Адмінку
                   </h2>
                   <p className="text-xs text-[#52657a] mt-1">
                     Тільки користувачі з підтвердженим email із цього списку (або зі змінної{' '}
@@ -1353,4 +2321,150 @@ export function CrmView({
                   </div>
                   <div className="flex-1 min-w-[200px] space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                   
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer">
+                        <Upload className="w-3.5 h-3.5 text-[#1769aa]" />
+                        {uploadingProdPhoto ? 'Завантажуємо...' : 'Завантажити фото (JPG/PNG/WebP)'}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          disabled={uploadingProdPhoto}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) void handleUploadProductPhoto(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      value={prodImg}
+                      onChange={(e) => setProdImg(e.target.value)}
+                      placeholder="/uploads/... або https://..."
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px] bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Specs Key-Value Editor */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-600">Технічні характеристики</label>
+                  <button
+                    type="button"
+                    onClick={() => setProdSpecs((prev) => [...prev, ['', '']])}
+                    className="text-xs font-bold text-[#1769aa] hover:underline cursor-pointer"
+                  >
+                    + Додати рядок
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {prodSpecs.map(([k, v], idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={k}
+                        onChange={(e) =>
+                          setProdSpecs((prev) =>
+                            prev.map((row, i) => (i === idx ? [e.target.value, row[1]] : row)),
+                          )
+                        }
+                        placeholder="Параметр (напр. Потужність)"
+                        className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
+                      />
+                      <input
+                        type="text"
+                        value={v}
+                        onChange={(e) =>
+                          setProdSpecs((prev) =>
+                            prev.map((row, i) => (i === idx ? [row[0], e.target.value] : row)),
+                          )
+                        }
+                        placeholder="Значення (напр. 8 кВт)"
+                        className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setProdSpecs((prev) => prev.filter((_, i) => i !== idx))}
+                        aria-label="Видалити характеристику"
+                        className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-600 mb-1">Опис товару</label>
+                <textarea
+                  rows={3}
+                  value={prodDescription}
+                  onChange={(e) => setProdDescription(e.target.value)}
+                  placeholder="Детальний опис, сумісність, гарантія..."
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                />
+              </div>
+
+              {prodModalErr && <div className="text-xs font-semibold text-red-600">{prodModalErr}</div>}
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                <div>
+                  {editingProdId &&
+                    (confirmDeleteProd ? (
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={savingProduct}
+                          onClick={() => void handleDeleteProduct(editingProdId, prodTitle)}
+                          className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer"
+                        >
+                          Підтвердити видалення
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteProd(false)}
+                          className="text-xs font-semibold text-slate-500 cursor-pointer"
+                        >
+                          Скасувати
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteProd(true)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Видалити товар
+                      </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setProductModalOpen(false)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 cursor-pointer"
+                  >
+                    Скасувати
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingProduct}
+                    className="px-5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                  >
+                    {savingProduct ? 'Зберігаємо...' : editingProdId ? 'Зберегти зміни' : 'Створити товар'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

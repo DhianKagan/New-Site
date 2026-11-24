@@ -159,3 +159,70 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
               <span className="bg-white px-3 text-[11px] font-semibold text-slate-400 whitespace-nowrap">
                 {tr('або паролем адміністратора', 'или паролем администратора')}
               </span>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3.5" noValidate={false}>
+          <div>
+            <label htmlFor="admin-password" className="block text-xs font-bold text-[#0d1f33] mb-1">
+              {isSetup ? tr('Новий пароль адміністратора', 'Новый пароль администратора') : tr('Пароль адміністратора', 'Пароль администратора')}
+            </label>
+            <input
+              id="admin-password"
+              name="password"
+              type="password"
+              required
+              minLength={isSetup ? 6 : 1}
+              autoComplete={isSetup ? 'new-password' : 'current-password'}
+              disabled={!apiAvailable || submitting || googleSubmitting}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : tr('Введіть пароль CRM', 'Введите пароль CRM')}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
+            />
+          </div>
+
+          {isSetup && (
+            <div>
+              <label htmlFor="admin-password-confirm" className="block text-xs font-bold text-[#0d1f33] mb-1">
+                {tr('Підтвердіть пароль', 'Подтвердите пароль')}
+              </label>
+              <input
+                id="admin-password-confirm"
+                name="confirmPassword"
+                type="password"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                disabled={!apiAvailable || submitting || googleSubmitting}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder={tr('Повторіть пароль', 'Повторите пароль')}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
+              />
+            </div>
+          )}
+
+          {error && (
+            <div role="alert" aria-live="polite" className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!apiAvailable || submitting || googleSubmitting}
+            className="w-full py-2.5 px-4 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] disabled:opacity-60 text-white text-sm font-bold transition-colors cursor-pointer"
+          >
+            {submitting
+              ? tr('Перевірка...', 'Проверка…')
+              : isSetup
+                ? tr('Створити пароль та увійти', 'Создать пароль и войти')
+                : tr('Увійти в CRM', 'Войти в CRM')}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -133,6 +133,7 @@ export default function App() {
   const [leadPlacement, setLeadPlacement] = useState<Placement>('section');
   const [stickyCtaVisible, setStickyCtaVisible] = useState(false);
   const [leadTopic, setLeadTopic] = useState('Інженерний розрахунок системи');
+  const [leadNotes, setLeadNotes] = useState('');
 
   useEffect(() => {
     const updateStickyVisibility = () => {
@@ -385,6 +386,14 @@ export default function App() {
       title = 'Контакти та умови співпраці — Energo Comfort Одеса';
       description =
         'Офіс та склад Energo Comfort: м. Одеса, вул. Європейська 93. Телефони +38 (050) 777-71-72, +38 (098) 152-32-61. Графік Пн–Сб 09:00–18:00.';
+    } else if (view === 'payment-delivery') {
+      title = 'Оплата і доставка обладнання — Energo Comfort Одеса';
+      description =
+        'Способи оплати (ФОП/ТОВ з ПДВ, готівка, переказ), самовивіз зі складу в Одесі на вул. Європейська 93 та доставка по Україні Новою Поштою.';
+    } else if (view === 'offer') {
+      title = 'Публічна оферта та гарантія — Energo Comfort';
+      description =
+        'Умови публічного договору купівлі-продажу, гарантійного обслуговування та повернення обладнання в інтернет-магазині Energo Comfort.';
     } else if (isCrm) {
       title = 'CRM та адмін-панель — Energo Comfort';
     }
@@ -665,10 +674,16 @@ export default function App() {
     setCart((prev) => prev.filter((i) => i.id !== id));
   }
 
-  function openLeadModal(topic: string, estimatedTotalUsd?: number, placement: Placement = 'section') {
+  function openLeadModal(
+    topic: string,
+    estimatedTotalUsd?: number,
+    placement: Placement = 'section',
+    notes = '',
+  ) {
     setLeadTopic(topic);
     setLeadEstimateUsd(estimatedTotalUsd);
     setLeadPlacement(placement);
+    setLeadNotes(notes);
     setLeadModalOpen(true);
   }
 
@@ -1152,6 +1167,7 @@ export default function App() {
       <LeadModal
         open={leadModalOpen}
         initialTopic={leadTopic}
+        initialNotes={leadNotes}
         estimatedTotalUsd={leadEstimateUsd}
         onClose={() => setLeadModalOpen(false)}
         onCreated={() => void fetchDeals()}
