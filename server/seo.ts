@@ -289,7 +289,17 @@ export function renderRouteSeoHtml(input: RouteSeoInput): string {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Головна', item: `${baseUrl}/` },
           { '@type': 'ListItem', position: 2, name: 'Обладнання', item: `${baseUrl}/shop` },
-          { '@type': 'ListItem', position: 3, name: product.title, item: canonicalUrl },
+          ...(ALLOWED_PRODUCT_CATS.includes(product.cat)
+            ? [
+                {
+                  '@type': 'ListItem',
+                  position: 3,
+                  name: CATEGORY_SEO_META[product.cat].breadcrumb,
+                  item: `${baseUrl}/shop?cat=${encodeURIComponent(product.cat)}`,
+                },
+                { '@type': 'ListItem', position: 4, name: product.title, item: canonicalUrl },
+              ]
+            : [{ '@type': 'ListItem', position: 3, name: product.title, item: canonicalUrl }]),
         ],
       },
     ];

@@ -7,32 +7,16 @@ import { VideoBackground } from './VideoBackground.tsx';
 import type { SocialLinksConfig } from '../types.ts';
 
 interface ContactsViewProps {
-  onBackHome: () => void;
+  onBackHome?: () => void;
   onOpenLeadModal: (topic: string) => void;
   socialLinks: SocialLinksConfig;
 }
 
-export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: ContactsViewProps) {
+export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps) {
   return (
     <div>
       <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-300 mb-2">
-            <a
-              href="/"
-              onClick={(e) => {
-                if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                  e.preventDefault();
-                  onBackHome();
-                }
-              }}
-              className="text-sky-300 font-bold hover:text-white hover:underline"
-            >
-              {tr('Головна')}
-            </a>
-            <span aria-hidden="true">/</span>
-            <span>{tr('Контакти та інформація')}</span>
-          </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {tr('Ми на зв’язку та раді відповісти на ваші питання')}
           </h1>

@@ -1,4 +1,4 @@
-import { Component, useCallback, useEffect, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
 import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check, Heart } from 'lucide-react';
 import type {
   AdminAuthStatus,
@@ -44,7 +44,13 @@ import { SmartImage } from './components/SmartImage.tsx';
 import { SocialIcons } from './components/SocialIcons.tsx';
 import { InfoPage } from './components/InfoPage.tsx';
 import { VideoBackground } from './components/VideoBackground.tsx';
+import { Breadcrumbs } from './components/Breadcrumbs.tsx';
 import { OfflineIndicator, PWAInstallButton } from './components/PWAStatusUI.tsx';
+import {
+  buildBreadcrumbListJsonLd,
+  buildBreadcrumbTrail,
+  type BreadcrumbItem,
+} from './lib/breadcrumbs.ts';
 import { formatUahFromUsd } from './lib/currency.ts';
 import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 import {
@@ -431,6 +437,19 @@ function AppContent() {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [paybackProduct, setPaybackProduct] = useState<Product | null>(null);
   const [selectedCase, setSelectedCase] = useState<ProjectCase | null>(null);
+
+  const breadcrumbItems = useMemo(
+    () =>
+      buildBreadcrumbTrail({
+        view,
+        shopCat: shopInitialCat,
+        searchQuery: shopInitialQuery,
+        selectedProduct,
+        selectedCase,
+        isRussian: locale === 'ru',
+      }),
+    [view, shopInitialCat, shopInitialQuery, selectedProduct, selectedCase, locale],
+  );
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [leadPlacement, setLeadPlacement] = useState<Placement>('section');
   const [stickyCtaVisible, setStickyCtaVisible] = useState(false);
@@ -940,14 +959,7 @@ function AppContent() {
                   }
                 : {}),
             },
-            {
-              '@type': 'BreadcrumbList',
-              itemListElement: [
-                { '@type': 'ListItem', position: 1, name: 'Головна', item: `${window.location.origin}/` },
-                { '@type': 'ListItem', position: 2, name: 'Обладнання', item: `${window.location.origin}/shop` },
-                { '@type': 'ListItem', position: 3, name: selectedProduct.title, item: canonicalUrl },
-              ],
-            },
+            buildBreadcrumbListJsonLd(breadcrumbItems, window.location.origin),
           ],
         });
       } else if (view === 'home') {
@@ -977,18 +989,6 @@ function AppContent() {
           ],
         });
       } else {
-        const pageNameMap: Record<AppView, string> = {
-          home: 'Головна',
-          shop: 'Каталог обладнання',
-          services: 'Послуги монтажу та інжинірингу',
-          projects: 'Реалізовані об’єкти',
-          contacts: 'Контакти',
-          'payment-delivery': 'Оплата і доставка',
-          offer: 'Публічна оферта',
-          login: 'Вхід та реєстрація',
-          account: 'Особистий кабінет',
-          crm: 'CRM',
-        };
         const pageTypeMap: Record<AppView, string> = {
           home: 'WebPage',
           shop: 'CollectionPage',
@@ -1011,13 +1011,7 @@ function AppContent() {
               description,
               url: canonicalUrl,
             },
-            {
-              '@type': 'BreadcrumbList',
-              itemListElement: [
-                { '@type': 'ListItem', position: 1, name: 'Головна', item: `${window.location.origin}/` },
-                { '@type': 'ListItem', position: 2, name: pageNameMap[view], item: canonicalUrl },
-              ],
-            },
+            buildBreadcrumbListJsonLd(breadcrumbItems, window.location.origin),
           ],
         });
       }
@@ -1035,7 +1029,7 @@ function AppContent() {
         });
       }
     }
-  }, [view, shopInitialCat, selectedProduct, products.length, projects.length, usdUahRate, locale, socialLinks, analyticsReady]);
+  }, [view, shopInitialCat, shopInitialQuery, selectedProduct, selectedCase, breadcrumbItems, products.length, projects.length, usdUahRate, locale, socialLinks, analyticsReady]);
 
   useEffect(() => {
     if (!analyticsReady || view === 'crm' || view === 'login' || view === 'account') return;
@@ -1207,6 +1201,27 @@ function AppContent() {
     if (window.location.pathname + window.location.search !== targetUrl) {
       window.history.replaceState({}, '', targetUrl);
     }
+  }
+
+  function handleShopQuerySync(nextQuery: string) {
+    setShopInitialQuery(nextQuery);
+    const targetUrl = buildPathForRoute('shop', shopInitialCat, null, undefined, nextQuery);
+    if (window.location.pathname + window.location.search !== targetUrl) {
+      window.history.replaceState({}, '', targetUrl);
+    }
+  }
+
+  function handleBreadcrumbNavigate(item: BreadcrumbItem) {
+    setSelectedCase(null);
+    if (item.view === 'shop') {
+      const nextCat = item.cat ?? 'all';
+      if (item.id === 'shop') {
+        setShopInitialQuery('');
+      }
+      navigateTo('shop', nextCat);
+      return;
+    }
+    navigateTo(item.view);
   }
 
   function handleAddToCart(product: Product) {
@@ -1635,6 +1650,7 @@ function AppContent() {
 
       {/* Main Content */}
       <main className="flex-1">
+        <Breadcrumbs items={breadcrumbItems} onNavigate={handleBreadcrumbNavigate} />
         {loadingCatalog && view !== 'crm' ? (
           <div className="max-w-[1180px] mx-auto px-5 py-16">
             <div className="rounded-2xl bg-white/90 backdrop-blur-md p-6 space-y-4">
@@ -1679,6 +1695,7 @@ function AppContent() {
                 initialQuery={shopInitialQuery}
                 wishlistIds={wishlistIds}
                 onCategoryChange={handleShopCategorySync}
+                onQueryChange={handleShopQuerySync}
                 onSelectProduct={handleSelectProduct}
                 onQuickViewProduct={handleQuickViewProduct}
                 onToggleWishlist={handleToggleWishlist}

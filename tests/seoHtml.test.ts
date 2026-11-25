@@ -68,6 +68,8 @@ test('renderRouteSeoHtml renders Product JSON-LD, UAH Offer, OpenGraph product:*
   assert.match(html, /<meta property="product:price:amount" content="63000" \/>/);
   assert.match(html, /<meta property="product:price:currency" content="UAH" \/>/);
   assert.match(html, /"@type":"Product"/);
+  assert.match(html, /"@type":"BreadcrumbList"/);
+  assert.match(html, /"name":"Інвертори"/);
   assert.match(html, /"priceCurrency":"UAH","price":63000/);
   assert.match(html, /"priceValidUntil":"\d{4}-\d{2}-\d{2}"/);
   assert.match(html, /"hasMerchantReturnPolicy"/);

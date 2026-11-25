@@ -374,8 +374,8 @@ const CATALOG_TERMS_RU: Array<[string, string]> = [
 
 /** Applies a restrained Ukrainian-to-Russian glossary to catalog content,
  * while leaving manufacturer names, model codes, and electrical units intact. */
-export function localizeCatalogText(value: string): string {
-  if (activeLocale !== 'ru') return value;
+export function localizeCatalogText(value: string, locale: Locale = activeLocale): string {
+  if (locale !== 'ru') return value;
   let text = value;
   for (const [uk, ru] of CATALOG_TERMS_RU) {
     const escaped = uk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

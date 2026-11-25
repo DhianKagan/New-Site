@@ -26,6 +26,7 @@ interface ShopViewProps {
   initialQuery?: string;
   wishlistIds?: string[];
   onCategoryChange?: (cat: ProductCategory | 'all') => void;
+  onQueryChange?: (query: string) => void;
   onSelectProduct: (product: Product) => void;
   onQuickViewProduct?: (product: Product) => void;
   onToggleWishlist?: (product: Product) => void;
@@ -33,7 +34,7 @@ interface ShopViewProps {
   onRequestQuote: (product: Product) => void;
   onCalculatePayback?: (product: Product) => void;
   onOpenCustomRequest?: (topic: string, notes?: string) => void;
-  onBackHome: () => void;
+  onBackHome?: () => void;
   usdUahRate: number | null;
 }
 
@@ -54,6 +55,7 @@ export function ShopView({
   initialQuery = '',
   wishlistIds = [],
   onCategoryChange,
+  onQueryChange,
   onSelectProduct,
   onQuickViewProduct,
   onToggleWishlist,
@@ -61,7 +63,6 @@ export function ShopView({
   onRequestQuote,
   onCalculatePayback,
   onOpenCustomRequest,
-  onBackHome,
   usdUahRate,
 }: ShopViewProps) {
   const [cat, setCat] = useState<ProductCategory | 'all'>(initialCategory);
@@ -270,22 +271,6 @@ export function ShopView({
     <div>
       <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-300 mb-2">
-            <a
-              href="/"
-              onClick={(e) => {
-                if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                  e.preventDefault();
-                  onBackHome();
-                }
-              }}
-              className="text-sky-300 font-bold hover:text-white hover:underline"
-            >
-              {tr('Головна')}
-            </a>
-            <span aria-hidden="true">/</span>
-            <span>{tr('Каталог обладнання')}</span>
-          </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
           </h1>
@@ -336,12 +321,15 @@ export function ShopView({
                 type="search"
                 value={query}
                 onChange={(e) => {
-                  setQuery(e.target.value);
+                  const nextQuery = e.target.value;
+                  setQuery(nextQuery);
+                  onQueryChange?.(nextQuery);
                   setPage(1);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape' && query) {
                     setQuery('');
+                    onQueryChange?.('');
                     setPage(1);
                   }
                 }}
@@ -353,6 +341,7 @@ export function ShopView({
                   type="button"
                   onClick={() => {
                     setQuery('');
+                    onQueryChange?.('');
                     setPage(1);
                   }}
                   aria-label={tr('Очистити пошук', 'Очистить поиск')}
@@ -655,6 +644,7 @@ export function ShopView({
                         setSelectedBrands([]);
                         setSelectedPowerRanges([]);
                         setQuery('');
+                        onQueryChange?.('');
                         setInStockOnly(false);
                       }}
                       className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold hover:bg-slate-100 cursor-pointer"

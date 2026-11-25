@@ -18,11 +18,6 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
     <div>
       <section className="border-b border-white/15 bg-[#081421]/40 backdrop-blur-[1px] py-8 text-white">
         <div className="mx-auto max-w-[1180px] px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="mb-2 flex items-center gap-2 text-xs text-slate-300">
-            <button type="button" onClick={onBackHome} className="font-bold text-sky-300 hover:text-white hover:underline cursor-pointer">{tr('Головна')}</button>
-            <span aria-hidden="true">/</span>
-            <span>{isOffer ? tr('Публічна оферта') : tr('Оплата і доставка')}</span>
-          </nav>
           <h1 className="mb-2 text-2xl font-extrabold text-white sm:text-3xl">
             {isOffer ? tr('Публічна оферта') : tr('Оплата і доставка')}
           </h1>

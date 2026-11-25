@@ -6,11 +6,11 @@ import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 interface ProjectsViewProps {
   projects: ProjectCase[];
-  onBackHome: () => void;
+  onBackHome?: () => void;
   onSelectCase: (project: ProjectCase) => void;
 }
 
-export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsViewProps) {
+export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
   const isRussian = getActiveLocale() === 'ru';
   const [seg, setSeg] = useState<'all' | 'b2b' | 'b2c'>('all');
   const filtered = projects.filter((p) => seg === 'all' || p.seg === seg);
@@ -19,22 +19,6 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
     <div>
       <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-300 mb-2">
-            <a
-              href="/"
-              onClick={(e) => {
-                if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                  e.preventDefault();
-                  onBackHome();
-                }
-              }}
-              className="text-sky-300 font-bold hover:text-white hover:underline"
-            >
-              {tr('Головна')}
-            </a>
-            <span aria-hidden="true">/</span>
-            <span>{tr('Реалізовані об’єкти')}</span>
-          </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {tr('Реалізовані проєкти СЕС та систем живлення в Одеській області', 'Реализованные солнечные электростанции и системы питания в Одесской области')}
           </h1>

@@ -6,12 +6,12 @@ import { VideoBackground } from './VideoBackground.tsx';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 interface ServicesViewProps {
-  onBackHome: () => void;
+  onBackHome?: () => void;
   onOrderService: (topic: string) => void;
   usdUahRate: number | null;
 }
 
-export function ServicesView({ onBackHome, onOrderService, usdUahRate }: ServicesViewProps) {
+export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) {
   const isRussian = getActiveLocale() === 'ru';
   const formatPriceLabel = (label: string) =>
     label.replace(/\$(\d+(?:[.,]\d+)?)/g, (_match, amount: string) =>
@@ -21,22 +21,6 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
     <div>
       <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-300 mb-2">
-            <a
-              href="/"
-              onClick={(e) => {
-                if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-                  e.preventDefault();
-                  onBackHome();
-                }
-              }}
-              className="text-sky-300 font-bold hover:text-white hover:underline"
-            >
-              {tr('Головна')}
-            </a>
-            <span aria-hidden="true">/</span>
-            <span>{tr('Послуги монтажу та інжинірингу')}</span>
-          </nav>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {tr('Послуги монтажу СЕС та додатковий інженерний сервіс')}
           </h1>
