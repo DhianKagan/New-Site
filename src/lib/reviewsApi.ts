@@ -12,6 +12,12 @@ export class ReviewsApiError extends Error {
   }
 }
 
+export interface ProductReviewsFetchResult {
+  reviews: ProductReview[];
+  viewerUid: string | null;
+  isModerator: boolean;
+}
+
 async function parseErrorMessage(resp: Response, fallback: string): Promise<string> {
   try {
     const data = (await resp.json()) as { error?: unknown };
@@ -26,16 +32,23 @@ async function parseErrorMessage(resp: Response, fallback: string): Promise<stri
 
 export async function fetchProductReviews(
   productId: string,
-  signal?: AbortSignal,
-): Promise<ProductReview[]> {
+  options?: { signal?: AbortSignal; authToken?: string | null },
+): Promise<ProductReviewsFetchResult> {
   if (!REVIEW_LIMITS.idPattern.test(productId)) {
-    return [];
+    return { reviews: [], viewerUid: null, isModerator: false };
+  }
+
+  const headers: Record<string, string> = {};
+  const token = options?.authToken?.trim() || (await getCurrentFirebaseIdToken());
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const resp = await fetch(`/api/products/${encodeURIComponent(productId)}/reviews`, {
     method: 'GET',
     cache: 'no-store',
-    signal,
+    signal: options?.signal,
+    headers,
   });
   if (!resp.ok) {
     throw new ReviewsApiError(
@@ -43,22 +56,30 @@ export async function fetchProductReviews(
       resp.status,
     );
   }
-  const data = (await resp.json()) as { reviews?: ProductReview[] };
-  return sortProductReviews(Array.isArray(data.reviews) ? data.reviews : []);
+  const data = (await resp.json()) as {
+    reviews?: ProductReview[];
+    viewerUid?: string | null;
+    isModerator?: boolean;
+  };
+  return {
+    reviews: sortProductReviews(Array.isArray(data.reviews) ? data.reviews : []),
+    viewerUid: typeof data.viewerUid === 'string' && data.viewerUid ? data.viewerUid : null,
+    isModerator: Boolean(data.isModerator),
+  };
 }
 
 export async function createProductReview(
   input: ProductReviewInput,
-  idTokenOverride?: string,
+  authTokenOverride?: string | null,
 ): Promise<ProductReview> {
   const validation = validateProductReviewInput(input);
   if (!validation.valid) {
     throw new ReviewsApiError(validation.errorUk, 400);
   }
 
-  const idToken = idTokenOverride || (await getCurrentFirebaseIdToken());
-  if (!idToken) {
-    throw new ReviewsApiError('Для публікації відгуку увійдіть через Google.', 401);
+  const token = authTokenOverride?.trim() || (await getCurrentFirebaseIdToken());
+  if (!token) {
+    throw new ReviewsApiError('Для публікації відгуку увійдіть в акаунт.', 401);
   }
 
   const resp = await fetch(
@@ -67,7 +88,7 @@ export async function createProductReview(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${idToken}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         authorName: validation.normalized.authorName,
@@ -89,7 +110,7 @@ export async function createProductReview(
 export async function updateProductReview(
   reviewId: string,
   input: Pick<ProductReviewInput, 'authorName' | 'rating' | 'comment'> & { productId: string },
-  idTokenOverride?: string,
+  authTokenOverride?: string | null,
 ): Promise<ProductReview> {
   if (!REVIEW_LIMITS.idPattern.test(reviewId)) {
     throw new ReviewsApiError('Некоректний ідентифікатор відгуку.', 400);
@@ -100,16 +121,16 @@ export async function updateProductReview(
     throw new ReviewsApiError(validation.errorUk, 400);
   }
 
-  const idToken = idTokenOverride || (await getCurrentFirebaseIdToken());
-  if (!idToken) {
-    throw new ReviewsApiError('Для редагування відгуку увійдіть через Google.', 401);
+  const token = authTokenOverride?.trim() || (await getCurrentFirebaseIdToken());
+  if (!token) {
+    throw new ReviewsApiError('Для редагування відгуку увійдіть в акаунт.', 401);
   }
 
   const resp = await fetch(`/api/reviews/${encodeURIComponent(reviewId)}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       authorName: validation.normalized.authorName,
@@ -129,21 +150,21 @@ export async function updateProductReview(
 
 export async function deleteProductReview(
   reviewId: string,
-  idTokenOverride?: string,
+  authTokenOverride?: string | null,
 ): Promise<void> {
   if (!REVIEW_LIMITS.idPattern.test(reviewId)) {
     throw new ReviewsApiError('Некоректний ідентифікатор відгуку.', 400);
   }
 
-  const idToken = idTokenOverride || (await getCurrentFirebaseIdToken());
-  if (!idToken) {
-    throw new ReviewsApiError('Для видалення відгуку увійдіть через Google.', 401);
+  const token = authTokenOverride?.trim() || (await getCurrentFirebaseIdToken());
+  if (!token) {
+    throw new ReviewsApiError('Для видалення відгуку увійдіть в акаунт.', 401);
   }
 
   const resp = await fetch(`/api/reviews/${encodeURIComponent(reviewId)}`, {
     method: 'DELETE',
     headers: {
-      Authorization: `Bearer ${idToken}`,
+      Authorization: `Bearer ${token}`,
     },
   });
   if (!resp.ok) {

@@ -386,6 +386,17 @@ async function startServer() {
       };
     }
 
+    const clientUser = verifyClientSessionToken(token);
+    if (clientUser) {
+      const fresh = getCustomerAuthStateSync(clientUser.customerId);
+      if (!fresh || !fresh.active) return null;
+      return {
+        uid: fresh.firebaseUid || `client:${fresh.id}`,
+        name: fresh.name,
+        isModerator: false,
+      };
+    }
+
     return null;
   }
 
@@ -550,15 +561,20 @@ async function startServer() {
     res.json({ product });
   });
 
-  // Product Reviews API (SQLite storage + Google Firebase token auth)
-  app.get('/api/products/:productId/reviews', (req, res) => {
+  // Product Reviews API (SQLite storage + clientToken/adminToken/Google Firebase auth)
+  app.get('/api/products/:productId/reviews', async (req, res) => {
     const productId = String(req.params.productId || '').trim();
     if (!PRODUCT_REVIEW_ID_REGEX.test(productId)) {
       res.status(400).json({ error: 'Некоректний ідентифікатор товару' });
       return;
     }
+    const actor = req.headers.authorization ? await resolveReviewActor(req) : null;
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ reviews: listPublishedProductReviews(productId) });
+    res.json({
+      reviews: listPublishedProductReviews(productId),
+      viewerUid: actor?.uid ?? null,
+      isModerator: actor?.isModerator ?? false,
+    });
   });
 
   app.post('/api/products/:productId/reviews', reviewsWriteRateLimit, async (req, res) => {

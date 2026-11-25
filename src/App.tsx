@@ -1698,6 +1698,10 @@ function AppContent() {
         onAddToCart={handleAddToCart}
         onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
         usdUahRate={usdUahRate}
+        clientToken={clientToken}
+        adminToken={adminToken}
+        clientCustomerName={clientCustomer?.name ?? null}
+        onRequireLogin={() => navigateTo('login', undefined, 'login')}
       />
 
       <CaseModal

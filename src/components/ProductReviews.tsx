@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { User } from 'firebase/auth';
 import {
   AlertCircle,
   ArrowUpDown,
   CheckCircle2,
   Edit3,
+  LogIn,
   MessageSquarePlus,
   RefreshCw,
   SlidersHorizontal,
@@ -18,11 +19,7 @@ import type {
   ProductReviewSortOrder,
   ProductReviewStats,
 } from '../types.ts';
-import {
-  getRuntimeFirebaseConfig,
-  signInWithGooglePopup,
-  subscribeFirebaseAuthState,
-} from '../lib/firebaseAuth.ts';
+import { signInWithGooglePopup } from '../lib/firebaseAuth.ts';
 import {
   createProductReview,
   deleteProductReview,
@@ -43,6 +40,16 @@ interface ProductReviewsProps {
   stats: ProductReviewStats;
   loading: boolean;
   loadError: string;
+  authUser: User | null;
+  clientToken: string | null;
+  adminToken: string | null;
+  clientCustomerName: string | null;
+  viewerUid: string | null;
+  isModerator: boolean;
+  composeNonce: number;
+  loginPromptNonce: number;
+  onAddReviewClick: () => void;
+  onRequireLogin?: () => void;
   onRetryLoad: () => void;
   onReviewCreated: (review: ProductReview) => void;
   onReviewUpdated: (review: ProductReview) => void;
@@ -107,15 +114,28 @@ export function ProductReviews({
   stats,
   loading,
   loadError,
+  authUser,
+  clientToken,
+  adminToken,
+  clientCustomerName,
+  viewerUid,
+  isModerator,
+  composeNonce,
+  loginPromptNonce,
+  onAddReviewClick,
+  onRequireLogin,
   onRetryLoad,
   onReviewCreated,
   onReviewUpdated,
   onReviewDeleted,
 }: ProductReviewsProps) {
   const isRussian = getActiveLocale() === 'ru';
+  const isAuthenticated = Boolean(clientToken || adminToken || authUser);
+  const effectiveViewerUid = viewerUid ?? authUser?.uid ?? null;
 
-  const [authUser, setAuthUser] = useState<User | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [loginPromptHighlighted, setLoginPromptHighlighted] = useState(false);
 
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
@@ -131,22 +151,51 @@ export function ProductReviews({
   const [sortOrder, setSortOrder] = useState<ProductReviewSortOrder>('newest');
   const [ratingFilter, setRatingFilter] = useState<ProductReviewRatingFilter>('all');
 
+  const authorInputRef = useRef<HTMLInputElement | null>(null);
+  const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
+
   useEffect(() => {
-    void getRuntimeFirebaseConfig();
-    const unsubAuth = subscribeFirebaseAuthState((user) => {
-      setAuthUser(user);
-      if (user?.displayName) {
-        setAuthorName((prev) => (prev.trim() ? prev : user.displayName || ''));
-      }
-    });
-    return () => unsubAuth();
-  }, []);
+    const defaultName =
+      clientCustomerName?.trim() || authUser?.displayName?.trim() || (adminToken ? tr('Менеджер Energo Comfort', 'Менеджер Energo Comfort') : '');
+    if (defaultName) {
+      setAuthorName((prev) => (prev.trim() ? prev : defaultName));
+    }
+  }, [clientCustomerName, authUser?.displayName, adminToken]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLoginPromptHighlighted(false);
+    } else {
+      setComposerOpen(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (composeNonce > 0 && isAuthenticated) {
+      setComposerOpen(true);
+      setLoginPromptHighlighted(false);
+      setFormError('');
+      const target = authorName.trim() ? commentInputRef.current : authorInputRef.current;
+      window.setTimeout(() => {
+        target?.focus();
+      }, 60);
+    }
+  }, [composeNonce, isAuthenticated]);
+
+  useEffect(() => {
+    if (loginPromptNonce > 0 && !isAuthenticated) {
+      setLoginPromptHighlighted(true);
+      setFormError('');
+    }
+  }, [loginPromptNonce, isAuthenticated]);
 
   useEffect(() => {
     setFormError('');
     setFormSuccess('');
     setEditingReviewId(null);
     setConfirmDeleteId(null);
+    setComposerOpen(false);
+    setLoginPromptHighlighted(false);
     setSortOrder('newest');
     setRatingFilter('all');
   }, [product.id]);
@@ -155,6 +204,13 @@ export function ProductReviews({
     () => filterAndSortProductReviews(reviews, { sortOrder, ratingFilter }),
     [reviews, sortOrder, ratingFilter],
   );
+
+  async function resolveActiveAuthToken(): Promise<string | undefined> {
+    if (adminToken) return adminToken;
+    if (clientToken) return clientToken;
+    if (authUser) return authUser.getIdToken();
+    return undefined;
+  }
 
   async function handleGoogleSignIn() {
     setFormError('');
@@ -165,6 +221,8 @@ export function ProductReviews({
       if (result.displayName) {
         setAuthorName((prev) => (prev.trim() ? prev : result.displayName));
       }
+      setLoginPromptHighlighted(false);
+      setComposerOpen(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('popup-closed-by-user')) {
@@ -193,6 +251,7 @@ export function ProductReviews({
   }
 
   function handleStartEdit(review: ProductReview) {
+    setComposerOpen(true);
     setEditingReviewId(review.id);
     setAuthorName(review.authorName);
     setRating(review.rating);
@@ -206,7 +265,7 @@ export function ProductReviews({
     setEditingReviewId(null);
     setRating(5);
     setComment('');
-    setAuthorName(authUser?.displayName || '');
+    setAuthorName(clientCustomerName?.trim() || authUser?.displayName || '');
     setFormError('');
   }
 
@@ -214,6 +273,17 @@ export function ProductReviews({
     e.preventDefault();
     setFormError('');
     setFormSuccess('');
+
+    if (!isAuthenticated) {
+      setLoginPromptHighlighted(true);
+      setFormError(
+        tr(
+          'Щоб опублікувати відгук, спочатку увійдіть у свій акаунт.',
+          'Чтобы опубликовать отзыв, сначала войдите в свой аккаунт.',
+        ),
+      );
+      return;
+    }
 
     const validation = validateProductReviewInput({
       productId: product.id,
@@ -228,7 +298,7 @@ export function ProductReviews({
 
     setSubmitting(true);
     try {
-      const idToken = authUser ? await authUser.getIdToken() : undefined;
+      const authToken = await resolveActiveAuthToken();
       if (editingReviewId) {
         const updated = await updateProductReview(
           editingReviewId,
@@ -238,12 +308,13 @@ export function ProductReviews({
             rating: validation.normalized.rating,
             comment: validation.normalized.comment,
           },
-          idToken,
+          authToken,
         );
         onReviewUpdated(updated);
         setEditingReviewId(null);
         setComment('');
         setRating(5);
+        setComposerOpen(false);
         setFormSuccess(tr('Відгук успішно оновлено.', 'Отзыв успешно обновлён.'));
       } else {
         const created = await createProductReview(
@@ -253,11 +324,12 @@ export function ProductReviews({
             rating: validation.normalized.rating,
             comment: validation.normalized.comment,
           },
-          idToken,
+          authToken,
         );
         onReviewCreated(created);
         setComment('');
         setRating(5);
+        setComposerOpen(false);
         setFormSuccess(tr('Дякуємо! Ваш відгук опубліковано.', 'Спасибо! Ваш отзыв опубликован.'));
       }
     } catch (error) {
@@ -272,8 +344,8 @@ export function ProductReviews({
     setFormSuccess('');
     setDeletingId(reviewId);
     try {
-      const idToken = authUser ? await authUser.getIdToken() : undefined;
-      await deleteProductReview(reviewId, idToken);
+      const authToken = await resolveActiveAuthToken();
+      await deleteProductReview(reviewId, authToken);
       onReviewDeleted(reviewId);
       if (editingReviewId === reviewId) {
         handleCancelEdit();
@@ -317,16 +389,27 @@ export function ProductReviews({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 shrink-0">
-          <div className="font-mono text-xl font-extrabold text-[#0d1f33] tabular-nums leading-none">
-            {averageLabel}
-          </div>
-          <div className="space-y-0.5">
-            <StarRow rating={stats.count > 0 ? stats.averageRating : 0} size="sm" />
-            <div className="text-[11px] font-semibold text-slate-500">
-              {formatReviewsCountLabel(stats.count, isRussian)}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200">
+            <div className="font-mono text-xl font-extrabold text-[#0d1f33] tabular-nums leading-none">
+              {averageLabel}
+            </div>
+            <div className="space-y-0.5">
+              <StarRow rating={stats.count > 0 ? stats.averageRating : 0} size="sm" />
+              <div className="text-[11px] font-semibold text-slate-500">
+                {formatReviewsCountLabel(stats.count, isRussian)}
+              </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onAddReviewClick}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+          >
+            <MessageSquarePlus className="w-4 h-4" />
+            {tr('Додати відгук', 'Добавить отзыв')}
+          </button>
         </div>
       </div>
 
@@ -365,20 +448,104 @@ export function ProductReviews({
         </div>
       )}
 
-      {/* Review Submission / Auth Prompt */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        {!authUser ? (
+      {/* Review Submission / Login Prompt */}
+      <div
+        className={`rounded-xl border bg-white p-4 transition-colors ${
+          loginPromptHighlighted && !isAuthenticated
+            ? 'border-amber-400 ring-2 ring-amber-200/70'
+            : 'border-slate-200'
+        }`}
+      >
+        {!isAuthenticated ? (
+          <div className="space-y-3">
+            {loginPromptHighlighted && (
+              <div
+                role="status"
+                className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 font-semibold flex items-center gap-2"
+              >
+                <LogIn className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>
+                  {tr(
+                    'Щоб залишити відгук, потрібно увійти в систему (особистий кабінет, CRM або через Google).',
+                    'Чтобы оставить отзыв, нужно войти в систему (личный кабинет, CRM или через Google).',
+                  )}
+                </span>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <MessageSquarePlus className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-bold text-[#0d1f33]">
+                    {tr('Залишити відгук про товар', 'Оставить отзыв о товаре')}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {tr(
+                      'Увійдіть в акаунт клієнта або авторизуйтесь через Google, щоб поставити оцінку.',
+                      'Войдите в аккаунт клиента или авторизуйтесь через Google, чтобы поставить оценку.',
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {onRequireLogin && (
+                  <button
+                    type="button"
+                    onClick={onRequireLogin}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    {tr('Увійти в акаунт', 'Войти в аккаунт')}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={signingIn}
+                  onClick={() => void handleGoogleSignIn()}
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-60 text-[#0d1f33] text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 48 48" aria-hidden="true">
+                    <path
+                      fill="#EA4335"
+                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                    />
+                  </svg>
+                  <span>
+                    {signingIn
+                      ? tr('Підключення...', 'Подключение...')
+                      : tr('Увійти через Google', 'Войти через Google')}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : !composerOpen && !editingReviewId ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <MessageSquarePlus className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
+              <MessageSquarePlus className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" />
               <div>
                 <div className="text-xs font-bold text-[#0d1f33]">
-                  {tr('Залишити відгук про товар', 'Оставить отзыв о товаре')}
+                  {tr('Поділіться враженням про товар', 'Поделитесь впечатлением о товаре')}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   {tr(
-                    'Авторизуйтесь через Google, щоб поставити оцінку та опублікувати відгук.',
-                    'Авторизуйтесь через Google, чтобы поставить оценку и опубликовать отзыв.',
+                    'Ви авторизовані та можете поставити оцінку від 1 до 5 зірок і написати відгук.',
+                    'Вы авторизованы и можете поставить оценку от 1 до 5 звёзд и написать отзыв.',
                   )}
                 </p>
               </div>
@@ -386,33 +553,11 @@ export function ProductReviews({
 
             <button
               type="button"
-              disabled={signingIn}
-              onClick={() => void handleGoogleSignIn()}
-              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-60 text-[#0d1f33] text-xs font-bold transition-colors whitespace-nowrap cursor-pointer shrink-0"
+              onClick={onAddReviewClick}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap cursor-pointer shrink-0"
             >
-              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 48 48" aria-hidden="true">
-                <path
-                  fill="#EA4335"
-                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                />
-              </svg>
-              <span>
-                {signingIn
-                  ? tr('Підключення...', 'Подключение...')
-                  : tr('Увійти через Google', 'Войти через Google')}
-              </span>
+              <MessageSquarePlus className="w-3.5 h-3.5" />
+              {tr('Додати відгук', 'Добавить отзыв')}
             </button>
           </div>
         ) : (
@@ -462,6 +607,7 @@ export function ProductReviews({
                   {tr('Ваше ім’я', 'Ваше имя')} *
                 </label>
                 <input
+                  ref={authorInputRef}
                   id="review-author-name"
                   type="text"
                   required
@@ -484,6 +630,7 @@ export function ProductReviews({
                   </span>
                 </div>
                 <textarea
+                  ref={commentInputRef}
                   id="review-comment"
                   rows={2}
                   required
@@ -502,16 +649,20 @@ export function ProductReviews({
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {editingReviewId && (
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={handleCancelEdit}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 cursor-pointer"
-                >
-                  {tr('Скасувати', 'Отмена')}
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => {
+                  if (editingReviewId) {
+                    handleCancelEdit();
+                  }
+                  setComposerOpen(false);
+                  setFormError('');
+                }}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 cursor-pointer"
+              >
+                {tr('Скасувати', 'Отмена')}
+              </button>
               <button
                 type="submit"
                 disabled={submitting}
@@ -660,7 +811,9 @@ export function ProductReviews({
       ) : (
         <div className="space-y-2.5">
           {filteredReviews.map((review) => {
-            const isAuthor = Boolean(authUser && authUser.uid === review.authorUid);
+            const canModify = Boolean(
+              isAuthenticated && (isModerator || (effectiveViewerUid && effectiveViewerUid === review.authorUid)),
+            );
             const initial = review.authorName.trim().charAt(0).toUpperCase() || 'К';
             return (
               <article
@@ -684,7 +837,7 @@ export function ProductReviews({
 
                   <div className="flex items-center gap-2.5">
                     <StarRow rating={review.rating} size="sm" />
-                    {isAuthor && (
+                    {canModify && (
                       <div className="flex items-center gap-1">
                         <button
                           type="button"

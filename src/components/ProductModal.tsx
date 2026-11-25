@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, ShoppingBag, ArrowUpRight, CheckCircle2, Truck, ShieldCheck, PhoneCall } from 'lucide-react';
+import type { User } from 'firebase/auth';
+import {
+  X,
+  ShoppingBag,
+  ArrowUpRight,
+  CheckCircle2,
+  Truck,
+  ShieldCheck,
+  PhoneCall,
+  MessageSquarePlus,
+} from 'lucide-react';
 import type { Product, ProductReview } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { track } from '../lib/analytics.ts';
+import { getRuntimeFirebaseConfig, subscribeFirebaseAuthState } from '../lib/firebaseAuth.ts';
 import { extractReadableReviewsErrorMessage, fetchProductReviews } from '../lib/reviewsApi.ts';
 import {
   computeProductReviewStats,
@@ -32,21 +43,58 @@ interface ProductModalProps {
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   usdUahRate: number | null;
+  clientToken?: string | null;
+  adminToken?: string | null;
+  clientCustomerName?: string | null;
+  onRequireLogin?: () => void;
 }
 
-export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, usdUahRate }: ProductModalProps) {
+export function ProductModal({
+  product,
+  onClose,
+  onAddToCart,
+  onRequestQuote,
+  usdUahRate,
+  clientToken = null,
+  adminToken = null,
+  clientCustomerName = null,
+  onRequireLogin,
+}: ProductModalProps) {
   const isRussian = getActiveLocale() === 'ru';
   const productId = product?.id ?? null;
 
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [viewerUid, setViewerUid] = useState<string | null>(null);
+  const [isModerator, setIsModerator] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsLoadError, setReviewsLoadError] = useState('');
   const [reviewsReloadNonce, setReviewsReloadNonce] = useState(0);
+  const [composeNonce, setComposeNonce] = useState(0);
+  const [loginPromptNonce, setLoginPromptNonce] = useState(0);
   const reviewsSectionRef = useRef<HTMLDivElement | null>(null);
+
+  const isAuthenticated = Boolean(clientToken || adminToken || authUser);
+  const preferredSessionToken = adminToken || clientToken || null;
+
+  useEffect(() => {
+    void getRuntimeFirebaseConfig();
+    const unsub = subscribeFirebaseAuthState((user) => {
+      setAuthUser(user);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    setComposeNonce(0);
+    setLoginPromptNonce(0);
+  }, [productId]);
 
   useEffect(() => {
     if (!productId) {
       setReviews([]);
+      setViewerUid(null);
+      setIsModerator(false);
       setReviewsLoading(false);
       setReviewsLoadError('');
       return;
@@ -56,10 +104,15 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
     setReviewsLoading(true);
     setReviewsLoadError('');
 
-    void fetchProductReviews(productId, controller.signal)
-      .then((nextReviews) => {
+    void fetchProductReviews(productId, {
+      signal: controller.signal,
+      authToken: preferredSessionToken,
+    })
+      .then((result) => {
         if (controller.signal.aborted) return;
-        setReviews(nextReviews);
+        setReviews(result.reviews);
+        setViewerUid(result.viewerUid);
+        setIsModerator(result.isModerator);
         setReviewsLoading(false);
         setReviewsLoadError('');
       })
@@ -70,7 +123,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
       });
 
     return () => controller.abort();
-  }, [productId, reviewsReloadNonce, isRussian]);
+  }, [productId, reviewsReloadNonce, isRussian, preferredSessionToken, authUser?.uid]);
 
   const reviewStats = useMemo(() => computeProductReviewStats(reviews), [reviews]);
 
@@ -89,6 +142,15 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
   const averageRatingLabel = formatAverageRatingLabel(reviewStats);
 
   function handleScrollToReviews() {
+    reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function handleAddReviewClick() {
+    if (isAuthenticated) {
+      setComposeNonce((n) => n + 1);
+    } else {
+      setLoginPromptNonce((n) => n + 1);
+    }
     reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -142,7 +204,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
                 {title}
               </h2>
 
-              <div className="mb-3">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={handleScrollToReviews}
@@ -157,6 +219,15 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
                       ? tr('завантаження...', 'загрузка...')
                       : formatReviewsCountLabel(reviewStats.count, isRussian)})
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAddReviewClick}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-[#1769aa] text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <MessageSquarePlus className="w-3.5 h-3.5" />
+                  {tr('Додати відгук', 'Добавить отзыв')}
                 </button>
               </div>
 
@@ -261,10 +332,21 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
             stats={reviewStats}
             loading={reviewsLoading}
             loadError={reviewsLoadError}
+            authUser={authUser}
+            clientToken={clientToken}
+            adminToken={adminToken}
+            clientCustomerName={clientCustomerName}
+            viewerUid={viewerUid}
+            isModerator={isModerator}
+            composeNonce={composeNonce}
+            loginPromptNonce={loginPromptNonce}
+            onAddReviewClick={handleAddReviewClick}
+            onRequireLogin={onRequireLogin}
             onRetryLoad={() => setReviewsReloadNonce((n) => n + 1)}
-            onReviewCreated={(created) =>
-              setReviews((prev) => sortProductReviews([created, ...prev.filter((r) => r.id !== created.id)]))
-            }
+            onReviewCreated={(created) => {
+              setViewerUid((prev) => prev ?? created.authorUid);
+              setReviews((prev) => sortProductReviews([created, ...prev.filter((r) => r.id !== created.id)]));
+            }}
             onReviewUpdated={(updated) =>
               setReviews((prev) =>
                 sortProductReviews(prev.map((r) => (r.id === updated.id ? updated : r))),

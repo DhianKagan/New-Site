@@ -2575,12 +2575,13 @@ export function getCustomerAuthStateSync(customerId: number): {
   email: string;
   phone: string;
   city: string;
+  firebaseUid: string;
 } | null {
   const db = getDb();
   const row = db
-    .prepare('SELECT id, active, name, email, phone, city FROM customer_accounts WHERE id = ?')
+    .prepare('SELECT id, active, name, email, phone, city, firebase_uid FROM customer_accounts WHERE id = ?')
     .get(customerId) as
-    | { id: number; active: number; name: string; email: string; phone: string; city: string }
+    | { id: number; active: number; name: string; email: string; phone: string; city: string; firebase_uid: string }
     | undefined;
   if (!row) return null;
   return {
@@ -2590,6 +2591,7 @@ export function getCustomerAuthStateSync(customerId: number): {
     email: row.email,
     phone: row.phone,
     city: row.city,
+    firebaseUid: String(row.firebase_uid || ''),
   };
 }
 

@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  createClientSessionToken,
+  createSessionToken,
+  verifyClientSessionToken,
+  verifySessionToken,
+} from '../server/auth.ts';
+import {
   createProductReviewRecord,
   deleteProductReviewRecord,
   getProductReviewById,
@@ -243,4 +249,34 @@ test('server productReviewBodySchema and SQLite product_reviews CRUD work end-to
       deleteProductReviewRecord(createdId);
     }
   }
+});
+
+test('review auth accepts valid clientToken and adminToken sessions and rejects invalid tokens', () => {
+  const clientToken = createClientSessionToken({
+    customerId: 42,
+    name: 'Марія Іваненко',
+    email: 'maria@example.com',
+    phone: '+380501112233',
+    city: 'Одеса',
+  });
+  const verifiedClient = verifyClientSessionToken(clientToken);
+  assert.ok(verifiedClient);
+  assert.equal(verifiedClient.customerId, 42);
+  assert.equal(verifySessionToken(clientToken), null);
+
+  const adminToken = createSessionToken({
+    userId: 1,
+    name: 'Адміністратор',
+    login: 'admin',
+    email: 'admin@example.com',
+    role: 'admin',
+    assigneeLabel: 'Адміністратор',
+  });
+  const verifiedAdmin = verifySessionToken(adminToken);
+  assert.ok(verifiedAdmin);
+  assert.equal(verifiedAdmin.role, 'admin');
+  assert.equal(verifyClientSessionToken(adminToken), null);
+
+  assert.equal(verifyClientSessionToken('invalid.token'), null);
+  assert.equal(verifySessionToken('invalid.token'), null);
 });
