@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, Check, Copy, ExternalLink, Eye, EyeOff, Lock, ShieldAlert, ShieldCheck, UserPlus, Wand2 } from 'lucide-react';
 import type { AdminAuthStatus, UnifiedAuthResult } from '../types.ts';
 import { getFirebaseProjectId, signInWithGooglePopup } from '../lib/firebaseAuth.ts';
@@ -45,6 +45,7 @@ export function AuthPortalView({
   const [isLockedOut, setIsLockedOut] = useState(false);
   const [unauthorizedHost, setUnauthorizedHost] = useState('');
   const [copiedHost, setCopiedHost] = useState(false);
+  const identifierInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setMode(initialMode);
@@ -482,6 +483,7 @@ export function AuthPortalView({
                 {tr('Email або логін', 'Email или логин')}
               </label>
               <input
+                ref={identifierInputRef}
                 id="auth-identifier"
                 name="username"
                 type="text"
@@ -616,11 +618,27 @@ export function AuthPortalView({
                       </a>
                     )}
                   </div>
-                  <div className="text-[#52657a]">
-                    {tr(
-                      'Або увійдіть прямо зараз через форму нижче за логіном/Email і паролем.',
-                      'Либо войдите прямо сейчас через форму ниже по логину/Email и паролю.',
-                    )}
+                  <div className="text-[#52657a] space-y-1.5">
+                    <div>
+                      {tr(
+                        'Для входу без прив’язки до домену (у тому числі при розгортанні в іншому акаунті або на *.ai.studio) використовуйте Email/логін та пароль:',
+                        'Для входа без привязки к домену (в том числе при развёртывании в другом аккаунте или на *.ai.studio) используйте Email/логин и пароль:',
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError('');
+                        setUnauthorizedHost('');
+                        if (!isRegister && !isSetup && !identifier.trim()) {
+                          setIdentifier('admin');
+                        }
+                        window.setTimeout(() => identifierInputRef.current?.focus(), 0);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[#0d1f33] hover:bg-[#16324f] text-white text-[11px] font-bold cursor-pointer"
+                    >
+                      {tr('Увійти за логіном і паролем', 'Войти по логину и паролю')}
+                    </button>
                   </div>
                 </div>
               )}

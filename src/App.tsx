@@ -15,6 +15,7 @@ import type {
 import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
 import { initAnalytics, track, trackEvent, type Placement } from './lib/analytics.ts';
 import { signOutFirebase } from './lib/firebaseAuth.ts';
+import { getProductAggregateRating } from './lib/seoRating.ts';
 import { HomeView } from './components/HomeView.tsx';
 import { ShopView } from './components/ShopView.tsx';
 import { ServicesView } from './components/ServicesView.tsx';
@@ -505,6 +506,7 @@ export default function App() {
               image: ogImage,
               description,
               brand: { '@type': 'Brand', name: selectedProduct.brand || 'Energo Comfort' },
+              aggregateRating: getProductAggregateRating(selectedProduct),
               ...(selectedProduct.price > 0 && usdUahRate ? { offers: {
                 '@type': 'Offer',
                 url: canonicalUrl,

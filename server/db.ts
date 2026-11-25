@@ -35,6 +35,38 @@ const DATA_DIR = process.env.DATA_DIR
 const DB_PATH = path.join(DATA_DIR, 'energocomfort.db');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const SEED_CATALOG_PATH = path.resolve(process.cwd(), 'server', 'seed', 'catalog.json');
+const SEED_PROJECTS_PATH = path.resolve(process.cwd(), 'server', 'seed', 'projects.json');
+
+function checkpointDb(db: DatabaseSync): void {
+  try {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+  } catch {
+    // ignore transient busy checkpoints
+  }
+}
+
+function writeJsonFileAtomic(filePath: string, data: unknown): void {
+  if (process.env.NODE_ENV === 'production') return;
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) return;
+    const tmpPath = `${filePath}.tmp`;
+    fs.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
+    fs.renameSync(tmpPath, filePath);
+  } catch {
+    // non-fatal if workspace filesystem is read-only
+  }
+}
+
+function syncCatalogSeedFile(db: DatabaseSync): void {
+  const rows = db.prepare('SELECT * FROM products ORDER BY is_kit DESC, price DESC, title ASC').all();
+  writeJsonFileAtomic(SEED_CATALOG_PATH, rows.map(rowToProduct));
+}
+
+function syncProjectsSeedFile(db: DatabaseSync): void {
+  const rows = db.prepare('SELECT * FROM projects ORDER BY sort_order ASC, created_at DESC').all();
+  writeJsonFileAtomic(SEED_PROJECTS_PATH, rows.map(rowToProjectCase));
+}
 
 export function getUploadsDir(): string {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -206,6 +238,7 @@ function getDb(): DatabaseSync {
   seedStaffIfEmpty(db);
   ensureMasterAdminAccount(db);
   seedProjectsIfEmpty(db);
+  checkpointDb(db);
   dbInstance = db;
   return db;
 }
@@ -217,6 +250,7 @@ export const drizzleDb = drizzle(
     const bindParams = params as Array<string | number | Uint8Array | null>;
     if (method === 'run') {
       stmt.run(...bindParams);
+      checkpointDb(sqlite);
       return { rows: [] };
     }
     stmt.setReturnArrays(true);
@@ -777,6 +811,8 @@ export function updateProduct(
     id,
   );
 
+  checkpointDb(db);
+  syncCatalogSeedFile(db);
   return getProductById(id);
 }
 
@@ -829,13 +865,20 @@ export function createProduct(input: {
     now,
   );
 
+  checkpointDb(db);
+  syncCatalogSeedFile(db);
   return getProductById(id)!;
 }
 
 export function deleteProduct(id: string): boolean {
   const db = getDb();
   const res = db.prepare('DELETE FROM products WHERE id = ?').run(id);
-  return Number(res.changes) > 0;
+  const deleted = Number(res.changes) > 0;
+  if (deleted) {
+    checkpointDb(db);
+    syncCatalogSeedFile(db);
+  }
+  return deleted;
 }
 
 function nextDealNumber(db: DatabaseSync): string {
@@ -939,12 +982,14 @@ export function createDeal(input: {
     );
 
   const created = db.prepare('SELECT * FROM deals WHERE id = ?').get(Number(res.lastInsertRowid));
+  checkpointDb(db);
   return rowToDeal(created!);
 }
 
 export function markDealTelegramSent(id: number): void {
   const db = getDb();
   db.prepare('UPDATE deals SET telegram_sent = 1 WHERE id = ?').run(id);
+  checkpointDb(db);
 }
 
 export function listDeals(): Deal[] {
@@ -984,13 +1029,16 @@ export function updateDeal(
   );
 
   const updated = db.prepare('SELECT * FROM deals WHERE id = ?').get(id);
+  checkpointDb(db);
   return updated ? rowToDeal(updated) : null;
 }
 
 export function deleteDeal(id: number): boolean {
   const db = getDb();
   const res = db.prepare('DELETE FROM deals WHERE id = ?').run(id);
-  return Number(res.changes) > 0;
+  const deleted = Number(res.changes) > 0;
+  if (deleted) checkpointDb(db);
+  return deleted;
 }
 
 export function getSetting(key: string): string | null {
@@ -1006,6 +1054,7 @@ export function setSetting(key: string, value: string): void {
     INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
   `).run(key, value, now);
+  checkpointDb(db);
 }
 
 export function setSettingIfAbsent(key: string, value: string): boolean {
@@ -1184,6 +1233,20 @@ function seedProjectsIfEmpty(db: DatabaseSync): void {
     },
   ];
 
+  let seedList: ProjectCase[] = initialProjects;
+  if (fs.existsSync(SEED_PROJECTS_PATH)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(SEED_PROJECTS_PATH, 'utf-8')) as ProjectCase[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        seedList = parsed;
+      }
+    } catch {
+      seedList = initialProjects;
+    }
+  } else {
+    writeJsonFileAtomic(SEED_PROJECTS_PATH, initialProjects);
+  }
+
   const now = new Date().toISOString();
   const insert = db.prepare(`
     INSERT INTO projects (
@@ -1191,7 +1254,7 @@ function seedProjectsIfEmpty(db: DatabaseSync): void {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  initialProjects.forEach((p, idx) => {
+  seedList.forEach((p, idx) => {
     insert.run(p.id, p.seg, p.tag, p.title, p.img, p.task, p.solution, p.specs, p.result, idx + 1, now, now);
   });
 }
@@ -1262,6 +1325,8 @@ export function createProjectCase(input: {
     now,
   );
 
+  checkpointDb(db);
+  syncProjectsSeedFile(db);
   return getProjectCaseById(id)!;
 }
 
@@ -1298,13 +1363,20 @@ export function updateProjectCase(
     WHERE id = ?
   `).run(seg, tag, title, img, task, solution, specs, result, now, id);
 
+  checkpointDb(db);
+  syncProjectsSeedFile(db);
   return getProjectCaseById(id);
 }
 
 export function deleteProjectCase(id: string): boolean {
   const db = getDb();
   const res = db.prepare('DELETE FROM projects WHERE id = ?').run(id);
-  return Number(res.changes) > 0;
+  const deleted = Number(res.changes) > 0;
+  if (deleted) {
+    checkpointDb(db);
+    syncProjectsSeedFile(db);
+  }
+  return deleted;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLinksConfig = {

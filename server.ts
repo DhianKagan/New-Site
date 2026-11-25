@@ -418,6 +418,18 @@ async function startServer() {
       },
     }),
   );
+  const publicUploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
+  if (fs.existsSync(publicUploadsDir)) {
+    app.use(
+      '/uploads',
+      express.static(publicUploadsDir, {
+        dotfiles: 'deny',
+        setHeaders: (res) => {
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+        },
+      }),
+    );
+  }
 
   const formRateLimit = createRateLimiter({
     windowMs: 10 * 60_000,
@@ -1729,6 +1741,18 @@ async function startServer() {
     }
 
     fs.writeFileSync(targetPath, buffer);
+    if (!IS_PROD && fs.existsSync(path.resolve(process.cwd(), 'public'))) {
+      try {
+        const workspaceUploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
+        fs.mkdirSync(workspaceUploadsDir, { recursive: true });
+        const workspaceCopyPath = path.resolve(workspaceUploadsDir, filename);
+        if (workspaceCopyPath.startsWith(workspaceUploadsDir + path.sep)) {
+          fs.writeFileSync(workspaceCopyPath, buffer);
+        }
+      } catch {
+        // ignore if workspace public directory is read-only
+      }
+    }
     res.status(201).json({ url: `/uploads/${filename}` });
   });
 
