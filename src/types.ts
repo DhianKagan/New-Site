@@ -315,3 +315,35 @@ export interface CrmExchangeRateResponse {
   effectiveSource: 'commercial' | 'market_fallback' | 'unset';
   market7km: Market7kmRateInfo;
 }
+
+export type ProductReviewStatus = 'published' | 'hidden';
+
+export interface ProductReview {
+  id: string;
+  productId: string;
+  authorUid: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+  status: ProductReviewStatus;
+  createdAtMs: number;
+  updatedAtMs: number;
+}
+
+export interface ProductReviewInput {
+  productId: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+}
+
+export interface ProductReviewStats {
+  count: number;
+  averageRating: number;
+  distribution: [number, number, number, number, number];
+}
+
+export type ProductReviewSortOrder = 'newest' | 'oldest' | 'highest' | 'lowest';
+export type ProductReviewRatingFilter = 'all' | 1 | 2 | 3 | 4 | 5;
+
+

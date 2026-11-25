@@ -1,5 +1,13 @@
 import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, type Auth } from 'firebase/auth';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  type Auth,
+  type User,
+} from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 import type { FirebaseRuntimeWebConfig } from '../types.ts';
 
@@ -14,6 +22,7 @@ interface ClientFirebaseFileConfig {
 const runtimeConfigCache = new Map<string, Promise<FirebaseRuntimeWebConfig>>();
 const resolvedConfigSnapshots = new Map<string, FirebaseRuntimeWebConfig>();
 let lastResolvedConfig: FirebaseRuntimeWebConfig | null = null;
+let cachedDefaultApp: FirebaseApp | null = null;
 
 function getCurrentBrowserHost(): string {
   return typeof window !== 'undefined' ? window.location.hostname.trim().toLowerCase() : '';
@@ -179,9 +188,35 @@ export async function getRuntimeFirebaseConfig(forceRefresh = false): Promise<Fi
   return promise;
 }
 
+export function getPrimaryFirebaseApp(): FirebaseApp {
+  if (cachedDefaultApp) return cachedDefaultApp;
+  const existingDefault = getApps().find((app) => app.name === '[DEFAULT]');
+  if (existingDefault) {
+    cachedDefaultApp = existingDefault;
+    return existingDefault;
+  }
+  cachedDefaultApp = initializeApp(firebaseConfig);
+  return cachedDefaultApp;
+}
+
+function matchesDefaultAppletConfig(cfg: FirebaseRuntimeWebConfig): boolean {
+  const defaultProject = (firebaseConfig?.projectId || '').trim();
+  const defaultAuthDomain = (firebaseConfig?.authDomain || '').trim().toLowerCase();
+  const defaultApiKey = (firebaseConfig?.apiKey || '').trim();
+  return (
+    Boolean(defaultProject) &&
+    cfg.projectId === defaultProject &&
+    cfg.apiKey === defaultApiKey &&
+    (!cfg.authDomain || cfg.authDomain.toLowerCase() === defaultAuthDomain)
+  );
+}
+
 function getOrCreateFirebaseApp(cfg: FirebaseRuntimeWebConfig): FirebaseApp | null {
   if (!cfg.apiKey || !cfg.projectId) {
     return null;
+  }
+  if (matchesDefaultAppletConfig(cfg)) {
+    return getPrimaryFirebaseApp();
   }
   const appName = `ec-${cfg.projectId}-${cfg.authDomain || 'default'}`;
   const existing = getApps().find((app) => app.name === appName);
@@ -198,6 +233,16 @@ function getOrCreateFirebaseApp(cfg: FirebaseRuntimeWebConfig): FirebaseApp | nu
   );
 }
 
+export function getActiveFirebaseAppSync(): FirebaseApp {
+  const host = getCurrentBrowserHost();
+  const snapshot = resolvedConfigSnapshots.get(host || 'default') ?? lastResolvedConfig;
+  if (snapshot) {
+    const resolvedApp = getOrCreateFirebaseApp(snapshot);
+    if (resolvedApp) return resolvedApp;
+  }
+  return getPrimaryFirebaseApp();
+}
+
 function getPreloadedFirebaseAuthSync(): Auth | null {
   const host = getCurrentBrowserHost();
   const snapshot = resolvedConfigSnapshots.get(host || 'default');
@@ -206,10 +251,32 @@ function getPreloadedFirebaseAuthSync(): Auth | null {
   return app ? getAuth(app) : null;
 }
 
-async function getFirebaseAuth(): Promise<Auth | null> {
+export async function getActiveFirebaseAuth(): Promise<Auth | null> {
   const cfg = await getRuntimeFirebaseConfig();
   const app = getOrCreateFirebaseApp(cfg);
   return app ? getAuth(app) : null;
+}
+
+export function subscribeFirebaseAuthState(onChange: (user: User | null) => void): () => void {
+  let active = true;
+  let activeAuth = getPreloadedFirebaseAuthSync() ?? getAuth(getPrimaryFirebaseApp());
+  let unsubscribe = onAuthStateChanged(activeAuth, (user) => {
+    if (active) onChange(user);
+  });
+
+  void getActiveFirebaseAuth().then((resolvedAuth) => {
+    if (!active || !resolvedAuth || resolvedAuth === activeAuth) return;
+    unsubscribe();
+    activeAuth = resolvedAuth;
+    unsubscribe = onAuthStateChanged(activeAuth, (user) => {
+      if (active) onChange(user);
+    });
+  });
+
+  return () => {
+    active = false;
+    unsubscribe();
+  };
 }
 
 export function getFirebaseProjectId(): string {
@@ -223,7 +290,7 @@ export async function signInWithGooglePopup(): Promise<{
   displayName: string;
 }> {
   // Prefer synchronous pre-warmed Auth instance inside click gesture so browsers do not block the popup
-  const auth = getPreloadedFirebaseAuthSync() ?? (await getFirebaseAuth());
+  const auth = getPreloadedFirebaseAuthSync() ?? (await getActiveFirebaseAuth());
   if (!auth) {
     throw new Error('Firebase Auth не налаштовано');
   }
@@ -241,7 +308,7 @@ export async function signInWithGooglePopup(): Promise<{
 }
 
 export async function signOutFirebase(): Promise<void> {
-  const auth = getPreloadedFirebaseAuthSync() ?? (await getFirebaseAuth());
+  const auth = getPreloadedFirebaseAuthSync() ?? (await getActiveFirebaseAuth());
   if (!auth) return;
   try {
     await signOut(auth);

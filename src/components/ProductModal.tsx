@@ -1,10 +1,19 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, ShoppingBag, ArrowUpRight, CheckCircle2, Truck, ShieldCheck, PhoneCall } from 'lucide-react';
-import type { Product } from '../types.ts';
+import type { Product, ProductReview } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { track } from '../lib/analytics.ts';
+import { subscribeProductReviews } from '../lib/firestore.ts';
+import { computeProductReviewStats, formatAverageRatingLabel } from '../lib/productReviews.ts';
+import {
+  extractReadableFirestoreErrorMessage,
+  formatReviewsCountLabel,
+  ProductReviews,
+  StarRow,
+} from './ProductReviews.tsx';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення під ключ',
@@ -23,8 +32,46 @@ interface ProductModalProps {
 }
 
 export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, usdUahRate }: ProductModalProps) {
-  if (!product) return null;
   const isRussian = getActiveLocale() === 'ru';
+  const productId = product?.id ?? null;
+
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsLoadError, setReviewsLoadError] = useState('');
+  const [reviewsReloadNonce, setReviewsReloadNonce] = useState(0);
+  const reviewsSectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!productId) {
+      setReviews([]);
+      setReviewsLoading(false);
+      setReviewsLoadError('');
+      return;
+    }
+
+    setReviewsLoading(true);
+    setReviewsLoadError('');
+
+    const unsubscribe = subscribeProductReviews(
+      productId,
+      (nextReviews) => {
+        setReviews(nextReviews);
+        setReviewsLoading(false);
+        setReviewsLoadError('');
+      },
+      (error) => {
+        setReviewsLoadError(extractReadableFirestoreErrorMessage(error, isRussian));
+        setReviewsLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [productId, reviewsReloadNonce, isRussian]);
+
+  const reviewStats = useMemo(() => computeProductReviewStats(reviews), [reviews]);
+
+  if (!product) return null;
+
   const title = isRussian ? product.titleRu ?? localizeCatalogText(product.title) : product.title;
   const specs = isRussian
     ? product.specsRu ?? product.specs.map(([key, value]) => [localizeCatalogText(key), localizeCatalogText(value)] as [string, string])
@@ -35,6 +82,11 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
     product.oldPrice > product.price && product.price > 0
       ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
       : 0;
+  const averageRatingLabel = formatAverageRatingLabel(reviewStats);
+
+  function handleScrollToReviews() {
+    reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   return (
     <div
@@ -82,9 +134,27 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
 
           <div className="flex flex-col justify-between gap-4">
             <div>
-              <h2 id="product-modal-title" className="text-xl font-extrabold text-[#0d1f33] leading-tight mb-3">
+              <h2 id="product-modal-title" className="text-xl font-extrabold text-[#0d1f33] leading-tight mb-2.5">
                 {title}
               </h2>
+
+              <div className="mb-3">
+                <button
+                  type="button"
+                  onClick={handleScrollToReviews}
+                  className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs transition-colors cursor-pointer"
+                >
+                  <StarRow rating={reviewStats.count > 0 ? reviewStats.averageRating : 0} size="sm" />
+                  <span className="font-mono font-extrabold text-[#0d1f33] tabular-nums">
+                    {averageRatingLabel}
+                  </span>
+                  <span className="text-slate-500">
+                    ({reviewsLoading && reviewStats.count === 0
+                      ? tr('завантаження...', 'загрузка...')
+                      : formatReviewsCountLabel(reviewStats.count, isRussian)})
+                  </span>
+                </button>
+              </div>
 
               <div className="flex items-baseline gap-3 mb-3">
                 {product.price > 0 ? (
@@ -178,6 +248,17 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
               </div>
             </div>
           </div>
+        </div>
+
+        <div ref={reviewsSectionRef} className="border-t border-slate-200 px-6 py-5 bg-slate-50/40">
+          <ProductReviews
+            product={product}
+            reviews={reviews}
+            stats={reviewStats}
+            loading={reviewsLoading}
+            loadError={reviewsLoadError}
+            onRetryLoad={() => setReviewsReloadNonce((n) => n + 1)}
+          />
         </div>
       </div>
     </div>

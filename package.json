@@ -10,7 +10,7 @@
     "dev": "tsx server.ts",
     "start": "node server.ts",
     "build": "vite build",
-    "test": "tsx --test tests/leadForm.test.ts tests/sitemap.test.ts tests/shopSearch.test.ts tests/seoRating.test.ts tests/firebaseConfig.test.ts tests/errorReporting.test.ts tests/crmDealCreate.test.ts tests/exchangeRate.test.ts tests/seoHtml.test.ts tests/analytics.test.ts",
+    "test": "tsx --test tests/leadForm.test.ts tests/sitemap.test.ts tests/shopSearch.test.ts tests/seoRating.test.ts tests/firebaseConfig.test.ts tests/errorReporting.test.ts tests/crmDealCreate.test.ts tests/exchangeRate.test.ts tests/seoHtml.test.ts tests/analytics.test.ts tests/productReviews.test.ts firestore.rules.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
@@ -38,15 +38,17 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@firebase/eslint-plugin-security-rules": "^0.0.2",
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.2",
+    "eslint": "^10.15.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "@grpc/grpc-js": "^1.13.6"
