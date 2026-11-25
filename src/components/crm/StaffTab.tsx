@@ -90,6 +90,7 @@ export function StaffTab({
   const [fAssigneeLabel, setFAssigneeLabel] = useState('');
   const [fCanLogin, setFCanLogin] = useState(true);
   const [fActive, setFActive] = useState(true);
+  const [fPassword, setFPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [formErr, setFormErr] = useState('');
 
@@ -144,6 +145,7 @@ export function StaffTab({
     setFAssigneeLabel('');
     setFCanLogin(true);
     setFActive(true);
+    setFPassword('');
     setFormErr('');
     setModalOpen(true);
   }
@@ -161,6 +163,7 @@ export function StaffTab({
     setFAssigneeLabel(m.assigneeLabel);
     setFCanLogin(m.canLogin);
     setFActive(m.active);
+    setFPassword('');
     setFormErr('');
     setModalOpen(true);
   }
@@ -178,10 +181,15 @@ export function StaffTab({
     if (!editingIsSelfOnly && !editingIsMaster && fCanLogin && !fEmail.trim()) {
       setFormErr(
         tr(
-          'Щоб користувач міг увійти через Google, вкажіть його Email',
-          'Чтобы пользователь мог войти через Google, укажите его Email',
+          'Щоб користувач міг увійти в CRM, вкажіть його Email',
+          'Чтобы пользователь мог войти в CRM, укажите его Email',
         ),
       );
+      return;
+    }
+
+    if (!editingIsSelfOnly && fPassword.trim() && fPassword.trim().length < 6) {
+      setFormErr(tr('Пароль має містити щонайменше 6 символів', 'Пароль должен содержать минимум 6 символов'));
       return;
     }
 
@@ -203,6 +211,7 @@ export function StaffTab({
             assigneeLabel: fAssigneeLabel.trim(),
             canLogin: editingIsMaster ? true : fCanLogin,
             active: editingIsMaster ? true : fActive,
+            ...(fPassword.trim() ? { password: fPassword.trim() } : {}),
           };
 
       const url = editingMember ? `/api/crm/staff/${editingMember.id}` : '/api/crm/staff';
@@ -307,7 +316,7 @@ export function StaffTab({
                 ) : (
                   <div className="text-slate-400 italic">
                     {m.login === 'admin'
-                      ? tr('Вхід через ADMIN_LOGIN + ADMIN_PASSWORD', 'Вход через ADMIN_LOGIN + ADMIN_PASSWORD')
+                      ? tr('Майстер-вхід: admin + пароль', 'Мастер-вход: admin + пароль')
                       : tr('Email не прив’язано', 'Email не привязан')}
                   </div>
                 )}
@@ -340,7 +349,7 @@ export function StaffTab({
                 <div className="flex flex-wrap items-center gap-1">
                   <Badge variant="dark" className="gap-1">
                     <KeyRound className="w-3 h-3 text-amber-400" />
-                    {tr('Майстер-вхід (ENV)', 'Мастер-вход (ENV)')}
+                    {tr('Майстер-вхід (admin)', 'Мастер-вход (admin)')}
                   </Badge>
                   {m.email && <Badge variant="info">Google</Badge>}
                 </div>
@@ -350,10 +359,18 @@ export function StaffTab({
               return <Badge variant="default">{tr('Без входу (лише виконавець)', 'Без входа (только исполнитель)')}</Badge>;
             }
             return m.email ? (
-              <Badge variant="success" className="gap-1">
-                <Mail className="w-3 h-3" />
-                {tr('Google за Email', 'Google по Email')}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-1">
+                <Badge variant="success" className="gap-1">
+                  <Mail className="w-3 h-3" />
+                  Google
+                </Badge>
+                {m.hasPassword && (
+                  <Badge variant="info" className="gap-1">
+                    <KeyRound className="w-3 h-3" />
+                    {tr('Пароль', 'Пароль')}
+                  </Badge>
+                )}
+              </div>
             ) : (
               <Badge variant="warning">{tr('Потрібен Email', 'Нужен Email')}</Badge>
             );
@@ -583,12 +600,12 @@ export function StaffTab({
           <strong className="text-[#0d1f33]">{tr('Як працює вхід за Email:', 'Как работает вход по Email:')}</strong>{' '}
           {isAdmin
             ? tr(
-                'Ви маєте повний доступ адміністратора: створюйте користувачів і прив’язуйте їхній Google Email — після цього вони входять у CRM через кнопку Google без окремих паролів. Майстер-логін та пароль адміністратора беруться з налаштувань оточення (ADMIN_LOGIN, ADMIN_PASSWORD).',
-                'У вас полный доступ администратора: создавайте пользователей и привязывайте их Google Email — после этого они входят в CRM через кнопку Google без отдельных паролей. Мастер-логин и пароль администратора задаются через переменные окружения (ADMIN_LOGIN, ADMIN_PASSWORD).',
+                'Створюйте користувачів із прив’язкою до Email — вони можуть входити через Google або за Email та паролем (якщо задасте пароль у профілі співробітника). Майстер-акаунт admin налаштовується при першому вході.',
+                'Создавайте пользователей с привязкой к Email — они могут входить через Google или по Email и паролю (если зададите пароль в профиле сотрудника). Мастер-аккаунт admin настраивается при первом входе.',
               )
             : tr(
-                'Користувачі входять у CRM через Google за своїм Email та можуть редагувати лише власний профіль (ім’я, посаду, телефон). Додавання користувачів і зміна прав доступні тільки адміністратору.',
-                'Пользователи входят в CRM через Google по своему Email и могут редактировать только собственный профиль (имя, должность, телефон). Добавление пользователей и смена прав доступны только администратору.',
+                'Ви входите у CRM за своїм Email і можете редагувати лише власний профіль (ім’я, посаду, телефон). Додавання користувачів і зміна прав доступні тільки адміністратору.',
+                'Вы входите в CRM по своему Email и можете редактировать только собственный профиль (имя, должность, телефон). Добавление пользователей и смена прав доступны только администратору.',
               )}
         </div>
       </div>
@@ -708,6 +725,25 @@ export function StaffTab({
               </div>
             </div>
 
+            {isAdmin && !editingIsMaster && (
+              <div>
+                <label htmlFor="staff-password" className="block font-bold text-[#0d1f33] mb-1">
+                  {editingMember?.hasPassword
+                    ? tr('Новий пароль (опціонально, залиште порожнім щоб не змінювати)', 'Новый пароль (опционально, оставьте пустым чтобы не менять)')
+                    : tr('Пароль для входу по Email (опціонально, мін. 6 символів)', 'Пароль для входа по Email (опционально, мин. 6 символов)')}
+                </label>
+                <Input
+                  id="staff-password"
+                  type="password"
+                  minLength={6}
+                  autoComplete="new-password"
+                  value={fPassword}
+                  onChange={(e) => setFPassword(e.target.value)}
+                  placeholder={tr('Необов’язково, якщо співробітник входить через Google', 'Необязательно, если сотрудник входит через Google')}
+                />
+              </div>
+            )}
+
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
               {isAdmin && !editingIsMaster ? (
                 <div className="flex flex-wrap items-center gap-4">
@@ -727,19 +763,19 @@ export function StaffTab({
                       onChange={(e) => setFCanLogin(e.target.checked)}
                       className="accent-[#1769aa]"
                     />
-                    {tr('Дозволити вхід через Google за Email', 'Разрешить вход через Google по Email')}
+                    {tr('Дозволити вхід у CRM за Email', 'Разрешить вход в CRM по Email')}
                   </label>
                 </div>
               ) : (
                 <div className="text-[11px] text-slate-500">
                   {editingIsMaster
                     ? tr(
-                        'Майстер-логін та пароль адміністратора задаються у змінних оточення ADMIN_LOGIN та ADMIN_PASSWORD.',
-                        'Мастер-логин и пароль администратора задаются в переменных окружения ADMIN_LOGIN и ADMIN_PASSWORD.',
+                        'Майстер-акаунт admin може входити за паролем, заданим при налаштуванні, або за прив’язаним Google Email.',
+                        'Мастер-аккаунт admin может входить по паролю, заданному при настройке, или по привязанному Google Email.',
                       )
                     : tr(
-                        'Email для входу через Google, роль і права доступу може змінювати лише адміністратор.',
-                        'Email для входа через Google, роль и права доступа может изменять только администратор.',
+                        'Email для входу, роль і права доступу може змінювати лише адміністратор.',
+                        'Email для входа, роль и права доступа может изменять только администратор.',
                       )}
                 </div>
               )}

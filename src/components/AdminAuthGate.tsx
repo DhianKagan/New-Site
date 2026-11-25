@@ -335,7 +335,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
                 disabled={!apiAvailable || submitting || googleSubmitting}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : tr('Пароль із налаштувань оточення', 'Пароль из настроек окружения')}
+                placeholder={isSetup ? tr('Мінімум 6 символів', 'Минимум 6 символов') : '••••••••'}
                 className="w-full pl-3.5 pr-10 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-[#1769aa]"
               />
               <button
