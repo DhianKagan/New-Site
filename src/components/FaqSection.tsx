@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, ChevronDown, HelpCircle, ShieldCheck } from 'lucide-react';
 import { FAQ_ITEMS } from '../data/siteContent.ts';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
+import { VideoBackground } from './VideoBackground.tsx';
 
 interface FaqSectionProps {
   onOpenLeadModal: (
@@ -20,31 +21,32 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
     <section
       id="faq"
       aria-labelledby="faq-heading"
-      className="py-14 sm:py-16 bg-white/92 backdrop-blur-md border-t border-slate-200/80"
+      className="relative overflow-hidden isolate py-14 sm:py-16 border-t border-white/15"
     >
-      <div className="max-w-[1180px] mx-auto px-5">
+      <VideoBackground position="absolute" tone="light" start={6} end={22} />
+      <div className="relative max-w-[1180px] mx-auto px-5">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
           {/* Left Sticky Summary & Trust Block */}
           <div className="lg:col-span-4 lg:sticky lg:top-24">
-            <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1769aa] mb-2">
+            <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-sky-300 text-on-video mb-2">
               <HelpCircle className="w-3.5 h-3.5" />
               <span>{tr('Відповіді інженерів · FAQ', 'Ответы инженеров · FAQ')}</span>
             </div>
             <h2
               id="faq-heading"
-              className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] leading-tight mb-3"
+              className="text-2xl sm:text-3xl font-extrabold text-white text-on-video leading-tight mb-3"
             >
               {tr('Часті запитання', 'Частые вопросы')}
             </h2>
-            <p className="text-sm text-[#52657a] leading-relaxed mb-5">
+            <p className="text-sm text-slate-100 font-medium text-on-video leading-relaxed mb-5">
               {tr(
                 'Зібрали відповіді на головні питання про перемикання на резерв, безпеку LiFePO4, терміни монтажу та оформлення в Одесі.',
                 'Собрали ответы на главные вопросы о переключении на резерв, безопасности LiFePO4, сроках монтажа и оформлении в Одессе.',
               )}
             </p>
 
-            <div className="rounded-xl bg-[#f8fafc] border border-slate-200 p-4 space-y-3">
-              <div className="flex items-start gap-2.5 text-xs text-[#0d1f33]">
+            <div className="rounded-xl bg-white/95 backdrop-blur-md border border-white/25 shadow-lg p-4 space-y-3">
+              <div className="flex items-start gap-2.5 text-xs text-[#0d1f33] font-medium">
                 <ShieldCheck className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" />
                 <span className="leading-relaxed">
                   {tr(
@@ -66,7 +68,7 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
 
           {/* Right Accessible Accordion */}
           <div className="lg:col-span-8">
-            <div className="rounded-2xl border border-slate-200 bg-white divide-y divide-slate-200 shadow-xs overflow-hidden">
+            <div className="rounded-2xl border border-white/25 bg-white/95 backdrop-blur-md divide-y divide-slate-200 shadow-xl overflow-hidden">
               {FAQ_ITEMS.map((item, idx) => {
                 const isOpen = openIndex === idx;
                 const questionText = isRussian && item.qRu ? item.qRu : tr(item.q);
@@ -77,7 +79,7 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
                 return (
                   <div
                     key={item.q}
-                    className={`transition-colors ${isOpen ? 'bg-[#f8fbff]' : 'bg-white'}`}
+                    className={`transition-colors ${isOpen ? 'bg-[#f8fbff]/90' : 'bg-transparent'}`}
                   >
                     <h3 className="m-0">
                       <button
@@ -93,7 +95,7 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
                             className={`font-mono text-xs font-extrabold px-2 py-0.5 rounded-md shrink-0 mt-0.5 ${
                               isOpen
                                 ? 'bg-[#1769aa] text-white'
-                                : 'bg-slate-100 text-slate-500'
+                                : 'bg-slate-200 text-[#0d1f33]'
                             }`}
                           >
                             {String(idx + 1).padStart(2, '0')}
@@ -104,7 +106,7 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
                         </span>
                         <ChevronDown
                           className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                            isOpen ? 'rotate-180 text-[#1769aa]' : 'text-slate-400'
+                            isOpen ? 'rotate-180 text-[#1769aa]' : 'text-slate-600'
                           }`}
                           aria-hidden="true"
                         />
@@ -116,7 +118,7 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
                         id={panelId}
                         role="region"
                         aria-labelledby={buttonId}
-                        className="px-5 pb-5 sm:px-6 sm:pb-5 pl-[3.25rem] sm:pl-[3.5rem] text-xs sm:text-sm text-[#52657a] leading-relaxed"
+                        className="px-5 pb-5 sm:px-6 sm:pb-5 pl-[3.25rem] sm:pl-[3.5rem] text-xs sm:text-sm text-[#1e293b] leading-relaxed"
                       >
                         {answerText}
                       </div>

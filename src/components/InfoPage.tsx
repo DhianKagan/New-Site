@@ -2,6 +2,7 @@ import { ArrowLeft, Banknote, FileText, PackageCheck, Truck } from 'lucide-react
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { tr } from '../lib/i18n.ts';
+import { VideoBackground } from './VideoBackground.tsx';
 
 interface InfoPageProps {
   type: 'payment-delivery' | 'offer';
@@ -9,7 +10,7 @@ interface InfoPageProps {
   onBackHome: () => void;
 }
 
-const cardClass = 'rounded-2xl border border-slate-200 bg-white p-5 sm:p-7';
+const cardClass = 'rounded-2xl border border-white/25 bg-white/95 backdrop-blur-md shadow-xl p-5 sm:p-7 text-[#0f172a]';
 
 export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
   const isOffer = type === 'offer';
@@ -33,8 +34,9 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
         </div>
       </section>
 
-      <section className="bg-[#f8fafc]/92 backdrop-blur-md py-9 sm:py-12">
-        <div className="mx-auto max-w-[900px] space-y-5 px-5">
+      <section className="relative overflow-hidden isolate py-9 sm:py-12">
+        <VideoBackground position="absolute" tone="light" start={18} end={34} />
+        <div className="relative mx-auto max-w-[900px] space-y-5 px-5">
           {isOffer ? (
             <>
               <div role="note" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950">
@@ -100,11 +102,11 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
                 <div className="mb-3 flex items-center gap-2 text-[#1769aa]"><PackageCheck className="h-5 w-5" /><h2 className="text-lg font-bold text-[#0d1f33]">{tr('Підтвердження замовлення', 'Подтверждение заказа')}</h2></div>
                 <p className="text-sm leading-7 text-slate-700">{tr(`Після відправлення заявки менеджер зв’яжеться з вами за вказаним телефоном і підтвердить склад, наявність, суму, оплату та доставку. Запитання: ${COMPANY_INFO.phone1}, ${COMPANY_INFO.phone2}, ${COMPANY_INFO.email}.`, `После отправки заявки менеджер свяжется с вами по указанному телефону и подтвердит состав, наличие, сумму, оплату и доставку. Вопросы: ${COMPANY_INFO.phone1}, ${COMPANY_INFO.phone2}, ${COMPANY_INFO.email}.`)}</p>
               </article>
-              <a href="/public-offer" className="inline-flex items-center gap-2 text-sm font-bold text-[#1769aa] hover:underline"><FileText className="h-4 w-4" />{tr('Переглянути проєкт публічної оферти', 'Посмотреть проект публичной оферты')}</a>
+              <a href="/public-offer" className="inline-flex items-center gap-2 text-sm font-bold text-sky-300 hover:text-white hover:underline text-on-video"><FileText className="h-4 w-4" />{tr('Переглянути проєкт публічної оферти', 'Посмотреть проект публичной оферты')}</a>
             </>
           )}
           <div>
-            <button type="button" onClick={onBackHome} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-[#0d1f33] hover:bg-slate-50">
+            <button type="button" onClick={onBackHome} className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/95 px-4 py-2.5 text-sm font-bold text-[#0d1f33] hover:bg-white shadow-md cursor-pointer">
               <ArrowLeft className="h-4 w-4" />{tr('На головну', 'На главную')}
             </button>
           </div>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
+import { VideoBackground } from './VideoBackground.tsx';
 import { tr } from '../lib/i18n.ts';
 import {
   computeEquipmentTypeCounts,
@@ -294,11 +295,12 @@ export function ShopView({
         </div>
       </section>
 
-      <section className="py-10 bg-white/92 backdrop-blur-md">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section className="relative overflow-hidden isolate py-10">
+        <VideoBackground position="absolute" tone="light" start={12} end={28} />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <h2 className="sr-only">{tr('Фільтри та перелік обладнання', 'Фильтры и каталог оборудования')}</h2>
           {/* Category Filter Tabs */}
-          <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl mb-5 w-fit max-w-full">
+          <div className="flex flex-wrap gap-1.5 p-1 bg-[#0d1f33]/85 backdrop-blur-md border border-white/20 rounded-xl mb-5 w-fit max-w-full shadow-md">
             {(
               [
                 ['all', 'Усі товари'],
@@ -314,7 +316,7 @@ export function ShopView({
                 type="button"
                 onClick={() => handleCategoryChange(key)}
                 className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-                  cat === key ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
+                  cat === key ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
                 }`}
               >
                 {tr(label)} ({counts[key]})
@@ -344,7 +346,7 @@ export function ShopView({
                   }
                 }}
                 placeholder={tr('Пошук за назвою або SKU (напр. Deye 8kW, 10018)...', 'Поиск по названию или SKU (напр. Deye 8kW, 10018)…')}
-                className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:border-[#1769aa]"
+                className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-white/30 bg-white/95 text-[#0d1f33] placeholder:text-slate-500 text-xs sm:text-sm font-medium shadow-sm focus:outline-none focus:border-[#1769aa]"
               />
               {query && (
                 <button
@@ -354,7 +356,7 @@ export function ShopView({
                     setPage(1);
                   }}
                   aria-label={tr('Очистити пошук', 'Очистить поиск')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-[#0d1f33] hover:bg-slate-100 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-500 hover:text-[#0d1f33] hover:bg-slate-100 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -366,7 +368,7 @@ export function ShopView({
                 aria-label={tr('Фільтр за брендом', 'Фильтр по бренду')}
                 value={selectedBrands.length > 0 ? 'all' : brand}
                 onChange={(e) => handleDropdownBrandChange(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1769aa]"
+                className="w-full px-3 py-2.5 rounded-lg border border-white/30 text-xs sm:text-sm font-medium text-[#0d1f33] bg-white/95 shadow-sm focus:outline-none focus:border-[#1769aa]"
               >
                 <option value="all">
                   {selectedBrands.length > 0
@@ -385,7 +387,7 @@ export function ShopView({
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as 'default' | 'asc' | 'desc')}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1769aa]"
+                className="w-full px-3 py-2.5 rounded-lg border border-white/30 text-xs sm:text-sm font-medium text-[#0d1f33] bg-white/95 shadow-sm focus:outline-none focus:border-[#1769aa]"
               >
                 <option value="default">{tr('Рекомендовані', 'Рекомендуемые')}</option>
                 <option value="asc">{tr('Спочатку дешевші', 'Сначала дешевле')}</option>
@@ -393,7 +395,7 @@ export function ShopView({
               </select>
             </div>
 
-            <label className="lg:col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap">
+            <label className="lg:col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-white/30 bg-white/95 text-xs font-bold text-[#0d1f33] shadow-sm cursor-pointer whitespace-nowrap">
               <input
                 type="checkbox"
                 checked={inStockOnly}
@@ -411,7 +413,7 @@ export function ShopView({
             {/* Sidebar Filters: Equipment Type, Brand, Inverter Power */}
             <aside
               aria-label={tr('Фільтри каталогу', 'Фильтры каталога')}
-              className="w-full lg:w-[240px] shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 lg:sticky lg:top-24"
+              className="w-full lg:w-[240px] shrink-0 rounded-2xl border border-white/25 bg-white/95 backdrop-blur-md shadow-lg p-4 lg:sticky lg:top-24"
             >
               {/* Equipment Type Checkboxes */}
               <div className="pb-4 mb-4 border-b border-slate-200">
@@ -601,43 +603,43 @@ export function ShopView({
 
             {/* Product Grid & Results */}
             <div className="flex-1 min-w-0 w-full">
-              <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 mb-4">
+              <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-100 font-medium text-on-video mb-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <span>
-                    {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#0d1f33] tabular-nums">{filtered.length}</strong>
+                    {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#fbbf24] tabular-nums">{filtered.length}</strong>
                   </span>
                   {activeEquipmentTypeLabel && (
-                    <span className="text-[11px] text-[#0d1f33] font-semibold">
+                    <span className="text-[11px] text-white font-semibold">
                       {tr('Тип:', 'Тип:')} {activeEquipmentTypeLabel}
                     </span>
                   )}
                   {activeBrandLabel && (
-                    <span className="text-[11px] text-[#0d1f33] font-semibold">
+                    <span className="text-[11px] text-white font-semibold">
                       {tr('Бренд:', 'Бренд:')} {activeBrandLabel}
                     </span>
                   )}
                   {activePowerLabel && (
-                    <span className="text-[11px] text-[#0d1f33] font-semibold">
+                    <span className="text-[11px] text-white font-semibold">
                       {tr('Потужність:', 'Мощность:')} {activePowerLabel}
                     </span>
                   )}
                   {query.trim() && (
-                    <span className="text-[11px] text-[#1769aa] font-semibold">
+                    <span className="text-[11px] text-sky-300 font-semibold">
                       {tr('Пошук:', 'Поиск:')} «{query.trim()}»
                     </span>
                   )}
                 </div>
                 {totalPages > 1 && (
-                  <span className="font-mono tabular-nums">
+                  <span className="font-mono tabular-nums text-slate-100">
                     {tr('Сторінка', 'Страница')} {safePage} {tr('з', 'из')} {totalPages}
                   </span>
                 )}
               </div>
 
               {paginated.length === 0 ? (
-                <div className="p-10 sm:p-12 text-center border border-dashed border-slate-300 rounded-2xl bg-slate-50">
+                <div className="p-10 sm:p-12 text-center border border-white/25 rounded-2xl bg-white/95 backdrop-blur-md shadow-lg">
                   <p className="text-sm font-bold text-[#0d1f33] mb-1">{tr('За вашим запитом товарів не знайдено', 'По вашему запросу товары не найдены')}</p>
-                  <p className="text-xs text-slate-500 mb-5">
+                  <p className="text-xs text-[#334155] font-medium mb-5">
                     {tr(
                       'Спробуйте змінити фільтр або залиште запит — інженер перевірить наявність на складі та підбере сумісний аналог за 15 хв.',
                       'Измените фильтр или оставьте запрос — инженер проверит наличие на складе и подберёт совместимый аналог за 15 мин.',
@@ -717,12 +719,12 @@ export function ShopView({
                   setPage((p) => Math.max(1, p - 1));
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-[#0d1f33] disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-white/30 bg-white/95 text-xs font-bold text-[#0d1f33] disabled:opacity-40 hover:bg-white shadow-sm cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Назад
               </button>
-              <span className="font-mono text-xs font-bold px-3 text-slate-600 tabular-nums">
+              <span className="font-mono text-xs font-bold px-3 text-white text-on-video tabular-nums">
                 {safePage} / {totalPages}
               </span>
               <button
@@ -732,7 +734,7 @@ export function ShopView({
                   setPage((p) => Math.min(totalPages, p + 1));
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold text-[#0d1f33] disabled:opacity-40 hover:bg-slate-50 cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-white/30 bg-white/95 text-xs font-bold text-[#0d1f33] disabled:opacity-40 hover:bg-white shadow-sm cursor-pointer"
               >
                 Далі
                 <ChevronRight className="w-4 h-4" />
@@ -741,7 +743,7 @@ export function ShopView({
           )}
 
           {onOpenCustomRequest && paginated.length > 0 && (
-            <div className="mt-10 rounded-2xl border border-slate-200 bg-gradient-to-r from-[#f3f8fd] to-[#f8fafc] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="mt-10 rounded-2xl border border-white/25 bg-white/95 backdrop-blur-md shadow-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="text-xs font-extrabold text-[#1769aa] mb-1">
                   {tr('Потрібна перевірка сумісності або оптова ціна?', 'Нужна проверка совместимости или оптовая цена?')}

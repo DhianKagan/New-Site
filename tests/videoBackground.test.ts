@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import {
   VIDEO_BACKGROUND_DEFAULT_URL,
   buildYouTubeEmbedUrl,
+  extractYouTubeTimeRange,
   extractYouTubeVideoId,
+  normalizeTimeSeconds,
 } from '../src/components/VideoBackground.tsx';
 
 test('extractYouTubeVideoId parses standard, short, embed, and shorts YouTube URLs', () => {
@@ -16,13 +18,36 @@ test('extractYouTubeVideoId parses standard, short, embed, and shorts YouTube UR
   assert.equal(extractYouTubeVideoId(''), null);
 });
 
-test('buildYouTubeEmbedUrl sets autoplay, mute, loop, playlist, and playsinline parameters', () => {
+test('normalizeTimeSeconds and extractYouTubeTimeRange parse numeric, s, and hms timestamps', () => {
+  assert.equal(normalizeTimeSeconds(15.8), 15);
+  assert.equal(normalizeTimeSeconds('24s'), 24);
+  assert.equal(normalizeTimeSeconds('1m15s'), 75);
+  assert.equal(normalizeTimeSeconds(-5), undefined);
+  assert.equal(normalizeTimeSeconds('abc'), undefined);
+
+  assert.deepEqual(
+    extractYouTubeTimeRange('https://www.youtube.com/watch?v=o7fTs8et1QM&t=18s'),
+    { start: 18 },
+  );
+  assert.deepEqual(
+    extractYouTubeTimeRange('https://www.youtube.com/watch?v=o7fTs8et1QM&start=16&end=30'),
+    { start: 16, end: 30 },
+  );
+  assert.deepEqual(
+    extractYouTubeTimeRange('https://www.youtube.com/watch?v=o7fTs8et1QM&start=30&end=20'),
+    { start: 30 },
+  );
+});
+
+test('buildYouTubeEmbedUrl sets autoplay, mute, loop, playlist, playsinline, start, and end parameters', () => {
   const embed = buildYouTubeEmbedUrl('o7fTs8et1QM', {
     autoPlay: true,
     loop: true,
     muted: true,
     playsInline: true,
     origin: 'https://energocomfort.shop',
+    start: 16,
+    end: 30,
   });
   const url = new URL(embed);
 
@@ -32,26 +57,69 @@ test('buildYouTubeEmbedUrl sets autoplay, mute, loop, playlist, and playsinline 
   assert.equal(url.searchParams.get('loop'), '1');
   assert.equal(url.searchParams.get('playlist'), 'o7fTs8et1QM');
   assert.equal(url.searchParams.get('playsinline'), '1');
+  assert.equal(url.searchParams.get('start'), '16');
+  assert.equal(url.searchParams.get('end'), '30');
   assert.equal(url.searchParams.get('origin'), 'https://energocomfort.shop');
+
+  const invalidEndEmbed = new URL(
+    buildYouTubeEmbedUrl('o7fTs8et1QM', { start: 25, end: 20 }),
+  );
+  assert.equal(invalidEndEmbed.searchParams.get('start'), '25');
+  assert.equal(invalidEndEmbed.searchParams.get('end'), null);
 });
 
-test('VideoBackground component uses z-index -1, brightness(0.4) backdrop-filter, and default YouTube URL', () => {
+test('VideoBackground component uses z-index -1, dark & light tone backdrop-filters, fade-in, and unique section segments', () => {
   assert.equal(VIDEO_BACKGROUND_DEFAULT_URL, 'https://www.youtube.com/watch?v=o7fTs8et1QM');
   const source = readFileSync(new URL('../src/components/VideoBackground.tsx', import.meta.url), 'utf8');
   assert.ok(source.includes('zIndex: -1'));
-  assert.ok(source.includes('backdropFilter: `brightness(${clampedBrightness})`'));
+  assert.ok(source.includes("tone?: 'dark' | 'light'"));
+  assert.ok(source.includes("tone === 'light' ? 0.52 : 0.38"));
+  assert.ok(source.includes('brightness(${clampedBrightness}) contrast(1.06)'));
+  assert.ok(source.includes('brightness(${clampedBrightness})'));
+  assert.ok(source.includes('data-tone={tone}'));
   assert.ok(source.includes('autoPlay={autoPlay}'));
-  assert.ok(source.includes('loop={loop}'));
+  assert.ok(source.includes('loop={loop && effectiveEnd === undefined}'));
   assert.ok(source.includes('muted={muted}'));
   assert.ok(source.includes('playsInline={playsInline}'));
   assert.ok(source.includes('video-bg-fade-in'));
+  assert.ok(source.includes('effectiveStartRef.current'));
+  assert.ok(source.includes('effectiveEndRef.current'));
 
   const cssSource = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
   assert.ok(cssSource.includes('@keyframes videoBackgroundFadeIn'));
   assert.ok(cssSource.includes('.video-bg-fade-in'));
+  assert.ok(cssSource.includes('.text-on-video'));
 
   const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.ok(appSource.includes('<VideoBackground'));
   assert.ok(appSource.includes('https://www.youtube.com/watch?v=o7fTs8et1QM'));
+  assert.ok(appSource.includes('ROUTE_VIDEO_SEGMENTS'));
   assert.ok(appSource.includes('brightness={0.4}'));
+
+  const homeSource = readFileSync(new URL('../src/components/HomeView.tsx', import.meta.url), 'utf8');
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.hero.start'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.brands.start'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.calculator.start'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.showcase.start'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.audit.start'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.projects.start'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.process.start'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.brief.start'));
+  assert.ok(homeSource.includes('tone="light"'));
+
+  for (const file of [
+    '../src/components/HowItWorks.tsx',
+    '../src/components/FaqSection.tsx',
+    '../src/components/ShopView.tsx',
+    '../src/components/ServicesView.tsx',
+    '../src/components/ProjectsView.tsx',
+    '../src/components/ContactsView.tsx',
+    '../src/components/InfoPage.tsx',
+    '../src/components/ClientCabinetView.tsx',
+    '../src/components/CrmView.tsx',
+  ]) {
+    const viewSource = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.ok(viewSource.includes('tone="light"'), `Expected tone="light" VideoBackground in ${file}`);
+  }
 });

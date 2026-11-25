@@ -17,6 +17,7 @@ import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { HowItWorks } from './HowItWorks.tsx';
 import { FaqSection } from './FaqSection.tsx';
+import { VideoBackground } from './VideoBackground.tsx';
 import { getAttributionSummary, resolveAnalyticsMoney, track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import {
@@ -56,6 +57,17 @@ interface HomeViewProps {
 }
 
 type ShowcaseTab = 'backup-kits' | 'solar-kits' | 'hardware';
+
+const HOME_VIDEO_SEGMENTS = {
+  hero: { start: 2, end: 15 },
+  brands: { start: 14, end: 26 },
+  calculator: { start: 20, end: 36 },
+  showcase: { start: 32, end: 48 },
+  audit: { start: 16, end: 30 },
+  projects: { start: 42, end: 58 },
+  process: { start: 31, end: 44 },
+  brief: { start: 45, end: 58 },
+} as const;
 
 export function HomeView({
   products,
@@ -260,8 +272,18 @@ export function HomeView({
   return (
     <div>
       {/* Hero + 3-Scenario Fork */}
-      <section className="bg-[#081421]/30 border-b border-white/15 py-10 lg:py-14">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section className="relative overflow-hidden isolate border-b border-white/15 py-10 lg:py-14">
+        <VideoBackground
+          position="absolute"
+          start={HOME_VIDEO_SEGMENTS.hero.start}
+          end={HOME_VIDEO_SEGMENTS.hero.end}
+          autoPlay
+          loop
+          muted
+          playsInline
+          brightness={0.4}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
             <div className="lg:col-span-7 flex flex-col justify-center">
               <div className="text-xs font-extrabold text-sky-300 tracking-wide mb-2.5">
@@ -466,10 +488,16 @@ export function HomeView({
       </section>
 
       {/* Official Brand Partners */}
-      <section className="border-b border-slate-200/80 bg-white/92 backdrop-blur-md py-6">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section className="relative overflow-hidden isolate border-b border-white/15 py-6">
+        <VideoBackground
+          position="absolute"
+          tone="light"
+          start={HOME_VIDEO_SEGMENTS.brands.start}
+          end={HOME_VIDEO_SEGMENTS.brands.end}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <h2 className="text-xs font-bold text-slate-500 shrink-0 whitespace-nowrap">
+            <h2 className="text-xs font-extrabold text-slate-100 text-on-video shrink-0 whitespace-nowrap">
               {tr('Офіційні бренди обладнання')}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 flex-1">
@@ -477,7 +505,7 @@ export function HomeView({
                 <div
                   key={b.name}
                   title={b.name}
-                  className="h-14 px-4 rounded-xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden"
+                  className="h-14 px-4 rounded-xl border border-white/25 bg-white/95 backdrop-blur-md shadow-sm flex items-center justify-center overflow-hidden"
                 >
                   <SmartImage
                     src={b.logo}
@@ -495,25 +523,31 @@ export function HomeView({
       <HowItWorks onOpenLeadModal={onOpenLeadModal} />
 
       {/* Payback Calculator + Matched Catalog Solutions */}
-      <section id="payback-calculator" className="py-14 bg-[#f6f8fb]/90 backdrop-blur-md border-b border-slate-200/80">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section id="payback-calculator" className="relative overflow-hidden isolate py-14 border-b border-white/15">
+        <VideoBackground
+          position="absolute"
+          tone="light"
+          start={HOME_VIDEO_SEGMENTS.calculator.start}
+          end={HOME_VIDEO_SEGMENTS.calculator.end}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-7">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1769aa] mb-1.5">
+              <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-sky-300 text-on-video mb-1.5">
                 <Calculator className="w-3.5 h-3.5" />
                 <span>{tr('Онлайн-підбір за вашим лічильником', 'Онлайн-подбор по вашему счётчику')}</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white text-on-video mb-2">
                 {tr('Калькулятор окупності СЕС', 'Калькулятор окупаемости СЭС')}
               </h2>
-              <p className="text-sm text-[#52657a]">
+              <p className="text-sm text-slate-100 font-medium text-on-video leading-relaxed">
                 {tr(
                   'Вкажіть середньомісячне споживання у кВт·год, щоб оцінити річну економію, орієнтовну окупність та побачити сумісні комплекти з каталогу.',
                   'Укажите среднемесячное потребление в кВт·ч, чтобы оценить годовую экономию, ориентировочную окупаемость и подобрать комплекты из каталога.',
                 )}
               </p>
             </div>
-            <div className="inline-flex p-1 bg-white border border-slate-200 rounded-lg self-start lg:self-auto">
+            <div className="inline-flex p-1 bg-[#0d1f33]/85 backdrop-blur-md border border-white/20 rounded-lg self-start lg:self-auto shadow-md">
               <button
                 type="button"
                 onClick={() => {
@@ -526,7 +560,7 @@ export function HomeView({
                   }
                 }}
                 className={`px-3.5 py-2 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                  calcTariffType === 'home' ? 'bg-[#0d1f33] text-white' : 'text-slate-600 hover:text-[#0d1f33]'
+                  calcTariffType === 'home' ? 'bg-[#f59e0b] text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
                 }`}
               >
                 {tr('Дім / Квартира (4.32 ₴)', 'Дом / Квартира (4.32 ₴)')}
@@ -543,7 +577,7 @@ export function HomeView({
                   }
                 }}
                 className={`px-3.5 py-2 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                  calcTariffType === 'business' ? 'bg-[#0d1f33] text-white' : 'text-slate-600 hover:text-[#0d1f33]'
+                  calcTariffType === 'business' ? 'bg-[#f59e0b] text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
                 }`}
               >
                 {tr('Бізнес 380 В (9.60 ₴)', 'Бизнес 380 В (9.60 ₴)')}
@@ -552,7 +586,7 @@ export function HomeView({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between gap-5 shadow-xs">
+            <div className="lg:col-span-5 bg-white/95 backdrop-blur-md rounded-2xl border border-white/25 p-6 flex flex-col justify-between gap-5 shadow-xl">
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -676,7 +710,7 @@ export function HomeView({
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-500 leading-relaxed pt-3 border-t border-slate-100">
+              <p className="text-[11px] text-slate-700 font-medium leading-relaxed pt-3 border-t border-slate-200">
                 {tr(
                   `Розрахунок за даними PVGIS для Одеси (~${ODESA_ANNUAL_YIELD_PER_KW.toLocaleString('uk-UA')} кВт·год/рік з 1 кВт панелей) з урахуванням прямого споживання (${directSelfPct}%) та заліку надлишків за Net Billing, без урахування інфляції тарифів.`,
                   `Расчёт по данным PVGIS для Одессы (~${ODESA_ANNUAL_YIELD_PER_KW.toLocaleString('uk-UA')} кВт·ч/год с 1 кВт панелей) с учётом прямого потребления (${directSelfPct}%) и зачёта излишков по Net Billing, без учёта инфляции тарифов.`,
@@ -684,7 +718,7 @@ export function HomeView({
               </p>
             </div>
 
-            <div className="lg:col-span-7 bg-[#0d1f33] text-white rounded-2xl p-6 flex flex-col justify-between gap-6">
+            <div className="lg:col-span-7 bg-[#0d1f33]/92 backdrop-blur-md border border-white/15 shadow-xl text-white rounded-2xl p-6 flex flex-col justify-between gap-6">
               <div>
                 <div className="text-xs font-bold text-[#f59e0b] mb-2">
                   {tr('Орієнтовний результат для вашого споживання', 'Ориентировочный результат для вашего потребления')}
@@ -775,14 +809,14 @@ export function HomeView({
           {matchedCalculatorProducts.length > 0 && (
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                <h3 className="text-base font-extrabold text-[#0d1f33]">
+                <h3 className="text-base font-extrabold text-white text-on-video">
                   {tr('Підібрані комплекти та рішення з каталогу під', 'Подобранные комплекты и решения из каталога под')}{' '}
-                  <span className="text-[#1769aa]">{recommendedKw} кВт</span>
+                  <span className="text-[#fbbf24]">{recommendedKw} кВт</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => onNavigateShop(recommendedKw <= 15 ? 'kits' : 'inverters')}
-                  className="text-xs font-extrabold text-[#1769aa] hover:underline cursor-pointer"
+                  className="text-xs font-extrabold text-sky-300 hover:text-white hover:underline text-on-video cursor-pointer"
                 >
                   {tr('Переглянути всі рішення →', 'Посмотреть все решения →')}
                 </button>
@@ -816,26 +850,32 @@ export function HomeView({
       </section>
 
       {/* Featured Solutions & Hardware Showcase */}
-      <section id="home-kits" className="py-14 bg-white/92 backdrop-blur-md">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section id="home-kits" className="relative overflow-hidden isolate py-14">
+        <VideoBackground
+          position="absolute"
+          tone="light"
+          start={HOME_VIDEO_SEGMENTS.showcase.start}
+          end={HOME_VIDEO_SEGMENTS.showcase.end}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <div className="max-w-2xl mb-7">
-            <div className="text-xs font-extrabold text-[#1769aa] mb-1.5">{tr('Рішення та обладнання')}</div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+            <div className="text-xs font-extrabold text-sky-300 text-on-video mb-1.5">{tr('Рішення та обладнання')}</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white text-on-video mb-2">
               {tr('Популярні конфігурації та комплектуючі')}
             </h2>
-            <p className="text-sm text-[#52657a]">
+            <p className="text-sm text-slate-100 font-medium text-on-video leading-relaxed">
               {tr('Готові комплекти з інженерним підбором під ваше навантаження, а також окремі інвертори та акумулятори зі складу в Одесі.', 'Готовые комплекты с инженерным подбором под вашу нагрузку, а также отдельные инверторы и аккумуляторы со склада в Одессе.')}
             </p>
           </div>
 
-          <div className="inline-flex flex-wrap gap-1 p-1 bg-slate-100 rounded-lg mb-7">
+          <div className="inline-flex flex-wrap gap-1 p-1 bg-[#0d1f33]/85 backdrop-blur-md border border-white/20 rounded-lg mb-7 shadow-md">
             <button
               type="button"
               onClick={() => setShowcaseTab('backup-kits')}
               className={`px-3.5 py-2 text-xs font-bold rounded-md transition-colors whitespace-nowrap cursor-pointer ${
                 showcaseTab === 'backup-kits'
                   ? 'bg-white text-[#0d1f33] shadow-xs'
-                  : 'text-slate-600 hover:text-[#0d1f33]'
+                  : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Готові системи резерву', 'Готовые системы резервного питания')}
@@ -846,7 +886,7 @@ export function HomeView({
               className={`px-3.5 py-2 text-xs font-bold rounded-md transition-colors whitespace-nowrap cursor-pointer ${
                 showcaseTab === 'solar-kits'
                   ? 'bg-white text-[#0d1f33] shadow-xs'
-                  : 'text-slate-600 hover:text-[#0d1f33]'
+                  : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Готові СЕС з панелями', 'Готовые СЭС с панелями')}
@@ -857,7 +897,7 @@ export function HomeView({
               className={`px-3.5 py-2 text-xs font-bold rounded-md transition-colors whitespace-nowrap cursor-pointer ${
                 showcaseTab === 'hardware'
                   ? 'bg-white text-[#0d1f33] shadow-xs'
-                  : 'text-slate-600 hover:text-[#0d1f33]'
+                  : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Популярні інвертори та АКБ', 'Популярные инверторы и аккумуляторы')}
@@ -890,7 +930,7 @@ export function HomeView({
                   onNavigateShop('all');
                 }
               }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33]"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/30 bg-white/95 hover:bg-white shadow-md text-xs font-extrabold text-[#0d1f33] transition-colors"
             >
               {tr('Відкрити весь каталог обладнання', 'Открыть весь каталог оборудования')} ({products.length} {tr('позицій', 'позиций')})
               <ArrowRight className="w-3.5 h-3.5" />
@@ -900,8 +940,18 @@ export function HomeView({
       </section>
 
       {/* Engineering Audit Split */}
-      <section className="py-14 bg-[#081421]/45 backdrop-blur-[2px] border-y border-white/15 text-white">
-        <div className="max-w-[1180px] mx-auto px-5 grid grid-cols-1 lg:grid-cols-12 gap-9 items-center">
+      <section className="relative overflow-hidden isolate py-14 border-y border-white/15 text-white">
+        <VideoBackground
+          position="absolute"
+          start={HOME_VIDEO_SEGMENTS.audit.start}
+          end={HOME_VIDEO_SEGMENTS.audit.end}
+          autoPlay
+          loop
+          muted
+          playsInline
+          brightness={0.4}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5 grid grid-cols-1 lg:grid-cols-12 gap-9 items-center">
           <div className="lg:col-span-5">
             <div className="rounded-2xl overflow-hidden border border-white/20 bg-[#0d1f33]/80 backdrop-blur-md shadow-xl">
               <SmartImage
@@ -968,24 +1018,30 @@ export function HomeView({
       </section>
 
       {/* Realized Projects Collection */}
-      <section className="py-14 bg-white/92 backdrop-blur-md">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section className="relative overflow-hidden isolate py-14 border-t border-white/15">
+        <VideoBackground
+          position="absolute"
+          tone="light"
+          start={HOME_VIDEO_SEGMENTS.projects.start}
+          end={HOME_VIDEO_SEGMENTS.projects.end}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <div className="max-w-2xl mb-6">
-            <div className="text-xs font-extrabold text-[#1769aa] mb-1.5">{tr('Портфоліо компанії')}</div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+            <div className="text-xs font-extrabold text-sky-300 text-on-video mb-1.5">{tr('Портфоліо компанії')}</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white text-on-video mb-2">
               {tr('Реалізовані об’єкти в Одесі та області')}
             </h2>
-            <p className="text-sm text-[#52657a]">
+            <p className="text-sm text-slate-100 font-medium text-on-video leading-relaxed">
               {tr('Інсталяції від приватних будинків 6 кВт до промислових СЕС 110 кВт. Натисніть на об’єкт, щоб переглянути параметри рішення.', 'Наши проекты — от домашних систем 6 кВт до промышленных СЭС 110 кВт. Откройте объект, чтобы увидеть параметры решения.')}
             </p>
           </div>
 
-          <div className="inline-flex flex-wrap gap-1 p-1 bg-slate-100 rounded-lg mb-7">
+          <div className="inline-flex flex-wrap gap-1 p-1 bg-[#0d1f33]/85 backdrop-blur-md border border-white/20 rounded-lg mb-7 shadow-md">
             <button
               type="button"
               onClick={() => setCaseSeg('all')}
               className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                caseSeg === 'all' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
+                caseSeg === 'all' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Обрані проєкти', 'Избранные проекты')} ({visibleCases.length})
@@ -994,7 +1050,7 @@ export function HomeView({
               type="button"
               onClick={() => setCaseSeg('b2b')}
               className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                caseSeg === 'b2b' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
+                caseSeg === 'b2b' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Для бізнесу B2B', 'Для бизнеса B2B')}
@@ -1003,7 +1059,7 @@ export function HomeView({
               type="button"
               onClick={() => setCaseSeg('b2c')}
               className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                caseSeg === 'b2c' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
+                caseSeg === 'b2c' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Для дому B2C', 'Для дома B2C')}
@@ -1016,7 +1072,7 @@ export function HomeView({
                   onNavigateProjects();
                 }
               }}
-              className="px-3.5 py-2 text-xs font-bold text-[#1769aa] hover:underline whitespace-nowrap"
+              className="px-3.5 py-2 text-xs font-bold text-[#fbbf24] hover:underline whitespace-nowrap"
             >
               {tr('Усі', 'Все')} {projects.length} {tr('об’єктів', 'объектов')} →
             </a>
@@ -1027,7 +1083,7 @@ export function HomeView({
               <article
                 key={c.id}
                 onClick={() => onSelectCase(c)}
-                className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150"
+                className="bg-white/95 backdrop-blur-md border border-white/25 rounded-xl overflow-hidden flex flex-col cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
               >
                 <div className="relative h-48 bg-[#0d1f33]">
                   <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} className="w-full h-full object-cover" />
@@ -1038,7 +1094,7 @@ export function HomeView({
                 <div className="p-4 flex-1 flex flex-col justify-between gap-3">
                   <div>
                     <h3 className="text-base font-extrabold text-[#0d1f33] mb-1">{isRussian ? c.titleRu ?? c.title : c.title}</h3>
-                    <p className="text-xs text-[#52657a] line-clamp-2 leading-relaxed">{c.task}</p>
+                    <p className="text-xs text-[#334155] font-medium line-clamp-2 leading-relaxed">{c.task}</p>
                   </div>
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] font-bold">
                     <span className="font-mono text-[#0d1f33] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
@@ -1052,8 +1108,18 @@ export function HomeView({
       </section>
 
       {/* Process & FAQ */}
-      <section className="py-16 bg-[#081421]/35 backdrop-blur-[1px] border-t border-white/15 text-white">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section className="relative overflow-hidden isolate py-16 border-t border-white/15 text-white">
+        <VideoBackground
+          position="absolute"
+          start={HOME_VIDEO_SEGMENTS.process.start}
+          end={HOME_VIDEO_SEGMENTS.process.end}
+          autoPlay
+          loop
+          muted
+          playsInline
+          brightness={0.4}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
               <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-3 py-1 text-xs font-extrabold text-sky-200">
@@ -1141,8 +1207,18 @@ export function HomeView({
       <FaqSection onOpenLeadModal={onOpenLeadModal} />
 
       {/* Engineering Brief -> Direct CRM & Telegram */}
-      <section id="home-request" className="bg-[#0d1f33]/75 backdrop-blur-md border-t border-white/15 text-white py-14">
-        <div className="max-w-[1180px] mx-auto px-5 grid grid-cols-1 lg:grid-cols-12 gap-9 items-start">
+      <section id="home-request" className="relative overflow-hidden isolate border-t border-white/15 text-white py-14">
+        <VideoBackground
+          position="absolute"
+          start={HOME_VIDEO_SEGMENTS.brief.start}
+          end={HOME_VIDEO_SEGMENTS.brief.end}
+          autoPlay
+          loop
+          muted
+          playsInline
+          brightness={0.35}
+        />
+        <div className="relative max-w-[1180px] mx-auto px-5 grid grid-cols-1 lg:grid-cols-12 gap-9 items-start">
           <div className="lg:col-span-5">
             <div className="text-xs font-extrabold text-[#f59e0b] mb-2">{tr('Швидкий інженерний бриф', 'Краткий бриф для инженера')}</div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-3">
@@ -1168,7 +1244,7 @@ export function HomeView({
                 track({ name: 'form_start', placement: 'section', scenario: getFormScenario(taskType) });
               }
             }}
-            className="lg:col-span-7 bg-white/[0.06] border border-white/15 rounded-2xl p-6 space-y-4"
+            className="lg:col-span-7 bg-[#0d1f33]/65 backdrop-blur-md border border-white/15 rounded-2xl p-6 space-y-4"
           >
             <div className="hidden" aria-hidden="true">
               <label htmlFor="brief-website">Website</label>

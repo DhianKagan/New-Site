@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --text-xs: 0.8125rem;
-  --text-xs--line-height: 1.45;
-  --text-sm: 0.925rem;
-  --text-sm--line-height: 1.5;
+  --text-xs: 0.84rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.95rem;
+  --text-sm--line-height: 1.55;
   --text-base: 1rem;
-  --text-base--line-height: 1.55;
+  --text-base--line-height: 1.6;
   --text-lg: 1.15rem;
-  --text-lg--line-height: 1.4;
-  --text-xl: 1.3rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.32rem;
   --text-xl--line-height: 1.35;
-  --text-2xl: 1.55rem;
+  --text-2xl: 1.58rem;
   --text-2xl--line-height: 1.25;
-  --text-3xl: 1.95rem;
+  --text-3xl: 1.98rem;
   --text-3xl--line-height: 1.2;
 }
 
@@ -26,8 +26,8 @@
     --cyan: #169374;
     --amber: #f59e0b;
     --amber-hover: #d97706;
-    --ink: #172636;
-    --muted: #52657a;
+    --ink: #0f172a;
+    --muted: #334155;
     --line: #e2e8f0;
     --bg: #f6f8fb;
   }
@@ -35,6 +35,7 @@
   html {
     font-size: 16.5px;
     scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
   }
 
   @media (min-width: 640px) {
@@ -52,12 +53,14 @@
   body {
     font-family: 'Manrope', system-ui, -apple-system, sans-serif;
     font-size: 1rem;
+    line-height: 1.6;
     color: var(--ink);
     background: transparent;
   }
 
   h1, h2, h3, h4 {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 
@@ -71,21 +74,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+.text-on-video {
+  text-shadow: 0 2px 12px rgba(4, 12, 24, 0.72), 0 1px 3px rgba(4, 12, 24, 0.85);
+}
+
 @layer utilities {
   .text-\[10px\] {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
   }
   .text-\[10\.5px\] {
-    font-size: 0.73rem;
+    font-size: 0.75rem;
   }
   .text-\[11px\] {
-    font-size: 0.77rem;
+    font-size: 0.79rem;
   }
   .text-\[13px\] {
-    font-size: 0.89rem;
+    font-size: 0.91rem;
   }
   .text-\[15px\] {
-    font-size: 1.03rem;
+    font-size: 1.04rem;
   }
 }
 

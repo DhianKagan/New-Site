@@ -2,6 +2,7 @@ import { Check, ArrowRight } from 'lucide-react';
 import { EXTRA_SERVICES, MONTAGE_SERVICES } from '../data/siteContent.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { SmartImage } from './SmartImage.tsx';
+import { VideoBackground } from './VideoBackground.tsx';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 interface ServicesViewProps {
@@ -45,19 +46,20 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
         </div>
       </section>
 
-      <section className="py-12 bg-white/92 backdrop-blur-md">
-        <div className="max-w-[1180px] mx-auto px-5 space-y-12">
+      <section className="relative overflow-hidden isolate py-12">
+        <VideoBackground position="absolute" tone="light" start={20} end={36} />
+        <div className="relative max-w-[1180px] mx-auto px-5 space-y-12">
           <div>
             <div className="mb-6">
-              <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Напрямок 01')}</div>
-              <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Послуги монтажу під ключ')}</h2>
+              <div className="text-xs font-extrabold text-sky-300 text-on-video mb-1">{tr('Напрямок 01')}</div>
+              <h2 className="text-2xl font-extrabold text-white text-on-video">{tr('Послуги монтажу під ключ')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {MONTAGE_SERVICES.map((svc) => (
                 <article
                   key={svc.id}
-                  className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between gap-5"
+                  className="bg-white/95 backdrop-blur-md border border-white/25 shadow-xl rounded-2xl overflow-hidden flex flex-col justify-between gap-5"
                 >
                   {svc.image && (
                     <div className="h-40 bg-slate-100">
@@ -67,8 +69,8 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                   <div className="p-6 pt-1">
                     <div className="text-[11px] font-bold text-[#1769aa] mb-1">{isRussian ? svc.kickerRu ?? svc.kicker : svc.kicker}</div>
                     <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
-                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
-                    <ul className="space-y-2 text-xs text-slate-700">
+                    <p className="text-xs text-[#334155] font-medium leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
+                    <ul className="space-y-2 text-xs text-[#0f172a]">
                       {(isRussian ? svc.bulletsRu ?? svc.bullets : svc.bullets).map((b) => (
                         <li key={b} className="flex items-start gap-2">
                           <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
@@ -94,17 +96,17 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-200">
+          <div className="pt-8 border-t border-white/15">
             <div className="mb-6">
-              <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Напрямок 02')}</div>
-              <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Додаткові інженерні послуги')}</h2>
+              <div className="text-xs font-extrabold text-sky-300 text-on-video mb-1">{tr('Напрямок 02')}</div>
+              <h2 className="text-2xl font-extrabold text-white text-on-video">{tr('Додаткові інженерні послуги')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {EXTRA_SERVICES.map((svc) => (
                 <article
                   key={svc.id}
-                  className="bg-[#f6f8fb] border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between gap-5"
+                  className="bg-white/95 backdrop-blur-md border border-white/25 shadow-xl rounded-2xl overflow-hidden flex flex-col justify-between gap-5"
                 >
                   {svc.image && (
                     <div className="h-40 bg-slate-100">
@@ -114,8 +116,8 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                   <div className="p-6 pt-1">
                     <div className="text-[11px] font-bold text-[#1769aa] mb-1">{isRussian ? svc.kickerRu ?? svc.kicker : svc.kicker}</div>
                     <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
-                    <p className="text-xs text-[#52657a] leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
-                    <ul className="space-y-2 text-xs text-slate-700">
+                    <p className="text-xs text-[#334155] font-medium leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
+                    <ul className="space-y-2 text-xs text-[#0f172a]">
                       {(isRussian ? svc.bulletsRu ?? svc.bullets : svc.bullets).map((b) => (
                         <li key={b} className="flex items-start gap-2">
                           <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />

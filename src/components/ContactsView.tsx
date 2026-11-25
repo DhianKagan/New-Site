@@ -3,6 +3,7 @@ import { COMPANY_INFO } from '../data/siteContent.ts';
 import { tr } from '../lib/i18n.ts';
 import { track, trackEvent } from '../lib/analytics.ts';
 import { SocialIcons } from './SocialIcons.tsx';
+import { VideoBackground } from './VideoBackground.tsx';
 import type { SocialLinksConfig } from '../types.ts';
 
 interface ContactsViewProps {
@@ -41,20 +42,21 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
         </div>
       </section>
 
-      <section className="bg-[#f6f8fb]/90 backdrop-blur-md py-10 sm:py-12">
-        <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-6 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+      <section className="relative overflow-hidden isolate py-10 sm:py-12">
+        <VideoBackground position="absolute" tone="light" start={34} end={50} />
+        <div className="relative mx-auto grid max-w-[1180px] grid-cols-1 gap-6 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8">
+          <div className="rounded-2xl border border-white/25 bg-white/95 backdrop-blur-md shadow-xl p-6 sm:p-8">
             <div className="mb-6">
               <div className="text-xs font-extrabold text-[#1769aa] mb-1">{tr('Контакти')}</div>
               <h2 className="text-2xl font-extrabold text-[#0d1f33]">{tr('Зв’яжіться з нами')}</h2>
-              <p className="mt-2 text-sm text-[#52657a]">{tr('Проконсультуємо щодо обладнання, монтажу та підбору системи.')}</p>
+              <p className="mt-2 text-sm text-[#334155] font-medium">{tr('Проконсультуємо щодо обладнання, монтажу та підбору системи.')}</p>
             </div>
 
             <div className="space-y-5">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><MapPin className="h-5 w-5" /></span>
                 <div>
-                  <p className="text-xs font-bold text-[#52657a]">{tr('Головний офіс')}</p>
+                  <p className="text-xs font-bold text-[#334155]">{tr('Головний офіс')}</p>
                   <p className="mt-1 text-sm font-bold text-[#0d1f33]">{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
                 </div>
               </div>
@@ -62,7 +64,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Phone className="h-5 w-5" /></span>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-[#52657a]">{tr('Телефони')}</p>
+                  <p className="text-xs font-bold text-[#334155]">{tr('Телефони')}</p>
                   <a href={COMPANY_INFO.phone1Href} onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone1}</a>
                   <a href={COMPANY_INFO.phone2Href} onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone2}</a>
                 </div>
@@ -71,7 +73,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Mail className="h-5 w-5" /></span>
                 <div>
-                  <p className="text-xs font-bold text-[#52657a]">{tr('Електронна пошта')}</p>
+                  <p className="text-xs font-bold text-[#334155]">{tr('Електронна пошта')}</p>
                   <a href={`mailto:${COMPANY_INFO.email}`} onClick={() => trackEvent('contact', { channel: 'email', placement: 'section' })} className="mt-1 block break-all text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.email}</a>
                 </div>
               </div>
@@ -79,7 +81,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
               <div className="flex items-center gap-3 border-t border-slate-100 pt-5">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Clock className="h-5 w-5" /></span>
                 <div>
-                  <p className="text-xs font-bold text-[#52657a]">{tr('Графік роботи')}</p>
+                  <p className="text-xs font-bold text-[#334155]">{tr('Графік роботи')}</p>
                   <p className="mt-1 text-sm font-bold text-[#0d1f33]">{COMPANY_INFO.schedule}</p>
                 </div>
               </div>
@@ -107,12 +109,13 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
         </div>
       </section>
 
-      <section className="bg-white/92 backdrop-blur-md py-10 sm:py-12">
-        <div className="mx-auto max-w-[1180px] px-5">
-          <div className="rounded-2xl border border-slate-200 bg-[#f6f8fb] p-6 sm:p-8">
+      <section className="relative overflow-hidden isolate border-t border-white/15 py-10 sm:py-12">
+        <VideoBackground position="absolute" tone="light" start={46} end={59} />
+        <div className="relative mx-auto max-w-[1180px] px-5">
+          <div className="rounded-2xl border border-white/25 bg-white/95 backdrop-blur-md shadow-xl p-6 sm:p-8">
               <div className="text-xs font-extrabold text-[#1769aa]">{tr('Про компанію та умови')}</div>
-              <h2 className="text-xl font-extrabold text-[#0d1f33]">{tr('Гарантія, повернення та оферта')}</h2>
-              <div className="space-y-3 text-xs text-[#52657a] leading-relaxed">
+              <h2 className="text-xl font-extrabold text-[#0d1f33] mb-3">{tr('Гарантія, повернення та оферта')}</h2>
+              <div className="space-y-3 text-xs text-[#1e293b] leading-relaxed">
                 <div className="flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" />
                   <p>

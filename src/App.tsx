@@ -44,6 +44,7 @@ import { SmartImage } from './components/SmartImage.tsx';
 import { SocialIcons } from './components/SocialIcons.tsx';
 import { InfoPage } from './components/InfoPage.tsx';
 import { VideoBackground } from './components/VideoBackground.tsx';
+import { OfflineIndicator, PWAInstallButton } from './components/PWAStatusUI.tsx';
 import { formatUahFromUsd } from './lib/currency.ts';
 import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 import {
@@ -67,7 +68,23 @@ type AppView =
   | 'crm';
 
 const CART_STORAGE_KEY = 'ec_cart_v1';
+const OFFLINE_CATALOG_STORAGE_KEY = 'ec_offline_catalog_v1';
+const OFFLINE_PROJECTS_STORAGE_KEY = 'ec_offline_projects_v1';
+const OFFLINE_RATE_STORAGE_KEY = 'ec_offline_rate_v1';
 const VALID_CATS: ProductCategory[] = ['kits', 'inverters', 'batteries', 'panels', 'parts'];
+
+const ROUTE_VIDEO_SEGMENTS: Record<AppView, { start: number; end: number }> = {
+  home: { start: 2, end: 15 },
+  shop: { start: 16, end: 30 },
+  services: { start: 31, end: 44 },
+  projects: { start: 45, end: 58 },
+  contacts: { start: 8, end: 22 },
+  'payment-delivery': { start: 20, end: 36 },
+  offer: { start: 34, end: 48 },
+  login: { start: 12, end: 28 },
+  account: { start: 24, end: 40 },
+  crm: { start: 40, end: 56 },
+};
 
 const DEFAULT_SOCIAL_LINKS: SocialLinksConfig = {
   telegram: 'https://t.me/+380507777172',
@@ -445,9 +462,26 @@ function AppContent() {
         const response = await fetch('/api/public/exchange-rate');
         if (!response.ok) throw new Error('Комерційний курс тимчасово недоступний');
         const data = (await response.json()) as { rate?: number };
-        if (active && data.rate && Number.isFinite(data.rate)) setUsdUahRate(data.rate);
+        if (active && data.rate && Number.isFinite(data.rate)) {
+          setUsdUahRate(data.rate);
+          try {
+            localStorage.setItem(OFFLINE_RATE_STORAGE_KEY, String(data.rate));
+          } catch {
+            // ignore storage quota errors
+          }
+        }
       } catch {
-        if (active) setUsdUahRate(null);
+        if (!active) return;
+        try {
+          const cachedRate = Number(localStorage.getItem(OFFLINE_RATE_STORAGE_KEY));
+          if (Number.isFinite(cachedRate) && cachedRate > 0) {
+            setUsdUahRate(cachedRate);
+            return;
+          }
+        } catch {
+          // ignore storage errors
+        }
+        setUsdUahRate(null);
       }
     };
     void loadExchangeRate();
@@ -514,11 +548,28 @@ function AppContent() {
         const data = (await resp.json()) as { items: Product[] };
         setProducts(data.items);
         setApiAvailable(true);
+        try {
+          localStorage.setItem(OFFLINE_CATALOG_STORAGE_KEY, JSON.stringify(data.items));
+        } catch {
+          // ignore storage quota errors
+        }
         return;
       }
       throw new Error('Catalog API unavailable');
     } catch {
       setApiAvailable(false);
+      try {
+        const cachedRaw = localStorage.getItem(OFFLINE_CATALOG_STORAGE_KEY);
+        if (cachedRaw) {
+          const cachedItems = JSON.parse(cachedRaw) as Product[];
+          if (Array.isArray(cachedItems) && cachedItems.length > 0) {
+            setProducts(cachedItems);
+            return;
+          }
+        }
+      } catch {
+        // fallback to bundled seed catalog
+      }
       try {
         const seed = await import('../server/seed/catalog.json');
         setProducts(seed.default as Product[]);
@@ -596,7 +647,7 @@ function AppContent() {
       if (resp.ok && isJson) {
         const data = (await resp.json()) as { projects: ProjectCase[] };
         if (Array.isArray(data.projects) && data.projects.length > 0) {
-          setProjects(data.projects.map((project) => {
+          const mergedProjects = data.projects.map((project) => {
             const builtIn = PROJECTS.find((item) => item.id === project.id);
             if (!builtIn) return project;
             return {
@@ -608,11 +659,28 @@ function AppContent() {
               specsRu: project.specsRu ?? builtIn.specsRu,
               resultRu: project.resultRu ?? builtIn.resultRu,
             };
-          }));
+          });
+          setProjects(mergedProjects);
+          try {
+            localStorage.setItem(OFFLINE_PROJECTS_STORAGE_KEY, JSON.stringify(mergedProjects));
+          } catch {
+            // ignore storage quota errors
+          }
         }
       }
     } catch {
-      // Static mode keeps PROJECTS seed fallback
+      try {
+        const cachedRaw = localStorage.getItem(OFFLINE_PROJECTS_STORAGE_KEY);
+        if (cachedRaw) {
+          const cachedProjects = JSON.parse(cachedRaw) as ProjectCase[];
+          if (Array.isArray(cachedProjects) && cachedProjects.length > 0) {
+            setProjects(cachedProjects);
+            return;
+          }
+        }
+      } catch {
+        // keep built-in PROJECTS fallback
+      }
     }
   }, []);
 
@@ -1302,10 +1370,14 @@ function AppContent() {
     ? `CRM (${activeDealsCount})`
     : 'CRM';
 
+  const activeVideoSegment = ROUTE_VIDEO_SEGMENTS[view] ?? ROUTE_VIDEO_SEGMENTS.home;
+
   return (
     <div className={`min-h-screen flex flex-col relative text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
       <VideoBackground
         src="https://www.youtube.com/watch?v=o7fTs8et1QM"
+        start={activeVideoSegment.start}
+        end={activeVideoSegment.end}
         autoPlay
         loop
         muted
@@ -1347,6 +1419,7 @@ function AppContent() {
               <SocialIcons links={socialLinks} variant="header" />
             </div>
             <div className="flex items-center gap-1.5">
+              <PWAInstallButton />
               <button
                 type="button"
                 onClick={() => navigateTo('home')}
@@ -1963,6 +2036,8 @@ function AppContent() {
         onOpenCrm={() => navigateTo('crm')}
         usdUahRate={usdUahRate}
       />
+
+      <OfflineIndicator />
     </div>
   );
 }

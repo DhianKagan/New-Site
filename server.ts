@@ -2325,7 +2325,16 @@ async function startServer() {
     }
     const distHtmlPath = path.join(distDir, 'index.html');
     const distHtmlTemplate = fs.existsSync(distHtmlPath) ? fs.readFileSync(distHtmlPath, 'utf8') : '';
-    app.use(express.static(distDir, { index: false }));
+    app.use(
+      express.static(distDir, {
+        index: false,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('sw.js') || filePath.endsWith('manifest.webmanifest')) {
+            res.setHeader('Cache-Control', 'no-cache');
+          }
+        },
+      }),
+    );
     app.get('*', (req, res) => {
       if (distHtmlTemplate) {
         res.type('text/html; charset=utf-8').send(buildRouteSeoHtml(distHtmlTemplate, req));

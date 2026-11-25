@@ -48,7 +48,7 @@ export function ProductCard({
     : tr('Додати до списку бажань', 'Добавить в список желаний');
 
   return (
-    <article className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300">
+    <article className="bg-white/95 backdrop-blur-md border border-white/25 rounded-xl overflow-hidden flex flex-col shadow-md transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:border-sky-200">
       <div className="relative h-52 w-full bg-[#f8fafc] border-b border-slate-100 overflow-hidden group">
         <button
           type="button"
@@ -107,10 +107,10 @@ export function ProductCard({
 
       <div className="p-4 flex-1 flex flex-col justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 mb-1.5 truncate">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 mb-1.5 truncate">
             <span>{tr(CAT_LABELS[product.cat] || product.cat)}</span>
             <span aria-hidden="true">·</span>
-            <span className="text-[#0d1f33] font-semibold">{product.brand}</span>
+            <span className="text-[#0d1f33] font-bold">{product.brand}</span>
             <span aria-hidden="true">·</span>
             <span className="font-mono text-[10.5px]">SKU {product.sku}</span>
           </div>
@@ -129,7 +129,7 @@ export function ProductCard({
             <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
               {specs.slice(0, 3).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="text-slate-500">{k}</span>
+                  <span className="text-slate-600 font-medium">{k}</span>
                   <span className="font-semibold text-[#0d1f33] text-right truncate">{v}</span>
                 </div>
               ))}

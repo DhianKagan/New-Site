@@ -10,7 +10,7 @@
     "dev": "tsx server.ts",
     "start": "node server.ts",
     "build": "vite build",
-    "test": "tsx --test tests/leadForm.test.ts tests/sitemap.test.ts tests/shopSearch.test.ts tests/seoRating.test.ts tests/firebaseConfig.test.ts tests/errorReporting.test.ts tests/crmDealCreate.test.ts tests/exchangeRate.test.ts tests/seoHtml.test.ts tests/analytics.test.ts tests/productReviews.test.ts tests/calculators.test.ts tests/wishlist.test.ts tests/howItWorks.test.ts tests/socialLinks.test.ts tests/videoBackground.test.ts",
+    "test": "tsx --test tests/leadForm.test.ts tests/sitemap.test.ts tests/shopSearch.test.ts tests/seoRating.test.ts tests/firebaseConfig.test.ts tests/errorReporting.test.ts tests/crmDealCreate.test.ts tests/exchangeRate.test.ts tests/seoHtml.test.ts tests/analytics.test.ts tests/productReviews.test.ts tests/calculators.test.ts tests/wishlist.test.ts tests/howItWorks.test.ts tests/socialLinks.test.ts tests/videoBackground.test.ts tests/pwaOffline.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
@@ -50,7 +50,8 @@
     "eslint": "^10.15.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite-plugin-pwa": "^2.0.0"
   },
   "overrides": {
     "@grpc/grpc-js": "^1.13.6"

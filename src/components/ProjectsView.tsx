@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ProjectCase } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
+import { VideoBackground } from './VideoBackground.tsx';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
 
 interface ProjectsViewProps {
@@ -43,15 +44,16 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
         </div>
       </section>
 
-      <section className="py-12 bg-white/92 backdrop-blur-md">
-        <div className="max-w-[1180px] mx-auto px-5">
+      <section className="relative overflow-hidden isolate py-12">
+        <VideoBackground position="absolute" tone="light" start={28} end={44} />
+        <div className="relative max-w-[1180px] mx-auto px-5">
           <h2 className="sr-only">{tr('Кейси встановлених сонячних електростанцій та систем резервного живлення', 'Примеры установленных солнечных электростанций и систем резервного питания')}</h2>
-          <div className="inline-flex flex-wrap gap-1 p-1 bg-slate-100 rounded-lg mb-7">
+          <div className="inline-flex flex-wrap gap-1 p-1 bg-[#0d1f33]/85 backdrop-blur-md border border-white/20 rounded-lg mb-7 shadow-md">
             <button
               type="button"
               onClick={() => setSeg('all')}
               className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                seg === 'all' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
+                seg === 'all' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Усі проєкти', 'Все проекты')} ({projects.length})
@@ -60,7 +62,7 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
               type="button"
               onClick={() => setSeg('b2b')}
               className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                seg === 'b2b' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
+                seg === 'b2b' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Бізнес B2B')} ({projects.filter((p) => p.seg === 'b2b').length})
@@ -69,7 +71,7 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
               type="button"
               onClick={() => setSeg('b2c')}
               className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                seg === 'b2c' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-600 hover:text-[#0d1f33]'
+                seg === 'b2c' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
               }`}
             >
               {tr('Дім і квартира B2C')} ({projects.filter((p) => p.seg === 'b2c').length})
@@ -81,7 +83,7 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
               <article
                 key={c.id}
                 onClick={() => onSelectCase(c)}
-                className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-150"
+                className="bg-white/95 backdrop-blur-md border border-white/25 rounded-xl overflow-hidden flex flex-col cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
               >
                 <div className="relative h-52 bg-[#0d1f33]">
                   <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} className="w-full h-full object-cover" />
@@ -92,7 +94,7 @@ export function ProjectsView({ projects, onBackHome, onSelectCase }: ProjectsVie
                 <div className="p-5 flex-1 flex flex-col justify-between gap-3">
                   <div>
                     <h3 className="text-base font-extrabold text-[#0d1f33] mb-1.5">{isRussian ? c.titleRu ?? c.title : c.title}</h3>
-                    <p className="text-xs text-[#52657a] leading-relaxed">{isRussian ? c.taskRu ?? c.task : c.task}</p>
+                    <p className="text-xs text-[#334155] font-medium leading-relaxed">{isRussian ? c.taskRu ?? c.task : c.task}</p>
                   </div>
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] font-bold">
                     <span className="font-mono text-[#0d1f33] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>

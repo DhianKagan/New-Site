@@ -28,6 +28,7 @@ import { SystemSchemesTab } from './cabinet/SystemSchemesTab.tsx';
 import { TechGuideTab } from './cabinet/TechGuideTab.tsx';
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
+import { VideoBackground } from './VideoBackground.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
 import { Card } from './ui/card.tsx';
@@ -212,9 +213,10 @@ export function ClientCabinetView({
   const completedDeals = deals.filter((d) => d.stage === 'done');
 
   return (
-    <div className="bg-[#f6f8fb]/90 backdrop-blur-md min-h-[calc(100vh-140px)] pb-14">
+    <div className="relative overflow-hidden isolate min-h-[calc(100vh-140px)] pb-14">
+      <VideoBackground position="absolute" tone="light" start={24} end={40} />
       {/* Cabinet Header Bar */}
-      <div className="bg-[#0d1f33]/80 backdrop-blur-md text-white border-b border-white/10">
+      <div className="relative bg-[#0d1f33]/85 backdrop-blur-md text-white border-b border-white/10">
         <div className="max-w-[1180px] mx-auto px-4 sm:px-5 py-6 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <button
@@ -312,7 +314,7 @@ export function ClientCabinetView({
         </div>
       </div>
 
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-5 pt-6 space-y-6">
+      <div className="relative max-w-[1180px] mx-auto px-4 sm:px-5 pt-6 space-y-6">
         {activeTab === 'wishlist' && (
           <div className="space-y-5">
             <Card className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -31,6 +31,7 @@ import {
   Users,
 } from 'lucide-react';
 import { getFirebaseProjectId, getRuntimeFirebaseConfig } from '../lib/firebaseAuth.ts';
+import { VideoBackground } from './VideoBackground.tsx';
 import type {
   AnalyticsConfig,
   AnalyticsEventRecord,
@@ -1129,10 +1130,11 @@ export function CrmView({
   }
 
   return (
-    <div className="bg-[#f6f8fb]/95 backdrop-blur-md min-h-screen py-8">
-      <div className="max-w-[1260px] mx-auto px-5 space-y-6">
+    <div className="relative overflow-hidden isolate min-h-screen py-8">
+      <VideoBackground position="absolute" tone="light" start={36} end={52} />
+      <div className="relative max-w-[1260px] mx-auto px-5 space-y-6">
         {/* Header Bar */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+        <div className="bg-white/95 backdrop-blur-md border border-white/25 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
           <div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-[#1769aa] mb-1">
               <LayoutDashboard className="w-3.5 h-3.5" />
