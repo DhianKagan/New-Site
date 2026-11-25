@@ -104,80 +104,92 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
           })}
         </div>
 
-        {/* Selected Node Detailed 3-Question Engineering Breakdown */}
-        <div className="mt-6 rounded-2xl border border-white/25 bg-white/95 backdrop-blur-md shadow-xl p-5 sm:p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-200">
-            <div>
-              <div className="text-xs font-mono font-bold text-[#1769aa]">
-                {activeNode.order} · {tr(activeNode.specHighlightUk, activeNode.specHighlightRu)}
-              </div>
-              <h3 className="text-lg sm:text-xl font-extrabold text-[#0d1f33] mt-0.5">
-                {tr(activeNode.titleUk, activeNode.titleRu)}
-              </h3>
+        {/* Selected Node Header */}
+        <div className="mt-6 rounded-xl border border-white/15 bg-[#081421]/75 backdrop-blur-md px-4 py-3.5 sm:px-5 sm:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+          <div>
+            <div className="text-xs font-mono font-bold text-sky-300">
+              {activeNode.order} · {tr(activeNode.specHighlightUk, activeNode.specHighlightRu)}
             </div>
-            <div className="text-xs font-mono font-semibold text-[#0d1f33] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-              {tr(activeNode.connectionPathUk, activeNode.connectionPathRu)}
-            </div>
+            <h3 className="text-lg sm:text-xl font-extrabold text-white text-on-video mt-0.5">
+              {tr(activeNode.titleUk, activeNode.titleRu)}
+            </h3>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-[#0d1f33]">
-                <Cable className="w-4 h-4 text-[#1769aa] shrink-0" />
-                <span>{tr('Як і куди підключається', 'Как и куда подключается')}</span>
-              </div>
-              <p className="text-xs sm:text-sm text-[#1e293b] leading-relaxed">
-                {tr(activeNode.howConnectsUk, activeNode.howConnectsRu)}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-[#0d1f33]">
-                <HelpCircle className="w-4 h-4 text-[#f59e0b] shrink-0" />
-                <span>{tr('Навіщо потрібен у системі', 'Зачем нужен в системе')}</span>
-              </div>
-              <p className="text-xs sm:text-sm text-[#1e293b] leading-relaxed">
-                {tr(activeNode.whyNeededUk, activeNode.whyNeededRu)}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-[#0d1f33]">
-                <TrendingUp className="w-4 h-4 text-[#169374] shrink-0" />
-                <span>{tr('Що дає власнику', 'Что даёт владельцу')}</span>
-              </div>
-              <p className="text-xs sm:text-sm text-[#1e293b] leading-relaxed">
-                {tr(activeNode.whatGivesUk, activeNode.whatGivesRu)}
-              </p>
-            </div>
+          <div className="text-xs font-mono font-semibold text-slate-100 bg-white/10 border border-white/15 rounded-lg px-3 py-2">
+            {tr(activeNode.connectionPathUk, activeNode.connectionPathRu)}
           </div>
+        </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={scrollToCalculator}
-              className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1769aa] hover:underline cursor-pointer"
-            >
-              <span>{tr('Перейти до калькулятора окупності', 'Перейти к калькулятору окупаемости')}</span>
-              <ArrowDown className="w-3.5 h-3.5" />
-            </button>
+        {/* Selected Node Breakdown: 3 Separate Cards */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <article className="rounded-2xl border border-white/25 border-t-4 border-t-[#1769aa] bg-white/95 backdrop-blur-md shadow-xl p-5 sm:p-6 space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-[#eff6fc] text-[#1769aa] flex items-center justify-center shrink-0">
+                <Cable className="w-4 h-4" />
+              </span>
+              <h4 className="text-sm font-extrabold text-[#0d1f33]">
+                {tr('Як і куди підключається', 'Как и куда подключается')}
+              </h4>
+            </div>
+            <p className="text-xs sm:text-sm text-[#1e293b] leading-relaxed">
+              {tr(activeNode.howConnectsUk, activeNode.howConnectsRu)}
+            </p>
+          </article>
 
-            <button
-              type="button"
-              onClick={() =>
-                onOpenLeadModal(
-                  `Підбір системи (вузол: ${activeNode.titleUk})`,
-                  undefined,
-                  'section',
-                  `Користувач вивчав 3D-схему «Як це працює» (елемент: ${activeNode.titleUk}).`,
-                )
-              }
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-xs font-extrabold transition-colors cursor-pointer"
-            >
-              <span>{tr('Підібрати схему під мій об’єкт', 'Подобрать схему под мой объект')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <article className="rounded-2xl border border-white/25 border-t-4 border-t-[#f59e0b] bg-white/95 backdrop-blur-md shadow-xl p-5 sm:p-6 space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-amber-50 text-[#d97706] flex items-center justify-center shrink-0">
+                <HelpCircle className="w-4 h-4" />
+              </span>
+              <h4 className="text-sm font-extrabold text-[#0d1f33]">
+                {tr('Навіщо потрібен у системі', 'Зачем нужен в системе')}
+              </h4>
+            </div>
+            <p className="text-xs sm:text-sm text-[#1e293b] leading-relaxed">
+              {tr(activeNode.whyNeededUk, activeNode.whyNeededRu)}
+            </p>
+          </article>
+
+          <article className="rounded-2xl border border-white/25 border-t-4 border-t-[#169374] bg-white/95 backdrop-blur-md shadow-xl p-5 sm:p-6 space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-emerald-50 text-[#169374] flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4" />
+              </span>
+              <h4 className="text-sm font-extrabold text-[#0d1f33]">
+                {tr('Що дає власнику', 'Что даёт владельцу')}
+              </h4>
+            </div>
+            <p className="text-xs sm:text-sm text-[#1e293b] leading-relaxed">
+              {tr(activeNode.whatGivesUk, activeNode.whatGivesRu)}
+            </p>
+          </article>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={scrollToCalculator}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#081421]/75 hover:bg-[#081421]/90 border border-white/20 text-xs font-extrabold text-sky-300 hover:text-white backdrop-blur-md transition-colors cursor-pointer"
+          >
+            <span>{tr('Перейти до калькулятора окупності', 'Перейти к калькулятору окупаемости')}</span>
+            <ArrowDown className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              onOpenLeadModal(
+                `Підбір системи (вузол: ${activeNode.titleUk})`,
+                undefined,
+                'section',
+                `Користувач вивчав 3D-схему «Як це працює» (елемент: ${activeNode.titleUk}).`,
+              )
+            }
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-xs font-extrabold shadow-lg transition-colors cursor-pointer"
+          >
+            <span>{tr('Підібрати схему під мій об’єкт', 'Подобрать схему под мой объект')}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </section>

@@ -63,3 +63,16 @@ test('sampleSolarCycleState moves sun east-to-west and shifts sky lighting from 
   assert.equal(nextSunrise.skyHorizonHex, sunrise.skyHorizonHex);
 });
 
+test('HowItWorks component splits node breakdown into three separate cards', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const source = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'HowItWorks.tsx'),
+    'utf-8',
+  );
+  const articleMatches = source.match(/<article\b/g) ?? [];
+  assert.equal(articleMatches.length, 3);
+  assert.match(source, /grid grid-cols-1 md:grid-cols-3 gap-4/);
+});
+
+
