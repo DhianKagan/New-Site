@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { tr } from '../lib/i18n.ts';
 import {
+  computeEquipmentTypeCounts,
+  computeFeaturedBrandCounts,
+  computeInverterPowerCounts,
+  EQUIPMENT_TYPE_FILTERS,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  INVERTER_POWER_FILTERS,
   matchesBrandFilters,
-  matchesFeaturedBrand,
+  matchesEquipmentTypes,
+  matchesInverterPowerRanges,
+  type EquipmentTypeFilterId,
+  type InverterPowerRangeId,
 } from '../lib/shopSearch.ts';
 import { toAnalyticsProductItem, track, trackEvent } from '../lib/analytics.ts';
 
@@ -22,6 +30,7 @@ interface ShopViewProps {
   onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
+  onCalculatePayback?: (product: Product) => void;
   onOpenCustomRequest?: (topic: string, notes?: string) => void;
   onBackHome: () => void;
   usdUahRate: number | null;
@@ -49,6 +58,7 @@ export function ShopView({
   onToggleWishlist,
   onAddToCart,
   onRequestQuote,
+  onCalculatePayback,
   onOpenCustomRequest,
   onBackHome,
   usdUahRate,
@@ -56,7 +66,9 @@ export function ShopView({
   const [cat, setCat] = useState<ProductCategory | 'all'>(initialCategory);
   const [query, setQuery] = useState(initialQuery);
   const [brand, setBrand] = useState('all');
+  const [selectedEquipmentTypes, setSelectedEquipmentTypes] = useState<EquipmentTypeFilterId[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedPowerRanges, setSelectedPowerRanges] = useState<InverterPowerRangeId[]>([]);
   const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
@@ -65,6 +77,7 @@ export function ShopView({
 
   useEffect(() => {
     setCat(initialCategory);
+    setSelectedEquipmentTypes([]);
     setPage(1);
   }, [initialCategory]);
 
@@ -89,22 +102,49 @@ export function ShopView({
     return Array.from(bMap.entries()).sort((a, b) => b[1] - a[1]);
   }, [products]);
 
-  const featuredBrandCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const item of FEATURED_BRAND_FILTERS) {
-      map[item.id] = products.filter((p) => {
-        if (cat !== 'all' && p.cat !== cat) return false;
-        if (inStockOnly && !p.inStock) return false;
-        return matchesFeaturedBrand(p, item.id);
-      }).length;
-    }
-    return map;
-  }, [products, cat, inStockOnly]);
+  const equipmentTypeCounts = useMemo(
+    () =>
+      computeEquipmentTypeCounts(products, {
+        selectedBrands,
+        dropdownBrand: brand,
+        powerRanges: selectedPowerRanges,
+        inStockOnly,
+        query,
+      }),
+    [products, selectedBrands, brand, selectedPowerRanges, inStockOnly, query],
+  );
+
+  const featuredBrandCounts = useMemo(
+    () =>
+      computeFeaturedBrandCounts(products, {
+        category: cat,
+        equipmentTypes: selectedEquipmentTypes,
+        inStockOnly,
+        query,
+        powerRanges: selectedPowerRanges,
+      }),
+    [products, cat, selectedEquipmentTypes, inStockOnly, query, selectedPowerRanges],
+  );
+
+  const inverterPowerCounts = useMemo(
+    () =>
+      computeInverterPowerCounts(products, {
+        category: cat,
+        equipmentTypes: selectedEquipmentTypes,
+        selectedBrands,
+        dropdownBrand: brand,
+        inStockOnly,
+        query,
+      }),
+    [products, cat, selectedEquipmentTypes, selectedBrands, brand, inStockOnly, query],
+  );
 
   const filtered = useMemo(() => {
     const baseFiltered = products.filter((p) => {
       if (cat !== 'all' && p.cat !== cat) return false;
+      if (!matchesEquipmentTypes(p, selectedEquipmentTypes)) return false;
       if (!matchesBrandFilters(p, selectedBrands, brand)) return false;
+      if (!matchesInverterPowerRanges(p, selectedPowerRanges)) return false;
       if (inStockOnly && !p.inStock) return false;
       return true;
     });
@@ -118,7 +158,7 @@ export function ShopView({
       return [...searched].sort((a, b) => b.price - a.price);
     }
     return searched;
-  }, [products, cat, brand, selectedBrands, inStockOnly, query, sort]);
+  }, [products, cat, selectedEquipmentTypes, brand, selectedBrands, selectedPowerRanges, inStockOnly, query, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -129,8 +169,10 @@ export function ShopView({
 
   useEffect(() => {
     if (paginated.length === 0) return;
+    const typeKey = selectedEquipmentTypes.slice().sort().join(',');
     const brandKey = selectedBrands.length > 0 ? selectedBrands.slice().sort().join(',') : brand;
-    const listKey = `${cat}|${safePage}|${brandKey}|${inStockOnly}|${usdUahRate ?? 'usd'}`;
+    const powerKey = selectedPowerRanges.slice().sort().join(',');
+    const listKey = `${cat}|${typeKey}|${safePage}|${brandKey}|${powerKey}|${inStockOnly}|${usdUahRate ?? 'usd'}`;
     if (lastTrackedListKeyRef.current === listKey) return;
     lastTrackedListKeyRef.current = listKey;
 
@@ -140,7 +182,7 @@ export function ShopView({
       item_category: cat,
       items: paginated.slice(0, 10).map((p) => toAnalyticsProductItem(p, usdUahRate, 1)),
     });
-  }, [cat, safePage, brand, selectedBrands, inStockOnly, paginated, usdUahRate]);
+  }, [cat, safePage, selectedEquipmentTypes, brand, selectedBrands, selectedPowerRanges, inStockOnly, paginated, usdUahRate]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -162,8 +204,20 @@ export function ShopView({
 
   function handleCategoryChange(nextCat: ProductCategory | 'all') {
     setCat(nextCat);
+    setSelectedEquipmentTypes([]);
     setPage(1);
     onCategoryChange?.(nextCat);
+  }
+
+  function handleToggleEquipmentTypeCheckbox(typeId: EquipmentTypeFilterId) {
+    if (cat !== 'all') {
+      setCat('all');
+      onCategoryChange?.('all');
+    }
+    setSelectedEquipmentTypes((prev) =>
+      prev.includes(typeId) ? prev.filter((item) => item !== typeId) : [...prev, typeId],
+    );
+    setPage(1);
   }
 
   function handleToggleBrandCheckbox(brandId: string) {
@@ -171,6 +225,13 @@ export function ShopView({
       prev.includes(brandId) ? prev.filter((item) => item !== brandId) : [...prev, brandId],
     );
     setBrand('all');
+    setPage(1);
+  }
+
+  function handleTogglePowerRangeCheckbox(rangeId: InverterPowerRangeId) {
+    setSelectedPowerRanges((prev) =>
+      prev.includes(rangeId) ? prev.filter((item) => item !== rangeId) : [...prev, rangeId],
+    );
     setPage(1);
   }
 
@@ -194,7 +255,15 @@ export function ShopView({
     setPage(1);
   }
 
+  const activeEquipmentTypeLabel = EQUIPMENT_TYPE_FILTERS.filter((t) =>
+    selectedEquipmentTypes.includes(t.id),
+  )
+    .map((t) => tr(t.labelUk, t.labelRu))
+    .join(', ');
   const activeBrandLabel = selectedBrands.length > 0 ? selectedBrands.join(', ') : brand !== 'all' ? brand : '';
+  const activePowerLabel = INVERTER_POWER_FILTERS.filter((r) => selectedPowerRanges.includes(r.id))
+    .map((r) => tr(r.labelUk, r.labelRu))
+    .join(', ');
 
   return (
     <div>
@@ -339,11 +408,74 @@ export function ShopView({
           </div>
 
           <div className="flex flex-col lg:flex-row gap-6 items-start">
-            {/* Brand Checkboxes Sidebar */}
+            {/* Sidebar Filters: Equipment Type, Brand, Inverter Power */}
             <aside
-              aria-label={tr('Фільтр за брендом', 'Фильтр по бренду')}
+              aria-label={tr('Фільтри каталогу', 'Фильтры каталога')}
               className="w-full lg:w-[240px] shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 lg:sticky lg:top-24"
             >
+              {/* Equipment Type Checkboxes */}
+              <div className="pb-4 mb-4 border-b border-slate-200">
+                <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-[#0d1f33] uppercase tracking-wide">
+                    <Layers className="w-3.5 h-3.5 text-[#1769aa]" />
+                    <span>{tr('Тип обладнання', 'Тип оборудования')}</span>
+                  </div>
+                  {selectedEquipmentTypes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedEquipmentTypes([]);
+                        setPage(1);
+                      }}
+                      className="text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                    >
+                      {tr('Скинути', 'Сбросить')}
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                  {EQUIPMENT_TYPE_FILTERS.map((item) => {
+                    const checked = selectedEquipmentTypes.includes(item.id);
+                    const count = equipmentTypeCounts[item.id] ?? 0;
+                    return (
+                      <label
+                        key={item.id}
+                        className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer select-none ${
+                          checked
+                            ? 'bg-[#eff6fc] border-[#1769aa] text-[#0d1f33]'
+                            : count === 0
+                              ? 'bg-white/70 border-slate-200 text-slate-400 hover:border-slate-300'
+                              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleToggleEquipmentTypeCheckbox(item.id)}
+                            className="w-4 h-4 rounded accent-[#1769aa] cursor-pointer shrink-0"
+                          />
+                          <span className="truncate">{tr(item.labelUk, item.labelRu)}</span>
+                        </span>
+                        <span
+                          aria-label={`${count} ${tr('товарів', 'товаров')}`}
+                          className={`px-1.5 py-0.5 rounded-md font-mono text-[11px] font-bold tabular-nums shrink-0 ${
+                            count === 0
+                              ? 'bg-slate-100 text-slate-400'
+                              : checked
+                                ? 'bg-[#1769aa]/15 text-[#1769aa]'
+                                : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          ({count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200">
                 <div className="flex items-center gap-2 text-xs font-extrabold text-[#0d1f33] uppercase tracking-wide">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-[#1769aa]" />
@@ -374,7 +506,9 @@ export function ShopView({
                       className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer select-none ${
                         checked
                           ? 'bg-[#eff6fc] border-[#1769aa] text-[#0d1f33]'
-                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                          : count === 0
+                            ? 'bg-white/70 border-slate-200 text-slate-400 hover:border-slate-300'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                       }`}
                     >
                       <span className="flex items-center gap-2 min-w-0">
@@ -387,15 +521,81 @@ export function ShopView({
                         <span className="truncate">{item.label}</span>
                       </span>
                       <span
-                        className={`font-mono text-[11px] tabular-nums shrink-0 ${
-                          count === 0 ? 'text-slate-300' : checked ? 'text-[#1769aa]' : 'text-slate-400'
+                        aria-label={`${count} ${tr('товарів', 'товаров')}`}
+                        className={`px-1.5 py-0.5 rounded-md font-mono text-[11px] font-bold tabular-nums shrink-0 ${
+                          count === 0
+                            ? 'bg-slate-100 text-slate-400'
+                            : checked
+                              ? 'bg-[#1769aa]/15 text-[#1769aa]'
+                              : 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        {count}
+                        ({count})
                       </span>
                     </label>
                   );
                 })}
+              </div>
+              <div className="pt-4 mt-4 border-t border-slate-200">
+                <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-[#0d1f33] uppercase tracking-wide">
+                    <Zap className="w-3.5 h-3.5 text-[#f59e0b]" />
+                    <span>{tr('Потужність інвертора', 'Мощность инвертора')}</span>
+                  </div>
+                  {selectedPowerRanges.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPowerRanges([]);
+                        setPage(1);
+                      }}
+                      className="text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                    >
+                      {tr('Скинути', 'Сбросить')}
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+                  {INVERTER_POWER_FILTERS.map((item) => {
+                    const checked = selectedPowerRanges.includes(item.id);
+                    const count = inverterPowerCounts[item.id] ?? 0;
+                    return (
+                      <label
+                        key={item.id}
+                        className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer select-none ${
+                          checked
+                            ? 'bg-[#eff6fc] border-[#1769aa] text-[#0d1f33]'
+                            : count === 0
+                              ? 'bg-white/70 border-slate-200 text-slate-400 hover:border-slate-300'
+                              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleTogglePowerRangeCheckbox(item.id)}
+                            className="w-4 h-4 rounded accent-[#1769aa] cursor-pointer shrink-0"
+                          />
+                          <span className="truncate">{tr(item.labelUk, item.labelRu)}</span>
+                        </span>
+                        <span
+                          aria-label={`${count} ${tr('товарів', 'товаров')}`}
+                          className={`px-1.5 py-0.5 rounded-md font-mono text-[11px] font-bold tabular-nums shrink-0 ${
+                            count === 0
+                              ? 'bg-slate-100 text-slate-400'
+                              : checked
+                                ? 'bg-[#1769aa]/15 text-[#1769aa]'
+                                : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          ({count})
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </aside>
 
@@ -406,9 +606,19 @@ export function ShopView({
                   <span>
                     {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#0d1f33] tabular-nums">{filtered.length}</strong>
                   </span>
+                  {activeEquipmentTypeLabel && (
+                    <span className="text-[11px] text-[#0d1f33] font-semibold">
+                      {tr('Тип:', 'Тип:')} {activeEquipmentTypeLabel}
+                    </span>
+                  )}
                   {activeBrandLabel && (
                     <span className="text-[11px] text-[#0d1f33] font-semibold">
                       {tr('Бренд:', 'Бренд:')} {activeBrandLabel}
+                    </span>
+                  )}
+                  {activePowerLabel && (
+                    <span className="text-[11px] text-[#0d1f33] font-semibold">
+                      {tr('Потужність:', 'Мощность:')} {activePowerLabel}
                     </span>
                   )}
                   {query.trim() && (
@@ -438,8 +648,10 @@ export function ShopView({
                       type="button"
                       onClick={() => {
                         handleCategoryChange('all');
+                        setSelectedEquipmentTypes([]);
                         setBrand('all');
                         setSelectedBrands([]);
+                        setSelectedPowerRanges([]);
                         setQuery('');
                         setInStockOnly(false);
                       }}
@@ -458,7 +670,9 @@ export function ShopView({
                               : `Інженерний підбір (${CATEGORY_TITLES[cat] || cat})`,
                             [
                               query.trim() ? `Пошуковий запит: ${query.trim()}` : '',
+                              activeEquipmentTypeLabel ? `Тип обладнання: ${activeEquipmentTypeLabel}` : '',
                               activeBrandLabel ? `Бренд: ${activeBrandLabel}` : '',
+                              activePowerLabel ? `Потужність інвертора: ${activePowerLabel}` : '',
                               `Категорія: ${CATEGORY_TITLES[cat] || cat}`,
                             ]
                               .filter(Boolean)
@@ -485,6 +699,7 @@ export function ShopView({
                       onToggleWishlist={onToggleWishlist}
                       onAddToCart={onAddToCart}
                       onRequestQuote={(prod) => onRequestQuote(prod)}
+                      onCalculatePayback={onCalculatePayback}
                       usdUahRate={usdUahRate}
                     />
                   ))}

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   Calculator,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Check,
@@ -13,9 +12,11 @@ import {
   Zap,
 } from 'lucide-react';
 import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
-import { BRAND_PARTNERS, COMPANY_INFO, FAQ_ITEMS } from '../data/siteContent.ts';
+import { BRAND_PARTNERS, COMPANY_INFO } from '../data/siteContent.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
+import { HowItWorks } from './HowItWorks.tsx';
+import { FaqSection } from './FaqSection.tsx';
 import { getAttributionSummary, resolveAnalyticsMoney, track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import {
@@ -47,6 +48,7 @@ interface HomeViewProps {
   onQuickViewProduct?: (product: Product) => void;
   onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
+  onCalculatePayback?: (product: Product) => void;
   onSelectCase: (project: ProjectCase) => void;
   onLeadCreated: (deal: Deal) => void;
   onOpenCrm: () => void;
@@ -69,6 +71,7 @@ export function HomeView({
   onQuickViewProduct,
   onToggleWishlist,
   onAddToCart,
+  onCalculatePayback,
   onSelectCase,
   onLeadCreated,
   onOpenCrm,
@@ -79,7 +82,6 @@ export function HomeView({
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
   const [caseSeg, setCaseSeg] = useState<'all' | 'b2b' | 'b2c'>('all');
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const safeHeroIdx = projects.length > 0 ? ((heroIdx % projects.length) + projects.length) % projects.length : 0;
   const activeHeroCase = projects[safeHeroIdx];
@@ -489,6 +491,9 @@ export function HomeView({
         </div>
       </section>
 
+      {/* Interactive 3D How It Works Section */}
+      <HowItWorks onOpenLeadModal={onOpenLeadModal} />
+
       {/* Payback Calculator + Matched Catalog Solutions */}
       <section id="payback-calculator" className="py-14 bg-[#f6f8fb] border-b border-slate-200">
         <div className="max-w-[1180px] mx-auto px-5">
@@ -793,6 +798,7 @@ export function HomeView({
                     isWishlisted={wishlistIds.includes(prod.id)}
                     onToggleWishlist={onToggleWishlist}
                     onAddToCart={onAddToCart}
+                    onCalculatePayback={onCalculatePayback}
                     onRequestQuote={(p) =>
                       onOpenLeadModal(
                         `Розрахунок (${recommendedKw} кВт): ${p.title}`,
@@ -869,6 +875,7 @@ export function HomeView({
                 isWishlisted={wishlistIds.includes(prod.id)}
                 onToggleWishlist={onToggleWishlist}
                 onAddToCart={onAddToCart}
+                onCalculatePayback={onCalculatePayback}
                 onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
               />
             ))}
@@ -1114,7 +1121,7 @@ export function HomeView({
             ))}
           </div>
 
-          <div className="mb-12 flex flex-col gap-4 rounded-2xl bg-[#0d1f33] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <div className="flex flex-col gap-4 rounded-2xl bg-[#0d1f33] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7">
             <div>
               <p className="font-extrabold">{tr('Є питання щодо вашого об’єкта?', 'Есть вопросы по вашему объекту?')}</p>
               <p className="mt-1 text-xs text-slate-300">{tr('Почнемо з короткої консультації та підкажемо наступний крок.', 'Начнём с короткой консультации и подскажем следующий шаг.')}</p>
@@ -1122,43 +1129,16 @@ export function HomeView({
             <button
               type="button"
               onClick={() => onOpenLeadModal('Консультація щодо вашого об’єкта')}
-              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#f59e0b] px-4 text-sm font-extrabold text-[#0d1f33] transition-colors hover:bg-[#fbbf24]"
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#f59e0b] px-4 text-sm font-extrabold text-[#0d1f33] transition-colors hover:bg-[#fbbf24] cursor-pointer"
             >
               {tr('Обговорити проєкт')} <ArrowRight className="h-4 w-4" />
             </button>
           </div>
-
-          <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-1 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="text-sm font-extrabold text-[#0d1f33]">{tr('Відповіді на часті питання')}</h3>
-              <span className="text-xs text-[#52657a]">{tr('Щоб простіше було зробити перший крок')}</span>
-            </div>
-            {FAQ_ITEMS.map((item, idx) => {
-              const isOpen = openFaq === idx;
-              return (
-                <div key={item.q} className="border-b border-slate-200 last:border-b-0">
-                  <button
-                    type="button"
-                    aria-expanded={isOpen}
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full px-5 py-3.5 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-bold text-[#0d1f33] hover:bg-slate-50 cursor-pointer"
-                  >
-                    <span>{tr(item.q)}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-150 ${
-                        isOpen ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div className="px-5 pb-4 text-xs sm:text-[13px] text-[#52657a] leading-relaxed">{tr(item.a)}</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       </section>
+
+      {/* Dedicated FAQ Accordion Section */}
+      <FaqSection onOpenLeadModal={onOpenLeadModal} />
 
       {/* Engineering Brief -> Direct CRM & Telegram */}
       <section id="home-request" className="bg-[#0d1f33] text-white py-14">

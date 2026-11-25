@@ -36,6 +36,7 @@ import { AuthPortalView } from './components/AuthPortalView.tsx';
 import { ClientCabinetView, type CabinetTab } from './components/ClientCabinetView.tsx';
 import { ProductModal } from './components/ProductModal.tsx';
 import { QuickViewModal } from './components/QuickViewModal.tsx';
+import { ProductPaybackModal } from './components/ProductPaybackModal.tsx';
 import { CaseModal } from './components/CaseModal.tsx';
 import { LeadModal } from './components/LeadModal.tsx';
 import { CartDrawer } from './components/CartDrawer.tsx';
@@ -410,6 +411,7 @@ function AppContent() {
   // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [paybackProduct, setPaybackProduct] = useState<Product | null>(null);
   const [selectedCase, setSelectedCase] = useState<ProjectCase | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [leadPlacement, setLeadPlacement] = useState<Placement>('section');
@@ -995,6 +997,7 @@ function AppContent() {
           handleCloseProductModal();
         }
         setQuickViewProduct(null);
+        setPaybackProduct(null);
         setSelectedCase(null);
         setLeadModalOpen(false);
         setCartOpen(false);
@@ -1026,6 +1029,7 @@ function AppContent() {
     }
     setSelectedProduct(null);
     setQuickViewProduct(null);
+    setPaybackProduct(null);
     setView(nextView);
     setMobileMenuOpen(false);
     const targetUrl = buildPathForRoute(nextView, resolvedCat, null, authMode, nextView === 'shop' && cat === undefined ? shopInitialQuery : '');
@@ -1064,6 +1068,7 @@ function AppContent() {
     void signOutFirebase();
     setSelectedProduct(null);
     setQuickViewProduct(null);
+    setPaybackProduct(null);
     setView('home');
     setMobileMenuOpen(false);
     if (window.location.pathname + window.location.search !== '/') {
@@ -1574,6 +1579,7 @@ function AppContent() {
                 onQuickViewProduct={handleQuickViewProduct}
                 onToggleWishlist={handleToggleWishlist}
                 onAddToCart={handleAddToCart}
+                onCalculatePayback={setPaybackProduct}
                 onSelectCase={setSelectedCase}
                 onLeadCreated={() => void fetchDeals()}
                 onOpenCrm={() => navigateTo('crm')}
@@ -1593,6 +1599,7 @@ function AppContent() {
                 onToggleWishlist={handleToggleWishlist}
                 onAddToCart={handleAddToCart}
                 onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+                onCalculatePayback={setPaybackProduct}
                 onOpenCustomRequest={(topic, notes) => openLeadModal(topic, undefined, 'section', notes)}
                 onBackHome={() => navigateTo('home')}
               />
@@ -1657,6 +1664,7 @@ function AppContent() {
                   onQuickViewProduct={handleQuickViewProduct}
                   onAddToCart={handleAddToCart}
                   onAddManyToCart={handleAddManyToCart}
+                  onCalculatePayback={setPaybackProduct}
                   onOpenLeadModal={(topic, estUsd, notes) => openLeadModal(topic, estUsd, 'section', notes)}
                   onNavigateShop={() => navigateTo('shop', 'all')}
                   onBackToStore={() => navigateTo('home')}
@@ -1840,7 +1848,7 @@ function AppContent() {
       )}
 
       {/* Slim Mobile Thumb CTA Bar (<= 44px height) */}
-      {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !quickViewProduct && !selectedCase && (
+      {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !quickViewProduct && !paybackProduct && !selectedCase && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
@@ -1891,6 +1899,15 @@ function AppContent() {
         isWishlisted={quickViewProduct ? wishlistIds.includes(quickViewProduct.id) : false}
         onToggleWishlist={handleToggleWishlist}
         usdUahRate={usdUahRate}
+      />
+
+      <ProductPaybackModal
+        product={paybackProduct}
+        usdUahRate={usdUahRate}
+        onClose={() => setPaybackProduct(null)}
+        onRequestQuote={(p, summary, capexUsd) =>
+          openLeadModal(`Розрахунок окупності: ${p.title}`, capexUsd ?? p.price, 'section', summary)
+        }
       />
 
       <CaseModal

@@ -248,6 +248,166 @@ export function calculateSolarPayback(input: PaybackCalculatorInput): PaybackCal
   };
 }
 
+export type ProductPaybackCapexBasis =
+  | 'kit_price'
+  | 'kit_plus_panels'
+  | 'turnkey_station'
+  | 'panel_array'
+  | 'battery_station';
+
+export interface ProductPaybackInput {
+  product: Product;
+  monthlyKwh: number;
+  tariffType: PaybackTariffType;
+  tariffUah: number;
+  usdUahRate: number | null;
+}
+
+export interface ProductPaybackResult {
+  safeMonthlyKwh: number;
+  safeTariffUah: number;
+  annualConsumptionKwh: number;
+  systemKw: number;
+  systemMode: PaybackSystemMode;
+  estimatedAnnualGenKwh: number;
+  directConsumedKwh: number;
+  effectiveOffsetKwh: number;
+  annualSavingsUah: number;
+  monthlySavingsUah: number;
+  coveragePct: number;
+  directSelfPct: number;
+  capexUsd: number;
+  solarFieldAddonUsd: number;
+  capexBasis: ProductPaybackCapexBasis;
+  indicativeCapexUah: number | null;
+  paybackYears: number | null;
+}
+
+export function getDefaultConsumptionForProduct(product: Product): {
+  monthlyKwh: number;
+  tariffType: PaybackTariffType;
+  tariffUah: number;
+} {
+  const kw = extractProductPowerKw(product);
+  if (kw !== null && kw > 25) {
+    return { monthlyKwh: 5000, tariffType: 'business', tariffUah: DEFAULT_BUSINESS_TARIFF_UAH };
+  }
+  if (kw !== null && kw > 12) {
+    return { monthlyKwh: 2000, tariffType: 'business', tariffUah: DEFAULT_BUSINESS_TARIFF_UAH };
+  }
+  if (kw !== null && kw > 6) {
+    return { monthlyKwh: 900, tariffType: 'home', tariffUah: DEFAULT_RESIDENTIAL_TARIFF_UAH };
+  }
+  return { monthlyKwh: 500, tariffType: 'home', tariffUah: DEFAULT_RESIDENTIAL_TARIFF_UAH };
+}
+
+export function calculateProductPayback(input: ProductPaybackInput): ProductPaybackResult {
+  const { product } = input;
+  const safeMonthlyKwh = Number.isFinite(input.monthlyKwh)
+    ? Math.max(50, Math.min(50000, input.monthlyKwh))
+    : 600;
+  const safeTariffUah = Number.isFinite(input.tariffUah)
+    ? Math.max(1, Math.min(30, input.tariffUah))
+    : DEFAULT_RESIDENTIAL_TARIFF_UAH;
+
+  const annualConsumptionKwh = safeMonthlyKwh * 12;
+  const extractedKw = extractProductPowerKw(product);
+
+  let systemKw = extractedKw ?? 6;
+  let systemMode: PaybackSystemMode = 'hybrid';
+  let capexUsd = 0;
+  let solarFieldAddonUsd = 0;
+  let capexBasis: ProductPaybackCapexBasis = 'turnkey_station';
+
+  if (isFullSolarKit(product)) {
+    systemKw = extractedKw ?? 6;
+    systemMode = 'hybrid';
+    capexUsd =
+      product.price > 0
+        ? product.price
+        : Math.round(systemKw * getTurnkeyCapexPerKwUsd(systemKw, 'hybrid'));
+    capexBasis = 'kit_price';
+  } else if (product.isKit || product.cat === 'kits') {
+    systemKw = extractedKw ?? 6;
+    systemMode = 'hybrid';
+    solarFieldAddonUsd = Math.round(systemKw * 260);
+    capexUsd =
+      product.price > 0
+        ? product.price + solarFieldAddonUsd
+        : Math.round(systemKw * getTurnkeyCapexPerKwUsd(systemKw, 'hybrid'));
+    capexBasis = 'kit_plus_panels';
+  } else if (product.cat === 'inverters') {
+    systemKw = extractedKw ?? 8;
+    systemMode = isOnGridInverter(product) ? 'ongrid' : 'hybrid';
+    const turnkeyUsd = Math.round(systemKw * getTurnkeyCapexPerKwUsd(systemKw, systemMode));
+    capexUsd = Math.max(turnkeyUsd, product.price > 0 ? product.price : 0);
+    capexBasis = 'turnkey_station';
+  } else if (product.cat === 'batteries') {
+    const kwh = parseBatteryKwh(product);
+    systemKw = kwh > 15 ? 15 : kwh > 7 ? 10 : 6;
+    systemMode = 'hybrid';
+    capexUsd = Math.round(systemKw * getTurnkeyCapexPerKwUsd(systemKw, 'hybrid'));
+    capexBasis = 'battery_station';
+  } else {
+    const rawRequiredKw = annualConsumptionKwh / ODESA_ANNUAL_YIELD_PER_KW;
+    systemKw = PAYBACK_POWER_TIERS.reduce(
+      (best, tier) => (Math.abs(tier - rawRequiredKw) < Math.abs(best - rawRequiredKw) ? tier : best),
+      PAYBACK_POWER_TIERS[0],
+    );
+    systemMode = 'hybrid';
+    capexUsd = Math.round(systemKw * getTurnkeyCapexPerKwUsd(systemKw, 'hybrid'));
+    capexBasis = 'panel_array';
+  }
+
+  const estimatedAnnualGenKwh = Math.round(systemKw * ODESA_ANNUAL_YIELD_PER_KW);
+  const isBusiness = input.tariffType === 'business';
+  const hasBattery = systemMode === 'hybrid';
+
+  const { directSelfRatio, directConsumedKwh, effectiveOffsetKwh } = computeEffectiveAnnualSolarOffset({
+    annualConsumptionKwh,
+    annualGenKwh: estimatedAnnualGenKwh,
+    hasBattery,
+    isBusiness,
+  });
+
+  const annualSavingsUah = Math.round(effectiveOffsetKwh * safeTariffUah);
+  const monthlySavingsUah = Math.round(annualSavingsUah / 12);
+  const coveragePct = Math.min(
+    100,
+    Math.round((effectiveOffsetKwh / Math.max(annualConsumptionKwh, 1)) * 100),
+  );
+
+  const indicativeCapexUah =
+    input.usdUahRate && Number.isFinite(input.usdUahRate)
+      ? Math.round(capexUsd * input.usdUahRate)
+      : null;
+
+  const paybackYears =
+    indicativeCapexUah && annualSavingsUah > 0
+      ? Number((indicativeCapexUah / annualSavingsUah).toFixed(1))
+      : null;
+
+  return {
+    safeMonthlyKwh,
+    safeTariffUah,
+    annualConsumptionKwh,
+    systemKw,
+    systemMode,
+    estimatedAnnualGenKwh,
+    directConsumedKwh: Math.round(directConsumedKwh),
+    effectiveOffsetKwh,
+    annualSavingsUah,
+    monthlySavingsUah,
+    coveragePct,
+    directSelfPct: Math.round(directSelfRatio * 100),
+    capexUsd,
+    solarFieldAddonUsd,
+    capexBasis,
+    indicativeCapexUah,
+    paybackYears,
+  };
+}
+
 export interface ConstructorLoadItem {
   id: string;
   watts: number;

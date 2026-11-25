@@ -1,4 +1,4 @@
-import { ShoppingBag, ArrowUpRight, Eye, Heart } from 'lucide-react';
+import { ShoppingBag, ArrowUpRight, Eye, Heart, Calculator } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
@@ -20,6 +20,7 @@ interface ProductCardProps {
   onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
+  onCalculatePayback?: (product: Product) => void;
   usdUahRate: number | null;
 }
 
@@ -31,6 +32,7 @@ export function ProductCard({
   onToggleWishlist,
   onAddToCart,
   onRequestQuote,
+  onCalculatePayback,
   usdUahRate,
 }: ProductCardProps) {
   const isRussian = getActiveLocale() === 'ru';
@@ -39,6 +41,8 @@ export function ProductCard({
     : product.specs;
   const localizedTitle = isRussian ? product.titleRu ?? localizeCatalogText(product.title) : product.title;
   const canBuyDirect = !product.isKit && product.price > 0;
+  const isKitProduct = product.isKit || product.cat === 'kits';
+  const showPaybackButton = Boolean(onCalculatePayback && product.cat !== 'parts');
   const wishlistLabel = isWishlisted
     ? tr('Прибрати зі списку бажань', 'Убрать из списка желаний')
     : tr('Додати до списку бажань', 'Добавить в список желаний');
@@ -133,52 +137,69 @@ export function ProductCard({
           )}
         </div>
 
-        <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            {product.price > 0 ? (
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-[17px] font-bold text-[#0d1f33] tabular-nums">
-                  {formatUahFromUsd(product.price, usdUahRate)}
-                </span>
-                {product.oldPrice > product.price && (
-                  <span className="font-mono text-xs text-slate-400 line-through tabular-nums">
-                    {formatUahFromUsd(product.oldPrice, usdUahRate)}
+        <div className="pt-3 border-t border-slate-200 space-y-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              {product.price > 0 ? (
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-[17px] font-bold text-[#0d1f33] tabular-nums">
+                    {formatUahFromUsd(product.price, usdUahRate)}
                   </span>
-                )}
+                  {product.oldPrice > product.price && (
+                    <span className="font-mono text-xs text-slate-400 line-through tabular-nums">
+                      {formatUahFromUsd(product.oldPrice, usdUahRate)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="font-mono text-sm font-bold text-[#1769aa]">{tr('За запитом')}</span>
+              )}
+              <div
+                className={`text-[11px] font-semibold mt-0.5 ${
+                  product.inStock ? 'text-[#169374]' : 'text-amber-700'
+                }`}
+              >
+                {product.isKit
+                  ? tr('Інженерний підбір')
+                  : product.inStock
+                    ? tr('В наявності · Одеса')
+                    : tr('Під замовлення')}
               </div>
-            ) : (
-              <span className="font-mono text-sm font-bold text-[#1769aa]">{tr('За запитом')}</span>
-            )}
-            <div
-              className={`text-[11px] font-semibold mt-0.5 ${
-                product.inStock ? 'text-[#169374]' : 'text-amber-700'
-              }`}
-            >
-              {product.isKit
-                ? tr('Інженерний підбір')
-                : product.inStock
-                  ? tr('В наявності · Одеса')
-                  : tr('Під замовлення')}
             </div>
+
+            {canBuyDirect ? (
+              <button
+                type="button"
+                onClick={() => onAddToCart(product)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                У кошик
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onRequestQuote(product)}
+                className="inline-flex items-center gap-1 px-3.5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                Розрахунок
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          {canBuyDirect ? (
+          {showPaybackButton && (
             <button
               type="button"
-              onClick={() => onAddToCart(product)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              onClick={() => onCalculatePayback?.(product)}
+              className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-bold transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa] ${
+                isKitProduct
+                  ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-[#0d1f33]'
+                  : 'bg-slate-50 hover:bg-[#eff6fc] border-slate-200 hover:border-sky-200 text-[#0d1f33] hover:text-[#1769aa]'
+              }`}
             >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              У кошик
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onRequestQuote(product)}
-              className="inline-flex items-center gap-1 px-3.5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Розрахунок
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <Calculator className={`w-3.5 h-3.5 shrink-0 ${isKitProduct ? 'text-[#d97706]' : 'text-[#1769aa]'}`} />
+              <span>{tr('Розрахунок окупності', 'Расчёт окупаемости')}</span>
             </button>
           )}
         </div>

@@ -49,6 +49,7 @@ interface ClientCabinetViewProps {
   onQuickViewProduct?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onAddManyToCart?: (products: Product[]) => void;
+  onCalculatePayback?: (product: Product) => void;
   onOpenLeadModal: (topic: string, estimatedTotalUsd?: number, notes?: string) => void;
   onNavigateShop: () => void;
   onBackToStore: () => void;
@@ -82,6 +83,7 @@ export function ClientCabinetView({
   onQuickViewProduct,
   onAddToCart,
   onAddManyToCart,
+  onCalculatePayback,
   onOpenLeadModal,
   onNavigateShop,
   onBackToStore,
@@ -417,6 +419,7 @@ export function ClientCabinetView({
                     }}
                     onQuickView={onQuickViewProduct}
                     onAddToCart={onAddToCart}
+                    onCalculatePayback={onCalculatePayback}
                     onRequestQuote={(p) =>
                       onOpenLeadModal(`Розрахунок (зі списку бажань): ${p.title}`, p.price)
                     }

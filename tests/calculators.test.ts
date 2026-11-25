@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import test from 'node:test';
 import {
   calculateBatteryLifecycle,
+  calculateProductPayback,
   calculateSolarConstructor,
   calculateSolarPayback,
   DEFAULT_BUSINESS_TARIFF_UAH,
   DEFAULT_RESIDENTIAL_TARIFF_UAH,
+  getDefaultConsumptionForProduct,
   matchConstructorEquipment,
   ODESA_ANNUAL_YIELD_PER_KW,
 } from '../src/lib/calculators.ts';
@@ -147,4 +149,72 @@ test('battery lifecycle calculator caps calendar life realistically for both LiF
   assert.equal(dailySolar.lfpYears, 15);
   assert.equal(dailySolar.agmYears, 1.3);
   assert.ok(dailySolar.agmTotal10yUsd > dailySolar.lfpTotal10yUsd * 4);
+});
+
+test('per-product payback calculator uses exact kit price for full solar kits and adds panels for backup kits', () => {
+  const fullSolarKit = CATALOG.find(
+    (p) => p.cat === 'kits' && p.price > 0 && /панел|bifacial|trina/i.test(`${p.title} ${p.description}`),
+  );
+  const backupOnlyKit = CATALOG.find(
+    (p) => p.cat === 'kits' && p.price > 0 && !/панел|bifacial|trina/i.test(`${p.title} ${p.description}`),
+  );
+
+  assert.ok(fullSolarKit, 'Expected at least one full solar kit in catalog');
+  assert.ok(backupOnlyKit, 'Expected at least one backup kit without panels in catalog');
+
+  const fullRes = calculateProductPayback({
+    product: fullSolarKit,
+    monthlyKwh: 800,
+    tariffType: 'home',
+    tariffUah: DEFAULT_RESIDENTIAL_TARIFF_UAH,
+    usdUahRate: 42,
+  });
+  assert.equal(fullRes.capexBasis, 'kit_price');
+  assert.equal(fullRes.capexUsd, fullSolarKit.price);
+  assert.ok(fullRes.paybackYears && fullRes.paybackYears > 2 && fullRes.paybackYears < 15);
+
+  const backupRes = calculateProductPayback({
+    product: backupOnlyKit,
+    monthlyKwh: 600,
+    tariffType: 'home',
+    tariffUah: DEFAULT_RESIDENTIAL_TARIFF_UAH,
+    usdUahRate: 42,
+  });
+  assert.equal(backupRes.capexBasis, 'kit_plus_panels');
+  assert.ok(backupRes.solarFieldAddonUsd > 0);
+  assert.equal(backupRes.capexUsd, backupOnlyKit.price + backupRes.solarFieldAddonUsd);
+});
+
+test('per-product payback calculator adapts defaults and recalculates for inverters when consumption or tariff changes', () => {
+  const bigInverter = CATALOG.find(
+    (p) => p.cat === 'inverters' && /30\s*кВт|50\s*кВт/i.test(p.title),
+  );
+  assert.ok(bigInverter, 'Expected a >25 kW commercial inverter in catalog');
+
+  const defaults = getDefaultConsumptionForProduct(bigInverter);
+  assert.equal(defaults.tariffType, 'business');
+  assert.ok(defaults.monthlyKwh >= 5000);
+
+  const lowConsumption = calculateProductPayback({
+    product: bigInverter,
+    monthlyKwh: 1000,
+    tariffType: 'home',
+    tariffUah: DEFAULT_RESIDENTIAL_TARIFF_UAH,
+    usdUahRate: 42,
+  });
+  const businessConsumption = calculateProductPayback({
+    product: bigInverter,
+    monthlyKwh: 5000,
+    tariffType: 'business',
+    tariffUah: DEFAULT_BUSINESS_TARIFF_UAH,
+    usdUahRate: 42,
+  });
+
+  assert.equal(businessConsumption.capexBasis, 'turnkey_station');
+  assert.ok(businessConsumption.annualSavingsUah > lowConsumption.annualSavingsUah);
+  assert.ok(
+    businessConsumption.paybackYears &&
+      lowConsumption.paybackYears &&
+      businessConsumption.paybackYears < lowConsumption.paybackYears,
+  );
 });

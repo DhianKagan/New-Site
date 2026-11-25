@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  computeEquipmentTypeCounts,
+  computeFeaturedBrandCounts,
+  computeInverterPowerCounts,
+  EQUIPMENT_TYPE_FILTERS,
+  extractInverterPowerKw,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  INVERTER_POWER_FILTERS,
   matchesBrandFilters,
+  matchesEquipmentTypes,
+  matchesInverterPowerRanges,
 } from '../src/lib/shopSearch.ts';
 import type { Product } from '../src/types.ts';
 
@@ -97,5 +105,154 @@ test('matches featured brand checkboxes including multi-select and Trina Solar a
   assert.deepEqual(
     dropdownFallback.map((p) => p.id),
     ['solax-6k'],
+  );
+});
+
+test('computeFeaturedBrandCounts reflects category, stock, and search query filters', () => {
+  const allCounts = computeFeaturedBrandCounts(SAMPLE_PRODUCTS);
+  assert.deepEqual(allCounts, {
+    Deye: 1,
+    SolaX: 1,
+    Solis: 0,
+    Dyness: 0,
+    Trina: 1,
+  });
+
+  const invertersOnly = computeFeaturedBrandCounts(SAMPLE_PRODUCTS, { category: 'inverters' });
+  assert.deepEqual(invertersOnly, {
+    Deye: 1,
+    SolaX: 1,
+    Solis: 0,
+    Dyness: 0,
+    Trina: 0,
+  });
+
+  const queryFiltered = computeFeaturedBrandCounts(SAMPLE_PRODUCTS, { query: '8k' });
+  assert.deepEqual(queryFiltered, {
+    Deye: 1,
+    SolaX: 0,
+    Solis: 0,
+    Dyness: 0,
+    Trina: 0,
+  });
+});
+
+test('extractInverterPowerKw and matchesInverterPowerRanges cover up to 5, 5-10, and over 10 kW', () => {
+  assert.deepEqual(
+    INVERTER_POWER_FILTERS.map((f) => f.id),
+    ['up_to_5', 'from_5_to_10', 'over_10'],
+  );
+
+  const inverterCatalog: Product[] = [
+    {
+      ...SAMPLE_PRODUCTS[0],
+      id: 'solis-5k',
+      brand: 'Solis',
+      title: 'Інвертор Solis S6-GR1P5K (5 кВт)',
+      specs: [['Потужність', '5 кВт']],
+    },
+    {
+      ...SAMPLE_PRODUCTS[0],
+      id: 'deye-8k-watt',
+      brand: 'Deye',
+      title: 'Інвертор Deye 8 kW',
+      specs: [['Потужність', '8000 Вт']],
+    },
+    {
+      ...SAMPLE_PRODUCTS[1],
+      id: 'solax-15k',
+      brand: 'SolaX',
+      title: 'Інвертор SolaX X3-15.0 (15 кВт)',
+      specs: [],
+    },
+    SAMPLE_PRODUCTS[2], // panel (must be ignored by inverter power extraction)
+  ];
+
+  assert.equal(extractInverterPowerKw(inverterCatalog[0]), 5);
+  assert.equal(extractInverterPowerKw(inverterCatalog[1]), 8);
+  assert.equal(extractInverterPowerKw(inverterCatalog[2]), 15);
+  assert.equal(extractInverterPowerKw(inverterCatalog[3]), null);
+
+  assert.deepEqual(
+    inverterCatalog.filter((p) => matchesInverterPowerRanges(p, ['up_to_5'])).map((p) => p.id),
+    ['solis-5k'],
+  );
+  assert.deepEqual(
+    inverterCatalog.filter((p) => matchesInverterPowerRanges(p, ['from_5_to_10'])).map((p) => p.id),
+    ['deye-8k-watt'],
+  );
+  assert.deepEqual(
+    inverterCatalog.filter((p) => matchesInverterPowerRanges(p, ['up_to_5', 'over_10'])).map((p) => p.id),
+    ['solis-5k', 'solax-15k'],
+  );
+
+  assert.deepEqual(computeInverterPowerCounts(inverterCatalog), {
+    up_to_5: 1,
+    from_5_to_10: 1,
+    over_10: 1,
+  });
+
+  assert.deepEqual(computeInverterPowerCounts(inverterCatalog, { selectedBrands: ['Deye'] }), {
+    up_to_5: 0,
+    from_5_to_10: 1,
+    over_10: 0,
+  });
+});
+
+test('matchesEquipmentTypes and computeEquipmentTypeCounts filter inverters, batteries, panels, and kits', () => {
+  assert.deepEqual(
+    EQUIPMENT_TYPE_FILTERS.map((f) => f.id),
+    ['inverters', 'batteries', 'panels', 'kits'],
+  );
+
+  const mixedCatalog: Product[] = [
+    ...SAMPLE_PRODUCTS, // 2 inverters (Deye, SolaX), 1 panel (Trina Solar)
+    {
+      ...SAMPLE_PRODUCTS[0],
+      id: 'dyness-b4850',
+      cat: 'batteries',
+      brand: 'Dyness',
+      title: 'Акумулятор Dyness B4850 2.4 кВт·год',
+      specs: [['Ємність', '2.4 кВт·год']],
+    },
+    {
+      ...SAMPLE_PRODUCTS[0],
+      id: 'deye-kit-6k',
+      cat: 'kits',
+      isKit: true,
+      brand: 'Deye',
+      title: 'Комплект резервного живлення Deye 6 кВт',
+      specs: [['Потужність', '6 кВт']],
+    },
+  ];
+
+  assert.deepEqual(computeEquipmentTypeCounts(mixedCatalog), {
+    inverters: 2,
+    batteries: 1,
+    panels: 1,
+    kits: 1,
+  });
+
+  assert.deepEqual(computeEquipmentTypeCounts(mixedCatalog, { selectedBrands: ['Deye'] }), {
+    inverters: 1,
+    batteries: 0,
+    panels: 0,
+    kits: 1,
+  });
+
+  assert.deepEqual(
+    mixedCatalog.filter((p) => matchesEquipmentTypes(p, ['batteries', 'kits'])).map((p) => p.id),
+    ['dyness-b4850', 'deye-kit-6k'],
+  );
+
+  assert.deepEqual(
+    computeFeaturedBrandCounts(mixedCatalog, { equipmentTypes: ['kits'] }),
+    {
+      Deye: 1,
+      SolaX: 0,
+      Solis: 0,
+      Dyness: 0,
+      Trina: 0,
+    },
   );
 });

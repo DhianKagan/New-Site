@@ -122,3 +122,224 @@ export function matchesBrandFilters(
   return true;
 }
 
+export type EquipmentTypeFilterId = 'inverters' | 'batteries' | 'panels' | 'kits';
+
+export interface EquipmentTypeFilter {
+  id: EquipmentTypeFilterId;
+  labelUk: string;
+  labelRu: string;
+}
+
+export const EQUIPMENT_TYPE_FILTERS: EquipmentTypeFilter[] = [
+  { id: 'inverters', labelUk: 'Інвертори', labelRu: 'Инверторы' },
+  { id: 'batteries', labelUk: 'Акумулятори', labelRu: 'Аккумуляторы' },
+  { id: 'panels', labelUk: 'Сонячні панелі', labelRu: 'Солнечные панели' },
+  { id: 'kits', labelUk: 'Комплекти', labelRu: 'Комплекты' },
+];
+
+export function matchesEquipmentTypes(
+  product: Product,
+  selectedTypes: EquipmentTypeFilterId[],
+): boolean {
+  if (selectedTypes.length === 0) return true;
+  if (selectedTypes.includes('kits') && (product.cat === 'kits' || product.isKit)) {
+    return true;
+  }
+  return selectedTypes.includes(product.cat as EquipmentTypeFilterId);
+}
+
+export type InverterPowerRangeId = 'up_to_5' | 'from_5_to_10' | 'over_10';
+
+export interface InverterPowerRangeFilter {
+  id: InverterPowerRangeId;
+  labelUk: string;
+  labelRu: string;
+}
+
+export const INVERTER_POWER_FILTERS: InverterPowerRangeFilter[] = [
+  { id: 'up_to_5', labelUk: 'до 5 кВт', labelRu: 'до 5 кВт' },
+  { id: 'from_5_to_10', labelUk: '5–10 кВт', labelRu: '5–10 кВт' },
+  { id: 'over_10', labelUk: 'понад 10 кВт', labelRu: 'свыше 10 кВт' },
+];
+
+export function extractInverterPowerKw(product: Product): number | null {
+  if (product.cat !== 'inverters') return null;
+
+  const powerSpec = product.specs.find(([k]) => /потужн|мощн|power/i.test(k));
+  if (powerSpec) {
+    const rawVal = powerSpec[1].replace(',', '.');
+    const match = rawVal.match(/(\d+(?:\.\d+)?)/);
+    if (match) {
+      const num = Number.parseFloat(match[1]);
+      if (Number.isFinite(num) && num > 0) {
+        const isWattsOnly =
+          /(?:^|\s|\d)(?:Вт|W)(?![a-zA-Zа-яА-ЯіІїЇєЄґҐ])/i.test(rawVal) &&
+          !/(?:кВт|kW)/i.test(rawVal);
+        return isWattsOnly ? num / 1000 : num;
+      }
+    }
+  }
+
+  const titleMatch = product.title
+    .replace(',', '.')
+    .match(/(\d+(?:\.\d+)?)\s*(?:кВт|kW)(?![a-zA-Zа-яА-ЯіІїЇєЄґҐ])/i);
+  if (titleMatch) {
+    const num = Number.parseFloat(titleMatch[1]);
+    if (Number.isFinite(num) && num > 0) return num;
+  }
+
+  return null;
+}
+
+export function matchesInverterPowerRanges(
+  product: Product,
+  selectedRanges: InverterPowerRangeId[],
+): boolean {
+  if (selectedRanges.length === 0) return true;
+  const kw = extractInverterPowerKw(product);
+  if (kw === null) return false;
+  return selectedRanges.some((rangeId) => {
+    if (rangeId === 'up_to_5') return kw <= 5;
+    if (rangeId === 'from_5_to_10') return kw > 5 && kw <= 10;
+    return kw > 10;
+  });
+}
+
+export function computeEquipmentTypeCounts(
+  products: Product[],
+  options: {
+    selectedBrands?: string[];
+    dropdownBrand?: string;
+    powerRanges?: InverterPowerRangeId[];
+    inStockOnly?: boolean;
+    query?: string;
+  } = {},
+): Record<EquipmentTypeFilterId, number> {
+  const {
+    selectedBrands = [],
+    dropdownBrand = 'all',
+    powerRanges = [],
+    inStockOnly = false,
+    query = '',
+  } = options;
+
+  const base = products.filter((p) => {
+    if (!matchesBrandFilters(p, selectedBrands, dropdownBrand)) return false;
+    if (!matchesInverterPowerRanges(p, powerRanges)) return false;
+    if (inStockOnly && !p.inStock) return false;
+    return true;
+  });
+
+  const matchingQuery = query.trim() ? filterAndRankProductsBySearch(base, query, false) : base;
+
+  const map: Record<EquipmentTypeFilterId, number> = {
+    inverters: 0,
+    batteries: 0,
+    panels: 0,
+    kits: 0,
+  };
+
+  for (const product of matchingQuery) {
+    for (const item of EQUIPMENT_TYPE_FILTERS) {
+      if (matchesEquipmentTypes(product, [item.id])) {
+        map[item.id] += 1;
+      }
+    }
+  }
+
+  return map;
+}
+
+export function computeFeaturedBrandCounts(
+  products: Product[],
+  options: {
+    category?: string;
+    equipmentTypes?: EquipmentTypeFilterId[];
+    inStockOnly?: boolean;
+    query?: string;
+    powerRanges?: InverterPowerRangeId[];
+  } = {},
+): Record<string, number> {
+  const {
+    category = 'all',
+    equipmentTypes = [],
+    inStockOnly = false,
+    query = '',
+    powerRanges = [],
+  } = options;
+
+  const base = products.filter((p) => {
+    if (category !== 'all' && p.cat !== category) return false;
+    if (!matchesEquipmentTypes(p, equipmentTypes)) return false;
+    if (inStockOnly && !p.inStock) return false;
+    if (!matchesInverterPowerRanges(p, powerRanges)) return false;
+    return true;
+  });
+
+  const matchingQuery = query.trim() ? filterAndRankProductsBySearch(base, query, false) : base;
+
+  const map: Record<string, number> = {};
+  for (const item of FEATURED_BRAND_FILTERS) {
+    map[item.id] = 0;
+  }
+  for (const product of matchingQuery) {
+    for (const item of FEATURED_BRAND_FILTERS) {
+      if (matchesFeaturedBrand(product, item.id)) {
+        map[item.id] += 1;
+      }
+    }
+  }
+  return map;
+}
+
+export function computeInverterPowerCounts(
+  products: Product[],
+  options: {
+    category?: string;
+    equipmentTypes?: EquipmentTypeFilterId[];
+    selectedBrands?: string[];
+    dropdownBrand?: string;
+    inStockOnly?: boolean;
+    query?: string;
+  } = {},
+): Record<InverterPowerRangeId, number> {
+  const {
+    category = 'all',
+    equipmentTypes = [],
+    selectedBrands = [],
+    dropdownBrand = 'all',
+    inStockOnly = false,
+    query = '',
+  } = options;
+
+  const base = products.filter((p) => {
+    if (category !== 'all' && p.cat !== category) return false;
+    if (!matchesEquipmentTypes(p, equipmentTypes)) return false;
+    if (!matchesBrandFilters(p, selectedBrands, dropdownBrand)) return false;
+    if (inStockOnly && !p.inStock) return false;
+    return p.cat === 'inverters';
+  });
+
+  const matchingQuery = query.trim() ? filterAndRankProductsBySearch(base, query, false) : base;
+
+  const map: Record<InverterPowerRangeId, number> = {
+    up_to_5: 0,
+    from_5_to_10: 0,
+    over_10: 0,
+  };
+
+  for (const product of matchingQuery) {
+    const kw = extractInverterPowerKw(product);
+    if (kw === null) continue;
+    if (kw <= 5) {
+      map.up_to_5 += 1;
+    } else if (kw <= 10) {
+      map.from_5_to_10 += 1;
+    } else {
+      map.over_10 += 1;
+    }
+  }
+
+  return map;
+}
+
