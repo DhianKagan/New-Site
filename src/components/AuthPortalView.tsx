@@ -339,6 +339,28 @@ export function AuthPortalView({
           </div>
         )}
 
+        {!isSetup && status.mode === 'setup' && apiAvailable && (
+          <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-[#0d1f33] space-y-2">
+            <div className="font-bold flex items-center gap-1.5 text-amber-900">
+              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+              {tr('Перший запуск: задайте пароль адміністратора', 'Первый запуск: задайте пароль администратора')}
+            </div>
+            <p className="text-[11px] text-[#52657a] leading-relaxed">
+              {tr(
+                'Пароль для входу admin ще не створено. Натисніть кнопку нижче, щоб створити майстер-пароль і одразу увійти в CRM.',
+                'Пароль для входа admin ещё не создан. Нажмите кнопку ниже, чтобы создать мастер-пароль и сразу войти в CRM.',
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => switchMode('setup')}
+              className="w-full py-2 px-3 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold transition-colors cursor-pointer"
+            >
+              {tr('Створити пароль адміністратора (admin)', 'Создать пароль администратора (admin)')}
+            </button>
+          </div>
+        )}
+
         {!isSetup && status.googleEnabled !== false && apiAvailable && (
           <div className="mb-5">
             <button
