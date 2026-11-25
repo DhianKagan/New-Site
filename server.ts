@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
 import express from 'express';
 import {
@@ -135,6 +136,7 @@ import {
   verifyFirebaseGoogleToken,
 } from './server/firebaseAuth.ts';
 import {
+  escapeHtml,
   getTelegramWebhookInfo,
   hasTelegramToken,
   isTelegramConfigured,
@@ -183,6 +185,67 @@ function getBaseUrl(req: express.Request): string {
     return `${proto}://${hostHeader}`;
   }
   return 'https://energocomfort.shop';
+}
+
+function isPrivateOrLocalHostname(rawHost: string): boolean {
+  const host = rawHost
+    .trim()
+    .toLowerCase()
+    .replace(/^\[(.*)\]$/, '$1')
+    .replace(/\.+$/, '');
+  if (!host) return true;
+  if (
+    host === 'localhost' ||
+    host === 'ip6-localhost' ||
+    host === 'ip6-loopback' ||
+    host.endsWith('.local') ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.internal')
+  ) {
+    return true;
+  }
+
+  const checkIpv4 = (ip: string): boolean => {
+    const parts = ip.split('.').map((n) => Number(n));
+    if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+    const [a, b] = parts;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT 100.64.0.0/10
+    if (a === 169 && b === 254) return true; // link-local / cloud metadata
+    if (a === 172 && b >= 16 && b <= 31) return true; // RFC1918
+    if (a === 192 && b === 168) return true; // RFC1918
+    if (a >= 224) return true; // multicast / reserved
+    return false;
+  };
+
+  const ipVersion = net.isIP(host);
+  if (ipVersion === 4) {
+    return checkIpv4(host);
+  }
+  if (ipVersion === 6) {
+    if (host === '::' || host === '::1') return true;
+    if (host.startsWith('::ffff:')) {
+      const mapped = host.slice('::ffff:'.length);
+      if (net.isIP(mapped) === 4) return checkIpv4(mapped);
+      const hexParts = mapped.split(':');
+      if (hexParts.length === 2) {
+        const hi = parseInt(hexParts[0], 16);
+        const lo = parseInt(hexParts[1], 16);
+        if (Number.isFinite(hi) && Number.isFinite(lo)) {
+          return checkIpv4(`${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`);
+        }
+      }
+      return true;
+    }
+    const firstHextet = host.split(':')[0] || '0';
+    const firstVal = parseInt(firstHextet, 16);
+    if (Number.isFinite(firstVal)) {
+      if ((firstVal & 0xfe00) === 0xfc00) return true; // ULA fc00::/7
+      if ((firstVal & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
+      if ((firstVal & 0xff00) === 0xff00) return true; // multicast ff00::/8
+    }
+  }
+  return false;
 }
 
 function parseAdminEmailList(raw: string): string[] {
@@ -1706,7 +1769,7 @@ async function startServer() {
     res.json({ task: updated });
   });
 
-  app.delete('/api/crm/tasks/:id', async (req, res) => {
+  app.delete('/api/crm/tasks/:id', requireRoles('admin', 'manager'), async (req, res) => {
     const taskId = Number(req.params.id);
     if (!Number.isFinite(taskId) || taskId <= 0) {
       res.status(400).json({ error: 'Некоректний ID задачі' });
@@ -1745,7 +1808,7 @@ async function startServer() {
     res.status(201).json({ note });
   });
 
-  app.delete('/api/crm/notes/:id', async (req, res) => {
+  app.delete('/api/crm/notes/:id', requireRoles('admin', 'manager'), async (req, res) => {
     const noteId = Number(req.params.id);
     if (!Number.isFinite(noteId) || noteId <= 0) {
       res.status(400).json({ error: 'Некоректний ID нотатки' });
@@ -2065,17 +2128,7 @@ async function startServer() {
     const targetUrl = rawUrl || `${getBaseUrl(req)}/api/telegram/webhook`;
     try {
       const parsed = new URL(targetUrl);
-      const host = parsed.hostname.toLowerCase();
-      const isPrivateHost =
-        host === 'localhost' ||
-        host === '::1' ||
-        host.endsWith('.local') ||
-        /^127\./.test(host) ||
-        /^10\./.test(host) ||
-        /^192\.168\./.test(host) ||
-        /^169\.254\./.test(host) ||
-        /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-      if (parsed.protocol !== 'https:' || isPrivateHost) {
+      if (parsed.protocol !== 'https:' || isPrivateOrLocalHostname(parsed.hostname)) {
         res.status(400).json({ ok: false, error: 'Telegram Webhook вимагає публічну HTTPS-адресу' });
         return;
       }
@@ -2155,7 +2208,7 @@ async function startServer() {
       );
     } else if (text.startsWith('/catalog')) {
       const top = listProducts({ cat: 'kits' }).slice(0, 4);
-      const list = top.map((p) => `• ${p.title} — <b>$${p.price}</b>`).join('\n');
+      const list = top.map((p) => `• ${escapeHtml(p.title)} — <b>$${p.price}</b>`).join('\n');
       await sendTelegramText(chatId, `<b>Готові рішення Energo Comfort:</b>\n${list}`);
     } else if (text.startsWith('/contacts')) {
       await sendTelegramText(
@@ -2191,6 +2244,13 @@ async function startServer() {
     res.json({ ok: true });
   });
 
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+  });
+  app.use('/uploads', (_req, res) => {
+    res.status(404).end();
+  });
+
   // Static assets & Vite / Production serving
   if (!IS_PROD) {
     const { createServer: createViteServer } = await import('vite');
@@ -2200,7 +2260,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
     app.get('*', async (req, res, next) => {
-      if (req.path.startsWith('/api/')) {
+      if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
         next();
         return;
       }

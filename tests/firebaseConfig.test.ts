@@ -74,6 +74,14 @@ test('resolves dynamic authDomain and projectId overrides with exact-match prece
     baseConfig: { ...baseConfig, authDomain: 'auto' },
   });
   assert.equal(localhostFallback.authDomain, 'base-project.firebaseapp.com');
+
+  const wildcardHostAttempt = resolveFirebaseWebConfigForHost({
+    requestHost: '*.example.com',
+    baseConfig,
+    useHostAsAuthDomain: true,
+  });
+  assert.equal(wildcardHostAttempt.requestHost, '');
+  assert.equal(wildcardHostAttempt.authDomain, 'base-project.firebaseapp.com');
 });
 
 test('selects environment-specific firebase config files in priority order', async () => {

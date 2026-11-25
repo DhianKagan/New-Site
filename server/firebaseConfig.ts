@@ -97,7 +97,8 @@ export function resolveFirebaseWebConfigForHost(options: {
   appUrl?: string;
   useHostAsAuthDomain?: boolean;
 }): FirebaseRuntimeWebConfig {
-  const requestHost = normalizeHost(options.requestHost);
+  const normalizedRawHost = normalizeHost(options.requestHost);
+  const requestHost = normalizedRawHost && !normalizedRawHost.startsWith('*.') ? normalizedRawHost : '';
   const combinedRules = sanitizeDomainRules([...(options.envRules ?? []), ...(options.dbRules ?? [])]);
 
   let matched: FirebaseDomainRule | null = null;

@@ -280,6 +280,7 @@ export const drizzleDb = drizzle(
     const sqlite = getDb();
     const stmt = sqlite.prepare(sql);
     const bindParams = params as Array<string | number | Uint8Array | null>;
+    const isMutation = /^\s*(?:insert|update|delete|replace)\b/i.test(sql);
     if (method === 'run') {
       stmt.run(...bindParams);
       checkpointDb(sqlite);
@@ -287,9 +288,13 @@ export const drizzleDb = drizzle(
     }
     stmt.setReturnArrays(true);
     if (method === 'get') {
-      return { rows: stmt.get(...bindParams) as unknown as unknown[] };
+      const row = stmt.get(...bindParams) as unknown as unknown[];
+      if (isMutation) checkpointDb(sqlite);
+      return { rows: row };
     }
-    return { rows: stmt.all(...bindParams) as unknown as unknown[][] };
+    const rows = stmt.all(...bindParams) as unknown as unknown[][];
+    if (isMutation) checkpointDb(sqlite);
+    return { rows };
   },
   { schema },
 );
@@ -914,8 +919,15 @@ export function deleteProduct(id: string): boolean {
 }
 
 function nextDealNumber(db: DatabaseSync): string {
-  const row = db.prepare('SELECT MAX(id) as max_id FROM deals').get();
-  const nextNum = 1042 + Number(row?.max_id ?? 0);
+  const idRow = db.prepare('SELECT MAX(id) as max_id FROM deals').get() as { max_id?: number } | undefined;
+  const seqRow = db.prepare("SELECT seq FROM sqlite_sequence WHERE name = 'deals'").get() as { seq?: number } | undefined;
+  const numRow = db
+    .prepare(
+      "SELECT COALESCE(MAX(CAST(SUBSTR(deal_number, 4) AS INTEGER)), 1041) AS max_num FROM deals WHERE deal_number GLOB 'EC-[0-9]*'",
+    )
+    .get() as { max_num?: number } | undefined;
+  const maxSeq = Math.max(Number(idRow?.max_id ?? 0), Number(seqRow?.seq ?? 0));
+  const nextNum = Math.max(1042 + maxSeq, Number(numRow?.max_num ?? 1041) + 1);
   return `EC-${nextNum}`;
 }
 
@@ -1138,7 +1150,11 @@ export function setSettingIfAbsent(key: string, value: string): boolean {
   const res = db
     .prepare('INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
     .run(key, value, now);
-  return Number(res.changes) > 0;
+  if (Number(res.changes) > 0) {
+    checkpointDb(db);
+    return true;
+  }
+  return false;
 }
 
 export function getPublicAnalyticsConfig(): {
@@ -1189,6 +1205,7 @@ export function recordAnalyticsEvent(
   db.prepare(
     'DELETE FROM analytics_events WHERE id NOT IN (SELECT id FROM analytics_events ORDER BY id DESC LIMIT 100)',
   ).run();
+  checkpointDb(db);
 }
 
 export function listRecentAnalyticsEvents(limit = 35): Array<{
@@ -2277,6 +2294,7 @@ export function claimMasterAdminAccount(input: {
   db.prepare(
     "UPDATE staff_users SET name = ?, email = ?, password_hash = ?, role = 'admin', can_login = 1, active = 1, updated_at = ? WHERE id = ?",
   ).run(nextName, nextEmail, input.passwordHash, now, current.id);
+  checkpointDb(db);
   return getMasterAdminRecordSync();
 }
 
@@ -2522,6 +2540,7 @@ export async function updateStaffUser(
     } else {
       db.prepare("DELETE FROM settings WHERE key = 'admin_password_hash'").run();
     }
+    checkpointDb(db);
   }
 
   // Propagate renamed assigneeLabel to existing deals and tasks so links stay cohesive
@@ -2529,6 +2548,7 @@ export async function updateStaffUser(
     const db = getDb();
     db.prepare('UPDATE deals SET assignee = ? WHERE assignee = ?').run(nextLabel, existing.assigneeLabel);
     db.prepare('UPDATE tasks SET assignee = ? WHERE assignee = ?').run(nextLabel, existing.assigneeLabel);
+    checkpointDb(db);
   }
 
   return mapStaffRow(updated);
@@ -2761,6 +2781,7 @@ export async function updateCustomerProfile(
       "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?",
     ).run(customerId, existing.email.toLowerCase(), nextPhone);
   }
+  checkpointDb(db);
 
   return mapCustomerRow(updated);
 }
@@ -2898,6 +2919,7 @@ export async function createCustomerAccountByCrm(input: {
       "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?",
     ).run(inserted.id, emailNorm, cleanPhone);
   }
+  checkpointDb(db);
 
   return enrichCrmCustomer(inserted);
 }
@@ -2983,6 +3005,7 @@ export async function updateCustomerAccountByCrm(
       "UPDATE deals SET customer_id = ?, customer_email = CASE WHEN customer_email = '' THEN ? ELSE customer_email END WHERE customer_id IS NULL AND phone = ?",
     ).run(customerId, nextEmail, nextPhone);
   }
+  checkpointDb(db);
 
   return enrichCrmCustomer(updated);
 }

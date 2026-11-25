@@ -8,7 +8,7 @@ export function hasTelegramToken(): boolean {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN?.trim());
 }
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
