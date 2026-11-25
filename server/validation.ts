@@ -429,3 +429,23 @@ export const clientErrorReportSchema = z.object({
   locale: z.enum(['uk', 'ru']).optional().default('uk'),
 });
 
+export const PRODUCT_REVIEW_ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/;
+
+export const productReviewBodySchema = z.object({
+  authorName: z
+    .string()
+    .trim()
+    .min(2, 'Ім’я має містити від 2 до 80 символів')
+    .max(80, 'Ім’я має містити від 2 до 80 символів'),
+  rating: z
+    .number()
+    .int('Оцінка має бути цілим числом від 1 до 5')
+    .min(1, 'Оберіть оцінку від 1 до 5 зірок')
+    .max(5, 'Оберіть оцінку від 1 до 5 зірок'),
+  comment: z
+    .string()
+    .trim()
+    .min(3, 'Текст відгуку має містити від 3 до 1000 символів')
+    .max(1000, 'Текст відгуку має містити від 3 до 1000 символів'),
+});
+

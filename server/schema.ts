@@ -138,3 +138,15 @@ export const customerAccountsTable = sqliteTable('customer_accounts', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+export const productReviewsTable = sqliteTable('product_reviews', {
+  id: text('id').primaryKey(),
+  productId: text('product_id').notNull(),
+  authorUid: text('author_uid').notNull(),
+  authorName: text('author_name').notNull(),
+  rating: integer('rating').notNull(),
+  comment: text('comment').notNull(),
+  status: text('status').notNull().default('published'),
+  createdAtMs: integer('created_at_ms').notNull(),
+  updatedAtMs: integer('updated_at_ms').notNull(),
+});

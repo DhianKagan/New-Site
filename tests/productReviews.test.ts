@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  createProductReviewRecord,
+  deleteProductReviewRecord,
+  getProductReviewById,
+  listPublishedProductReviews,
+  updateProductReviewRecord,
+} from '../server/db.ts';
+import { PRODUCT_REVIEW_ID_REGEX, productReviewBodySchema } from '../server/validation.ts';
+import {
   computeProductReviewStats,
   filterAndSortProductReviews,
   formatAverageRatingLabel,
@@ -172,4 +180,67 @@ test('filterAndSortProductReviews supports date and rating sorting plus star fil
     filterAndSortProductReviews(reviews, { sortOrder: 'oldest', ratingFilter: 5 }).map((r) => r.id),
     ['rev_b', 'rev_d'],
   );
+});
+
+test('server productReviewBodySchema and SQLite product_reviews CRUD work end-to-end', () => {
+  assert.equal(PRODUCT_REVIEW_ID_REGEX.test('ses-solax-5kw-t-bat-5-3kwh-trina-bifacial'), true);
+  assert.equal(PRODUCT_REVIEW_ID_REGEX.test('../etc/passwd'), false);
+
+  const badBody = productReviewBodySchema.safeParse({
+    authorName: 'А',
+    rating: 6,
+    comment: 'Ок',
+  });
+  assert.equal(badBody.success, false);
+
+  const validBody = productReviewBodySchema.safeParse({
+    authorName: '  Олександр К.  ',
+    rating: 5,
+    comment: '  Стабільно працює в резерві.  ',
+  });
+  assert.equal(validBody.success, true);
+
+  const testProductId = `__test_product_${Date.now()}`;
+  let createdId = '';
+  try {
+    const created = createProductReviewRecord({
+      productId: testProductId,
+      authorUid: 'google_uid_test_1',
+      authorName: 'Олександр К.',
+      rating: 5,
+      comment: 'Стабільно працює в резерві.',
+    });
+    createdId = created.id;
+    assert.equal(created.productId, testProductId);
+    assert.equal(created.authorUid, 'google_uid_test_1');
+    assert.equal(created.rating, 5);
+    assert.equal(created.status, 'published');
+
+    const fetched = getProductReviewById(created.id);
+    assert.ok(fetched);
+    assert.equal(fetched.comment, 'Стабільно працює в резерві.');
+
+    const listBefore = listPublishedProductReviews(testProductId);
+    assert.equal(listBefore.length, 1);
+
+    const updated = updateProductReviewRecord(created.id, {
+      authorName: 'Олександр Кириленко',
+      rating: 4,
+      comment: 'Оновлений відгук після місяця роботи.',
+    });
+    assert.ok(updated);
+    assert.equal(updated.rating, 4);
+    assert.equal(updated.authorName, 'Олександр Кириленко');
+
+    const deleted = deleteProductReviewRecord(created.id);
+    assert.equal(deleted, true);
+    createdId = '';
+
+    assert.equal(getProductReviewById(created.id), null);
+    assert.equal(listPublishedProductReviews(testProductId).length, 0);
+  } finally {
+    if (createdId) {
+      deleteProductReviewRecord(createdId);
+    }
+  }
 });

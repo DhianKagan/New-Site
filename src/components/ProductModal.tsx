@@ -6,10 +6,13 @@ import { formatUahFromUsd } from '../lib/currency.ts';
 import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { track } from '../lib/analytics.ts';
-import { subscribeProductReviews } from '../lib/firestore.ts';
-import { computeProductReviewStats, formatAverageRatingLabel } from '../lib/productReviews.ts';
+import { extractReadableReviewsErrorMessage, fetchProductReviews } from '../lib/reviewsApi.ts';
 import {
-  extractReadableFirestoreErrorMessage,
+  computeProductReviewStats,
+  formatAverageRatingLabel,
+  sortProductReviews,
+} from '../lib/productReviews.ts';
+import {
   formatReviewsCountLabel,
   ProductReviews,
   StarRow,
@@ -49,23 +52,24 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
       return;
     }
 
+    const controller = new AbortController();
     setReviewsLoading(true);
     setReviewsLoadError('');
 
-    const unsubscribe = subscribeProductReviews(
-      productId,
-      (nextReviews) => {
+    void fetchProductReviews(productId, controller.signal)
+      .then((nextReviews) => {
+        if (controller.signal.aborted) return;
         setReviews(nextReviews);
         setReviewsLoading(false);
         setReviewsLoadError('');
-      },
-      (error) => {
-        setReviewsLoadError(extractReadableFirestoreErrorMessage(error, isRussian));
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setReviewsLoadError(extractReadableReviewsErrorMessage(error, isRussian));
         setReviewsLoading(false);
-      },
-    );
+      });
 
-    return () => unsubscribe();
+    return () => controller.abort();
   }, [productId, reviewsReloadNonce, isRussian]);
 
   const reviewStats = useMemo(() => computeProductReviewStats(reviews), [reviews]);
@@ -258,6 +262,17 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
             loading={reviewsLoading}
             loadError={reviewsLoadError}
             onRetryLoad={() => setReviewsReloadNonce((n) => n + 1)}
+            onReviewCreated={(created) =>
+              setReviews((prev) => sortProductReviews([created, ...prev.filter((r) => r.id !== created.id)]))
+            }
+            onReviewUpdated={(updated) =>
+              setReviews((prev) =>
+                sortProductReviews(prev.map((r) => (r.id === updated.id ? updated : r))),
+              )
+            }
+            onReviewDeleted={(deletedId) =>
+              setReviews((prev) => prev.filter((r) => r.id !== deletedId))
+            }
           />
         </div>
       </div>

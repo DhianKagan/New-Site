@@ -316,3 +316,11 @@ export async function signOutFirebase(): Promise<void> {
     // non-blocking cleanup
   }
 }
+
+export async function getCurrentFirebaseIdToken(forceRefresh = false): Promise<string | null> {
+  const auth = getPreloadedFirebaseAuthSync() ?? (await getActiveFirebaseAuth());
+  const user = auth?.currentUser;
+  if (!user) return null;
+  return user.getIdToken(forceRefresh);
+}
+

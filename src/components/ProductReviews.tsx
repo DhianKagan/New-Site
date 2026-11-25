@@ -26,8 +26,9 @@ import {
 import {
   createProductReview,
   deleteProductReview,
+  extractReadableReviewsErrorMessage,
   updateProductReview,
-} from '../lib/firestore.ts';
+} from '../lib/reviewsApi.ts';
 import {
   filterAndSortProductReviews,
   formatAverageRatingLabel,
@@ -43,6 +44,9 @@ interface ProductReviewsProps {
   loading: boolean;
   loadError: string;
   onRetryLoad: () => void;
+  onReviewCreated: (review: ProductReview) => void;
+  onReviewUpdated: (review: ProductReview) => void;
+  onReviewDeleted: (reviewId: string) => void;
 }
 
 function formatReviewDate(timestampMs: number, isRussian: boolean): string {
@@ -70,37 +74,6 @@ export function formatReviewsCountLabel(count: number, isRussian: boolean): stri
     return isRussian ? `${count} отзыва` : `${count} відгуки`;
   }
   return isRussian ? `${count} отзывов` : `${count} відгуків`;
-}
-
-export function extractReadableFirestoreErrorMessage(error: unknown, isRussian: boolean): string {
-  const raw = error instanceof Error ? error.message : String(error);
-  const lower = raw.toLowerCase();
-  if (lower.includes('missing or insufficient permissions') || lower.includes('permission-denied')) {
-    return isRussian
-      ? 'Нет прав для операции в Firestore. Убедитесь, что вы вошли через Google и правила Firestore опубликованы.'
-      : 'Немає прав для операції у Firestore. Переконайтеся, що ви увійшли через Google і правила Firestore опубліковані.';
-  }
-  if (lower.includes('quota exceeded')) {
-    return isRussian
-      ? 'Превышена дневная квота Firestore. Повторите попытку позже.'
-      : 'Перевищено денну квоту Firestore. Спробуйте пізніше.';
-  }
-  if (lower.includes('offline') || lower.includes('network')) {
-    return isRussian
-      ? 'Нет подключения к Firestore. Проверьте интернет-соединение.'
-      : 'Немає підключення до Firestore. Перевірте з’єднання з інтернетом.';
-  }
-  if (raw.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(raw) as { error?: string };
-      if (typeof parsed.error === 'string' && parsed.error.trim()) {
-        return parsed.error;
-      }
-    } catch {
-      // fall through
-    }
-  }
-  return raw;
 }
 
 export function StarRow({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md' }) {
@@ -135,6 +108,9 @@ export function ProductReviews({
   loading,
   loadError,
   onRetryLoad,
+  onReviewCreated,
+  onReviewUpdated,
+  onReviewDeleted,
 }: ProductReviewsProps) {
   const isRussian = getActiveLocale() === 'ru';
 
@@ -252,30 +228,40 @@ export function ProductReviews({
 
     setSubmitting(true);
     try {
+      const idToken = authUser ? await authUser.getIdToken() : undefined;
       if (editingReviewId) {
-        await updateProductReview(editingReviewId, {
-          productId: product.id,
-          authorName: validation.normalized.authorName,
-          rating: validation.normalized.rating,
-          comment: validation.normalized.comment,
-        });
+        const updated = await updateProductReview(
+          editingReviewId,
+          {
+            productId: product.id,
+            authorName: validation.normalized.authorName,
+            rating: validation.normalized.rating,
+            comment: validation.normalized.comment,
+          },
+          idToken,
+        );
+        onReviewUpdated(updated);
         setEditingReviewId(null);
         setComment('');
         setRating(5);
         setFormSuccess(tr('Відгук успішно оновлено.', 'Отзыв успешно обновлён.'));
       } else {
-        await createProductReview({
-          productId: product.id,
-          authorName: validation.normalized.authorName,
-          rating: validation.normalized.rating,
-          comment: validation.normalized.comment,
-        });
+        const created = await createProductReview(
+          {
+            productId: product.id,
+            authorName: validation.normalized.authorName,
+            rating: validation.normalized.rating,
+            comment: validation.normalized.comment,
+          },
+          idToken,
+        );
+        onReviewCreated(created);
         setComment('');
         setRating(5);
         setFormSuccess(tr('Дякуємо! Ваш відгук опубліковано.', 'Спасибо! Ваш отзыв опубликован.'));
       }
     } catch (error) {
-      setFormError(extractReadableFirestoreErrorMessage(error, isRussian));
+      setFormError(extractReadableReviewsErrorMessage(error, isRussian));
     } finally {
       setSubmitting(false);
     }
@@ -286,14 +272,16 @@ export function ProductReviews({
     setFormSuccess('');
     setDeletingId(reviewId);
     try {
-      await deleteProductReview(reviewId);
+      const idToken = authUser ? await authUser.getIdToken() : undefined;
+      await deleteProductReview(reviewId, idToken);
+      onReviewDeleted(reviewId);
       if (editingReviewId === reviewId) {
         handleCancelEdit();
       }
       setConfirmDeleteId(null);
       setFormSuccess(tr('Відгук видалено.', 'Отзыв удалён.'));
     } catch (error) {
-      setFormError(extractReadableFirestoreErrorMessage(error, isRussian));
+      setFormError(extractReadableReviewsErrorMessage(error, isRussian));
     } finally {
       setDeletingId(null);
     }

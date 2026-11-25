@@ -11,6 +11,7 @@ import {
   createDeal,
   createNote,
   createProduct,
+  createProductReviewRecord,
   createProjectCase,
   createSqliteBackupCopy,
   createStaffUser,
@@ -20,6 +21,7 @@ import {
   deleteDeal,
   deleteNote,
   deleteProduct,
+  deleteProductReviewRecord,
   deleteProjectCase,
   deleteStaffUser,
   deleteTask,
@@ -34,6 +36,7 @@ import {
   getLatestCatalogOrProjectUpdatedAt,
   getMasterAdminRecordSync,
   getProductById,
+  getProductReviewById,
   getPublicAnalyticsConfig,
   getRecentCatalogAndProjectChanges,
   getSetting,
@@ -48,6 +51,7 @@ import {
   listNotes,
   listProducts,
   listProjectCases,
+  listPublishedProductReviews,
   listRecentAnalyticsEvents,
   listRecentClientErrorLogs,
   listSitemapCategoryEntries,
@@ -67,6 +71,7 @@ import {
   updateCustomerProfile,
   updateDeal,
   updateProduct,
+  updateProductReviewRecord,
   updateProjectCase,
   updateStaffUser,
   updateTask,
@@ -96,6 +101,8 @@ import {
   orderCreateSchema,
   productCreateSchema,
   productPatchSchema,
+  PRODUCT_REVIEW_ID_REGEX,
+  productReviewBodySchema,
   projectCreateSchema,
   projectPatchSchema,
   scrubSensitiveErrorText,
@@ -118,6 +125,7 @@ import {
   verifyClientSessionToken,
   verifyEnvPassword,
   verifyScryptPassword,
+  verifySessionToken,
 } from './server/auth.ts';
 import {
   getFirebaseDomainAdminState,
@@ -325,6 +333,62 @@ async function startServer() {
     message: 'Too many error reports',
   });
 
+  const reviewsWriteRateLimit = createRateLimiter({
+    windowMs: 10 * 60_000,
+    max: 20,
+    message: 'Забагато операцій із відгуками. Будь ласка, спробуйте за кілька хвилин.',
+  });
+
+  async function resolveReviewActor(req: express.Request): Promise<{
+    uid: string;
+    name: string;
+    isModerator: boolean;
+  } | null> {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) return null;
+    const token = header.slice('Bearer '.length).trim();
+    if (!token) return null;
+
+    const verifiedGoogle = await verifyFirebaseGoogleToken(token);
+    if (verifiedGoogle) {
+      const { effective } = getEmailAllowlists();
+      const staffMatch = await findStaffForGoogleLogin(verifiedGoogle.email);
+      const isModerator =
+        effective.includes(verifiedGoogle.email) ||
+        Boolean(
+          staffMatch &&
+            staffMatch.active &&
+            staffMatch.canLogin &&
+            (staffMatch.role === 'admin' || staffMatch.role === 'manager'),
+        );
+      return {
+        uid: verifiedGoogle.uid,
+        name: verifiedGoogle.name,
+        isModerator,
+      };
+    }
+
+    const crmUser = verifySessionToken(token);
+    if (crmUser) {
+      if (crmUser.userId !== null) {
+        const fresh = getStaffAuthStateSync(crmUser.userId);
+        if (!fresh || !fresh.active || !fresh.canLogin) return null;
+        return {
+          uid: `staff:${crmUser.userId}`,
+          name: fresh.name,
+          isModerator: fresh.role === 'admin' || fresh.role === 'manager',
+        };
+      }
+      return {
+        uid: `staff:${crmUser.login}`,
+        name: crmUser.name,
+        isModerator: crmUser.role === 'admin' || crmUser.role === 'manager',
+      };
+    }
+
+    return null;
+  }
+
   function resolveOptionalClient(req: express.Request): { customerId: number; customerEmail: string } | null {
     const header = req.headers.authorization;
     if (!header || !header.startsWith('Bearer ')) return null;
@@ -484,6 +548,122 @@ async function startServer() {
       return;
     }
     res.json({ product });
+  });
+
+  // Product Reviews API (SQLite storage + Google Firebase token auth)
+  app.get('/api/products/:productId/reviews', (req, res) => {
+    const productId = String(req.params.productId || '').trim();
+    if (!PRODUCT_REVIEW_ID_REGEX.test(productId)) {
+      res.status(400).json({ error: 'Некоректний ідентифікатор товару' });
+      return;
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ reviews: listPublishedProductReviews(productId) });
+  });
+
+  app.post('/api/products/:productId/reviews', reviewsWriteRateLimit, async (req, res) => {
+    const productId = String(req.params.productId || '').trim();
+    if (!PRODUCT_REVIEW_ID_REGEX.test(productId)) {
+      res.status(400).json({ error: 'Некоректний ідентифікатор товару' });
+      return;
+    }
+
+    const actor = await resolveReviewActor(req);
+    if (!actor) {
+      res.status(401).json({ error: 'Для публікації відгуку увійдіть через Google.' });
+      return;
+    }
+
+    const product = getProductById(productId);
+    if (!product) {
+      res.status(404).json({ error: 'Товар не знайдено' });
+      return;
+    }
+
+    const parsed = productReviewBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані відгуку' });
+      return;
+    }
+
+    const review = createProductReviewRecord({
+      productId,
+      authorUid: actor.uid,
+      authorName: parsed.data.authorName,
+      rating: parsed.data.rating,
+      comment: parsed.data.comment,
+    });
+    res.status(201).json({ review });
+  });
+
+  app.patch('/api/reviews/:reviewId', reviewsWriteRateLimit, async (req, res) => {
+    const reviewId = String(req.params.reviewId || '').trim();
+    if (!PRODUCT_REVIEW_ID_REGEX.test(reviewId)) {
+      res.status(400).json({ error: 'Некоректний ідентифікатор відгуку' });
+      return;
+    }
+
+    const actor = await resolveReviewActor(req);
+    if (!actor) {
+      res.status(401).json({ error: 'Для редагування відгуку увійдіть через Google.' });
+      return;
+    }
+
+    const existing = getProductReviewById(reviewId);
+    if (!existing) {
+      res.status(404).json({ error: 'Відгук не знайдено' });
+      return;
+    }
+
+    if (existing.authorUid !== actor.uid && !actor.isModerator) {
+      res.status(403).json({ error: 'Ви можете редагувати лише власні відгуки' });
+      return;
+    }
+
+    const parsed = productReviewBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані відгуку' });
+      return;
+    }
+
+    const updated = updateProductReviewRecord(reviewId, parsed.data);
+    if (!updated) {
+      res.status(404).json({ error: 'Відгук не знайдено' });
+      return;
+    }
+    res.json({ review: updated });
+  });
+
+  app.delete('/api/reviews/:reviewId', reviewsWriteRateLimit, async (req, res) => {
+    const reviewId = String(req.params.reviewId || '').trim();
+    if (!PRODUCT_REVIEW_ID_REGEX.test(reviewId)) {
+      res.status(400).json({ error: 'Некоректний ідентифікатор відгуку' });
+      return;
+    }
+
+    const actor = await resolveReviewActor(req);
+    if (!actor) {
+      res.status(401).json({ error: 'Для видалення відгуку увійдіть через Google.' });
+      return;
+    }
+
+    const existing = getProductReviewById(reviewId);
+    if (!existing) {
+      res.status(404).json({ error: 'Відгук не знайдено' });
+      return;
+    }
+
+    if (existing.authorUid !== actor.uid && !actor.isModerator) {
+      res.status(403).json({ error: 'Ви можете видаляти лише власні відгуки' });
+      return;
+    }
+
+    const deleted = deleteProductReviewRecord(reviewId);
+    if (!deleted) {
+      res.status(404).json({ error: 'Відгук не знайдено' });
+      return;
+    }
+    res.json({ ok: true });
   });
 
   app.post('/api/analytics/track', analyticsRateLimit, (req, res) => {

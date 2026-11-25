@@ -21,6 +21,8 @@ import type {
   DealType,
   Product,
   ProductCategory,
+  ProductReview,
+  ProductReviewStatus,
   ProjectCase,
   RecentChangeRecord,
   SocialLinksConfig,
@@ -233,6 +235,21 @@ function getDb(): DatabaseSync {
       locale TEXT NOT NULL DEFAULT 'uk',
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS product_reviews (
+      id TEXT PRIMARY KEY,
+      product_id TEXT NOT NULL,
+      author_uid TEXT NOT NULL,
+      author_name TEXT NOT NULL,
+      rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+      comment TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'published',
+      created_at_ms INTEGER NOT NULL,
+      updated_at_ms INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_product_reviews_product_status
+      ON product_reviews(product_id, status, created_at_ms DESC);
   `);
 
   // Non-destructive migration for existing deals tables created before contact_id / customer_id / customer_email
@@ -2968,5 +2985,105 @@ export async function updateCustomerAccountByCrm(
   return enrichCrmCustomer(updated);
 }
 
+// =========================================================================
+// Product Reviews (node:sqlite)
+// =========================================================================
 
+function rowToProductReview(row: Record<string, unknown>): ProductReview {
+  const status: ProductReviewStatus = row.status === 'hidden' ? 'hidden' : 'published';
+  return {
+    id: String(row.id ?? ''),
+    productId: String(row.product_id ?? ''),
+    authorUid: String(row.author_uid ?? ''),
+    authorName: String(row.author_name ?? ''),
+    rating: Number(row.rating ?? 0),
+    comment: String(row.comment ?? ''),
+    status,
+    createdAtMs: Number(row.created_at_ms ?? 0),
+    updatedAtMs: Number(row.updated_at_ms ?? 0),
+  };
+}
 
+export function listPublishedProductReviews(productId: string, limitCount = 100): ProductReview[] {
+  const db = getDb();
+  const safeLimit = Math.max(1, Math.min(200, Math.trunc(limitCount)));
+  const rows = db
+    .prepare(
+      `SELECT id, product_id, author_uid, author_name, rating, comment, status, created_at_ms, updated_at_ms
+       FROM product_reviews
+       WHERE product_id = ? AND status = 'published'
+       ORDER BY created_at_ms DESC, id DESC
+       LIMIT ?`,
+    )
+    .all(productId, safeLimit) as Array<Record<string, unknown>>;
+  return rows.map(rowToProductReview);
+}
+
+export function getProductReviewById(reviewId: string): ProductReview | null {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT id, product_id, author_uid, author_name, rating, comment, status, created_at_ms, updated_at_ms
+       FROM product_reviews
+       WHERE id = ?`,
+    )
+    .get(reviewId) as Record<string, unknown> | undefined;
+  return row ? rowToProductReview(row) : null;
+}
+
+export function createProductReviewRecord(input: {
+  id?: string;
+  productId: string;
+  authorUid: string;
+  authorName: string;
+  rating: number;
+  comment: string;
+  status?: ProductReviewStatus;
+}): ProductReview {
+  const db = getDb();
+  const nowMs = Date.now();
+  const reviewId = input.id?.trim() || `rev_${crypto.randomBytes(12).toString('hex')}`;
+  const status: ProductReviewStatus = input.status === 'hidden' ? 'hidden' : 'published';
+  db.prepare(
+    `INSERT INTO product_reviews (
+      id, product_id, author_uid, author_name, rating, comment, status, created_at_ms, updated_at_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    reviewId,
+    input.productId.trim(),
+    input.authorUid.trim(),
+    input.authorName.trim(),
+    Math.trunc(input.rating),
+    input.comment.trim(),
+    status,
+    nowMs,
+    nowMs,
+  );
+  checkpointDb(db);
+  return getProductReviewById(reviewId)!;
+}
+
+export function updateProductReviewRecord(
+  reviewId: string,
+  patch: { authorName: string; rating: number; comment: string },
+): ProductReview | null {
+  const existing = getProductReviewById(reviewId);
+  if (!existing) return null;
+
+  const db = getDb();
+  const nowMs = Date.now();
+  db.prepare(
+    `UPDATE product_reviews
+     SET author_name = ?, rating = ?, comment = ?, updated_at_ms = ?
+     WHERE id = ?`,
+  ).run(patch.authorName.trim(), Math.trunc(patch.rating), patch.comment.trim(), nowMs, reviewId);
+  checkpointDb(db);
+  return getProductReviewById(reviewId);
+}
+
+export function deleteProductReviewRecord(reviewId: string): boolean {
+  const db = getDb();
+  const res = db.prepare('DELETE FROM product_reviews WHERE id = ?').run(reviewId);
+  checkpointDb(db);
+  return Number(res.changes ?? 0) > 0;
+}
