@@ -1919,13 +1919,19 @@ async function startServer() {
     res.json({ ok: true });
   });
 
-  app.put('/api/crm/social', requireRoles('admin'), (req, res) => {
+  app.get('/api/crm/social', requireRoles('admin', 'manager'), (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ socialLinks: getSocialLinks() });
+  });
+
+  app.put('/api/crm/social', requireRoles('admin', 'manager'), (req, res) => {
     const parsed = socialPutSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні посилання соцмереж' });
       return;
     }
     saveSocialLinks(parsed.data);
+    res.setHeader('Cache-Control', 'no-store');
     res.json({ socialLinks: getSocialLinks() });
   });
 

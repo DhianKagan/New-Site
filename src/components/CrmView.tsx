@@ -53,7 +53,7 @@ import type {
   StorageDiagnostics,
 } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
-import { SocialIcons } from './SocialIcons.tsx';
+import { SocialChannelIcon, SocialIcons } from './SocialIcons.tsx';
 import { DealsDataTable } from './crm/DealsDataTable.tsx';
 import { CreateDealModal } from './crm/CreateDealModal.tsx';
 import { DealOrderDetailsModal } from './crm/DealOrderDetailsModal.tsx';
@@ -62,6 +62,12 @@ import { ClientsUnifiedTab } from './crm/ClientsUnifiedTab.tsx';
 import { TasksTab } from './crm/TasksTab.tsx';
 import { StaffTab } from './crm/StaffTab.tsx';
 import { tr } from '../lib/i18n.ts';
+import {
+  SOCIAL_CHANNELS,
+  isValidSocialUrl,
+  normalizeSocialLinksConfig,
+  safeSocialHref,
+} from '../lib/socialLinks.ts';
 
 interface CrmViewProps {
   adminToken: string;
@@ -153,6 +159,7 @@ export function CrmView({
         loadStaff(),
         loadCurrentUser(),
         loadExchangeRate(false),
+        loadSocialLinks(),
       ]);
       if (crmTab === 'analytics') await loadAnalytics();
       if (crmTab === 'deploy' || crmTab === 'catalog') await loadDiagnostics();
@@ -267,6 +274,8 @@ export function CrmView({
 
   const onLogoutRef = useRef(onLogout);
   onLogoutRef.current = onLogout;
+  const onSocialLinksUpdatedRef = useRef(onSocialLinksUpdated);
+  onSocialLinksUpdatedRef.current = onSocialLinksUpdated;
 
   const authFetch = useCallback(
     async (url: string, init?: RequestInit): Promise<Response> => {
@@ -408,6 +417,17 @@ export function CrmView({
     [authFetch],
   );
 
+  const loadSocialLinks = useCallback(async () => {
+    const resp = await authFetch('/api/crm/social');
+    if (resp.ok) {
+      const data = (await resp.json()) as { socialLinks?: SocialLinksConfig };
+      if (data.socialLinks) {
+        onSocialLinksUpdatedRef.current(data.socialLinks);
+        setSocialForm(data.socialLinks);
+      }
+    }
+  }, [authFetch]);
+
   useEffect(() => {
     void loadCurrentUser();
     void loadStaff();
@@ -419,6 +439,7 @@ export function CrmView({
     void loadContacts();
     void loadTasks();
     void loadExchangeRate(false);
+    void loadSocialLinks();
   }, [
     loadCurrentUser,
     loadStaff,
@@ -430,6 +451,7 @@ export function CrmView({
     loadContacts,
     loadTasks,
     loadExchangeRate,
+    loadSocialLinks,
   ]);
 
   const assigneeOptions = useMemo(() => {
@@ -787,27 +809,56 @@ export function CrmView({
     }
   }
 
+  const socialPreviewLinks = useMemo(() => normalizeSocialLinksConfig(socialForm), [socialForm]);
+  const activeSocialCount = useMemo(
+    () => SOCIAL_CHANNELS.filter((ch) => Boolean(safeSocialHref(socialLinks[ch.key], ch.key))).length,
+    [socialLinks],
+  );
+  const socialFormDirty = useMemo(
+    () => SOCIAL_CHANNELS.some((ch) => socialForm[ch.key].trim() !== socialLinks[ch.key].trim()),
+    [socialForm, socialLinks],
+  );
+
   async function handleSaveSocialLinks(e: FormEvent) {
     e.preventDefault();
     setSocialMsg('');
     setSocialErr('');
+
+    for (const ch of SOCIAL_CHANNELS) {
+      if (!isValidSocialUrl(ch.key, socialForm[ch.key])) {
+        setSocialErr(
+          tr(
+            `Перевірте посилання для ${ch.label} — використовуйте https:// або коректний формат.`,
+            `Проверьте ссылку для ${ch.label} — используйте https:// или корректный формат.`,
+          ),
+        );
+        return;
+      }
+    }
+
+    const normalizedPayload = normalizeSocialLinksConfig(socialForm);
     setSavingSocial(true);
     try {
       const resp = await authFetch('/api/crm/social', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(socialForm),
+        body: JSON.stringify(normalizedPayload),
       });
       const data = (await resp.json()) as { socialLinks?: SocialLinksConfig; error?: string };
       if (!resp.ok || !data.socialLinks) {
-        setSocialErr(data.error || 'Помилка збереження соцмереж');
+        setSocialErr(data.error || tr('Помилка збереження соцмереж', 'Ошибка сохранения соцсетей'));
       } else {
         onSocialLinksUpdated(data.socialLinks);
         setSocialForm(data.socialLinks);
-        setSocialMsg('Соцмережі оновлено в шапці та футері сайту!');
+        setSocialMsg(
+          tr(
+            'Соцмережі збережено — іконки у шапці та футері сайту оновлено!',
+            'Соцсети сохранены — иконки в шапке и футере сайта обновлены!',
+          ),
+        );
       }
     } catch {
-      setSocialErr('Помилка з’єднання із сервером');
+      setSocialErr(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
     } finally {
       setSavingSocial(false);
     }
@@ -1197,6 +1248,12 @@ export function CrmView({
                         Icon: Banknote,
                         badge: exchangeRateData?.effectiveRate ? `${exchangeRateData.effectiveRate.toFixed(2)} ₴` : null,
                       },
+                      {
+                        id: 'social',
+                        label: tr('Соцмережі та SEO', 'Соцсети и SEO'),
+                        Icon: Share2,
+                        badge: `${activeSocialCount}/${SOCIAL_CHANNELS.length}`,
+                      },
                     ],
                   },
                   {
@@ -1211,7 +1268,6 @@ export function CrmView({
                     adminOnly: true,
                     items: [
                       { id: 'analytics', label: tr('Аналітика'), Icon: ChartNoAxesCombined, badge: null },
-                      { id: 'social', label: tr('Соцмережі та SEO'), Icon: Share2, badge: null },
                       { id: 'deploy', label: tr('Бекап · Telegram · Доступ'), Icon: Database, badge: null },
                     ],
                   },
@@ -2120,51 +2176,169 @@ export function CrmView({
         {/* TAB 5: SOCIAL LINKS & SEO / XML FEEDS */}
         {crmTab === 'social' && (
           <div className="space-y-5">
-            <form onSubmit={handleSaveSocialLinks} className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
+            <form onSubmit={handleSaveSocialLinks} className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-extrabold text-[#0d1f33]">Соціальні мережі в шапці та футері</h2>
+                  <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-[#1769aa]" />
+                    {tr('Соціальні мережі в шапці та футері сайту', 'Социальные сети в шапке и футере сайта')}
+                  </h2>
                   <p className="text-xs text-[#52657a] mt-0.5">
-                    Порожні поля приховуються. Вказуйте повну HTTPS-адресу профілю чи чату.
+                    {tr(
+                      'Налаштуйте посилання на Instagram, YouTube, TikTok, Viber, Telegram і Facebook. Порожні поля автоматично приховуються з вітрини.',
+                      'Настройте ссылки на Instagram, YouTube, TikTok, Viber, Telegram и Facebook. Пустые поля автоматически скрываются на сайте.',
+                    )}
                   </p>
                 </div>
-                <SocialIcons links={socialForm} variant="light" />
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-[#0d1f33]">
+                  {tr('Активних каналів:', 'Активных каналов:')} {SOCIAL_CHANNELS.filter((ch) => Boolean(safeSocialHref(socialPreviewLinks[ch.key], ch.key))).length}/{SOCIAL_CHANNELS.length}
+                </span>
+              </div>
+
+              {/* Live Header & Footer Icon Previews */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                <div className="rounded-lg bg-[#0d1f33] px-3.5 py-2.5 flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-bold text-slate-300">
+                    {tr('Попередній перегляд: шапка', 'Предпросмотр: шапка')}
+                  </span>
+                  <SocialIcons links={socialPreviewLinks} variant="header" />
+                </div>
+                <div className="rounded-lg bg-[#081421] px-3.5 py-2.5 flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-bold text-slate-300">
+                    {tr('Попередній перегляд: футер', 'Предпросмотр: футер')}
+                  </span>
+                  <SocialIcons links={socialPreviewLinks} variant="footer" />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
-                {(
-                  [
-                    ['telegram', 'Telegram (канал або менеджер)', 'https://t.me/energocomfort'],
-                    ['viber', 'Viber / посилання', 'https://invite.viber.com/...'],
-                    ['instagram', 'Instagram', 'https://instagram.com/energocomfort.shop'],
-                    ['facebook', 'Facebook', 'https://www.facebook.com/energocomfort.shop'],
-                    ['youtube', 'YouTube', 'https://youtube.com/@energocomfort'],
-                    ['tiktok', 'TikTok', 'https://tiktok.com/@energocomfort'],
-                  ] as const
-                ).map(([key, label, placeholder]) => (
-                  <div key={key}>
-                    <label className="block font-bold text-[#0d1f33] mb-1">{label}</label>
-                    <input
-                      type="url"
-                      value={socialForm[key]}
-                      onChange={(e) => setSocialForm((prev) => ({ ...prev, [key]: e.target.value }))}
-                      placeholder={placeholder}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                    />
-                  </div>
-                ))}
+                {SOCIAL_CHANNELS.map((channel) => {
+                  const rawValue = socialForm[channel.key];
+                  const valid = isValidSocialUrl(channel.key, rawValue);
+                  const previewHref = safeSocialHref(rawValue, channel.key);
+                  const isActive = Boolean(previewHref);
+
+                  return (
+                    <div
+                      key={channel.key}
+                      className={`rounded-xl border p-3.5 space-y-2 transition-colors ${
+                        !valid
+                          ? 'border-red-300 bg-red-50/40'
+                          : isActive
+                            ? 'border-slate-200 bg-white'
+                            : 'border-slate-200 bg-slate-50/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <label
+                          htmlFor={`social-input-${channel.key}`}
+                          className="inline-flex items-center gap-2 font-extrabold text-[#0d1f33]"
+                        >
+                          <span className="w-6 h-6 rounded-md bg-slate-100 text-[#0d1f33] inline-flex items-center justify-center">
+                            <SocialChannelIcon channel={channel.key} className="w-3.5 h-3.5" />
+                          </span>
+                          <span>{channel.label}</span>
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              !valid
+                                ? 'bg-red-100 text-red-700'
+                                : isActive
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-slate-200/70 text-slate-600'
+                            }`}
+                          >
+                            {!valid
+                              ? tr('Некоректний формат', 'Некорректный формат')
+                              : isActive
+                                ? tr('Активна', 'Активна')
+                                : tr('Прихована', 'Скрыта')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          id={`social-input-${channel.key}`}
+                          type="text"
+                          value={rawValue}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSocialMsg('');
+                            setSocialErr('');
+                            setSocialForm((prev) => ({ ...prev, [channel.key]: val }));
+                          }}
+                          placeholder={channel.placeholder}
+                          aria-invalid={!valid}
+                          className={`w-full px-3 py-2 rounded-lg border font-mono text-xs bg-white focus:outline-none focus:ring-2 ${
+                            valid
+                              ? 'border-slate-300 focus:ring-[#1769aa]/25 focus:border-[#1769aa]'
+                              : 'border-red-400 focus:ring-red-200 focus:border-red-500'
+                          }`}
+                        />
+                        {rawValue.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSocialMsg('');
+                              setSocialErr('');
+                              setSocialForm((prev) => ({ ...prev, [channel.key]: '' }));
+                            }}
+                            title={tr('Очистити поле', 'Очистить поле')}
+                            aria-label={tr(`Очистити ${channel.label}`, `Очистить ${channel.label}`)}
+                            className="w-8 h-8 shrink-0 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 hover:text-red-600 inline-flex items-center justify-center cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {previewHref && (
+                          <a
+                            href={previewHref}
+                            target={previewHref.startsWith('http') ? '_blank' : undefined}
+                            rel={previewHref.startsWith('http') ? 'noopener noreferrer' : undefined}
+                            title={tr(`Відкрити ${channel.label}`, `Открыть ${channel.label}`)}
+                            aria-label={tr(`Відкрити ${channel.label}`, `Открыть ${channel.label}`)}
+                            className="w-8 h-8 shrink-0 rounded-lg border border-slate-200 bg-white hover:bg-sky-50 text-[#1769aa] inline-flex items-center justify-center"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="text-[11px] text-[#52657a]">
+                        {tr(channel.hintUk, channel.hintRu)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {socialErr && <div className="text-xs font-semibold text-red-600">{socialErr}</div>}
               {socialMsg && <div className="text-xs font-semibold text-[#169374]">{socialMsg}</div>}
 
-              <button
-                type="submit"
-                disabled={savingSocial}
-                className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
-              >
-                {savingSocial ? 'Зберігаємо...' : 'Зберегти соцмережі'}
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="submit"
+                  disabled={savingSocial}
+                  className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                >
+                  {savingSocial ? tr('Зберігаємо…', 'Сохраняем…') : tr('Зберегти соцмережі', 'Сохранить соцсети')}
+                </button>
+                {socialFormDirty && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSocialForm(socialLinks);
+                      setSocialErr('');
+                      setSocialMsg('');
+                    }}
+                    className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#0d1f33] text-xs font-bold cursor-pointer"
+                  >
+                    {tr('Скасувати зміни', 'Отменить изменения')}
+                  </button>
+                )}
+              </div>
             </form>
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">

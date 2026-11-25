@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidSocialUrl, normalizeSocialUrl, type SocialChannelKey } from '../src/lib/socialLinks.ts';
 
 export function normalizePhoneInput(raw: string): string | null {
   const cleaned = raw.trim();
@@ -299,13 +300,24 @@ export const analyticsPutSchema = z.object({
   analyticsEnabled: z.boolean().optional().default(true),
 });
 
+function socialUrlField(key: SocialChannelKey) {
+  return z
+    .string()
+    .trim()
+    .max(500, `Занадто довге посилання для ${key}`)
+    .optional()
+    .default('')
+    .refine((v) => isValidSocialUrl(key, v), `Некоректне посилання для ${key}`)
+    .transform((v) => normalizeSocialUrl(key, v));
+}
+
 export const socialPutSchema = z.object({
-  telegram: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для telegram').optional().default(''),
-  instagram: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для instagram').optional().default(''),
-  facebook: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для facebook').optional().default(''),
-  youtube: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для youtube').optional().default(''),
-  viber: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для viber').optional().default(''),
-  tiktok: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для tiktok').optional().default(''),
+  telegram: socialUrlField('telegram'),
+  instagram: socialUrlField('instagram'),
+  facebook: socialUrlField('facebook'),
+  youtube: socialUrlField('youtube'),
+  viber: socialUrlField('viber'),
+  tiktok: socialUrlField('tiktok'),
 });
 
 export const commercialExchangeRatePutSchema = z.object({
