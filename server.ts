@@ -159,6 +159,14 @@ import {
   resolveGoogleProductCategory,
   resolveProductTypeLabel,
 } from './server/seo.ts';
+import {
+  buildSecurityHeaders,
+  collectMissingProductionEnvWarnings,
+  isRequestHttps,
+  resolveTrustedRequestHost,
+  shouldEnforceFrameProtection,
+  verifyTelegramWebhookSecret,
+} from './server/security.ts';
 import type { DealStage, ProductCategory, SocialLinksConfig } from './src/types.ts';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -338,9 +346,15 @@ async function startServer() {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  const enforceFrameProtection = shouldEnforceFrameProtection();
+  app.use((req, res, next) => {
+    const headers = buildSecurityHeaders({
+      isHttps: isRequestHttps(req),
+      enforceFrameProtection,
+    });
+    for (const [key, value] of Object.entries(headers)) {
+      res.setHeader(key, value);
+    }
     next();
   });
   app.use('/api/crm/upload', express.json({ limit: '6mb' }));
@@ -932,8 +946,8 @@ async function startServer() {
 
   app.get('/api/auth/firebase-config', (req, res) => {
     const rawQueryHost = typeof req.query.host === 'string' ? req.query.host : '';
-    const rawHeaderHost = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
-    const requestHost = rawQueryHost || rawHeaderHost;
+    const rawHeaderHost = String(req.headers['x-forwarded-host'] || req.get('host') || '');
+    const requestHost = resolveTrustedRequestHost(rawHeaderHost, rawQueryHost);
     res.setHeader('Cache-Control', 'no-store');
     res.json(getRuntimeFirebaseWebConfig(requestHost));
   });
@@ -1593,7 +1607,7 @@ async function startServer() {
     res.json({ deals: listDeals() });
   });
 
-  app.post('/api/crm/deals', async (req, res) => {
+  app.post('/api/crm/deals', requireRoles('admin', 'manager', 'engineer'), async (req, res) => {
     const parsed = crmDealCreateSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані угоди' });
@@ -1649,7 +1663,7 @@ async function startServer() {
     res.status(201).json({ deal });
   });
 
-  app.patch('/api/crm/deals/:id', (req, res) => {
+  app.patch('/api/crm/deals/:id', requireRoles('admin', 'manager', 'engineer'), (req, res) => {
     const dealId = Number(req.params.id);
     if (!Number.isFinite(dealId) || dealId <= 0) {
       res.status(400).json({ error: 'Некоректний ID угоди' });
@@ -1703,7 +1717,7 @@ async function startServer() {
     res.json(detail);
   });
 
-  app.post('/api/crm/contacts', async (req, res) => {
+  app.post('/api/crm/contacts', requireRoles('admin', 'manager', 'engineer'), async (req, res) => {
     const parsed = contactCreateSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані контакту' });
@@ -1722,7 +1736,7 @@ async function startServer() {
     }
   });
 
-  app.patch('/api/crm/contacts/:id', async (req, res) => {
+  app.patch('/api/crm/contacts/:id', requireRoles('admin', 'manager', 'engineer'), async (req, res) => {
     const contactId = Number(req.params.id);
     if (!Number.isFinite(contactId) || contactId <= 0) {
       res.status(400).json({ error: 'Некоректний ID контакту' });
@@ -2145,7 +2159,7 @@ async function startServer() {
   });
 
   // Telegram Bot Test Ping & Webhook Setup
-  app.post('/api/crm/telegram-test', async (_req, res) => {
+  app.post('/api/crm/telegram-test', requireRoles('admin', 'manager'), async (_req, res) => {
     if (!isTelegramConfigured()) {
       res.status(400).json({
         sent: false,
@@ -2161,12 +2175,20 @@ async function startServer() {
     res.json({ sent: ok });
   });
 
-  app.get('/api/crm/telegram-webhook', async (_req, res) => {
+  app.get('/api/crm/telegram-webhook', requireRoles('admin'), async (_req, res) => {
     const info = await getTelegramWebhookInfo();
     res.json(info);
   });
 
   app.post('/api/crm/telegram-webhook', requireRoles('admin'), async (req, res) => {
+    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+    if (!webhookSecret) {
+      res.status(400).json({
+        ok: false,
+        error: 'Задайте TELEGRAM_WEBHOOK_SECRET у змінних оточення перед активацією Webhook',
+      });
+      return;
+    }
     const body = (req.body ?? {}) as { webhookUrl?: string };
     const rawUrl = String(body.webhookUrl ?? '').trim();
     const targetUrl = rawUrl || `${getBaseUrl(req)}/api/telegram/webhook`;
@@ -2181,7 +2203,7 @@ async function startServer() {
       return;
     }
 
-    const result = await setTelegramWebhook(targetUrl);
+    const result = await setTelegramWebhook(targetUrl, webhookSecret);
     if (!result.ok) {
       res.status(400).json(result);
       return;
@@ -2192,15 +2214,13 @@ async function startServer() {
 
   // Ready-to-use Telegram Bot Webhook (for Railway deployment)
   app.post('/api/telegram/webhook', async (req, res) => {
-    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
-    if (expectedSecret) {
-      const providedSecret = String(req.headers['x-telegram-bot-api-secret-token'] || '');
-      const a = Buffer.from(providedSecret);
-      const b = Buffer.from(expectedSecret);
-      if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-        res.status(403).json({ ok: false });
-        return;
-      }
+    const authResult = verifyTelegramWebhookSecret(
+      process.env.TELEGRAM_WEBHOOK_SECRET,
+      String(req.headers['x-telegram-bot-api-secret-token'] || ''),
+    );
+    if (!authResult.ok) {
+      res.status(authResult.status).json({ ok: false, error: authResult.error });
+      return;
     }
 
     const update = (req.body ?? {}) as {
@@ -2346,6 +2366,9 @@ async function startServer() {
 
   app.listen(PORT, HOST, () => {
     console.log(`Energo Comfort server running on http://${HOST}:${PORT} (${IS_PROD ? 'production' : 'dev'})`);
+    for (const warning of collectMissingProductionEnvWarnings()) {
+      console.warn(`[security] ${warning}`);
+    }
   });
 }
 

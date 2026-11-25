@@ -92,11 +92,13 @@ export async function sendTelegramText(chatId: string | number, text: string): P
 
 export async function setTelegramWebhook(
   webhookUrl: string,
+  secretToken?: string,
 ): Promise<{ ok: boolean; description?: string; error?: string }> {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
   if (!token) {
     return { ok: false, error: 'Не задано TELEGRAM_BOT_TOKEN у змінних оточення' };
   }
+  const cleanSecret = (secretToken ?? process.env.TELEGRAM_WEBHOOK_SECRET ?? '').trim();
   try {
     const resp = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
       method: 'POST',
@@ -104,6 +106,7 @@ export async function setTelegramWebhook(
       body: JSON.stringify({
         url: webhookUrl,
         allowed_updates: ['message'],
+        ...(cleanSecret ? { secret_token: cleanSecret } : {}),
       }),
     });
     const data = (await resp.json()) as { ok?: boolean; description?: string };
