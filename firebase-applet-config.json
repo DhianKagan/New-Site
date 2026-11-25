@@ -1,12 +1,12 @@
 {
-  "projectId": "banded-artifact-wq7xb",
-  "appId": "1:837247178401:web:81459d2469361b24eac2e0",
-  "apiKey": "AIzaSyDGjpO0dWOv8mENVqqReLTlgvxWBaQbMKk",
-  "authDomain": "banded-artifact-wq7xb.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-newsite-c36c592e-0277-433b-83b1-31a7ba6281c3",
-  "storageBucket": "banded-artifact-wq7xb.firebasestorage.app",
-  "messagingSenderId": "837247178401",
+  "projectId": "energo-comfort",
+  "appId": "1:761750317268:web:5631f385302e7d9ed9b341",
+  "apiKey": "AIzaSyDaaRCIbH-nGcuYEGHFP01wRsHUQvIbDEQ",
+  "authDomain": "energo-comfort.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-energocomfortcrm-9a725f6f-16e1-40a6-8c12-44bf995769eb",
+  "storageBucket": "energo-comfort.firebasestorage.app",
+  "messagingSenderId": "761750317268",
   "measurementId": "",
-  "oAuthClientId": "837247178401-g0ta9dhfjddfkhq76up1g1p3c16251tv.apps.googleusercontent.com",
+  "oAuthClientId": "761750317268-6gjtmi5e2ie3mjgi3goeng5ume9mdi8q.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }
