@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react';
-import { Lock, ShieldCheck, ArrowLeft, Eye, EyeOff, Wand2, Copy, Check } from 'lucide-react';
-import type { AdminAuthStatus } from '../types.ts';
-import { signInWithGooglePopup } from '../lib/firebaseAuth.ts';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Lock, ShieldCheck, ArrowLeft, Eye, EyeOff, Wand2, Copy, Check, ExternalLink } from 'lucide-react';
+import type { AdminAuthStatus, FirebaseRuntimeWebConfig } from '../types.ts';
+import { getFirebaseProjectId, getRuntimeFirebaseConfig, signInWithGooglePopup } from '../lib/firebaseAuth.ts';
 import { tr } from '../lib/i18n.ts';
 
 interface AdminAuthGateProps {
@@ -29,7 +29,21 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [unauthorizedHost, setUnauthorizedHost] = useState('');
+  const [runtimeConfig, setRuntimeConfig] = useState<FirebaseRuntimeWebConfig | null>(null);
 
+  useEffect(() => {
+    if (!apiAvailable) return;
+    let active = true;
+    void getRuntimeFirebaseConfig().then((cfg) => {
+      if (active) setRuntimeConfig(cfg);
+    });
+    return () => {
+      active = false;
+    };
+  }, [apiAvailable]);
+
+  const activeProjectId = runtimeConfig?.projectId || getFirebaseProjectId();
   const isSetup = status.mode === 'setup';
 
   function handleGenerateSetupPassword() {
@@ -53,6 +67,7 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
 
   async function handleGoogleLogin() {
     setError('');
+    setUnauthorizedHost('');
     setGoogleSubmitting(true);
     try {
       const { idToken } = await signInWithGooglePopup();
@@ -72,7 +87,9 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
       if (message.includes('popup-closed-by-user')) {
         setError('Вікно входу Google було закрито до завершення авторизації');
       } else if (message.includes('unauthorized-domain')) {
-        setError('Домен ще не додано в Authorized domains у Firebase Console');
+        const host = typeof window !== 'undefined' ? window.location.hostname : '';
+        setUnauthorizedHost(host);
+        setError(`Домен ${host} ще не додано в Authorized domains у Firebase Console`);
       } else {
         setError('Не вдалося виконати вхід через Google');
       }
@@ -354,8 +371,26 @@ export function AdminAuthGate({ status, apiAvailable = true, onAuthenticated, on
           )}
 
           {error && (
-            <div role="alert" aria-live="polite" className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
-              {error}
+            <div role="alert" aria-live="polite" className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 space-y-2">
+              <div>{error}</div>
+              {unauthorizedHost && activeProjectId && (
+                <div className="font-normal text-[#0d1f33] flex flex-wrap items-center gap-2 pt-1 border-t border-red-200">
+                  {runtimeConfig?.authDomain && (
+                    <span className="text-[11px] text-[#52657a]">
+                      authDomain: <code className="font-mono font-semibold">{runtimeConfig.authDomain}</code>
+                    </span>
+                  )}
+                  <a
+                    href={`https://console.firebase.google.com/project/${encodeURIComponent(activeProjectId)}/authentication/settings`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#1769aa] hover:bg-[#12558a] text-[11px] font-bold text-white"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {tr('Відкрити Firebase Console', 'Открыть Firebase Console')}
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

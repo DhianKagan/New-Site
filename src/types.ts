@@ -256,3 +256,21 @@ export interface UnifiedAuthResult {
   customer?: CustomerProfile;
 }
 
+export interface FirebaseDomainRule {
+  hostPattern: string;
+  authDomain?: string;
+  projectId?: string;
+  apiKey?: string;
+  appId?: string;
+}
+
+export interface FirebaseRuntimeWebConfig {
+  projectId: string;
+  apiKey: string;
+  authDomain: string;
+  appId: string;
+  requestHost: string;
+  matchedRule: string | null;
+  authorizedHosts: string[];
+}
+

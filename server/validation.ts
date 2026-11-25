@@ -292,3 +292,39 @@ export const crmCustomerCreateSchema = z.object({
 export const crmCustomerPatchSchema = crmCustomerCreateSchema.partial().extend({
   clearPassword: z.boolean().optional(),
 });
+
+const DOMAIN_PATTERN_REGEX = /^(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)*$/i;
+const EXACT_HOST_REGEX = /^[a-z0-9-]+(\.[a-z0-9-]+)*$/i;
+
+export const firebaseDomainsPutSchema = z.object({
+  rules: z
+    .array(
+      z.object({
+        hostPattern: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .min(1, 'Вкажіть домен або маску піддомену')
+          .max(253)
+          .refine((v) => DOMAIN_PATTERN_REGEX.test(v), 'Некоректний формат домену (напр. crm.domain.com або *.domain.com)'),
+        authDomain: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .max(253)
+          .refine((v) => !v || EXACT_HOST_REGEX.test(v), 'Некоректний authDomain')
+          .optional()
+          .default(''),
+        projectId: z
+          .string()
+          .trim()
+          .max(120)
+          .refine((v) => !v || /^[a-z0-9-]+$/i.test(v), 'Некоректний Firebase projectId')
+          .optional()
+          .default(''),
+        apiKey: z.string().trim().max(160).optional().default(''),
+        appId: z.string().trim().max(160).optional().default(''),
+      }),
+    )
+    .max(50),
+});

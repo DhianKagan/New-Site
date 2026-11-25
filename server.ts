@@ -81,6 +81,7 @@ import {
   crmCustomerCreateSchema,
   crmCustomerPatchSchema,
   dealPatchSchema,
+  firebaseDomainsPutSchema,
   isSafeExternalUrl,
   isSafeImageUrl,
   leadCreateSchema,
@@ -111,7 +112,13 @@ import {
   verifyEnvPassword,
   verifyScryptPassword,
 } from './server/auth.ts';
-import { isFirebaseAuthConfigured, verifyFirebaseGoogleToken } from './server/firebaseAuth.ts';
+import {
+  getFirebaseDomainAdminState,
+  getRuntimeFirebaseWebConfig,
+  isFirebaseAuthConfigured,
+  saveFirebaseDomainRules,
+  verifyFirebaseGoogleToken,
+} from './server/firebaseAuth.ts';
 import {
   getTelegramWebhookInfo,
   hasTelegramToken,
@@ -745,6 +752,14 @@ async function startServer() {
 
   app.get('/api/auth/status', handleAuthStatus);
   app.get('/api/admin/auth/status', handleAuthStatus);
+
+  app.get('/api/auth/firebase-config', (req, res) => {
+    const rawQueryHost = typeof req.query.host === 'string' ? req.query.host : '';
+    const rawHeaderHost = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
+    const requestHost = rawQueryHost || rawHeaderHost;
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(getRuntimeFirebaseWebConfig(requestHost));
+  });
 
   app.post('/api/admin/auth/setup', authRateLimit, (req, res) => {
     const envPass = process.env.ADMIN_PASSWORD?.trim();
@@ -1613,6 +1628,30 @@ async function startServer() {
     const parsed = parseAdminEmailList(String(body.emails ?? ''));
     setSetting('admin_emails', parsed.join(', '));
     res.json(getEmailAllowlists());
+  });
+
+  app.get('/api/crm/auth/firebase-domains', requireRoles('admin'), (req, res) => {
+    const rawHeaderHost = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
+    const host = typeof req.query.host === 'string' && req.query.host.trim() ? req.query.host : rawHeaderHost;
+    res.json({
+      ...getFirebaseDomainAdminState(),
+      activeForCurrentHost: getRuntimeFirebaseWebConfig(host),
+    });
+  });
+
+  app.put('/api/crm/auth/firebase-domains', requireRoles('admin'), (req, res) => {
+    const parsed = firebaseDomainsPutSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні правила доменів Firebase' });
+      return;
+    }
+    saveFirebaseDomainRules(parsed.data.rules);
+    const rawHeaderHost = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
+    const host = typeof req.query.host === 'string' && req.query.host.trim() ? req.query.host : rawHeaderHost;
+    res.json({
+      ...getFirebaseDomainAdminState(),
+      activeForCurrentHost: getRuntimeFirebaseWebConfig(host),
+    });
   });
 
   app.get('/api/crm/backup', requireRoles('admin'), (_req, res) => {

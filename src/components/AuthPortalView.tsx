@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, Check, Copy, ExternalLink, Eye, EyeOff, Lock, ShieldAlert, ShieldCheck, UserPlus, Wand2 } from 'lucide-react';
-import type { AdminAuthStatus, UnifiedAuthResult } from '../types.ts';
-import { getFirebaseProjectId, signInWithGooglePopup } from '../lib/firebaseAuth.ts';
+import type { AdminAuthStatus, FirebaseRuntimeWebConfig, UnifiedAuthResult } from '../types.ts';
+import { getFirebaseProjectId, getRuntimeFirebaseConfig, signInWithGooglePopup } from '../lib/firebaseAuth.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 import { tr } from '../lib/i18n.ts';
 
@@ -45,6 +45,7 @@ export function AuthPortalView({
   const [isLockedOut, setIsLockedOut] = useState(false);
   const [unauthorizedHost, setUnauthorizedHost] = useState('');
   const [copiedHost, setCopiedHost] = useState(false);
+  const [runtimeConfig, setRuntimeConfig] = useState<FirebaseRuntimeWebConfig | null>(null);
   const identifierInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -53,6 +54,19 @@ export function AuthPortalView({
     setIsLockedOut(false);
     setUnauthorizedHost('');
   }, [initialMode]);
+
+  useEffect(() => {
+    if (!apiAvailable) return;
+    let active = true;
+    void getRuntimeFirebaseConfig().then((cfg) => {
+      if (active) setRuntimeConfig(cfg);
+    });
+    return () => {
+      active = false;
+    };
+  }, [apiAvailable]);
+
+  const activeProjectId = runtimeConfig?.projectId || getFirebaseProjectId();
 
   const isRegister = mode === 'register';
   const isSetup = mode === 'setup';
@@ -606,9 +620,9 @@ export function AuthPortalView({
                       {copiedHost ? <Check className="w-3 h-3 text-[#169374]" /> : <Copy className="w-3 h-3" />}
                       {copiedHost ? tr('Скопійовано', 'Скопировано') : tr('Копіювати домен', 'Копировать домен')}
                     </button>
-                    {getFirebaseProjectId() && (
+                    {activeProjectId && (
                       <a
-                        href={`https://console.firebase.google.com/project/${encodeURIComponent(getFirebaseProjectId())}/authentication/settings`}
+                        href={`https://console.firebase.google.com/project/${encodeURIComponent(activeProjectId)}/authentication/settings`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#1769aa] hover:bg-[#12558a] text-[11px] font-bold text-white"
@@ -618,6 +632,18 @@ export function AuthPortalView({
                       </a>
                     )}
                   </div>
+                  {runtimeConfig?.authDomain && (
+                    <div className="text-[11px] text-[#52657a]">
+                      {tr('Активний authDomain:', 'Активный authDomain:')}{' '}
+                      <code className="font-mono font-semibold text-[#0d1f33]">{runtimeConfig.authDomain}</code>
+                      {runtimeConfig.matchedRule ? (
+                        <span>
+                          {' '}
+                          ({tr('правило', 'правило')}: <code className="font-mono">{runtimeConfig.matchedRule}</code>)
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
                   <div className="text-[#52657a] space-y-1.5">
                     <div>
                       {tr(

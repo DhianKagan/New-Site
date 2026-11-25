@@ -29,7 +29,7 @@ import {
   UserCog,
   Users,
 } from 'lucide-react';
-import { getFirebaseProjectId } from '../lib/firebaseAuth.ts';
+import { clearRuntimeFirebaseConfigCache, getFirebaseProjectId } from '../lib/firebaseAuth.ts';
 import type {
   AnalyticsConfig,
   AnalyticsEventRecord,
@@ -39,6 +39,8 @@ import type {
   CrmTask,
   Deal,
   DealStage,
+  FirebaseDomainRule,
+  FirebaseRuntimeWebConfig,
   Product,
   ProductCategory,
   ProjectCase,
@@ -215,6 +217,21 @@ export function CrmView({
   const [emailsMsg, setEmailsMsg] = useState('');
   const [emailsErr, setEmailsErr] = useState('');
 
+  // Dynamic Firebase OAuth domain rules state
+  const [dbDomainRules, setDbDomainRules] = useState<FirebaseDomainRule[]>([]);
+  const [envDomainRules, setEnvDomainRules] = useState<FirebaseDomainRule[]>([]);
+  const [activeFirebaseConfig, setActiveFirebaseConfig] = useState<FirebaseRuntimeWebConfig | null>(null);
+  const [useHostAsAuthDomain, setUseHostAsAuthDomain] = useState(false);
+  const [newRuleHostPattern, setNewRuleHostPattern] = useState('');
+  const [newRuleAuthDomain, setNewRuleAuthDomain] = useState('');
+  const [newRuleProjectId, setNewRuleProjectId] = useState('');
+  const [newRuleApiKey, setNewRuleApiKey] = useState('');
+  const [newRuleAppId, setNewRuleAppId] = useState('');
+  const [showAdvancedRuleFields, setShowAdvancedRuleFields] = useState(false);
+  const [savingDomains, setSavingDomains] = useState(false);
+  const [domainsMsg, setDomainsMsg] = useState('');
+  const [domainsErr, setDomainsErr] = useState('');
+
   // Projects / Case Studies Editor state
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -269,6 +286,28 @@ export function CrmView({
       const data = (await resp.json()) as { envEmails: string[]; dbEmails: string[]; effective: string[] };
       setEffectiveAdminEmails(data.effective);
       setAdminEmailsInput((data.dbEmails.length > 0 ? data.dbEmails : data.effective).join(', '));
+    }
+  }, [authFetch]);
+
+  const loadFirebaseDomains = useCallback(async () => {
+    const hostParam =
+      typeof window !== 'undefined' && window.location.hostname
+        ? `?host=${encodeURIComponent(window.location.hostname)}`
+        : '';
+    const resp = await authFetch(`/api/crm/auth/firebase-domains${hostParam}`);
+    if (resp.ok) {
+      const data = (await resp.json()) as {
+        envRules?: FirebaseDomainRule[];
+        dbRules?: FirebaseDomainRule[];
+        useHostAsAuthDomain?: boolean;
+        activeForCurrentHost?: FirebaseRuntimeWebConfig;
+      };
+      setEnvDomainRules(Array.isArray(data.envRules) ? data.envRules : []);
+      setDbDomainRules(Array.isArray(data.dbRules) ? data.dbRules : []);
+      setUseHostAsAuthDomain(Boolean(data.useHostAsAuthDomain));
+      if (data.activeForCurrentHost) {
+        setActiveFirebaseConfig(data.activeForCurrentHost);
+      }
     }
   }, [authFetch]);
 
@@ -342,10 +381,21 @@ export function CrmView({
     void loadCustomers();
     void loadAnalytics();
     void loadAdminEmails();
+    void loadFirebaseDomains();
     void loadDiagnostics();
     void loadContacts();
     void loadTasks();
-  }, [loadCurrentUser, loadStaff, loadCustomers, loadAnalytics, loadAdminEmails, loadDiagnostics, loadContacts, loadTasks]);
+  }, [
+    loadCurrentUser,
+    loadStaff,
+    loadCustomers,
+    loadAnalytics,
+    loadAdminEmails,
+    loadFirebaseDomains,
+    loadDiagnostics,
+    loadContacts,
+    loadTasks,
+  ]);
 
   const assigneeOptions = useMemo(() => {
     const set = new Set<string>();
@@ -835,6 +885,77 @@ export function CrmView({
     } finally {
       setSavingEmails(false);
     }
+  }
+
+  async function persistFirebaseDomainRules(nextRules: FirebaseDomainRule[], successText: string): Promise<boolean> {
+    setDomainsMsg('');
+    setDomainsErr('');
+    setSavingDomains(true);
+    try {
+      const hostParam =
+        typeof window !== 'undefined' && window.location.hostname
+          ? `?host=${encodeURIComponent(window.location.hostname)}`
+          : '';
+      const resp = await authFetch(`/api/crm/auth/firebase-domains${hostParam}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules: nextRules }),
+      });
+      const data = (await resp.json()) as {
+        dbRules?: FirebaseDomainRule[];
+        envRules?: FirebaseDomainRule[];
+        activeForCurrentHost?: FirebaseRuntimeWebConfig;
+        error?: string;
+      };
+      if (!resp.ok || !Array.isArray(data.dbRules)) {
+        setDomainsErr(data.error || 'Не вдалося зберегти правила доменів Firebase');
+        return false;
+      }
+      setDbDomainRules(data.dbRules);
+      if (Array.isArray(data.envRules)) setEnvDomainRules(data.envRules);
+      if (data.activeForCurrentHost) setActiveFirebaseConfig(data.activeForCurrentHost);
+      clearRuntimeFirebaseConfigCache();
+      setDomainsMsg(successText);
+      return true;
+    } catch {
+      setDomainsErr('Помилка з’єднання із сервером');
+      return false;
+    } finally {
+      setSavingDomains(false);
+    }
+  }
+
+  async function handleAddFirebaseDomainRule(e: FormEvent) {
+    e.preventDefault();
+    const pattern = newRuleHostPattern.trim().toLowerCase();
+    if (!pattern) {
+      setDomainsErr('Вкажіть домен або маску піддомену (наприклад *.ai.studio)');
+      return;
+    }
+    const candidate: FirebaseDomainRule = {
+      hostPattern: pattern,
+      ...(newRuleAuthDomain.trim() ? { authDomain: newRuleAuthDomain.trim().toLowerCase() } : {}),
+      ...(newRuleProjectId.trim() ? { projectId: newRuleProjectId.trim() } : {}),
+      ...(newRuleApiKey.trim() ? { apiKey: newRuleApiKey.trim() } : {}),
+      ...(newRuleAppId.trim() ? { appId: newRuleAppId.trim() } : {}),
+    };
+    const filtered = dbDomainRules.filter((r) => r.hostPattern !== pattern);
+    const saved = await persistFirebaseDomainRules(
+      [...filtered, candidate],
+      `Правило для «${pattern}» збережено та застосовано`,
+    );
+    if (saved) {
+      setNewRuleHostPattern('');
+      setNewRuleAuthDomain('');
+      setNewRuleProjectId('');
+      setNewRuleApiKey('');
+      setNewRuleAppId('');
+    }
+  }
+
+  async function handleRemoveFirebaseDomainRule(hostPattern: string) {
+    const nextRules = dbDomainRules.filter((r) => r.hostPattern !== hostPattern);
+    await persistFirebaseDomainRules(nextRules, `Правило «${hostPattern}» видалено`);
   }
 
   function resetProjectForm() {
@@ -2152,9 +2273,9 @@ export function CrmView({
                     <code className="font-mono text-[#0d1f33]">ADMIN_EMAILS</code>), а також співробітники з розділу{' '}
                     <strong>Користувачі та доступ</strong> входять у CRM через Google. Якщо використовуєте власний домен
                     (наприклад <code className="font-mono text-[#0d1f33]">*.ai.studio</code> або Railway), додайте його в{' '}
-                    {getFirebaseProjectId() ? (
+                    {(activeFirebaseConfig?.projectId || getFirebaseProjectId()) ? (
                       <a
-                        href={`https://console.firebase.google.com/project/${encodeURIComponent(getFirebaseProjectId())}/authentication/settings`}
+                        href={`https://console.firebase.google.com/project/${encodeURIComponent(activeFirebaseConfig?.projectId || getFirebaseProjectId())}/authentication/settings`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-bold text-[#1769aa] hover:underline"
@@ -2196,6 +2317,187 @@ export function CrmView({
 
               {emailsErr && <div className="text-xs font-semibold text-red-600">{emailsErr}</div>}
               {emailsMsg && <div className="text-xs font-semibold text-[#169374]">{emailsMsg}</div>}
+            </div>
+
+            {/* Dynamic Firebase OAuth Domains & Subdomains Card */}
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#1769aa]" />
+                    {tr(
+                      'Динамічні домени та піддомени Firebase OAuth',
+                      'Динамические домены и поддомены Firebase OAuth',
+                    )}
+                  </h2>
+                  <p className="text-xs text-[#52657a] mt-1 max-w-2xl leading-relaxed">
+                    {tr(
+                      'Додавайте власні домени або маски піддоменів (*.domain.com) без перезбірки сайту. Для кожного домену можна задати окремий authDomain або власний Firebase-проєкт при розгортанні в іншому акаунті.',
+                      'Добавляйте собственные домены или маски поддоменов (*.domain.com) без пересборки сайта. Для каждого домена можно задать отдельный authDomain или свой Firebase-проект при развёртывании в другом аккаунте.',
+                    )}
+                  </p>
+                </div>
+                {activeFirebaseConfig && (
+                  <div className="text-[11px] font-mono bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 space-y-0.5 text-slate-600">
+                    <div>
+                      Host: <strong className="text-[#0d1f33]">{activeFirebaseConfig.requestHost || '—'}</strong>
+                    </div>
+                    <div>
+                      authDomain: <strong className="text-[#1769aa]">{activeFirebaseConfig.authDomain || '—'}</strong>
+                    </div>
+                    <div>
+                      projectId: <strong className="text-[#0d1f33]">{activeFirebaseConfig.projectId || '—'}</strong>
+                      {activeFirebaseConfig.matchedRule ? ` (${activeFirebaseConfig.matchedRule})` : ''}
+                      {useHostAsAuthDomain ? ' · auto-host' : ''}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {(dbDomainRules.length > 0 || envDomainRules.length > 0) && (
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-500">
+                    {tr('Активні правила доменів:', 'Активные правила доменов:')}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {envDomainRules.map((rule) => (
+                      <div
+                        key={`env-${rule.hostPattern}`}
+                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-mono font-bold text-[#0d1f33] truncate">{rule.hostPattern}</div>
+                          <div className="font-mono text-[11px] text-slate-500 truncate">
+                            {rule.authDomain ? `authDomain: ${rule.authDomain}` : 'базовий authDomain'} · ENV
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-[10px] font-bold shrink-0">
+                          FIREBASE_AUTH_DOMAINS
+                        </span>
+                      </div>
+                    ))}
+                    {dbDomainRules.map((rule) => (
+                      <div
+                        key={`db-${rule.hostPattern}`}
+                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-blue-50/50 border border-blue-200 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-mono font-bold text-[#0d1f33] truncate">{rule.hostPattern}</div>
+                          <div className="font-mono text-[11px] text-slate-600 truncate">
+                            {rule.authDomain ? `authDomain: ${rule.authDomain}` : 'базовий authDomain'}
+                            {rule.projectId ? ` · project: ${rule.projectId}` : ''}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={savingDomains}
+                          onClick={() => void handleRemoveFirebaseDomainRule(rule.hostPattern)}
+                          aria-label={`Видалити правило ${rule.hostPattern}`}
+                          className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleAddFirebaseDomainRule} className="space-y-3 pt-2 border-t border-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#0d1f33] mb-1">
+                      {tr('Домен або маска піддомену *', 'Домен или маска поддомена *')}
+                    </label>
+                    <input
+                      type="text"
+                      value={newRuleHostPattern}
+                      onChange={(e) => setNewRuleHostPattern(e.target.value)}
+                      placeholder="energo-comfort-crm.ai.studio або *.energocomfort.shop"
+                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#0d1f33] mb-1">
+                      {tr('Кастомний authDomain (опц.)', 'Кастомный authDomain (опц.)')}
+                    </label>
+                    <input
+                      type="text"
+                      value={newRuleAuthDomain}
+                      onChange={(e) => setNewRuleAuthDomain(e.target.value)}
+                      placeholder="energo-comfort-crm.ai.studio"
+                      className="w-full px-3.5 py-2 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedRuleFields((v) => !v)}
+                    className="text-xs font-bold text-[#1769aa] hover:underline cursor-pointer"
+                  >
+                    {showAdvancedRuleFields
+                      ? tr('Сховати налаштування окремого Firebase-проєкту', 'Скрыть настройки отдельного Firebase-проекта')
+                      : tr('+ Перевизначити Firebase projectId / apiKey / appId для цього домену', '+ Переопределить Firebase projectId / apiKey / appId для этого домена')}
+                  </button>
+                </div>
+
+                {showAdvancedRuleFields && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0d1f33] mb-1">projectId</label>
+                      <input
+                        type="text"
+                        value={newRuleProjectId}
+                        onChange={(e) => setNewRuleProjectId(e.target.value)}
+                        placeholder="my-firebase-project"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0d1f33] mb-1">apiKey</label>
+                      <input
+                        type="text"
+                        value={newRuleApiKey}
+                        onChange={(e) => setNewRuleApiKey(e.target.value)}
+                        placeholder="AIzaSy..."
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0d1f33] mb-1">appId</label>
+                      <input
+                        type="text"
+                        value={newRuleAppId}
+                        onChange={(e) => setNewRuleAppId(e.target.value)}
+                        placeholder="1:...:web:..."
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-[11px] text-[#52657a]">
+                    {tr(
+                      'Зверніть увагу: сам хост має бути дозволений у Firebase Console → Authorized domains (або проксіювати /__/auth/* через Firebase Hosting).',
+                      'Обратите внимание: сам хост должен быть разрешён в Firebase Console → Authorized domains (или проксировать /__/auth/* через Firebase Hosting).',
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={savingDomains}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12558a] disabled:opacity-60 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {savingDomains ? tr('Зберігаємо...', 'Сохраняем...') : tr('Додати / Оновити домен', 'Добавить / Обновить домен')}
+                  </button>
+                </div>
+              </form>
+
+              {domainsErr && <div className="text-xs font-semibold text-red-600">{domainsErr}</div>}
+              {domainsMsg && <div className="text-xs font-semibold text-[#169374]">{domainsMsg}</div>}
             </div>
           </div>
         )}
