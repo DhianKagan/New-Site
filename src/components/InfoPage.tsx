@@ -15,17 +15,17 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
   const isOffer = type === 'offer';
   return (
     <div>
-      <section className="border-b border-slate-200 bg-gradient-to-b from-[#f3f7fc] to-white py-8">
+      <section className="border-b border-white/15 bg-[#081421]/40 backdrop-blur-[1px] py-8 text-white">
         <div className="mx-auto max-w-[1180px] px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="mb-2 flex items-center gap-2 text-xs text-slate-500">
-            <button type="button" onClick={onBackHome} className="font-bold text-[#1769aa] hover:underline">{tr('Головна')}</button>
+          <nav aria-label={tr('Хлібні крихти')} className="mb-2 flex items-center gap-2 text-xs text-slate-300">
+            <button type="button" onClick={onBackHome} className="font-bold text-sky-300 hover:text-white hover:underline cursor-pointer">{tr('Головна')}</button>
             <span aria-hidden="true">/</span>
             <span>{isOffer ? tr('Публічна оферта') : tr('Оплата і доставка')}</span>
           </nav>
-          <h1 className="mb-2 text-2xl font-extrabold text-[#0d1f33] sm:text-3xl">
+          <h1 className="mb-2 text-2xl font-extrabold text-white sm:text-3xl">
             {isOffer ? tr('Публічна оферта') : tr('Оплата і доставка')}
           </h1>
-          <p className="max-w-2xl text-sm text-[#52657a]">
+          <p className="max-w-2xl text-sm text-slate-200">
             {isOffer
                 ? tr('Проєкт умов дистанційного замовлення обладнання та послуг Energo Comfort.', 'Проект условий дистанционного заказа оборудования и услуг Energo Comfort.')
               : tr('Узгоджуємо спосіб оплати й доставку з вами після підтвердження складу та наявності замовлення.', 'Согласуем способ оплаты и доставки после подтверждения состава и наличия заказа.')}
@@ -33,7 +33,7 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
         </div>
       </section>
 
-      <section className="bg-[#f8fafc] py-9 sm:py-12">
+      <section className="bg-[#f8fafc]/92 backdrop-blur-md py-9 sm:py-12">
         <div className="mx-auto max-w-[900px] space-y-5 px-5">
           {isOffer ? (
             <>

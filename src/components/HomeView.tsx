@@ -260,18 +260,18 @@ export function HomeView({
   return (
     <div>
       {/* Hero + 3-Scenario Fork */}
-      <section className="bg-gradient-to-b from-[#f4f8fc] to-white border-b border-slate-200 py-10 lg:py-12">
+      <section className="bg-[#081421]/30 border-b border-white/15 py-10 lg:py-14">
         <div className="max-w-[1180px] mx-auto px-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-8">
             <div className="lg:col-span-7 flex flex-col justify-center">
-              <div className="text-xs font-extrabold text-[#1769aa] tracking-wide mb-2.5">
+              <div className="text-xs font-extrabold text-sky-300 tracking-wide mb-2.5">
                 {tr('Резервне живлення · Сонячні електростанції · Одеса')}
               </div>
-              <h1 className="text-[clamp(1.85rem,3.6vw,2.65rem)] font-extrabold text-[#0d1f33] leading-[1.12] tracking-tight mb-4 max-w-2xl">
+              <h1 className="text-[clamp(1.85rem,3.6vw,2.65rem)] font-extrabold text-white leading-[1.12] tracking-tight mb-4 max-w-2xl drop-shadow-xs">
                 {tr('Сонячні електростанції та резервне живлення', 'Солнечные электростанции и резервное питание')}{' '}
-                <span className="text-[#1769aa]">{tr('в Одесі та області під ключ', 'в Одессе и области под ключ')}</span>
+                <span className="text-sky-300">{tr('в Одесі та області під ключ', 'в Одессе и области под ключ')}</span>
               </h1>
-              <p className="text-[15px] text-[#52657a] leading-relaxed mb-6 max-w-xl">
+              <p className="text-[15px] text-slate-200 leading-relaxed mb-6 max-w-xl">
                 {tr('Проєктування, офіційне постачання обладнання (Deye, SolaX, Solis, Dyness, Trina) та сертифікований монтаж «під ключ» з гарантією в Одесі та області.', 'Проектирование, официальные поставки оборудования (Deye, SolaX, Solis, Dyness, Trina) и сертифицированный монтаж под ключ с гарантией в Одессе и области.')}
               </p>
 
@@ -282,7 +282,7 @@ export function HomeView({
                     track({ name: 'cta_click', placement: 'hero', scenario: 'unspecified' });
                     onOpenLeadModal('Безкоштовний розрахунок системи з першого екрана', undefined, 'hero');
                   }}
-                  className="inline-flex min-h-12 items-center gap-2 px-5 py-3 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer shadow-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d1f33]"
+                  className="inline-flex min-h-12 items-center gap-2 px-5 py-3 rounded-lg bg-[#f59e0b] hover:bg-[#fbbf24] text-[#0d1f33] text-sm font-extrabold transition-colors whitespace-nowrap cursor-pointer shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   {tr('Замовити розрахунок', 'Заказать расчёт')}
                   <ArrowRight className="w-4 h-4" />
@@ -290,9 +290,9 @@ export function HomeView({
                 <a
                   href={COMPANY_INFO.phone1Href}
                   onClick={() => track({ name: 'phone_click', placement: 'hero', scenario: 'unspecified' })}
-                  className="inline-flex min-h-12 items-center gap-2 px-4 py-3 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-[#0d1f33] text-sm font-bold transition-colors whitespace-nowrap"
+                  className="inline-flex min-h-12 items-center gap-2 px-4 py-3 rounded-lg bg-white/10 border border-white/25 hover:bg-white/20 text-white text-sm font-bold transition-colors whitespace-nowrap backdrop-blur-sm"
                 >
-                  <PhoneCall className="w-4 h-4 text-[#1769aa]" />
+                  <PhoneCall className="w-4 h-4 text-sky-300" />
                   {tr('Подзвонити', 'Позвонить')}
                 </a>
                 {telegramUrl && (
@@ -303,7 +303,7 @@ export function HomeView({
                     onClick={() => {
                       track({ name: 'messenger_click', placement: 'hero', scenario: 'unspecified', channel: 'telegram' });
                     }}
-                    className="inline-flex min-h-12 items-center gap-1.5 px-3.5 py-3 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#1769aa] text-xs sm:text-sm font-bold transition-colors whitespace-nowrap"
+                    className="inline-flex min-h-12 items-center gap-1.5 px-3.5 py-3 rounded-lg border border-sky-400/35 bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 text-xs sm:text-sm font-bold transition-colors whitespace-nowrap backdrop-blur-sm"
                   >
                     <Send className="w-3.5 h-3.5" />
                     {tr('Telegram')}
@@ -311,17 +311,17 @@ export function HomeView({
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-xs font-semibold text-slate-600">
+              <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-xs font-semibold text-slate-200">
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
+                  <Check className="w-3.5 h-3.5 text-emerald-300" strokeWidth={2.5} />
                   {tr('Підбір за вашим сценарієм', 'Подбор под ваш сценарий')}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
+                  <Check className="w-3.5 h-3.5 text-emerald-300" strokeWidth={2.5} />
                   {tr('Офіс в Одесі · Європейська, 93', 'Офис в Одессе · Европейская, 93')}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-[#169374]" strokeWidth={2.5} />
+                  <Check className="w-3.5 h-3.5 text-emerald-300" strokeWidth={2.5} />
                   {tr('Deye · SolaX · Solis', 'Deye · SolaX · Solis')}
                 </span>
               </div>
@@ -330,7 +330,7 @@ export function HomeView({
             <div className="lg:col-span-5 flex items-center">
               {activeHeroCase && (
                 <div
-                  className="relative w-full h-[290px] sm:h-[330px] lg:h-[340px] rounded-2xl overflow-hidden border border-slate-300 bg-[#0d1f33] shadow-sm group"
+                  className="relative w-full h-[290px] sm:h-[330px] lg:h-[340px] rounded-2xl overflow-hidden border border-white/25 bg-[#0d1f33] shadow-xl group"
                   onMouseEnter={() => setHeroPaused(true)}
                   onMouseLeave={() => setHeroPaused(false)}
                 >
@@ -405,11 +405,11 @@ export function HomeView({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between gap-3 hover:border-[#1769aa] transition-colors">
+            <div className="bg-[#0d1f33]/68 backdrop-blur-md border border-white/15 rounded-xl p-5 flex flex-col justify-between gap-3 hover:border-sky-400/50 transition-colors">
               <div>
-                <div className="text-xs font-bold text-[#1769aa] mb-1">{tr('01. Квартира та дім', '01. Квартира и дом')}</div>
-                <h3 className="text-base font-extrabold text-[#0d1f33] mb-1.5">{tr('Резервне живлення', 'Резервное питание')}</h3>
-                <p className="text-xs text-[#52657a] leading-relaxed">
+                <div className="text-xs font-bold text-sky-300 mb-1">{tr('01. Квартира та дім', '01. Квартира и дом')}</div>
+                <h3 className="text-base font-extrabold text-white mb-1.5">{tr('Резервне живлення', 'Резервное питание')}</h3>
+                <p className="text-xs text-slate-200 leading-relaxed">
                 {tr('Інвертор + АКБ LiFePO4: котел, холодильник, роутер та світло працюють автоматично при блекауті.', 'Инвертор и аккумулятор LiFePO4 автоматически обеспечивают питание котла, холодильника, роутера и освещения при отключении света.')}
                 </p>
               </div>
@@ -419,17 +419,17 @@ export function HomeView({
                   setShowcaseTab('backup-kits');
                   document.getElementById('home-kits')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="text-xs font-extrabold text-[#1769aa] hover:underline text-left cursor-pointer"
+                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer"
               >
                 {tr('Дивитись комплекти 5–10 кВт →', 'Посмотреть комплекты 5–10 кВт →')}
               </button>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between gap-3 hover:border-[#1769aa] transition-colors">
+            <div className="bg-[#0d1f33]/68 backdrop-blur-md border border-white/15 rounded-xl p-5 flex flex-col justify-between gap-3 hover:border-sky-400/50 transition-colors">
               <div>
-                <div className="text-xs font-bold text-[#1769aa] mb-1">{tr('02. Приватний сектор', '02. Частный сектор')}</div>
-                <h3 className="text-base font-extrabold text-[#0d1f33] mb-1.5">{tr('Сонячні станції (СЕС)', 'Солнечные электростанции')}</h3>
-                <p className="text-xs text-[#52657a] leading-relaxed">
+                <div className="text-xs font-bold text-sky-300 mb-1">{tr('02. Приватний сектор', '02. Частный сектор')}</div>
+                <h3 className="text-base font-extrabold text-white mb-1.5">{tr('Сонячні станції (СЕС)', 'Солнечные электростанции')}</h3>
+                <p className="text-xs text-slate-200 leading-relaxed">
                   {tr('Гібридні та мережеві рішення 6–12 кВт із оформленням «активного споживача» та гарантією монтажу.', 'Гибридные и сетевые решения 6–12 кВт с оформлением статуса активного потребителя и гарантией на монтаж.')}
                 </p>
               </div>
@@ -439,24 +439,24 @@ export function HomeView({
                   setShowcaseTab('solar-kits');
                   document.getElementById('home-kits')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="text-xs font-extrabold text-[#1769aa] hover:underline text-left cursor-pointer"
+                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer"
               >
                 {tr('Дивитись готові СЕС →', 'Посмотреть готовые СЭС →')}
               </button>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between gap-3 hover:border-[#1769aa] transition-colors">
+            <div className="bg-[#0d1f33]/68 backdrop-blur-md border border-white/15 rounded-xl p-5 flex flex-col justify-between gap-3 hover:border-sky-400/50 transition-colors">
               <div>
-                <div className="text-xs font-bold text-[#1769aa] mb-1">{tr('03. Бізнес 380 В і магазин', '03. Бизнес 380 В и магазин')}</div>
-                <h3 className="text-base font-extrabold text-[#0d1f33] mb-1.5">{tr('Станції 30–110 кВт та каталог', 'Станции 30–110 кВт и каталог')}</h3>
-                <p className="text-xs text-[#52657a] leading-relaxed">
+                <div className="text-xs font-bold text-sky-300 mb-1">{tr('03. Бізнес 380 В і магазин', '03. Бизнес 380 В и магазин')}</div>
+                <h3 className="text-base font-extrabold text-white mb-1.5">{tr('Станції 30–110 кВт та каталог', 'Станции 30–110 кВт и каталог')}</h3>
+                <p className="text-xs text-slate-200 leading-relaxed">
                   {tr('Рішення для СТО, готелів, заводів або окремі інвертори, панелі й АКБ зі складу в Одесі.', 'Решения для СТО, гостиниц и заводов, а также отдельные инверторы, панели и аккумуляторы со склада в Одессе.')}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigateShop('inverters')}
-                className="text-xs font-extrabold text-[#1769aa] hover:underline text-left cursor-pointer"
+                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer"
               >
                 {tr('Відкрити каталог обладнання →', 'Открыть каталог оборудования →')}
               </button>
@@ -466,7 +466,7 @@ export function HomeView({
       </section>
 
       {/* Official Brand Partners */}
-      <section className="border-b border-slate-200 bg-white py-6">
+      <section className="border-b border-slate-200/80 bg-white/92 backdrop-blur-md py-6">
         <div className="max-w-[1180px] mx-auto px-5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <h2 className="text-xs font-bold text-slate-500 shrink-0 whitespace-nowrap">
@@ -495,7 +495,7 @@ export function HomeView({
       <HowItWorks onOpenLeadModal={onOpenLeadModal} />
 
       {/* Payback Calculator + Matched Catalog Solutions */}
-      <section id="payback-calculator" className="py-14 bg-[#f6f8fb] border-b border-slate-200">
+      <section id="payback-calculator" className="py-14 bg-[#f6f8fb]/90 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-[1180px] mx-auto px-5">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-7">
             <div className="max-w-2xl">
@@ -816,7 +816,7 @@ export function HomeView({
       </section>
 
       {/* Featured Solutions & Hardware Showcase */}
-      <section id="home-kits" className="py-14 bg-white">
+      <section id="home-kits" className="py-14 bg-white/92 backdrop-blur-md">
         <div className="max-w-[1180px] mx-auto px-5">
           <div className="max-w-2xl mb-7">
             <div className="text-xs font-extrabold text-[#1769aa] mb-1.5">{tr('Рішення та обладнання')}</div>
@@ -900,44 +900,44 @@ export function HomeView({
       </section>
 
       {/* Engineering Audit Split */}
-      <section className="py-14 bg-[#f6f8fb] border-y border-slate-200">
+      <section className="py-14 bg-[#081421]/45 backdrop-blur-[2px] border-y border-white/15 text-white">
         <div className="max-w-[1180px] mx-auto px-5 grid grid-cols-1 lg:grid-cols-12 gap-9 items-center">
           <div className="lg:col-span-5">
-            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
+            <div className="rounded-2xl overflow-hidden border border-white/20 bg-[#0d1f33]/80 backdrop-blur-md shadow-xl">
               <SmartImage
                 src="/assets/energocomfort/kit_battery_30kwh_real.jpg"
                 alt={tr("Дисплей інвертора Deye на реальному об'єкті Energo Comfort", 'Дисплей инвертора Deye на реальном объекте Energo Comfort')}
                 className="w-full h-80 object-cover"
               />
-              <div className="px-4 py-3 text-xs text-[#52657a] border-t border-slate-200">
+              <div className="px-4 py-3 text-xs text-slate-200 border-t border-white/15">
                 {tr('Реальна телеметрія монтажу Energo Comfort: PV 4,87 кВт · АКБ 100% · Статус ON', 'Телеметрия Energo Comfort в реальном времени: PV 4,87 кВт · АКБ 100% · Статус ON')}
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-7">
-            <div className="text-xs font-extrabold text-[#1769aa] mb-1.5">{tr('Інженерний підхід')}</div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-3">
+            <div className="text-xs font-extrabold text-sky-300 mb-1.5">{tr('Інженерний підхід')}</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
               {tr('Аудит, підбір сумісного обладнання та безпечний монтаж')}
             </h2>
-            <p className="text-sm text-[#52657a] leading-relaxed mb-5">
+            <p className="text-sm text-slate-200 leading-relaxed mb-5">
               {tr('Беремо на себе повний цикл впровадження — від вимірювання реальних пускових струмів та поділу щита до пусконалагодження й віддаленого моніторингу:', 'Берём на себя весь цикл: измеряем пусковые токи, разделяем нагрузки в щите, запускаем систему и настраиваем удалённый мониторинг.')}
             </p>
-            <ul className="space-y-2.5 mb-6 text-sm text-slate-700">
+            <ul className="space-y-2.5 mb-6 text-sm text-slate-100">
               <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <Check className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" strokeWidth={2.5} />
                 <span>{tr('Аналіз споживання та виділення критичної групи навантаження в електрощиті.', 'Анализируем потребление и выделяем критические нагрузки в электрощите.')}</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <Check className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" strokeWidth={2.5} />
                 <span>{tr('Розрахунок пускових струмів насосів, компресорів і холодильного обладнання.', 'Рассчитываем пусковые токи насосов, компрессоров и холодильного оборудования.')}</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <Check className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" strokeWidth={2.5} />
                 <span>{tr('Підбір сумісних інверторів (Deye, SolaX, Solis) і LiFePO4 АКБ без ризику помилки.', 'Подбираем совместимые инверторы (Deye, SolaX, Solis) и аккумуляторы LiFePO4.')}</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" strokeWidth={2.5} />
+                <Check className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" strokeWidth={2.5} />
                 <span>{tr('Власний монтажний підрозділ в Одесі та офіційне гарантійне обслуговування.', 'Своя монтажная команда в Одессе и официальное гарантийное обслуживание.')}</span>
               </li>
             </ul>
@@ -945,7 +945,7 @@ export function HomeView({
               <button
                 type="button"
                 onClick={() => onOpenLeadModal('Замовити аудит споживання')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#f59e0b] hover:bg-[#fbbf24] text-[#0d1f33] text-xs font-extrabold cursor-pointer transition-colors"
               >
                 {tr('Запросити інженера')}
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -958,7 +958,7 @@ export function HomeView({
                     onNavigateServices();
                   }
                 }}
-                className="px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33]"
+                className="px-4 py-2.5 rounded-lg border border-white/25 bg-white/10 hover:bg-white/20 text-xs font-bold text-white backdrop-blur-sm transition-colors"
               >
                 {tr('Усі послуги та тарифи')}
               </a>
@@ -968,7 +968,7 @@ export function HomeView({
       </section>
 
       {/* Realized Projects Collection */}
-      <section className="py-14 bg-white">
+      <section className="py-14 bg-white/92 backdrop-blur-md">
         <div className="max-w-[1180px] mx-auto px-5">
           <div className="max-w-2xl mb-6">
             <div className="text-xs font-extrabold text-[#1769aa] mb-1.5">{tr('Портфоліо компанії')}</div>
@@ -1052,24 +1052,24 @@ export function HomeView({
       </section>
 
       {/* Process & FAQ */}
-      <section className="py-16 bg-gradient-to-br from-[#eff6fc] via-white to-[#f6f8fb] border-t border-slate-200">
+      <section className="py-16 bg-[#081421]/35 backdrop-blur-[1px] border-t border-white/15 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#1769aa]/15 bg-white px-3 py-1 text-xs font-extrabold text-[#1769aa]">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-3 py-1 text-xs font-extrabold text-sky-200">
                 <span className="h-2 w-2 rounded-full bg-[#f59e0b]" /> {tr('Порядок співпраці')}
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33]">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
                 {tr('Як ми працюємо: від розрахунку до запуску')}
               </h2>
             </div>
-            <p className="max-w-sm text-sm leading-relaxed text-[#52657a]">
+            <p className="max-w-sm text-sm leading-relaxed text-slate-200">
               {tr('Один інженерний маршрут — від першої розмови до системи, готової до роботи.', 'Один понятный путь — от первого разговора до готовой к работе системы.')}
             </p>
           </div>
 
           <div className="relative mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="pointer-events-none absolute left-[12%] right-[12%] top-6 hidden h-px bg-gradient-to-r from-[#1769aa]/10 via-[#1769aa]/40 to-[#f59e0b]/50 lg:block" />
+            <div className="pointer-events-none absolute left-[12%] right-[12%] top-6 hidden h-px bg-gradient-to-r from-sky-300/15 via-sky-300/45 to-[#f59e0b]/60 lg:block" />
             {[
               {
                 number: '01',
@@ -1102,26 +1102,26 @@ export function HomeView({
             ].map(({ number, title, desc, detail, Icon }) => (
               <article
                 key={number}
-                className="group relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#1769aa]/35 hover:shadow-lg"
+                className="group relative rounded-2xl border border-white/15 bg-[#0d1f33]/70 backdrop-blur-md p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-sky-400/50 hover:shadow-lg"
               >
                 <div className="relative mb-5 flex items-center justify-between">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eff6fc] text-[#1769aa] ring-4 ring-white transition-colors group-hover:bg-[#1769aa] group-hover:text-white">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-300 ring-4 ring-white/10 transition-colors group-hover:bg-[#1769aa] group-hover:text-white">
                     <Icon className="h-5 w-5" strokeWidth={2.2} />
                   </span>
-                  <span className="font-mono text-2xl font-extrabold tracking-tight text-slate-200 group-hover:text-[#1769aa]/25">
+                  <span className="font-mono text-2xl font-extrabold tracking-tight text-white/20 group-hover:text-sky-300/45">
                     {number}
                   </span>
                 </div>
-                <h3 className="mb-2 text-base font-extrabold text-[#0d1f33]">{tr(title)}</h3>
-                <p className="min-h-12 text-xs leading-relaxed text-[#52657a]">{tr(desc)}</p>
-                <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-[11px] font-bold text-[#1769aa]">
+                <h3 className="mb-2 text-base font-extrabold text-white">{tr(title)}</h3>
+                <p className="min-h-12 text-xs leading-relaxed text-slate-200">{tr(desc)}</p>
+                <div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-[11px] font-bold text-sky-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" /> {tr(detail)}
                 </div>
               </article>
             ))}
           </div>
 
-          <div className="flex flex-col gap-4 rounded-2xl bg-[#0d1f33] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <div className="flex flex-col gap-4 rounded-2xl border border-white/15 bg-[#0d1f33]/80 backdrop-blur-md p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:px-7">
             <div>
               <p className="font-extrabold">{tr('Є питання щодо вашого об’єкта?', 'Есть вопросы по вашему объекту?')}</p>
               <p className="mt-1 text-xs text-slate-300">{tr('Почнемо з короткої консультації та підкажемо наступний крок.', 'Начнём с короткой консультации и подскажем следующий шаг.')}</p>
@@ -1141,7 +1141,7 @@ export function HomeView({
       <FaqSection onOpenLeadModal={onOpenLeadModal} />
 
       {/* Engineering Brief -> Direct CRM & Telegram */}
-      <section id="home-request" className="bg-[#0d1f33] text-white py-14">
+      <section id="home-request" className="bg-[#0d1f33]/75 backdrop-blur-md border-t border-white/15 text-white py-14">
         <div className="max-w-[1180px] mx-auto px-5 grid grid-cols-1 lg:grid-cols-12 gap-9 items-start">
           <div className="lg:col-span-5">
             <div className="text-xs font-extrabold text-[#f59e0b] mb-2">{tr('Швидкий інженерний бриф', 'Краткий бриф для инженера')}</div>

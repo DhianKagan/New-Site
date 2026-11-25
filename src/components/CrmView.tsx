@@ -1129,7 +1129,7 @@ export function CrmView({
   }
 
   return (
-    <div className="bg-[#f6f8fb] min-h-screen py-8">
+    <div className="bg-[#f6f8fb]/95 backdrop-blur-md min-h-screen py-8">
       <div className="max-w-[1260px] mx-auto px-5 space-y-6">
         {/* Header Bar */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">

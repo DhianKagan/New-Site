@@ -43,6 +43,7 @@ import { CartDrawer } from './components/CartDrawer.tsx';
 import { SmartImage } from './components/SmartImage.tsx';
 import { SocialIcons } from './components/SocialIcons.tsx';
 import { InfoPage } from './components/InfoPage.tsx';
+import { VideoBackground } from './components/VideoBackground.tsx';
 import { formatUahFromUsd } from './lib/currency.ts';
 import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 import {
@@ -1302,9 +1303,18 @@ function AppContent() {
     : 'CRM';
 
   return (
-    <div className={`min-h-screen flex flex-col bg-white text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
+    <div className={`min-h-screen flex flex-col relative text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
+      <VideoBackground
+        src="https://www.youtube.com/watch?v=o7fTs8et1QM"
+        autoPlay
+        loop
+        muted
+        playsInline
+        brightness={0.4}
+      />
+
       {/* Slim Utility Strip (Odessa Office + Store/CRM Workspace Switcher) */}
-      <div className="bg-[#0d1f33] text-slate-300 text-xs py-1.5 border-b border-white/10">
+      <div className="bg-[#0d1f33]/88 backdrop-blur-md text-slate-300 text-xs py-1.5 border-b border-white/10">
         <div className="max-w-[1180px] mx-auto px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-4">
           <div className="truncate min-w-0">
             <span className="hidden md:inline">{COMPANY_INFO.address} · </span>
@@ -1386,7 +1396,7 @@ function AppContent() {
       </div>
 
       {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-slate-200">
+      <header className="sticky top-0 z-40 bg-white/92 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-[1180px] mx-auto px-3 sm:px-5 h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
           {/* Zone 1: Single-line Brand Wordmark */}
           <a
@@ -1553,12 +1563,14 @@ function AppContent() {
       {/* Main Content */}
       <main className="flex-1">
         {loadingCatalog && view !== 'crm' ? (
-          <div className="max-w-[1180px] mx-auto px-5 py-16 space-y-4">
-            <div className="h-8 w-64 bg-slate-200 rounded animate-pulse" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="h-72 bg-slate-100 rounded-xl animate-pulse" />
-              ))}
+          <div className="max-w-[1180px] mx-auto px-5 py-16">
+            <div className="rounded-2xl bg-white/90 backdrop-blur-md p-6 space-y-4">
+              <div className="h-8 w-64 bg-slate-200 rounded animate-pulse" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="h-72 bg-slate-100 rounded-xl animate-pulse" />
+                ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -1713,7 +1725,7 @@ function AppContent() {
 
       {/* Footer */}
       {view !== 'crm' && (
-        <footer className="bg-[#081421] text-slate-300 pt-11 pb-20 lg:pb-11 border-t border-white/10">
+        <footer className="bg-[#081421]/85 backdrop-blur-md text-slate-300 pt-11 pb-20 lg:pb-11 border-t border-white/15">
           <div className="max-w-[1180px] mx-auto px-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               <div>

@@ -255,8 +255,8 @@ export function AuthPortalView({
   }
 
   return (
-    <div className="bg-[#f6f8fb] min-h-[calc(100vh-140px)] flex flex-col items-center py-8 px-4">
-      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-7 shadow-sm my-auto">
+    <div className="bg-[#081421]/30 min-h-[calc(100vh-140px)] flex flex-col items-center py-8 px-4">
+      <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl w-full max-w-md p-7 shadow-lg my-auto">
         <button
           type="button"
           onClick={onBackToStore}

@@ -14,9 +14,9 @@ interface ContactsViewProps {
 export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: ContactsViewProps) {
   return (
     <div>
-      <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
+      <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-300 mb-2">
             <a
               href="/"
               onClick={(e) => {
@@ -25,23 +25,23 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
                   onBackHome();
                 }
               }}
-              className="text-[#1769aa] font-bold hover:underline"
+              className="text-sky-300 font-bold hover:text-white hover:underline"
             >
               {tr('Головна')}
             </a>
             <span aria-hidden="true">/</span>
             <span>{tr('Контакти та інформація')}</span>
           </nav>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {tr('Ми на зв’язку та раді відповісти на ваші питання')}
           </h1>
-          <p className="text-sm text-[#52657a] max-w-2xl">
+          <p className="text-sm text-slate-200 max-w-2xl">
             {tr('Головний офіс, склад обладнання та інженерний відділ компанії Energo Comfort в Одесі.')}
           </p>
         </div>
       </section>
 
-      <section className="bg-[#f6f8fb] py-10 sm:py-12">
+      <section className="bg-[#f6f8fb]/90 backdrop-blur-md py-10 sm:py-12">
         <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-6 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
             <div className="mb-6">
@@ -107,7 +107,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
         </div>
       </section>
 
-      <section className="bg-white py-10 sm:py-12">
+      <section className="bg-white/92 backdrop-blur-md py-10 sm:py-12">
         <div className="mx-auto max-w-[1180px] px-5">
           <div className="rounded-2xl border border-slate-200 bg-[#f6f8fb] p-6 sm:p-8">
               <div className="text-xs font-extrabold text-[#1769aa]">{tr('Про компанію та умови')}</div>

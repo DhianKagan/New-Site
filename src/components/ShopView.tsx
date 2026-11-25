@@ -267,9 +267,9 @@ export function ShopView({
 
   return (
     <div>
-      <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
+      <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-300 mb-2">
             <a
               href="/"
               onClick={(e) => {
@@ -278,23 +278,23 @@ export function ShopView({
                   onBackHome();
                 }
               }}
-              className="text-[#1769aa] font-bold hover:underline"
+              className="text-sky-300 font-bold hover:text-white hover:underline"
             >
               {tr('Головна')}
             </a>
             <span aria-hidden="true">/</span>
             <span>{tr('Каталог обладнання')}</span>
           </nav>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
           </h1>
-          <p className="text-sm text-[#52657a] max-w-2xl">
+          <p className="text-sm text-slate-200 max-w-2xl">
             {tr('Повний каталог позицій із energocomfort.shop', 'Полный каталог товаров energocomfort.shop')} ({products.length} {tr('товарів', 'товаров')}). {tr('Окремі інвертори, АКБ, панелі та захист додаються у кошик; готові комплекти підключаються через інженерний розрахунок.', 'Отдельные инверторы, аккумуляторы, панели и защита добавляются в корзину; готовые комплекты подбираются инженером.')}
           </p>
         </div>
       </section>
 
-      <section className="py-10 bg-white">
+      <section className="py-10 bg-white/92 backdrop-blur-md">
         <div className="max-w-[1180px] mx-auto px-5">
           <h2 className="sr-only">{tr('Фільтри та перелік обладнання', 'Фильтры и каталог оборудования')}</h2>
           {/* Category Filter Tabs */}

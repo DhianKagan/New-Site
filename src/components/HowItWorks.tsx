@@ -31,7 +31,7 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
   }
 
   return (
-    <section id="how-it-works" className="py-14 bg-white border-b border-slate-200">
+    <section id="how-it-works" className="py-14 bg-white/92 backdrop-blur-md border-b border-slate-200/80">
       <div className="max-w-[1180px] mx-auto px-5">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-7">
           <div className="max-w-2xl">

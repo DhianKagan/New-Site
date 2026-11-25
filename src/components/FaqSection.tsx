@@ -20,7 +20,7 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
     <section
       id="faq"
       aria-labelledby="faq-heading"
-      className="py-14 sm:py-16 bg-white border-t border-slate-200"
+      className="py-14 sm:py-16 bg-white/92 backdrop-blur-md border-t border-slate-200/80"
     >
       <div className="max-w-[1180px] mx-auto px-5">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">

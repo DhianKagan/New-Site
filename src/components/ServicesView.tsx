@@ -18,9 +18,9 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
     );
   return (
     <div>
-      <section className="bg-gradient-to-b from-[#f3f7fc] to-white border-b border-slate-200 py-8">
+      <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
         <div className="max-w-[1180px] mx-auto px-5">
-          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <nav aria-label={tr('Хлібні крихти')} className="flex items-center gap-2 text-xs text-slate-300 mb-2">
             <a
               href="/"
               onClick={(e) => {
@@ -29,23 +29,23 @@ export function ServicesView({ onBackHome, onOrderService, usdUahRate }: Service
                   onBackHome();
                 }
               }}
-              className="text-[#1769aa] font-bold hover:underline"
+              className="text-sky-300 font-bold hover:text-white hover:underline"
             >
               {tr('Головна')}
             </a>
             <span aria-hidden="true">/</span>
             <span>{tr('Послуги монтажу та інжинірингу')}</span>
           </nav>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mb-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
             {tr('Послуги монтажу СЕС та додатковий інженерний сервіс')}
           </h1>
-          <p className="text-sm text-[#52657a] max-w-2xl">
+          <p className="text-sm text-slate-200 max-w-2xl">
             {tr('Власний монтажний підрозділ в Одесі та Одеській області. Від аудиту електромережі до пусконалагодження і юридичного супроводу «зеленого тарифу».', 'Своя монтажная команда в Одессе и области: от аудита электросети и пусконаладки до сопровождения оформления «зелёного тарифа».')}
           </p>
         </div>
       </section>
 
-      <section className="py-12 bg-white">
+      <section className="py-12 bg-white/92 backdrop-blur-md">
         <div className="max-w-[1180px] mx-auto px-5 space-y-12">
           <div>
             <div className="mb-6">
