@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   ArrowLeft,
   BookOpen,
   CheckCircle2,
   ClipboardList,
   GitBranch,
+  Heart,
   LogOut,
   Mail,
   MapPin,
@@ -14,36 +15,46 @@ import {
   ShoppingBag,
   Sliders,
   Sparkles,
+  Trash2,
   User,
 } from 'lucide-react';
 import type { CustomerProfile, Deal, DealStage, Product } from '../types.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 import { tr } from '../lib/i18n.ts';
+import { resolveWishlistProducts } from '../lib/wishlist.ts';
 import { SolarConstructorTab } from './cabinet/SolarConstructorTab.tsx';
 import { SystemSchemesTab } from './cabinet/SystemSchemesTab.tsx';
 import { TechGuideTab } from './cabinet/TechGuideTab.tsx';
+import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
 import { Card } from './ui/card.tsx';
 import { Input } from './ui/input.tsx';
 
+export type CabinetTab = 'overview' | 'wishlist' | 'constructor' | 'schemes' | 'guide';
+
 interface ClientCabinetViewProps {
   clientToken: string;
   initialCustomer: CustomerProfile | null;
   products: Product[];
   usdUahRate: number | null;
+  wishlistIds?: string[];
+  requestedTab?: { tab: CabinetTab; nonce: number } | null;
   onCustomerUpdated: (customer: CustomerProfile) => void;
+  onToggleWishlist?: (product: Product) => void;
+  onClearWishlist?: () => void;
+  onSelectProduct?: (product: Product) => void;
+  onQuickViewProduct?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
+  onAddManyToCart?: (products: Product[]) => void;
   onOpenLeadModal: (topic: string, estimatedTotalUsd?: number, notes?: string) => void;
   onNavigateShop: () => void;
   onBackToStore: () => void;
   onLogout: () => void;
   refreshTrigger?: number;
 }
-
-type CabinetTab = 'overview' | 'constructor' | 'schemes' | 'guide';
 
 const STAGE_META: Record<
   DealStage,
@@ -62,19 +73,45 @@ export function ClientCabinetView({
   initialCustomer,
   products,
   usdUahRate,
+  wishlistIds = [],
+  requestedTab = null,
   onCustomerUpdated,
+  onToggleWishlist,
+  onClearWishlist,
+  onSelectProduct,
+  onQuickViewProduct,
   onAddToCart,
+  onAddManyToCart,
   onOpenLeadModal,
   onNavigateShop,
   onBackToStore,
   onLogout,
   refreshTrigger = 0,
 }: ClientCabinetViewProps) {
-  const [activeTab, setActiveTab] = useState<CabinetTab>('overview');
+  const [activeTab, setActiveTab] = useState<CabinetTab>(requestedTab?.tab ?? 'overview');
   const [customer, setCustomer] = useState<CustomerProfile | null>(initialCustomer);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    if (requestedTab) {
+      setActiveTab(requestedTab.tab);
+    }
+  }, [requestedTab]);
+
+  const wishlistProducts = useMemo(
+    () => resolveWishlistProducts(wishlistIds, products),
+    [wishlistIds, products],
+  );
+  const purchasableWishlistProducts = useMemo(
+    () => wishlistProducts.filter((p) => !p.isKit && p.price > 0),
+    [wishlistProducts],
+  );
+  const wishlistTotalUsd = useMemo(
+    () => wishlistProducts.reduce((sum, p) => sum + (p.price > 0 ? p.price : 0), 0),
+    [wishlistProducts],
+  );
 
   const [name, setName] = useState(initialCustomer?.name || '');
   const [phone, setPhone] = useState(initialCustomer?.phone ? formatUaPhone(initialCustomer.phone) : '');
@@ -227,12 +264,13 @@ export function ClientCabinetView({
         <div className="max-w-[1180px] mx-auto px-4 sm:px-5 flex items-center gap-1.5 overflow-x-auto pb-3">
           {(
             [
-              ['overview', ClipboardList, tr('Огляд та замовлення', 'Обзор и заказы')],
-              ['constructor', Sliders, tr('Конструктор СЕС і навантажень', 'Конструктор СЭС и нагрузок')],
-              ['schemes', GitBranch, tr('Схеми підключення', 'Схемы подключения')],
-              ['guide', BookOpen, tr('Панелі, АКБ та інвертори', 'Панели, АКБ и инверторы')],
+              ['overview', ClipboardList, tr('Огляд та замовлення', 'Обзор и заказы'), null],
+              ['wishlist', Heart, tr('Список бажань', 'Список желаний'), wishlistProducts.length],
+              ['constructor', Sliders, tr('Конструктор СЕС і навантажень', 'Конструктор СЭС и нагрузок'), null],
+              ['schemes', GitBranch, tr('Схеми підключення', 'Схемы подключения'), null],
+              ['guide', BookOpen, tr('Панелі, АКБ та інвертори', 'Панели, АКБ и инверторы'), null],
             ] as const
-          ).map(([tabId, Icon, label]) => {
+          ).map(([tabId, Icon, label, badgeCount]) => {
             const active = activeTab === tabId;
             return (
               <button
@@ -245,8 +283,27 @@ export function ClientCabinetView({
                     : 'bg-white/10 text-slate-200 hover:bg-white/15 hover:text-white'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${active ? 'text-[#1769aa]' : 'text-[#f59e0b]'}`} />
+                <Icon
+                  className={`w-3.5 h-3.5 ${
+                    tabId === 'wishlist'
+                      ? active
+                        ? 'text-rose-500 fill-rose-500'
+                        : 'text-rose-400'
+                      : active
+                        ? 'text-[#1769aa]'
+                        : 'text-[#f59e0b]'
+                  }`}
+                />
                 <span>{label}</span>
+                {badgeCount !== null && (
+                  <span
+                    className={`font-mono text-[10px] px-1.5 py-0.5 rounded-md tabular-nums ${
+                      active ? 'bg-rose-50 text-rose-600' : 'bg-white/15 text-white'
+                    }`}
+                  >
+                    {badgeCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -254,6 +311,122 @@ export function ClientCabinetView({
       </div>
 
       <div className="max-w-[1180px] mx-auto px-4 sm:px-5 pt-6 space-y-6">
+        {activeTab === 'wishlist' && (
+          <div className="space-y-5">
+            <Card className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0d1f33]">
+                    {tr('Список бажань', 'Список желаний')} ({wishlistProducts.length})
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {wishlistProducts.length > 0 && wishlistTotalUsd > 0 ? (
+                      <>
+                        {tr('Орієнтовна вартість збереженого обладнання:', 'Ориентировочная стоимость сохранённого оборудования:')}{' '}
+                        <strong className="font-mono text-[#0d1f33]">
+                          {formatUahFromUsd(wishlistTotalUsd, usdUahRate)}
+                        </strong>
+                      </>
+                    ) : (
+                      tr(
+                        'Зберігайте інвертори, акумулятори, панелі та готові комплекти, щоб порівняти конфігурації або замовити пізніше.',
+                        'Сохраняйте инверторы, аккумуляторы, панели и готовые комплекты, чтобы сравнить конфигурации или заказать позже.',
+                      )
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {wishlistProducts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {purchasableWishlistProducts.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="accent"
+                      onClick={() => {
+                        if (onAddManyToCart) {
+                          onAddManyToCart(purchasableWishlistProducts);
+                        } else {
+                          for (const item of purchasableWishlistProducts) {
+                            onAddToCart(item);
+                          }
+                        }
+                      }}
+                      className="bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] font-bold"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      {tr('Усе в кошик', 'Всё в корзину')} ({purchasableWishlistProducts.length})
+                    </Button>
+                  )}
+                  {onClearWishlist && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onClearWishlist}
+                      className="text-rose-600 border-rose-200 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {tr('Очистити список', 'Очистить список')}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {wishlistProducts.length === 0 ? (
+              <Card className="p-10 text-center">
+                <Heart className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                <h3 className="text-sm font-extrabold text-[#0d1f33] mb-1">
+                  {tr('Список бажань поки порожній', 'Список желаний пока пуст')}
+                </h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto mb-5 leading-relaxed">
+                  {tr(
+                    'Натисніть іконку серця на будь-якій картці товару в каталозі, щоб зберегти обладнання в цьому розділі.',
+                    'Нажмите иконку сердца на любой карточке товара в каталоге, чтобы сохранить оборудование в этом разделе.',
+                  )}
+                </p>
+                <div className="flex flex-wrap justify-center gap-2.5">
+                  <Button onClick={onNavigateShop}>
+                    <ShoppingBag className="w-4 h-4" />
+                    {tr('Перейти в каталог', 'Перейти в каталог')}
+                  </Button>
+                  <Button variant="outline" onClick={() => setActiveTab('constructor')}>
+                    <Sliders className="w-4 h-4" />
+                    {tr('Конструктор СЕС', 'Конструктор СЭС')}
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {wishlistProducts.map((product) => (
+                  <ProductCard
+                    key={`wishlist-${product.id}`}
+                    product={product}
+                    usdUahRate={usdUahRate}
+                    isWishlisted={true}
+                    onToggleWishlist={onToggleWishlist}
+                    onSelect={(p) => {
+                      if (onSelectProduct) {
+                        onSelectProduct(p);
+                      } else {
+                        onNavigateShop();
+                      }
+                    }}
+                    onQuickView={onQuickViewProduct}
+                    onAddToCart={onAddToCart}
+                    onRequestQuote={(p) =>
+                      onOpenLeadModal(`Розрахунок (зі списку бажань): ${p.title}`, p.price)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'constructor' && (
           <SolarConstructorTab
             products={products}
@@ -369,7 +542,7 @@ export function ClientCabinetView({
             </div>
 
             {/* KPI Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="p-4 flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#1769aa] flex items-center justify-center shrink-0">
               <ClipboardList className="w-5 h-5" />
@@ -399,6 +572,20 @@ export function ClientCabinetView({
               <div className="text-xl font-extrabold text-[#0d1f33] tabular-nums">{completedDeals.length}</div>
             </div>
           </Card>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('wishlist')}
+            className="text-left rounded-xl bg-white border border-slate-200 hover:border-rose-300 hover:shadow-sm p-4 flex items-center gap-3.5 transition-all cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <Heart className={`w-5 h-5 ${wishlistProducts.length > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-slate-500 truncate">{tr('Список бажань', 'Список желаний')}</div>
+              <div className="text-xl font-extrabold text-[#0d1f33] tabular-nums">{wishlistProducts.length}</div>
+            </div>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">

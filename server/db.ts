@@ -250,6 +250,13 @@ function getDb(): DatabaseSync {
 
     CREATE INDEX IF NOT EXISTS idx_product_reviews_product_status
       ON product_reviews(product_id, status, created_at_ms DESC);
+
+    CREATE TABLE IF NOT EXISTS customer_wishlist (
+      customer_id INTEGER NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+      product_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (customer_id, product_id)
+    );
   `);
 
   // Non-destructive migration for existing deals tables created before contact_id / customer_id / customer_email
@@ -3112,3 +3119,44 @@ export function deleteProductReviewRecord(reviewId: string): boolean {
   checkpointDb(db);
   return Number(res.changes ?? 0) > 0;
 }
+
+export function getCustomerWishlistIds(customerId: number): string[] {
+  const db = getDb();
+  const rows = db
+    .prepare('SELECT product_id FROM customer_wishlist WHERE customer_id = ? ORDER BY created_at DESC')
+    .all(customerId) as Array<{ product_id: string }>;
+  return rows.map((r) => String(r.product_id));
+}
+
+export function setCustomerWishlistIds(customerId: number, productIds: string[]): string[] {
+  const db = getDb();
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of productIds) {
+    const clean = String(raw).trim();
+    if (!clean || seen.has(clean)) continue;
+    seen.add(clean);
+    deduped.push(clean);
+    if (deduped.length >= 200) break;
+  }
+
+  const baseMs = Date.now();
+  db.exec('BEGIN IMMEDIATE;');
+  try {
+    db.prepare('DELETE FROM customer_wishlist WHERE customer_id = ?').run(customerId);
+    const insertStmt = db.prepare(
+      'INSERT INTO customer_wishlist (customer_id, product_id, created_at) VALUES (?, ?, ?)',
+    );
+    for (let i = 0; i < deduped.length; i++) {
+      const ts = new Date(baseMs - i).toISOString();
+      insertStmt.run(customerId, deduped[i], ts);
+    }
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+  checkpointDb(db);
+  return getCustomerWishlistIds(customerId);
+}
+

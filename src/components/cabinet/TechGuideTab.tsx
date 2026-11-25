@@ -10,6 +10,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import type { Product } from '../../types.ts';
+import { calculateBatteryLifecycle } from '../../lib/calculators.ts';
 import { tr } from '../../lib/i18n.ts';
 import { SmartImage } from '../SmartImage.tsx';
 import { Badge } from '../ui/badge.tsx';
@@ -152,32 +153,10 @@ export function TechGuideTab({ products = [], onOpenLeadModal }: TechGuideTabPro
   const [hasPanels, setHasPanels] = useState(true);
   const [wantsExport, setWantsExport] = useState(false);
 
-  const batterySim = useMemo(() => {
-    // LiFePO4: 6000 cycles, 90% DoD, ~$210/kWh installed nominal
-    const lfpNominalKwh = usableKwhNeeded / 0.9;
-    const lfpCostUsd = Math.round(lfpNominalKwh * 215);
-    const lfpYears = Math.min(18, Math.round((6000 / cyclesPerYear) * 10) / 10);
-    const lfpCostPerKwhCents = Math.round((lfpCostUsd / (usableKwhNeeded * 6000)) * 100);
-
-    // AGM/Gel: 450 cycles at 50% DoD, ~$155/kWh nominal
-    const agmNominalKwh = usableKwhNeeded / 0.5;
-    const agmCostUsd = Math.round(agmNominalKwh * 155);
-    const agmYears = Math.round((450 / cyclesPerYear) * 10) / 10;
-    const agmReplacements10y = Math.max(1, Math.ceil(10 / Math.max(0.5, agmYears)));
-    const agmTotal10yUsd = agmCostUsd * agmReplacements10y;
-    const agmCostPerKwhCents = Math.round((agmCostUsd / (usableKwhNeeded * 450)) * 100);
-
-    return {
-      lfpCostUsd,
-      lfpYears,
-      lfpCostPerKwhCents,
-      agmCostUsd,
-      agmYears,
-      agmReplacements10y,
-      agmTotal10yUsd,
-      agmCostPerKwhCents,
-    };
-  }, [cyclesPerYear, usableKwhNeeded]);
+  const batterySim = useMemo(
+    () => calculateBatteryLifecycle(cyclesPerYear, usableKwhNeeded),
+    [cyclesPerYear, usableKwhNeeded],
+  );
 
   const recommendedInverter = useMemo(() => {
     if (!needsBackup && hasPanels) {
@@ -424,7 +403,7 @@ export function TechGuideTab({ products = [], onOpenLeadModal }: TechGuideTabPro
                   <div>
                     <div className="text-[10px] text-slate-500">{tr('Витрати за 10 років', 'Затраты за 10 лет')}</div>
                     <div className="font-mono font-extrabold text-[#0d1f33] text-sm">
-                      ~${batterySim.lfpCostUsd.toLocaleString('en-US')}
+                      ~${batterySim.lfpTotal10yUsd.toLocaleString('en-US')}
                     </div>
                   </div>
                   <div>
@@ -442,8 +421,8 @@ export function TechGuideTab({ products = [], onOpenLeadModal }: TechGuideTabPro
                 </div>
                 <div className="text-[11px] text-emerald-900">
                   {tr(
-                    'Глибина розряду до 90% DoD, швидкий заряд за 1–2 год (струмом 0.5C–1C), повна пожежобезпечність.',
-                    'Глубина разряда до 90% DoD, быстрый заряд за 1–2 ч (током 0.5C–1C), полная пожаробезопасность.',
+                    `Глибина розряду 90% DoD, ККД ${batterySim.lfpEfficiencyPct}%, швидкий заряд за 1–2 год (0.5C–1C), календарний ресурс до 15 років.`,
+                    `Глубина разряда 90% DoD, КПД ${batterySim.lfpEfficiencyPct}%, быстрый заряд за 1–2 ч (0.5C–1C), календарный ресурс до 15 лет.`,
                   )}
                 </div>
               </div>
@@ -475,8 +454,8 @@ export function TechGuideTab({ products = [], onOpenLeadModal }: TechGuideTabPro
                 </div>
                 <div className="text-[11px] text-slate-600">
                   {tr(
-                    'Можна розряджати лише на 50%, заряд триває 8–10 годин (не встигає між відключеннями), вага в 3 рази більша.',
-                    'Можно разряжать лишь на 50%, заряд длится 8–10 часов (не успевает между отключениями), вес в 3 раза больше.',
+                    `Розряд не нижче 50% DoD, ККД ~${batterySim.agmEfficiencyPct}%, сульфатація обмежує ресурс до 3–4.5 років, заряд 8–10 год.`,
+                    `Разряд не ниже 50% DoD, КПД ~${batterySim.agmEfficiencyPct}%, сульфатация ограничивает ресурс до 3–4.5 лет, заряд 8–10 ч.`,
                   )}
                 </div>
               </div>

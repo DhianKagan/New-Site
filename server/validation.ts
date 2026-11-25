@@ -337,6 +337,10 @@ export const clientProfilePatchSchema = z.object({
   city: z.string().trim().min(1, 'Вкажіть місто').max(80).optional(),
 });
 
+export const clientWishlistPutSchema = z.object({
+  productIds: z.array(z.string().trim().min(1).max(160)).max(200),
+});
+
 export const crmCustomerCreateSchema = z.object({
   name: z.string().trim().min(2, 'Вкажіть ім’я клієнта (мінімум 2 символи)').max(120),
   email: z

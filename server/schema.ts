@@ -150,3 +150,12 @@ export const productReviewsTable = sqliteTable('product_reviews', {
   createdAtMs: integer('created_at_ms').notNull(),
   updatedAtMs: integer('updated_at_ms').notNull(),
 });
+
+export const customerWishlistTable = sqliteTable('customer_wishlist', {
+  customerId: integer('customer_id')
+    .notNull()
+    .references(() => customerAccountsTable.id, { onDelete: 'cascade' }),
+  productId: text('product_id').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+

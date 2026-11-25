@@ -1,4 +1,4 @@
-import { ShoppingBag, ArrowUpRight, Eye } from 'lucide-react';
+import { ShoppingBag, ArrowUpRight, Eye, Heart } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
@@ -16,6 +16,8 @@ interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
   onQuickView?: (product: Product) => void;
+  isWishlisted?: boolean;
+  onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   usdUahRate: number | null;
@@ -25,6 +27,8 @@ export function ProductCard({
   product,
   onSelect,
   onQuickView,
+  isWishlisted = false,
+  onToggleWishlist,
   onAddToCart,
   onRequestQuote,
   usdUahRate,
@@ -35,6 +39,9 @@ export function ProductCard({
     : product.specs;
   const localizedTitle = isRussian ? product.titleRu ?? localizeCatalogText(product.title) : product.title;
   const canBuyDirect = !product.isKit && product.price > 0;
+  const wishlistLabel = isWishlisted
+    ? tr('Прибрати зі списку бажань', 'Убрать из списка желаний')
+    : tr('Додати до списку бажань', 'Добавить в список желаний');
 
   return (
     <article className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300">
@@ -54,19 +61,43 @@ export function ProductCard({
           />
         </button>
 
-        {onQuickView && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onQuickView(product);
-            }}
-            aria-label={`${tr('Швидкий перегляд', 'Быстрый просмотр')}: ${localizedTitle}`}
-            title={tr('Швидкий перегляд', 'Быстрый просмотр')}
-            className="absolute top-2.5 right-2.5 z-10 w-10 h-10 rounded-lg bg-white/95 hover:bg-[#1769aa] text-[#0d1f33] hover:text-white border border-slate-200 shadow-xs flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
+        {(onToggleWishlist || onQuickView) && (
+          <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+            {onToggleWishlist && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleWishlist(product);
+                }}
+                aria-pressed={isWishlisted}
+                aria-label={`${wishlistLabel}: ${localizedTitle}`}
+                title={wishlistLabel}
+                className={`w-10 h-10 rounded-lg border shadow-xs flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 ${
+                  isWishlisted
+                    ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
+                    : 'bg-white/95 hover:bg-rose-50 text-[#0d1f33] hover:text-rose-600 border-slate-200'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
+              </button>
+            )}
+
+            {onQuickView && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickView(product);
+                }}
+                aria-label={`${tr('Швидкий перегляд', 'Быстрый просмотр')}: ${localizedTitle}`}
+                title={tr('Швидкий перегляд', 'Быстрый просмотр')}
+                className="w-10 h-10 rounded-lg bg-white/95 hover:bg-[#1769aa] text-[#0d1f33] hover:text-white border border-slate-200 shadow-xs flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 

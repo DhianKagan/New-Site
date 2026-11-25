@@ -84,3 +84,41 @@ export function filterAndRankProductsBySearch(
   scored.sort((a, b) => b.score - a.score);
   return scored.map((entry) => entry.product);
 }
+
+export interface FeaturedBrandFilter {
+  id: 'Deye' | 'SolaX' | 'Solis' | 'Dyness' | 'Trina';
+  label: string;
+  aliases: string[];
+}
+
+export const FEATURED_BRAND_FILTERS: FeaturedBrandFilter[] = [
+  { id: 'Deye', label: 'Deye', aliases: ['deye'] },
+  { id: 'SolaX', label: 'SolaX', aliases: ['solax'] },
+  { id: 'Solis', label: 'Solis', aliases: ['solis'] },
+  { id: 'Dyness', label: 'Dyness', aliases: ['dyness'] },
+  { id: 'Trina', label: 'Trina', aliases: ['trina', 'trina solar'] },
+];
+
+export function matchesFeaturedBrand(product: Product, brandId: string): boolean {
+  const brandLower = product.brand.trim().toLowerCase();
+  const def = FEATURED_BRAND_FILTERS.find((item) => item.id === brandId);
+  if (def) {
+    return def.aliases.includes(brandLower);
+  }
+  return brandLower === brandId.trim().toLowerCase();
+}
+
+export function matchesBrandFilters(
+  product: Product,
+  selectedBrands: string[],
+  dropdownBrand: string,
+): boolean {
+  if (selectedBrands.length > 0) {
+    return selectedBrands.some((id) => matchesFeaturedBrand(product, id));
+  }
+  if (dropdownBrand !== 'all') {
+    return product.brand === dropdownBrand;
+  }
+  return true;
+}
+

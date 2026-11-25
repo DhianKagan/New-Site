@@ -1,18 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { tr } from '../lib/i18n.ts';
-import { filterAndRankProductsBySearch } from '../lib/shopSearch.ts';
+import {
+  FEATURED_BRAND_FILTERS,
+  filterAndRankProductsBySearch,
+  matchesBrandFilters,
+  matchesFeaturedBrand,
+} from '../lib/shopSearch.ts';
 import { toAnalyticsProductItem, track, trackEvent } from '../lib/analytics.ts';
 
 interface ShopViewProps {
   products: Product[];
   initialCategory: ProductCategory | 'all';
   initialQuery?: string;
+  wishlistIds?: string[];
   onCategoryChange?: (cat: ProductCategory | 'all') => void;
   onSelectProduct: (product: Product) => void;
   onQuickViewProduct?: (product: Product) => void;
+  onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   onOpenCustomRequest?: (topic: string, notes?: string) => void;
@@ -35,9 +42,11 @@ export function ShopView({
   products,
   initialCategory,
   initialQuery = '',
+  wishlistIds = [],
   onCategoryChange,
   onSelectProduct,
   onQuickViewProduct,
+  onToggleWishlist,
   onAddToCart,
   onRequestQuote,
   onOpenCustomRequest,
@@ -47,6 +56,7 @@ export function ShopView({
   const [cat, setCat] = useState<ProductCategory | 'all'>(initialCategory);
   const [query, setQuery] = useState(initialQuery);
   const [brand, setBrand] = useState('all');
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
@@ -79,10 +89,22 @@ export function ShopView({
     return Array.from(bMap.entries()).sort((a, b) => b[1] - a[1]);
   }, [products]);
 
+  const featuredBrandCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of FEATURED_BRAND_FILTERS) {
+      map[item.id] = products.filter((p) => {
+        if (cat !== 'all' && p.cat !== cat) return false;
+        if (inStockOnly && !p.inStock) return false;
+        return matchesFeaturedBrand(p, item.id);
+      }).length;
+    }
+    return map;
+  }, [products, cat, inStockOnly]);
+
   const filtered = useMemo(() => {
     const baseFiltered = products.filter((p) => {
       if (cat !== 'all' && p.cat !== cat) return false;
-      if (brand !== 'all' && p.brand !== brand) return false;
+      if (!matchesBrandFilters(p, selectedBrands, brand)) return false;
       if (inStockOnly && !p.inStock) return false;
       return true;
     });
@@ -96,7 +118,7 @@ export function ShopView({
       return [...searched].sort((a, b) => b.price - a.price);
     }
     return searched;
-  }, [products, cat, brand, inStockOnly, query, sort]);
+  }, [products, cat, brand, selectedBrands, inStockOnly, query, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -107,7 +129,8 @@ export function ShopView({
 
   useEffect(() => {
     if (paginated.length === 0) return;
-    const listKey = `${cat}|${safePage}|${brand}|${inStockOnly}|${usdUahRate ?? 'usd'}`;
+    const brandKey = selectedBrands.length > 0 ? selectedBrands.slice().sort().join(',') : brand;
+    const listKey = `${cat}|${safePage}|${brandKey}|${inStockOnly}|${usdUahRate ?? 'usd'}`;
     if (lastTrackedListKeyRef.current === listKey) return;
     lastTrackedListKeyRef.current = listKey;
 
@@ -117,7 +140,7 @@ export function ShopView({
       item_category: cat,
       items: paginated.slice(0, 10).map((p) => toAnalyticsProductItem(p, usdUahRate, 1)),
     });
-  }, [cat, safePage, brand, inStockOnly, paginated, usdUahRate]);
+  }, [cat, safePage, brand, selectedBrands, inStockOnly, paginated, usdUahRate]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -142,6 +165,36 @@ export function ShopView({
     setPage(1);
     onCategoryChange?.(nextCat);
   }
+
+  function handleToggleBrandCheckbox(brandId: string) {
+    setSelectedBrands((prev) =>
+      prev.includes(brandId) ? prev.filter((item) => item !== brandId) : [...prev, brandId],
+    );
+    setBrand('all');
+    setPage(1);
+  }
+
+  function handleDropdownBrandChange(nextBrand: string) {
+    if (nextBrand === 'all') {
+      setBrand('all');
+      setSelectedBrands([]);
+      setPage(1);
+      return;
+    }
+    const matchedFeatured = FEATURED_BRAND_FILTERS.find((item) =>
+      item.aliases.includes(nextBrand.trim().toLowerCase()),
+    );
+    if (matchedFeatured) {
+      setSelectedBrands([matchedFeatured.id]);
+      setBrand('all');
+    } else {
+      setBrand(nextBrand);
+      setSelectedBrands([]);
+    }
+    setPage(1);
+  }
+
+  const activeBrandLabel = selectedBrands.length > 0 ? selectedBrands.join(', ') : brand !== 'all' ? brand : '';
 
   return (
     <div>
@@ -241,14 +294,16 @@ export function ShopView({
 
             <div className="lg:col-span-3">
               <select
-                value={brand}
-                onChange={(e) => {
-                  setBrand(e.target.value);
-                  setPage(1);
-                }}
+                aria-label={tr('Фільтр за брендом', 'Фильтр по бренду')}
+                value={selectedBrands.length > 0 ? 'all' : brand}
+                onChange={(e) => handleDropdownBrandChange(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1769aa]"
               >
-                <option value="all">{tr('Усі бренди', 'Все бренды')} ({brands.length})</option>
+                <option value="all">
+                  {selectedBrands.length > 0
+                    ? `${tr('Обрано брендів:', 'Выбрано брендов:')} ${selectedBrands.length}`
+                    : `${tr('Усі бренди', 'Все бренды')} (${brands.length})`}
+                </option>
                 {brands.map(([bName, bCount]) => (
                   <option key={bName} value={bName}>
                     {bName} ({bCount})
@@ -283,87 +338,160 @@ export function ShopView({
             </label>
           </div>
 
-          <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 mb-4">
-            <div className="flex items-center gap-3">
-              <span>
-                {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#0d1f33] tabular-nums">{filtered.length}</strong>
-              </span>
-              {query.trim() && (
-                <span className="text-[11px] text-[#1769aa] font-semibold">
-                  {tr('Пошук:', 'Поиск:')} «{query.trim()}»
-                </span>
-              )}
-            </div>
-            {totalPages > 1 && (
-              <span className="font-mono tabular-nums">
-                {tr('Сторінка', 'Страница')} {safePage} {tr('з', 'из')} {totalPages}
-              </span>
-            )}
-          </div>
-
-          {paginated.length === 0 ? (
-            <div className="p-10 sm:p-12 text-center border border-dashed border-slate-300 rounded-2xl bg-slate-50">
-              <p className="text-sm font-bold text-[#0d1f33] mb-1">{tr('За вашим запитом товарів не знайдено', 'По вашему запросу товары не найдены')}</p>
-              <p className="text-xs text-slate-500 mb-5">
-                {tr(
-                  'Спробуйте змінити фільтр або залиште запит — інженер перевірить наявність на складі та підбере сумісний аналог за 15 хв.',
-                  'Измените фильтр или оставьте запрос — инженер проверит наличие на складе и подберёт совместимый аналог за 15 мин.',
-                )}
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleCategoryChange('all');
-                    setBrand('all');
-                    setQuery('');
-                    setInStockOnly(false);
-                  }}
-                  className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold hover:bg-slate-100 cursor-pointer"
-                >
-                  {tr('Скинути фільтри', 'Сбросить фильтры')}
-                </button>
-                {onOpenCustomRequest && (
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Brand Checkboxes Sidebar */}
+            <aside
+              aria-label={tr('Фільтр за брендом', 'Фильтр по бренду')}
+              className="w-full lg:w-[240px] shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 lg:sticky lg:top-24"
+            >
+              <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200">
+                <div className="flex items-center gap-2 text-xs font-extrabold text-[#0d1f33] uppercase tracking-wide">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#1769aa]" />
+                  <span>{tr('Бренди', 'Бренды')}</span>
+                </div>
+                {(selectedBrands.length > 0 || brand !== 'all') && (
                   <button
                     type="button"
                     onClick={() => {
-                      track({ name: 'cta_click', placement: 'section', scenario: 'unspecified' });
-                      onOpenCustomRequest(
-                        query.trim()
-                          ? `Підбір за запитом: ${query.trim()}`
-                          : `Інженерний підбір (${CATEGORY_TITLES[cat] || cat})`,
-                        [
-                          query.trim() ? `Пошуковий запит: ${query.trim()}` : '',
-                          brand !== 'all' ? `Бренд: ${brand}` : '',
-                          `Категорія: ${CATEGORY_TITLES[cat] || cat}`,
-                        ]
-                          .filter(Boolean)
-                          .join('\n'),
-                      );
+                      setSelectedBrands([]);
+                      setBrand('all');
+                      setPage(1);
                     }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer"
+                    className="text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
                   >
-                    <MessageSquarePlus className="w-3.5 h-3.5" />
-                    {tr('Підібрати з інженером за 15 хв', 'Подобрать с инженером за 15 мин')}
+                    {tr('Скинути', 'Сбросить')}
                   </button>
                 )}
               </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+                {FEATURED_BRAND_FILTERS.map((item) => {
+                  const checked = selectedBrands.includes(item.id);
+                  const count = featuredBrandCounts[item.id] ?? 0;
+                  return (
+                    <label
+                      key={item.id}
+                      className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer select-none ${
+                        checked
+                          ? 'bg-[#eff6fc] border-[#1769aa] text-[#0d1f33]'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleBrandCheckbox(item.id)}
+                          className="w-4 h-4 rounded accent-[#1769aa] cursor-pointer shrink-0"
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </span>
+                      <span
+                        className={`font-mono text-[11px] tabular-nums shrink-0 ${
+                          count === 0 ? 'text-slate-300' : checked ? 'text-[#1769aa]' : 'text-slate-400'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </aside>
+
+            {/* Product Grid & Results */}
+            <div className="flex-1 min-w-0 w-full">
+              <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 mb-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span>
+                    {tr('Знайдено позицій:', 'Найдено товаров:')} <strong className="font-mono text-[#0d1f33] tabular-nums">{filtered.length}</strong>
+                  </span>
+                  {activeBrandLabel && (
+                    <span className="text-[11px] text-[#0d1f33] font-semibold">
+                      {tr('Бренд:', 'Бренд:')} {activeBrandLabel}
+                    </span>
+                  )}
+                  {query.trim() && (
+                    <span className="text-[11px] text-[#1769aa] font-semibold">
+                      {tr('Пошук:', 'Поиск:')} «{query.trim()}»
+                    </span>
+                  )}
+                </div>
+                {totalPages > 1 && (
+                  <span className="font-mono tabular-nums">
+                    {tr('Сторінка', 'Страница')} {safePage} {tr('з', 'из')} {totalPages}
+                  </span>
+                )}
+              </div>
+
+              {paginated.length === 0 ? (
+                <div className="p-10 sm:p-12 text-center border border-dashed border-slate-300 rounded-2xl bg-slate-50">
+                  <p className="text-sm font-bold text-[#0d1f33] mb-1">{tr('За вашим запитом товарів не знайдено', 'По вашему запросу товары не найдены')}</p>
+                  <p className="text-xs text-slate-500 mb-5">
+                    {tr(
+                      'Спробуйте змінити фільтр або залиште запит — інженер перевірить наявність на складі та підбере сумісний аналог за 15 хв.',
+                      'Измените фильтр или оставьте запрос — инженер проверит наличие на складе и подберёт совместимый аналог за 15 мин.',
+                    )}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCategoryChange('all');
+                        setBrand('all');
+                        setSelectedBrands([]);
+                        setQuery('');
+                        setInStockOnly(false);
+                      }}
+                      className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold hover:bg-slate-100 cursor-pointer"
+                    >
+                      {tr('Скинути фільтри', 'Сбросить фильтры')}
+                    </button>
+                    {onOpenCustomRequest && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          track({ name: 'cta_click', placement: 'section', scenario: 'unspecified' });
+                          onOpenCustomRequest(
+                            query.trim()
+                              ? `Підбір за запитом: ${query.trim()}`
+                              : `Інженерний підбір (${CATEGORY_TITLES[cat] || cat})`,
+                            [
+                              query.trim() ? `Пошуковий запит: ${query.trim()}` : '',
+                              activeBrandLabel ? `Бренд: ${activeBrandLabel}` : '',
+                              `Категорія: ${CATEGORY_TITLES[cat] || cat}`,
+                            ]
+                              .filter(Boolean)
+                              .join('\n'),
+                          );
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer"
+                      >
+                        <MessageSquarePlus className="w-3.5 h-3.5" />
+                        {tr('Підібрати з інженером за 15 хв', 'Подобрать с инженером за 15 мин')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {paginated.map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      onSelect={onSelectProduct}
+                      onQuickView={onQuickViewProduct}
+                      isWishlisted={wishlistIds.includes(p.id)}
+                      onToggleWishlist={onToggleWishlist}
+                      onAddToCart={onAddToCart}
+                      onRequestQuote={(prod) => onRequestQuote(prod)}
+                      usdUahRate={usdUahRate}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginated.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  onSelect={onSelectProduct}
-                  onQuickView={onQuickViewProduct}
-                  onAddToCart={onAddToCart}
-                  onRequestQuote={(prod) => onRequestQuote(prod)}
-                  usdUahRate={usdUahRate}
-                />
-              ))}
-            </div>
-          )}
+          </div>
 
           {totalPages > 1 && (
             <div className="mt-9 flex items-center justify-center gap-2">

@@ -18,6 +18,13 @@ import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { getAttributionSummary, resolveAnalyticsMoney, track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
+import {
+  calculateSolarPayback,
+  DEFAULT_BUSINESS_TARIFF_UAH,
+  DEFAULT_RESIDENTIAL_TARIFF_UAH,
+  ODESA_ANNUAL_YIELD_PER_KW,
+  type PaybackSystemMode,
+} from '../lib/calculators.ts';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 
@@ -26,6 +33,7 @@ interface HomeViewProps {
   projects: ProjectCase[];
   telegramUrl?: string;
   isStaff?: boolean;
+  wishlistIds?: string[];
   onNavigateShop: (cat?: ProductCategory | 'all') => void;
   onNavigateServices: () => void;
   onNavigateProjects: () => void;
@@ -37,6 +45,7 @@ interface HomeViewProps {
   ) => void;
   onSelectProduct: (product: Product) => void;
   onQuickViewProduct?: (product: Product) => void;
+  onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onSelectCase: (project: ProjectCase) => void;
   onLeadCreated: (deal: Deal) => void;
@@ -51,12 +60,14 @@ export function HomeView({
   projects,
   telegramUrl,
   isStaff = false,
+  wishlistIds = [],
   onNavigateShop,
   onNavigateServices,
   onNavigateProjects,
   onOpenLeadModal,
   onSelectProduct,
   onQuickViewProduct,
+  onToggleWishlist,
   onAddToCart,
   onSelectCase,
   onLeadCreated,
@@ -84,7 +95,8 @@ export function HomeView({
   // Payback Calculator state
   const [monthlyKwh, setMonthlyKwh] = useState(600);
   const [calcTariffType, setCalcTariffType] = useState<'home' | 'business'>('home');
-  const [tariffUah, setTariffUah] = useState(4.32);
+  const [calcSystemMode, setCalcSystemMode] = useState<PaybackSystemMode>('hybrid');
+  const [tariffUah, setTariffUah] = useState(DEFAULT_RESIDENTIAL_TARIFF_UAH);
 
   // Engineering Brief Form state
   const [taskType, setTaskType] = useState('Резервне живлення (квартира / дім)');
@@ -155,82 +167,29 @@ export function HomeView({
 
   const visibleCases = projects.filter((p) => caseSeg === 'all' || p.seg === caseSeg).slice(0, 6);
 
-  // Payback Calculator math (Odesa region ~1180 kWh/year per 1 kW PV)
-  const ODESA_YIELD_PER_KW = 1180;
-  const POWER_TIERS = [5, 6, 8, 10, 12, 15, 20, 30, 50, 80, 110];
-  const safeMonthlyKwh = Number.isFinite(monthlyKwh) ? Math.max(50, Math.min(50000, monthlyKwh)) : 600;
-  const safeTariffUah = Number.isFinite(tariffUah) ? Math.max(1, Math.min(30, tariffUah)) : 4.32;
-  const annualConsumptionKwh = safeMonthlyKwh * 12;
-  const rawRequiredKw = annualConsumptionKwh / ODESA_YIELD_PER_KW;
-  const recommendedKw = POWER_TIERS.reduce((best, tier) =>
-    Math.abs(tier - rawRequiredKw) < Math.abs(best - rawRequiredKw) ? tier : best,
-  POWER_TIERS[0]);
-  const estimatedAnnualGenKwh = Math.round(recommendedKw * ODESA_YIELD_PER_KW);
-  const coveredAnnualKwh = Math.min(annualConsumptionKwh, estimatedAnnualGenKwh);
-  const annualSavingsUah = Math.round(coveredAnnualKwh * safeTariffUah);
-  const monthlySavingsUah = Math.round(annualSavingsUah / 12);
-  const coveragePct = Math.min(100, Math.round((estimatedAnnualGenKwh / Math.max(annualConsumptionKwh, 1)) * 100));
-
-  function extractPowerKw(p: Product): number | null {
-    const haystack = `${p.title} ${p.specs.map(([, v]) => v).join(' ')}`;
-    const match = haystack.match(/(\d+(?:[.,]\d+)?)\s*кВт(?![\s*·]*год)/i);
-    if (!match) return null;
-    const val = Number(match[1].replace(',', '.'));
-    return Number.isFinite(val) ? val : null;
-  }
-
-  function isSolarSolution(p: Product): boolean {
-    const text = `${p.title} ${p.description}`.toLowerCase();
-    return text.includes('сес') || text.includes('соняч') || text.includes('trina') || text.includes('bifacial') || text.includes('x3-ies');
-  }
-
-  const matchedCalculatorProducts = [...products]
-    .filter((p) => p.price > 0 && (p.isKit || p.cat === 'kits' || (recommendedKw >= 20 && p.cat === 'inverters')))
-    .sort((a, b) => {
-      const aPreferKit = a.isKit || a.cat === 'kits' ? 1 : 0;
-      const bPreferKit = b.isKit || b.cat === 'kits' ? 1 : 0;
-      const aSolar = isSolarSolution(a) ? 1 : 0;
-      const bSolar = isSolarSolution(b) ? 1 : 0;
-
-      if (recommendedKw <= 15) {
-        if (aSolar !== bSolar) return bSolar - aSolar;
-        if (aPreferKit !== bPreferKit) return bPreferKit - aPreferKit;
-      } else {
-        const aKw = extractPowerKw(a) ?? 0;
-        const bKw = extractPowerKw(b) ?? 0;
-        const aHeavy = aKw >= 15 ? 1 : 0;
-        const bHeavy = bKw >= 15 ? 1 : 0;
-        if (aHeavy !== bHeavy) return bHeavy - aHeavy;
-      }
-
-      const aKw = extractPowerKw(a) ?? recommendedKw * 2;
-      const bKw = extractPowerKw(b) ?? recommendedKw * 2;
-      const diff = Math.abs(aKw - recommendedKw) - Math.abs(bKw - recommendedKw);
-      if (diff !== 0) return diff;
-      if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
-      return a.price - b.price;
-    })
-    .slice(0, 3);
-
-  const primaryCalcKit = matchedCalculatorProducts[0];
-  const primaryCalcKw = primaryCalcKit ? extractPowerKw(primaryCalcKit) : null;
-  const canUseDirectKitPrice = Boolean(
-    primaryCalcKit &&
-      primaryCalcKit.price > 0 &&
-      usdUahRate &&
-      primaryCalcKw &&
-      primaryCalcKw >= recommendedKw * 0.6 &&
-      primaryCalcKw <= recommendedKw * 1.5,
-  );
-  const indicativeCapexUah = usdUahRate
-    ? canUseDirectKitPrice && primaryCalcKit
-      ? Math.round(primaryCalcKit.price * usdUahRate)
-      : Math.round(recommendedKw * (calcTariffType === 'business' ? 760 : 840) * usdUahRate)
-    : null;
-  const paybackYears =
-    indicativeCapexUah && annualSavingsUah > 0
-      ? Number((indicativeCapexUah / annualSavingsUah).toFixed(1))
-      : null;
+  // Payback Calculator math (PVGIS Odesa ~1230 kWh/year per 1 kW PV + self-consumption & Net Billing)
+  const payback = calculateSolarPayback({
+    monthlyKwh,
+    tariffType: calcTariffType,
+    systemMode: calcSystemMode,
+    tariffUah,
+    usdUahRate,
+    products,
+  });
+  const {
+    safeMonthlyKwh,
+    safeTariffUah,
+    recommendedKw,
+    estimatedAnnualGenKwh,
+    annualSavingsUah,
+    monthlySavingsUah,
+    coveragePct,
+    directSelfPct,
+    matchedProducts: matchedCalculatorProducts,
+    primaryKit: primaryCalcKit,
+    indicativeCapexUah,
+    paybackYears,
+  } = payback;
 
   function toggleLoad(val: string) {
     setLoads((prev) => (prev.includes(val) ? prev.filter((item) => item !== val) : [...prev, val]));
@@ -554,7 +513,8 @@ export function HomeView({
                 type="button"
                 onClick={() => {
                   setCalcTariffType('home');
-                  setTariffUah(4.32);
+                  setCalcSystemMode('hybrid');
+                  setTariffUah(DEFAULT_RESIDENTIAL_TARIFF_UAH);
                   if (!calcTrackedRef.current) {
                     calcTrackedRef.current = true;
                     trackEvent('calculator_used', { tariff_type: 'home', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
@@ -570,7 +530,8 @@ export function HomeView({
                 type="button"
                 onClick={() => {
                   setCalcTariffType('business');
-                  setTariffUah(8.8);
+                  setCalcSystemMode('ongrid');
+                  setTariffUah(DEFAULT_BUSINESS_TARIFF_UAH);
                   if (!calcTrackedRef.current) {
                     calcTrackedRef.current = true;
                     trackEvent('calculator_used', { tariff_type: 'business', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
@@ -580,7 +541,7 @@ export function HomeView({
                   calcTariffType === 'business' ? 'bg-[#0d1f33] text-white' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
-                {tr('Бізнес 380 В (8.80 ₴)', 'Бизнес 380 В (8.80 ₴)')}
+                {tr('Бізнес 380 В (9.60 ₴)', 'Бизнес 380 В (9.60 ₴)')}
               </button>
             </div>
           </div>
@@ -657,6 +618,42 @@ export function HomeView({
                 </div>
 
                 <div>
+                  <span className="block text-xs font-extrabold text-[#0d1f33] mb-1.5">
+                    {tr('Тип станції', 'Тип станции')}
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCalcSystemMode('hybrid')}
+                      className={`px-3 py-2 rounded-lg border text-xs font-bold text-left transition-colors cursor-pointer ${
+                        calcSystemMode === 'hybrid'
+                          ? 'bg-[#eff6fc] border-[#1769aa] text-[#0d1f33]'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <div>{tr('Гібридна з АКБ', 'Гибридная с АКБ')}</div>
+                      <div className="text-[10px] font-medium text-slate-500">
+                        {tr('Резерв + вечір', 'Резерв + вечер')}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCalcSystemMode('ongrid')}
+                      className={`px-3 py-2 rounded-lg border text-xs font-bold text-left transition-colors cursor-pointer ${
+                        calcSystemMode === 'ongrid'
+                          ? 'bg-[#eff6fc] border-[#1769aa] text-[#0d1f33]'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <div>{tr('Мережева (без АКБ)', 'Сетевая (без АКБ)')}</div>
+                      <div className="text-[10px] font-medium text-slate-500">
+                        {tr('Швидша окупність', 'Быстрее окупаемость')}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
                   <label htmlFor="calc-tariff" className="block text-xs font-extrabold text-[#0d1f33] mb-1.5">
                     {tr('Ваш тариф на електроенергію (грн/кВт·год)', 'Ваш тариф на электроэнергию (грн/кВт·ч)')}
                   </label>
@@ -676,8 +673,8 @@ export function HomeView({
 
               <p className="text-[11px] text-slate-500 leading-relaxed pt-3 border-t border-slate-100">
                 {tr(
-                  'Орієнтовний розрахунок для Одеської області (~1 180 кВт·год/рік з 1 кВт сонячного поля) без урахування зростання тарифів та вартості монтажу.',
-                  'Ориентировочный расчёт для Одесской области (~1 180 кВт·ч/год с 1 кВт солнечных панелей) без учёта роста тарифов и стоимости монтажа.',
+                  `Розрахунок за даними PVGIS для Одеси (~${ODESA_ANNUAL_YIELD_PER_KW.toLocaleString('uk-UA')} кВт·год/рік з 1 кВт панелей) з урахуванням прямого споживання (${directSelfPct}%) та заліку надлишків за Net Billing, без урахування інфляції тарифів.`,
+                  `Расчёт по данным PVGIS для Одессы (~${ODESA_ANNUAL_YIELD_PER_KW.toLocaleString('uk-UA')} кВт·ч/год с 1 кВт панелей) с учётом прямого потребления (${directSelfPct}%) и зачёта излишков по Net Billing, без учёта инфляции тарифов.`,
                 )}
               </p>
             </div>
@@ -746,7 +743,7 @@ export function HomeView({
                   onClick={() => {
                     const summaryNote = [
                       `${tr('Споживання', 'Потребление')}: ${safeMonthlyKwh} ${tr('кВт·год/міс', 'кВт·ч/мес')}`,
-                      `${tr('Тариф', 'Тариф')}: ${safeTariffUah} грн/кВт·год (${calcTariffType === 'business' ? tr('Бізнес 380 В', 'Бизнес 380 В') : tr('Дім / Квартира', 'Дом / Квартира')})`,
+                      `${tr('Тариф', 'Тариф')}: ${safeTariffUah} грн/кВт·год (${calcTariffType === 'business' ? tr('Бізнес 380 В', 'Бизнес 380 В') : tr('Дім / Квартира', 'Дом / Квартира')}) · ${calcSystemMode === 'hybrid' ? tr('Гібридна з АКБ', 'Гибридная с АКБ') : tr('Мережева без АКБ', 'Сетевая без АКБ')}`,
                       `${tr('Рекомендована СЕС', 'Рекомендованная СЭС')}: ${recommendedKw} кВт (~${annualSavingsUah.toLocaleString('uk-UA')} грн/рік${paybackYears ? `, окупність ~${paybackYears} р.` : ''})`,
                       primaryCalcKit ? `${tr('Підібраний комплект', 'Подобранный комплект')}: ${primaryCalcKit.title} (SKU ${primaryCalcKit.sku}, ${formatUahFromUsd(primaryCalcKit.price, usdUahRate)})` : '',
                     ]
@@ -756,7 +753,7 @@ export function HomeView({
                     trackEvent('calculator_used', { tariff_type: calcTariffType, monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw, submitted: true });
                     onOpenLeadModal(
                       `Калькулятор окупності: СЕС ${recommendedKw} кВт (${safeMonthlyKwh} кВт·год/міс)`,
-                      primaryCalcKit?.price,
+                      indicativeCapexUah && usdUahRate ? Math.round(indicativeCapexUah / usdUahRate) : primaryCalcKit?.price,
                       'section',
                       summaryNote,
                     );
@@ -793,6 +790,8 @@ export function HomeView({
                     product={prod}
                     onSelect={onSelectProduct}
                     onQuickView={onQuickViewProduct}
+                    isWishlisted={wishlistIds.includes(prod.id)}
+                    onToggleWishlist={onToggleWishlist}
                     onAddToCart={onAddToCart}
                     onRequestQuote={(p) =>
                       onOpenLeadModal(
@@ -867,6 +866,8 @@ export function HomeView({
                 product={prod}
                 onSelect={onSelectProduct}
                 onQuickView={onQuickViewProduct}
+                isWishlisted={wishlistIds.includes(prod.id)}
+                onToggleWishlist={onToggleWishlist}
                 onAddToCart={onAddToCart}
                 onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
               />

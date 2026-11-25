@@ -1,5 +1,5 @@
 import { Component, useCallback, useEffect, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
-import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check } from 'lucide-react';
+import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check, Heart } from 'lucide-react';
 import type {
   AdminAuthStatus,
   AnalyticsConfig,
@@ -33,7 +33,7 @@ import { ProjectsView } from './components/ProjectsView.tsx';
 import { ContactsView } from './components/ContactsView.tsx';
 import { CrmView } from './components/CrmView.tsx';
 import { AuthPortalView } from './components/AuthPortalView.tsx';
-import { ClientCabinetView } from './components/ClientCabinetView.tsx';
+import { ClientCabinetView, type CabinetTab } from './components/ClientCabinetView.tsx';
 import { ProductModal } from './components/ProductModal.tsx';
 import { QuickViewModal } from './components/QuickViewModal.tsx';
 import { CaseModal } from './components/CaseModal.tsx';
@@ -44,6 +44,13 @@ import { SocialIcons } from './components/SocialIcons.tsx';
 import { InfoPage } from './components/InfoPage.tsx';
 import { formatUahFromUsd } from './lib/currency.ts';
 import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
+import {
+  mergeWishlistIds,
+  normalizeWishlistIds,
+  readWishlistFromStorage,
+  toggleWishlistId,
+  writeWishlistToStorage,
+} from './lib/wishlist.ts';
 
 type AppView =
   | 'home'
@@ -379,6 +386,8 @@ function AppContent() {
   const [clientToken, setClientToken] = useState<string | null>(null);
   const [clientCustomer, setClientCustomer] = useState<CustomerProfile | null>(null);
   const [cabinetRefreshTrigger, setCabinetRefreshTrigger] = useState(0);
+  const [cabinetTabRequest, setCabinetTabRequest] = useState<{ tab: CabinetTab; nonce: number } | null>(null);
+  const postLoginCabinetTabRef = useRef<CabinetTab | null>(null);
   const [authStatus, setAuthStatus] = useState<AdminAuthStatus>({ configured: true, mode: 'login', googleEnabled: true });
   const [apiAvailable, setApiAvailable] = useState(true);
 
@@ -392,6 +401,11 @@ function AppContent() {
     }
   });
   const [cartOpen, setCartOpen] = useState(false);
+
+  // Wishlist state persisted in localStorage + synced to /api/client/wishlist when logged in
+  const [wishlistIds, setWishlistIds] = useState<string[]>(() => readWishlistFromStorage());
+  const wishlistIdsRef = useRef<string[]>(wishlistIds);
+  wishlistIdsRef.current = wishlistIds;
 
   // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -448,6 +462,46 @@ function AppContent() {
       // ignore storage quota errors
     }
   }, [cart]);
+
+  useEffect(() => {
+    writeWishlistToStorage(wishlistIds);
+  }, [wishlistIds]);
+
+  useEffect(() => {
+    if (!clientToken) return;
+    let active = true;
+    const syncOnSignIn = async () => {
+      try {
+        const resp = await fetch('/api/client/wishlist', {
+          headers: { Authorization: `Bearer ${clientToken}` },
+        });
+        if (!resp.ok || !active) return;
+        const data = (await resp.json()) as { productIds?: unknown };
+        const serverIds = normalizeWishlistIds(data.productIds);
+        const merged = mergeWishlistIds(serverIds, wishlistIdsRef.current);
+        if (!active) return;
+        setWishlistIds(merged);
+        const differs =
+          merged.length !== serverIds.length || merged.some((id, idx) => serverIds[idx] !== id);
+        if (differs) {
+          await fetch('/api/client/wishlist', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${clientToken}`,
+            },
+            body: JSON.stringify({ productIds: merged }),
+          });
+        }
+      } catch {
+        // Keep local wishlist if network call fails
+      }
+    };
+    void syncOnSignIn();
+    return () => {
+      active = false;
+    };
+  }, [clientToken]);
 
   const fetchCatalog = useCallback(async () => {
     try {
@@ -983,12 +1037,18 @@ function AppContent() {
 
   function handleUnifiedAuthenticated(result: UnifiedAuthResult) {
     if (result.accountType === 'staff') {
+      postLoginCabinetTabRef.current = null;
       setAdminToken(result.token);
       setClientToken(null);
       setClientCustomer(null);
       void fetchAuthStatus();
       navigateTo('crm');
       return;
+    }
+    const targetTab = postLoginCabinetTabRef.current;
+    postLoginCabinetTabRef.current = null;
+    if (targetTab) {
+      setCabinetTabRequest({ tab: targetTab, nonce: Date.now() });
     }
     setClientToken(result.token);
     setClientCustomer(result.customer ?? null);
@@ -1000,6 +1060,7 @@ function AppContent() {
   const handleClientLogout = useCallback(() => {
     setClientToken(null);
     setClientCustomer(null);
+    setCabinetTabRequest(null);
     void signOutFirebase();
     setSelectedProduct(null);
     setQuickViewProduct(null);
@@ -1146,6 +1207,74 @@ function AppContent() {
       });
     }
     setCart((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  const pushWishlistToServer = useCallback(
+    async (nextIds: string[]) => {
+      if (!clientToken) return;
+      try {
+        await fetch('/api/client/wishlist', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${clientToken}`,
+          },
+          body: JSON.stringify({ productIds: nextIds }),
+        });
+      } catch {
+        // Ignore transient network errors; local state & storage remain updated
+      }
+    },
+    [clientToken],
+  );
+
+  const handleToggleWishlist = useCallback(
+    (product: Product) => {
+      const nextIds = toggleWishlistId(wishlistIdsRef.current, product.id);
+      setWishlistIds(nextIds);
+      void pushWishlistToServer(nextIds);
+    },
+    [pushWishlistToServer],
+  );
+
+  const handleClearWishlist = useCallback(() => {
+    setWishlistIds([]);
+    void pushWishlistToServer([]);
+  }, [pushWishlistToServer]);
+
+  const handleAddManyToCart = useCallback((items: Product[]) => {
+    const buyable = items.filter((p) => !p.isKit && p.price > 0);
+    if (buyable.length === 0) return;
+    setCart((prev) => {
+      const next = [...prev];
+      for (const product of buyable) {
+        const idx = next.findIndex((i) => i.id === product.id);
+        if (idx >= 0) {
+          next[idx] = { ...next[idx], qty: next[idx].qty + 1 };
+        } else {
+          next.push({
+            id: product.id,
+            sku: product.sku,
+            title: product.title,
+            price: product.price,
+            qty: 1,
+            img: product.img,
+          });
+        }
+      }
+      return next;
+    });
+    setCartOpen(true);
+  }, []);
+
+  function handleOpenWishlist() {
+    if (clientToken) {
+      setCabinetTabRequest({ tab: 'wishlist', nonce: Date.now() });
+      navigateTo('account');
+      return;
+    }
+    postLoginCabinetTabRef.current = 'wishlist';
+    navigateTo('login', undefined, 'login');
   }
 
   function openLeadModal(
@@ -1320,7 +1449,7 @@ function AppContent() {
             </a>
           </nav>
 
-          {/* Zone 3: Quick Lead CTA + Compact Intuitive Cart Button + Mobile/Tablet Menu */}
+          {/* Zone 3: Quick Lead CTA + Wishlist + Compact Cart Button + Mobile/Tablet Menu */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
@@ -1329,6 +1458,19 @@ function AppContent() {
             >
               <span className="min-[440px]:hidden">{tr('Підібрати')}</span>
               <span className="hidden min-[440px]:inline">{tr('Підібрати рішення')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenWishlist}
+              aria-label={`${tr('Список бажань', 'Список желаний')} (${wishlistIds.length})`}
+              title={tr('Список бажань', 'Список желаний')}
+              className="inline-flex items-center justify-center gap-1 h-9 px-2 sm:px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-[#0d1f33] text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <Heart className={`w-4 h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-600'}`} />
+              <span className="font-mono text-[11px] text-slate-700 tabular-nums leading-none">
+                {wishlistIds.length}
+              </span>
             </button>
 
             <button
@@ -1423,12 +1565,14 @@ function AppContent() {
                 projects={projects}
                 telegramUrl={socialLinks.telegram}
                 isStaff={Boolean(adminToken)}
+                wishlistIds={wishlistIds}
                 onNavigateShop={(cat) => navigateTo('shop', cat)}
                 onNavigateServices={() => navigateTo('services')}
                 onNavigateProjects={() => navigateTo('projects')}
                 onOpenLeadModal={openLeadModal}
                 onSelectProduct={handleSelectProduct}
                 onQuickViewProduct={handleQuickViewProduct}
+                onToggleWishlist={handleToggleWishlist}
                 onAddToCart={handleAddToCart}
                 onSelectCase={setSelectedCase}
                 onLeadCreated={() => void fetchDeals()}
@@ -1442,9 +1586,11 @@ function AppContent() {
                 products={products}
                 initialCategory={shopInitialCat}
                 initialQuery={shopInitialQuery}
+                wishlistIds={wishlistIds}
                 onCategoryChange={handleShopCategorySync}
                 onSelectProduct={handleSelectProduct}
                 onQuickViewProduct={handleQuickViewProduct}
+                onToggleWishlist={handleToggleWishlist}
                 onAddToCart={handleAddToCart}
                 onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
                 onOpenCustomRequest={(topic, notes) => openLeadModal(topic, undefined, 'section', notes)}
@@ -1501,9 +1647,16 @@ function AppContent() {
                   initialCustomer={clientCustomer}
                   products={products}
                   usdUahRate={usdUahRate}
+                  wishlistIds={wishlistIds}
+                  requestedTab={cabinetTabRequest}
                   refreshTrigger={cabinetRefreshTrigger}
                   onCustomerUpdated={setClientCustomer}
+                  onToggleWishlist={handleToggleWishlist}
+                  onClearWishlist={handleClearWishlist}
+                  onSelectProduct={handleSelectProduct}
+                  onQuickViewProduct={handleQuickViewProduct}
                   onAddToCart={handleAddToCart}
+                  onAddManyToCart={handleAddManyToCart}
                   onOpenLeadModal={(topic, estUsd, notes) => openLeadModal(topic, estUsd, 'section', notes)}
                   onNavigateShop={() => navigateTo('shop', 'all')}
                   onBackToStore={() => navigateTo('home')}
@@ -1722,6 +1875,8 @@ function AppContent() {
         adminToken={adminToken}
         clientCustomerName={clientCustomer?.name ?? null}
         onRequireLogin={() => navigateTo('login', undefined, 'login')}
+        isWishlisted={selectedProduct ? wishlistIds.includes(selectedProduct.id) : false}
+        onToggleWishlist={handleToggleWishlist}
       />
 
       <QuickViewModal
@@ -1733,6 +1888,8 @@ function AppContent() {
           setQuickViewProduct(null);
           handleSelectProduct(p);
         }}
+        isWishlisted={quickViewProduct ? wishlistIds.includes(quickViewProduct.id) : false}
+        onToggleWishlist={handleToggleWishlist}
         usdUahRate={usdUahRate}
       />
 

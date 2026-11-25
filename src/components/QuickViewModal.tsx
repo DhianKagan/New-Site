@@ -1,4 +1,4 @@
-import { X, ShoppingBag, ArrowUpRight, CheckCircle2, ExternalLink } from 'lucide-react';
+import { X, ShoppingBag, ArrowUpRight, CheckCircle2, ExternalLink, Heart } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
@@ -18,6 +18,8 @@ interface QuickViewModalProps {
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   onOpenFullDetails?: (product: Product) => void;
+  isWishlisted?: boolean;
+  onToggleWishlist?: (product: Product) => void;
   usdUahRate: number | null;
 }
 
@@ -27,6 +29,8 @@ export function QuickViewModal({
   onAddToCart,
   onRequestQuote,
   onOpenFullDetails,
+  isWishlisted = false,
+  onToggleWishlist,
   usdUahRate,
 }: QuickViewModalProps) {
   if (!product) return null;
@@ -67,14 +71,40 @@ export function QuickViewModal({
             <span aria-hidden="true">·</span>
             <span className="font-mono">SKU {product.sku}</span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={tr('Закрити', 'Закрыть')}
-            className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {onToggleWishlist && (
+              <button
+                type="button"
+                onClick={() => onToggleWishlist(product)}
+                aria-pressed={isWishlisted}
+                aria-label={
+                  isWishlisted
+                    ? tr('Прибрати зі списку бажань', 'Убрать из списка желаний')
+                    : tr('Додати до списку бажань', 'Добавить в список желаний')
+                }
+                title={
+                  isWishlisted
+                    ? tr('Прибрати зі списку бажань', 'Убрать из списка желаний')
+                    : tr('Додати до списку бажань', 'Добавить в список желаний')
+                }
+                className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 ${
+                  isWishlisted
+                    ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
+                    : 'border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-600'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={tr('Закрити', 'Закрыть')}
+              className="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-5 sm:p-6">

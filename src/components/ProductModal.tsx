@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   PhoneCall,
   MessageSquarePlus,
+  Heart,
 } from 'lucide-react';
 import type { Product, ProductReview } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
@@ -47,6 +48,8 @@ interface ProductModalProps {
   adminToken?: string | null;
   clientCustomerName?: string | null;
   onRequireLogin?: () => void;
+  isWishlisted?: boolean;
+  onToggleWishlist?: (product: Product) => void;
 }
 
 export function ProductModal({
@@ -59,6 +62,8 @@ export function ProductModal({
   adminToken = null,
   clientCustomerName = null,
   onRequireLogin,
+  isWishlisted = false,
+  onToggleWishlist,
 }: ProductModalProps) {
   const isRussian = getActiveLocale() === 'ru';
   const productId = product?.id ?? null;
@@ -174,14 +179,43 @@ export function ProductModal({
             <span aria-hidden="true">·</span>
             <span className="font-mono">SKU {product.sku}</span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={tr('Закрити')}
-            className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {onToggleWishlist && (
+              <button
+                type="button"
+                onClick={() => onToggleWishlist(product)}
+                aria-pressed={isWishlisted}
+                aria-label={
+                  isWishlisted
+                    ? tr('Прибрати зі списку бажань', 'Убрать из списка желаний')
+                    : tr('Додати до списку бажань', 'Добавить в список желаний')
+                }
+                title={
+                  isWishlisted
+                    ? tr('Прибрати зі списку бажань', 'Убрать из списка желаний')
+                    : tr('Додати до списку бажань', 'Добавить в список желаний')
+                }
+                className={`h-8 px-2.5 rounded-lg border inline-flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${
+                  isWishlisted
+                    ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
+                    : 'border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-600'
+                }`}
+              >
+                <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <span className="hidden sm:inline">
+                  {isWishlisted ? tr('У бажаннях', 'В желаниях') : tr('Зберегти', 'Сохранить')}
+                </span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={tr('Закрити')}
+              className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">

@@ -34,6 +34,7 @@ import {
   getCustomerAccountDetail,
   getCustomerAuthStateSync,
   getCustomerProfileById,
+  getCustomerWishlistIds,
   getLatestCatalogOrProjectUpdatedAt,
   getMasterAdminRecordSync,
   getProductById,
@@ -65,6 +66,7 @@ import {
   registerCustomerWithPassword,
   saveAnalyticsSettings,
   saveSocialLinks,
+  setCustomerWishlistIds,
   setSetting,
   setSettingIfAbsent,
   updateContact,
@@ -86,6 +88,7 @@ import {
   clientErrorReportSchema,
   clientProfilePatchSchema,
   clientRegisterSchema,
+  clientWishlistPutSchema,
   commercialExchangeRatePutSchema,
   contactCreateSchema,
   contactPatchSchema,
@@ -1263,10 +1266,45 @@ async function startServer() {
         return;
       }
       const deals = listCustomerDeals({ id: customer.id, email: customer.email, phone: customer.phone });
-      res.json({ customer, deals });
+      const wishlistIds = getCustomerWishlistIds(client.customerId);
+      res.json({ customer, deals, wishlistIds });
     } catch (err) {
       console.error('GET /api/client/me error:', err);
       res.status(500).json({ error: 'Помилка завантаження кабінету клієнта' });
+    }
+  });
+
+  app.get('/api/client/wishlist', async (req, res) => {
+    try {
+      const client = getClientUser(req);
+      if (!client) {
+        res.status(401).json({ error: 'Потрібна авторизація' });
+        return;
+      }
+      res.json({ productIds: getCustomerWishlistIds(client.customerId) });
+    } catch (err) {
+      console.error('GET /api/client/wishlist error:', err);
+      res.status(500).json({ error: 'Помилка завантаження списку бажань' });
+    }
+  });
+
+  app.put('/api/client/wishlist', async (req, res) => {
+    try {
+      const client = getClientUser(req);
+      if (!client) {
+        res.status(401).json({ error: 'Потрібна авторизація' });
+        return;
+      }
+      const parsed = clientWishlistPutSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані списку бажань' });
+        return;
+      }
+      const productIds = setCustomerWishlistIds(client.customerId, parsed.data.productIds);
+      res.json({ productIds });
+    } catch (err) {
+      console.error('PUT /api/client/wishlist error:', err);
+      res.status(500).json({ error: 'Помилка збереження списку бажань' });
     }
   });
 

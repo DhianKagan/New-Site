@@ -12,6 +12,14 @@ import {
   Zap,
 } from 'lucide-react';
 import type { Product } from '../../types.ts';
+import {
+  calculateSolarConstructor,
+  DEFAULT_BUSINESS_TARIFF_UAH,
+  DEFAULT_RESIDENTIAL_TARIFF_UAH,
+  matchConstructorEquipment,
+  type ConstructorPresetId,
+  type ConstructorSeasonMode,
+} from '../../lib/calculators.ts';
 import { formatUahFromUsd } from '../../lib/currency.ts';
 import { tr } from '../../lib/i18n.ts';
 import { SmartImage } from '../SmartImage.tsx';
@@ -27,8 +35,8 @@ interface SolarConstructorTabProps {
   onOpenLeadModal: (topic: string, estimatedTotalUsd?: number, notes?: string) => void;
 }
 
-type ObjectPresetId = 'apartment' | 'house' | 'business' | 'factory';
-type SeasonMode = 'summer' | 'spring_autumn' | 'winter';
+type ObjectPresetId = ConstructorPresetId;
+type SeasonMode = ConstructorSeasonMode;
 
 interface LoadItem {
   id: string;
@@ -74,7 +82,7 @@ const PRESET_CONFIGS: Record<
     phases: 1,
     autonomyHours: 8,
     solarKw: 0,
-    tariffUah: 4.32,
+    tariffUah: DEFAULT_RESIDENTIAL_TARIFF_UAH,
     activeLoads: {
       fridge: { qty: 1, hours: 8 },
       boiler_gas: { qty: 1, hours: 10 },
@@ -95,7 +103,7 @@ const PRESET_CONFIGS: Record<
     phases: 3,
     autonomyHours: 10,
     solarKw: 10,
-    tariffUah: 4.32,
+    tariffUah: DEFAULT_RESIDENTIAL_TARIFF_UAH,
     activeLoads: {
       fridge: { qty: 1, hours: 8 },
       boiler_gas: { qty: 1, hours: 12 },
@@ -116,7 +124,7 @@ const PRESET_CONFIGS: Record<
     phases: 3,
     autonomyHours: 6,
     solarKw: 20,
-    tariffUah: 9.2,
+    tariffUah: DEFAULT_BUSINESS_TARIFF_UAH,
     activeLoads: {
       fridge: { qty: 2, hours: 10 },
       boiler_gas: { qty: 0, hours: 8 },
@@ -137,7 +145,7 @@ const PRESET_CONFIGS: Record<
     phases: 3,
     autonomyHours: 4,
     solarKw: 50,
-    tariffUah: 9.8,
+    tariffUah: 10.2,
     activeLoads: {
       fridge: { qty: 2, hours: 10 },
       boiler_gas: { qty: 1, hours: 10 },
@@ -152,19 +160,6 @@ const PRESET_CONFIGS: Record<
     },
   },
 };
-
-function parseKwFromProduct(p: Product): number {
-  const m = `${p.title} ${p.sku}`.match(/(\d+(?:[.,]\d+)?)\s*(?:квт|kw)/i);
-  return m ? Number(m[1].replace(',', '.')) : 0;
-}
-
-function parseKwhFromBattery(p: Product): number {
-  const m = `${p.title} ${p.sku}`.match(/(\d+(?:[.,]\d+)?)\s*(?:квт[*·\s]*год|kwh)/i);
-  if (m) return Number(m[1].replace(',', '.'));
-  const mAh = `${p.title}`.match(/(\d+(?:[.,]\d+)?)\s*v\D+(\d+)\s*ah/i);
-  if (mAh) return Math.round((Number(mAh[1].replace(',', '.')) * Number(mAh[2])) / 100) / 10;
-  return 5.12;
-}
 
 export function SolarConstructorTab({
   products,
@@ -246,109 +241,41 @@ export function SolarConstructorTab({
     setLoads((prev) => prev.filter((item) => item.id !== id));
   }
 
-  const calc = useMemo(() => {
-    const active = loads.filter((l) => l.qty > 0);
-    const connectedWatts = active.reduce((sum, l) => sum + l.watts * l.qty, 0);
-    const workingKw = Math.round(((connectedWatts * simultaneity) / 1000) * 10) / 10;
-    const maxSingleSurgeW = active.reduce((max, l) => Math.max(max, l.watts * l.surgeMult), 0);
-    const peakSurgeKw = Math.round(((connectedWatts * simultaneity + maxSingleSurgeW * 0.4) / 1000) * 10) / 10;
+  const baseCalc = useMemo(
+    () =>
+      calculateSolarConstructor({
+        loads,
+        simultaneity,
+        autonomyHours,
+        phases,
+        solarKw,
+        season,
+        tariffUah,
+        preset,
+      }),
+    [loads, simultaneity, autonomyHours, phases, solarKw, season, tariffUah, preset],
+  );
 
-    const dailyConsumptionKwh =
-      Math.round(active.reduce((sum, l) => sum + (l.watts * l.qty * l.hoursPerDay) / 1000, 0) * 10) / 10;
+  const matchedEquipment = useMemo(
+    () =>
+      matchConstructorEquipment({
+        products,
+        recommendedInverterKw: baseCalc.recommendedInverterKw,
+        recommendedBatteryKwh: baseCalc.recommendedBatteryKwh,
+        phases,
+        solarKw,
+      }),
+    [products, baseCalc.recommendedInverterKw, baseCalc.recommendedBatteryKwh, phases, solarKw],
+  );
 
-    const avgPowerKw = dailyConsumptionKwh / 24;
-    const criticalWatts = active.filter((l) => l.critical).reduce((s, l) => s + l.watts * l.qty, 0);
-    const blackoutHourlyKwh = Math.max(avgPowerKw, (criticalWatts * 0.55) / 1000, workingKw * 0.35);
-    const neededAutonomyKwh = Math.round(blackoutHourlyKwh * autonomyHours * 10) / 10;
-    // LiFePO4 90% DoD + 92% inverter efficiency
-    const recommendedBatteryKwh = Math.max(5, Math.ceil((neededAutonomyKwh / 0.83) / 2.5) * 2.5);
-
-    const standardInvSizes = phases === 1 ? [3, 5, 6, 8, 10, 12] : [6, 8, 10, 12, 15, 20, 30, 50, 80, 100];
-    const targetInvKw = Math.max(workingKw * 1.25, peakSurgeKw / 1.8, solarKw * 0.8);
-    const recommendedInverterKw =
-      standardInvSizes.find((s) => s >= targetInvKw) ?? Math.ceil(targetInvKw / 10) * 10;
-
-    const seasonYieldPerKw = season === 'summer' ? 5.1 : season === 'spring_autumn' ? 3.5 : 1.2;
-    const dailySolarGenKwh = Math.round(solarKw * seasonYieldPerKw * 10) / 10;
-    const annualSolarGenKwh = Math.round(solarKw * 1180);
-    const panelsCount = solarKw > 0 ? Math.ceil((solarKw * 1000) / 585) : 0;
-    const roofAreaM2 = Math.round(panelsCount * 2.6);
-
-    const selfConsumedDaily = Math.min(dailyConsumptionKwh, dailySolarGenKwh * 0.92 + Math.min(recommendedBatteryKwh * 0.7, Math.max(0, dailySolarGenKwh - dailyConsumptionKwh * 0.5)));
-    const monthlySavingsUah = Math.round((annualSolarGenKwh / 12) * tariffUah);
-    const coveragePct = dailyConsumptionKwh > 0 ? Math.min(100, Math.round((selfConsumedDaily / dailyConsumptionKwh) * 100)) : 0;
-
-    // 24h simulation profile
-    const hourlySim = Array.from({ length: 24 }, (_, hour) => {
-      const solarCurve = hour >= 6 && hour <= 19 ? Math.sin(((hour - 6) / 13) * Math.PI) ** 1.4 : 0;
-      const pvKw = solarKw > 0 ? solarKw * (seasonYieldPerKw / 7.8) * solarCurve : 0;
-      const loadFactor =
-        hour >= 7 && hour <= 9
-          ? 1.35
-          : hour >= 18 && hour <= 22
-            ? 1.55
-            : hour >= 0 && hour <= 5
-              ? 0.45
-              : 0.95;
-      const loadKw = (dailyConsumptionKwh / 24) * loadFactor;
-      return { hour, pvKw: Math.round(pvKw * 10) / 10, loadKw: Math.round(loadKw * 10) / 10 };
-    });
-
-    return {
-      activeCount: active.length,
-      connectedKw: Math.round((connectedWatts / 1000) * 10) / 10,
-      workingKw,
-      peakSurgeKw,
-      dailyConsumptionKwh,
-      neededAutonomyKwh,
-      recommendedBatteryKwh,
-      recommendedInverterKw,
-      dailySolarGenKwh,
-      annualSolarGenKwh,
-      panelsCount,
-      roofAreaM2,
-      monthlySavingsUah,
-      coveragePct,
-      hourlySim,
-    };
-  }, [loads, simultaneity, autonomyHours, phases, solarKw, season, tariffUah]);
-
-  const matchedEquipment = useMemo(() => {
-    const inverters = products
-      .filter((p) => p.cat === 'inverters' && p.price > 0)
-      .map((p) => ({ p, kw: parseKwFromProduct(p) }))
-      .filter((x) => x.kw >= Math.max(3, calc.recommendedInverterKw * 0.8))
-      .sort((a, b) => Math.abs(a.kw - calc.recommendedInverterKw) - Math.abs(b.kw - calc.recommendedInverterKw));
-
-    const batteries = products
-      .filter((p) => p.cat === 'batteries' && p.price > 0)
-      .map((p) => ({ p, kwh: parseKwhFromBattery(p) }))
-      .sort((a, b) => Math.abs(a.kwh - Math.min(15, calc.recommendedBatteryKwh)) - Math.abs(b.kwh - Math.min(15, calc.recommendedBatteryKwh)));
-
-    const panels = products
-      .filter((p) => p.cat === 'panels' && p.price > 0)
-      .slice(0, 2);
-
-    const pickedInverter = inverters[0]?.p ?? null;
-    const pickedBattery = batteries[0]?.p ?? null;
-    const batteryUnits = pickedBattery
-      ? Math.max(1, Math.min(6, Math.round(calc.recommendedBatteryKwh / Math.max(3.5, parseKwhFromBattery(pickedBattery)))))
-      : 1;
-    const pickedPanel = solarKw > 0 ? (panels[0] ?? null) : null;
-
-    const estimatedEquipmentUsd =
-      (pickedInverter?.price ?? 0) +
-      (pickedBattery ? pickedBattery.price * batteryUnits : 0) +
-      (pickedPanel ? pickedPanel.price * calc.panelsCount : 0);
-
-    return {
-      inverter: pickedInverter,
-      battery: pickedBattery,
-      batteryUnits,
-      panel: pickedPanel,
-      estimatedEquipmentUsd,
-    };
-  }, [products, calc.recommendedInverterKw, calc.recommendedBatteryKwh, calc.panelsCount, solarKw]);
+  const calc = useMemo(
+    () => ({
+      ...baseCalc,
+      panelsCount: matchedEquipment.panelsCount,
+      roofAreaM2: matchedEquipment.roofAreaM2,
+    }),
+    [baseCalc, matchedEquipment.panelsCount, matchedEquipment.roofAreaM2],
+  );
 
   function handleSendConfigToEngineer() {
     const activeSummary = loads
@@ -358,7 +285,7 @@ export function SolarConstructorTab({
     const notes = [
       `${tr('Об’єкт', 'Объект')}: ${tr(PRESET_CONFIGS[preset].uk, PRESET_CONFIGS[preset].ru)} (${phases} ${tr('ф', 'ф')})`,
       `${tr('Навантаження', 'Нагрузка')}: ${calc.workingKw} кВт (${tr('пік', 'пик')} ${calc.peakSurgeKw} кВт), ${calc.dailyConsumptionKwh} кВт·год/добу`,
-      `${tr('Рекомендовано', 'Рекомендовано')}: ${tr('інвертор', 'инвертор')} ${calc.recommendedInverterKw} кВт, АКБ ${calc.recommendedBatteryKwh} кВт·год (${autonomyHours} год), СЕС ${solarKw} кВт (${calc.panelsCount} панелей)`,
+      `${tr('Рекомендовано', 'Рекомендовано')}: ${tr('інвертор', 'инвертор')} ${calc.recommendedInverterKw} кВт, АКБ ${calc.recommendedBatteryKwh} кВт·год (${autonomyHours} год), СЕС ${solarKw} кВт (${calc.panelsCount} × ${matchedEquipment.panelWatts} Вт)`,
       `${tr('Прилади', 'Приборы')}: ${activeSummary}`,
     ].join('\n');
 
@@ -716,7 +643,7 @@ export function SolarConstructorTab({
                 </div>
                 <div className="text-[10px] text-slate-300">
                   {solarKw > 0
-                    ? `${calc.panelsCount} ${tr('панелей (~', 'панелей (~')}${calc.roofAreaM2} м²)`
+                    ? `${calc.panelsCount} × ${matchedEquipment.panelWatts} Вт (~${calc.roofAreaM2} м²)`
                     : tr('режим резерву ДБЖ', 'режим резерва ИБП')}
                 </div>
               </div>
