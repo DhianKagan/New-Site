@@ -1,7 +1,7 @@
 import { Clock, Mail, MapPin, Phone, ShieldCheck } from 'lucide-react';
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { tr } from '../lib/i18n.ts';
-import { trackEvent } from '../lib/analytics.ts';
+import { track, trackEvent } from '../lib/analytics.ts';
 import { SocialIcons } from './SocialIcons.tsx';
 import type { SocialLinksConfig } from '../types.ts';
 
@@ -63,8 +63,8 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Phone className="h-5 w-5" /></span>
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-[#52657a]">{tr('Телефони')}</p>
-                  <a href={COMPANY_INFO.phone1Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone1}</a>
-                  <a href={COMPANY_INFO.phone2Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone2 })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone2}</a>
+                  <a href={COMPANY_INFO.phone1Href} onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone1}</a>
+                  <a href={COMPANY_INFO.phone2Href} onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })} className="block text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.phone2}</a>
                 </div>
               </div>
 
@@ -72,7 +72,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6fc] text-[#1769aa]"><Mail className="h-5 w-5" /></span>
                 <div>
                   <p className="text-xs font-bold text-[#52657a]">{tr('Електронна пошта')}</p>
-                  <a href={`mailto:${COMPANY_INFO.email}`} className="mt-1 block break-all text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.email}</a>
+                  <a href={`mailto:${COMPANY_INFO.email}`} onClick={() => trackEvent('contact', { channel: 'email', placement: 'section' })} className="mt-1 block break-all text-sm font-bold text-[#1769aa] hover:underline">{COMPANY_INFO.email}</a>
                 </div>
               </div>
 
@@ -88,7 +88,7 @@ export function ContactsView({ onBackHome, onOpenLeadModal, socialLinks }: Conta
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-5">
               <SocialIcons links={socialLinks} variant="light" />
               <div className="flex flex-wrap gap-2">
-                <a href={COMPANY_INFO.phone1Href} onClick={() => trackEvent('contact', { phone: COMPANY_INFO.phone1 })} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#1769aa] px-4 text-sm font-bold text-white hover:bg-[#12568c]">{tr('Зателефонувати')}</a>
+                <a href={COMPANY_INFO.phone1Href} onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#1769aa] px-4 text-sm font-bold text-white hover:bg-[#12568c]">{tr('Зателефонувати')}</a>
                 <button type="button" onClick={() => onOpenLeadModal('Консультація зі сторінки Контакти')} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-[#0d1f33] hover:bg-slate-50">{tr('Замовити дзвінок')}</button>
               </div>
             </div>

@@ -3,13 +3,14 @@ import { X, Minus, Plus, Trash2, ShoppingBag, CheckCircle2, ArrowRight } from 'l
 import type { CartItem, CustomerProfile, Deal } from '../types.ts';
 import { tr } from '../lib/i18n.ts';
 import { SmartImage } from './SmartImage.tsx';
-import { track, trackEvent } from '../lib/analytics.ts';
+import { track, trackEvent, getAttributionSummary, resolveAnalyticsMoney, toAnalyticsCartItem } from '../lib/analytics.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 
 interface CartDrawerProps {
   open: boolean;
   items: CartItem[];
+  isStaff?: boolean;
   clientToken?: string | null;
   clientCustomer?: CustomerProfile | null;
   onClose: () => void;
@@ -24,6 +25,7 @@ interface CartDrawerProps {
 export function CartDrawer({
   open,
   items,
+  isStaff = false,
   clientToken,
   clientCustomer,
   onClose,
@@ -94,6 +96,7 @@ export function CartDrawer({
           notes,
           website,
           acceptedOffer,
+          attribution: getAttributionSummary(),
           items: items.map((i) => ({ productId: i.id, qty: i.qty })),
         }),
       });
@@ -102,11 +105,14 @@ export function CartDrawer({
         setError(data.error || tr('Помилка оформлення замовлення', 'Ошибка оформления заказа'));
       } else {
         setConfirmedDeal(data.deal);
+        const purchaseMoney = resolveAnalyticsMoney(data.deal.totalUsd, usdUahRate);
+        const analyticsItems = items.map((item) => toAnalyticsCartItem(item, usdUahRate));
         trackEvent('purchase', {
           transaction_id: data.deal.dealNumber,
-          value: data.deal.totalUsd,
-          currency: 'USD',
-          items_count: data.deal.items.length,
+          value: purchaseMoney.value,
+          currency: purchaseMoney.currency,
+          items_count: data.deal.items.reduce((sum, item) => sum + item.qty, 0),
+          items: analyticsItems,
         });
         onClearCart();
         onOrderCreated(data.deal);
@@ -165,21 +171,38 @@ export function CartDrawer({
                   {tr('Сума:', 'Сумма:')} <strong className="font-mono">{formatUahFromUsd(confirmedDeal.totalUsd, usdUahRate)}</strong> · {tr('Позицій:', 'Позиций:')}{' '}
                   {confirmedDeal.items.length}
                   <br />
-                  {tr(`Замовлення передано у CRM менеджерам Energo Comfort та зафіксовано на номер ${confirmedDeal.phone}.`, `Заказ передан менеджерам Energo Comfort в CRM. Контактный номер: ${confirmedDeal.phone}.`)}
+                  {tr(
+                    `Замовлення зафіксовано на номер ${confirmedDeal.phone}. Інженер зв’яжеться протягом 15 хвилин у робочий час для підтвердження наявності та доставки.`,
+                    `Заказ зафиксирован на номер ${confirmedDeal.phone}. Инженер свяжется в течение 15 минут в рабочее время для подтверждения наличия и доставки.`,
+                  )}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirmedDeal(null);
-                  onClose();
-                  onOpenCrm();
-                }}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer"
-              >
-                {tr('Відкрити замовлення у CRM', 'Открыть заказ в CRM')}
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              {isStaff ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmedDeal(null);
+                    onClose();
+                    onOpenCrm();
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer"
+                >
+                  {tr('Відкрити замовлення у CRM', 'Открыть заказ в CRM')}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmedDeal(null);
+                    onClose();
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer"
+                >
+                  {tr('Продовжити вибір обладнання', 'Продолжить выбор оборудования')}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center border border-dashed border-slate-200 rounded-xl p-6 bg-slate-50">
@@ -245,7 +268,7 @@ export function CartDrawer({
                 <span className="font-mono text-lg tabular-nums">{formatUahFromUsd(subtotal, usdUahRate)}</span>
               </div>
               <p className="text-[11px] text-slate-500">
-                {tr('Ціни перераховані за офіційним курсом НБУ. Остаточну суму в гривнях підтвердить менеджер під час узгодження замовлення.', 'Цены пересчитаны по официальному курсу НБУ. Итоговую сумму в гривнах менеджер подтвердит при согласовании заказа.')}
+                {tr('Ціни перераховані за поточним комерційним курсом компанії. Остаточну суму в гривнях підтвердить менеджер під час узгодження замовлення.', 'Цены пересчитаны по текущему коммерческому курсу компании. Итоговую сумму в гривнах менеджер подтвердит при согласовании заказа.')}
               </p>
 
               <form

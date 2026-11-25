@@ -11,8 +11,8 @@ import {
   useTable,
   type SortingState,
 } from '@tanstack/react-table';
-import { ArrowUpDown, Download, Search } from 'lucide-react';
-import type { Deal, DealStage } from '../../types.ts';
+import { ArrowUpDown, Download, Plus, Search } from 'lucide-react';
+import type { Deal, DealStage, DealType } from '../../types.ts';
 import { tr } from '../../lib/i18n.ts';
 import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
@@ -29,6 +29,7 @@ interface DealsDataTableProps {
   onDealTypeFilterChange: (val: 'all' | 'order' | 'lead') => void;
   onSelectDeal: (deal: Deal) => void;
   onExportCsv: () => void;
+  onCreateDeal?: (type: DealType) => void;
 }
 
 const dealsTableFeatures = tableFeatures({
@@ -52,6 +53,7 @@ export function DealsDataTable({
   onDealTypeFilterChange,
   onSelectDeal,
   onExportCsv,
+  onCreateDeal,
 }: DealsDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
 
@@ -170,10 +172,29 @@ export function DealsDataTable({
             ))}
           </div>
         </div>
-        <Button type="button" variant="outline" onClick={onExportCsv}>
-          <Download className="w-3.5 h-3.5" />
-          {tr('Завантажити CSV')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {onCreateDeal && (
+            <>
+              <Button type="button" onClick={() => onCreateDeal('lead')} className="bg-[#1769aa] hover:bg-[#12568c] text-white">
+                <Plus className="w-3.5 h-3.5" />
+                {tr('Нова угода', 'Новая сделка')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onCreateDeal('order')}
+                className="border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950"
+              >
+                <Plus className="w-3.5 h-3.5 text-amber-700" />
+                {tr('Нове замовлення', 'Новый заказ')}
+              </Button>
+            </>
+          )}
+          <Button type="button" variant="outline" onClick={onExportCsv}>
+            <Download className="w-3.5 h-3.5" />
+            {tr('Завантажити CSV')}
+          </Button>
+        </div>
       </div>
 
       <Card className="overflow-hidden">

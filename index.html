@@ -20,6 +20,8 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://energocomfort.shop/" />
     <meta property="og:image" content="https://energocomfort.shop/assets/energocomfort/sto_110kw.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Сонячна електростанція Energo Comfort в Одесі" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Energo Comfort — СЕС та резервне живлення в Одесі" />
@@ -33,26 +35,43 @@
     <script type="application/ld+json" id="ec-jsonld">
       {
         "@context": "https://schema.org",
-        "@type": "Store",
-        "name": "Energo Comfort",
-        "url": "https://energocomfort.shop",
-        "image": "https://energocomfort.shop/assets/energocomfort/sto_110kw.jpg",
-        "telephone": "+380507777172",
-        "email": "koen.od.develop@gmail.com",
-        "priceRange": "$$",
-        "areaServed": "Одеса та Одеська область",
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "вул. Європейська 93",
-          "addressLocality": "Одеса",
-          "addressCountry": "UA"
-        },
-        "openingHoursSpecification": [
+        "@graph": [
           {
-            "@type": "OpeningHoursSpecification",
-            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-            "opens": "09:00",
-            "closes": "18:00"
+            "@type": "Store",
+            "@id": "https://energocomfort.shop/#organization",
+            "name": "Energo Comfort",
+            "url": "https://energocomfort.shop",
+            "image": "https://energocomfort.shop/assets/energocomfort/sto_110kw.jpg",
+            "telephone": "+380507777172",
+            "email": "koen.od.develop@gmail.com",
+            "priceRange": "$$",
+            "areaServed": ["Одеса", "Одеська область", "Україна"],
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "вул. Європейська 93",
+              "addressLocality": "Одеса",
+              "addressRegion": "Одеська область",
+              "addressCountry": "UA"
+            },
+            "openingHoursSpecification": [
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                "opens": "09:00",
+                "closes": "18:00"
+              }
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://energocomfort.shop/#website",
+            "name": "Energo Comfort",
+            "url": "https://energocomfort.shop",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://energocomfort.shop/shop?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
           }
         ]
       }

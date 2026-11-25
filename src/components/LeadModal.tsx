@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { X, CheckCircle2, ArrowRight } from 'lucide-react';
 import type { CustomerProfile, Deal } from '../types.ts';
-import { track, trackEvent, type LeadPayload, type Placement, type Property, type Scenario } from '../lib/analytics.ts';
+import {
+  getAttributionSummary,
+  resolveAnalyticsMoney,
+  track,
+  trackEvent,
+  type LeadPayload,
+  type Placement,
+  type Property,
+  type Scenario,
+} from '../lib/analytics.ts';
 import { tr } from '../lib/i18n.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
 
@@ -10,6 +19,8 @@ interface LeadModalProps {
   initialTopic: string;
   initialNotes?: string;
   estimatedTotalUsd?: number;
+  usdUahRate?: number | null;
+  isStaff?: boolean;
   clientToken?: string | null;
   clientCustomer?: CustomerProfile | null;
   onClose: () => void;
@@ -23,6 +34,8 @@ export function LeadModal({
   initialTopic,
   initialNotes = '',
   estimatedTotalUsd,
+  usdUahRate = null,
+  isStaff = false,
   clientToken,
   clientCustomer,
   onClose,
@@ -115,6 +128,7 @@ export function LeadModal({
           notes: [tr(`Тип об’єкта: ${propertyLabel}`, `Тип объекта: ${propertyLabel}`), notes].filter(Boolean).join('\n'),
           website,
           estimatedTotalUsd,
+          attribution: getAttributionSummary(),
           consent: leadPayload.consent,
         }),
       });
@@ -123,11 +137,15 @@ export function LeadModal({
         setError(data.error || 'Помилка збереження заявки');
       } else {
         setCreatedDeal(data.deal);
+        const leadMoney = resolveAnalyticsMoney(estimatedTotalUsd ?? 0, usdUahRate);
         track({ name: 'lead_submit', placement, scenario, property });
         trackEvent('generate_lead', {
           lead_topic: initialTopic,
-          value: estimatedTotalUsd ?? 0,
-          currency: 'USD',
+          placement,
+          scenario,
+          property,
+          value: leadMoney.value,
+          currency: leadMoney.currency,
         });
         onCreated(data.deal);
       }
@@ -184,30 +202,34 @@ export function LeadModal({
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
                 <div className="flex items-center gap-2 text-[#169374] font-bold text-sm mb-1.5">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{tr('Заявку', 'Заявку')} {createdDeal.dealNumber} {tr('створено в CRM', 'создана в CRM')}</span>
+                  <span>{tr('Заявку', 'Заявку')} {createdDeal.dealNumber} {tr('прийнято', 'принята')}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed">
                   {tr('Тема:', 'Тема:')} <strong>{createdDeal.topic}</strong>
                   <br />
                   {tr('Контакт:', 'Контакт:')} {createdDeal.phone} ({createdDeal.channel}, {createdDeal.city})
+                  <br />
+                  {tr('Інженер зв’яжеться протягом 15 хвилин у робочий час.', 'Инженер свяжется в течение 15 минут в рабочее время.')}
                 </p>
               </div>
               <div className="flex gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleResetAndClose();
-                    onOpenCrm();
-                  }}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer"
-                >
-                  {tr('Переглянути у CRM')}
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                {isStaff && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleResetAndClose();
+                      onOpenCrm();
+                    }}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer"
+                  >
+                    {tr('Переглянути у CRM')}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleResetAndClose}
-                  className="px-4 py-2.5 rounded-lg border border-slate-300 text-xs font-semibold text-[#0d1f33] hover:bg-slate-50 cursor-pointer"
+                  className={`${isStaff ? '' : 'w-full'} px-4 py-2.5 rounded-lg border border-slate-300 text-xs font-semibold text-[#0d1f33] hover:bg-slate-50 cursor-pointer`}
                 >
                   {tr('Готово')}
                 </button>

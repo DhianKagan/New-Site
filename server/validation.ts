@@ -55,6 +55,7 @@ export const leadCreateSchema = z.object({
   loads: z.array(z.string().max(80)).max(15).optional().default([]),
   notes: z.string().max(1500).optional().default(''),
   estimatedTotalUsd: z.coerce.number().min(0).max(5_000_000).optional().default(0),
+  attribution: z.string().max(400).optional().default(''),
   website: z.string().optional().default(''),
 });
 
@@ -64,6 +65,7 @@ export const orderCreateSchema = z.object({
   city: z.string().max(120).optional().default('Одеса'),
   channel: z.string().max(40).optional().default('Телефон'),
   notes: z.string().max(1500).optional().default(''),
+  attribution: z.string().max(400).optional().default(''),
   website: z.string().optional().default(''),
   acceptedOffer: z.boolean().optional(),
   items: z
@@ -83,6 +85,61 @@ export const dealPatchSchema = z.object({
   notes: z.string().max(3000).optional(),
   totalUsd: z.coerce.number().min(0).max(10_000_000).optional(),
 });
+
+export const CRM_CREATABLE_DEAL_STAGES = ['new', 'audit', 'proposal', 'fulfillment', 'done'] as const;
+
+export const crmDealCreateSchema = z
+  .object({
+    type: z.enum(['lead', 'order']),
+    stage: z.enum(CRM_CREATABLE_DEAL_STAGES).optional().default('new'),
+    customerName: z.string().trim().min(2, 'Вкажіть ім’я клієнта (мінімум 2 символи)').max(120),
+    phone: z.string().trim().min(1, 'Вкажіть номер телефону'),
+    city: z.string().trim().max(120).optional().default('Одеса'),
+    channel: z.string().trim().max(40).optional().default('CRM (вручну)'),
+    topic: z.string().trim().max(180).optional().default(''),
+    taskType: z.string().trim().max(120).optional().default(''),
+    loads: z.array(z.string().trim().max(80)).max(15).optional().default([]),
+    notes: z.string().trim().max(3000).optional().default(''),
+    assignee: z.string().trim().max(120).optional().default(''),
+    totalUsd: z.coerce.number().min(0).max(10_000_000).optional(),
+    items: z
+      .array(
+        z.object({
+          productId: z.string().trim().min(1),
+          qty: z.coerce.number().int().min(1).max(99).optional().default(1),
+        }),
+      )
+      .max(50)
+      .optional()
+      .default([]),
+    contactId: z.coerce.number().int().positive().nullable().optional().default(null),
+    customerId: z.coerce.number().int().positive().nullable().optional().default(null),
+    customerEmail: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(160)
+      .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Некоректний Email')
+      .optional()
+      .default(''),
+    sendTelegram: z.boolean().optional().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === 'lead' && !data.topic && !data.taskType) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['topic'],
+        message: 'Вкажіть тему або тип задачі для угоди',
+      });
+    }
+    if (data.type === 'order' && data.items.length === 0 && !data.topic) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['items'],
+        message: 'Додайте хоча б один товар із каталогу або вкажіть назву замовлення',
+      });
+    }
+  });
 
 export const contactCreateSchema = z.object({
   name: z.string().trim().min(1, 'Вкажіть ім’я контакту').max(120),
@@ -249,6 +306,16 @@ export const socialPutSchema = z.object({
   youtube: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для youtube').optional().default(''),
   viber: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для viber').optional().default(''),
   tiktok: z.string().trim().refine(isSafeExternalUrl, 'Некоректне посилання для tiktok').optional().default(''),
+});
+
+export const commercialExchangeRatePutSchema = z.object({
+  rate: z.preprocess(
+    (v) => (typeof v === 'string' ? v.replace(',', '.').trim() : v),
+    z.coerce
+      .number()
+      .refine((v) => Number.isFinite(v), 'Вкажіть коректний числовий курс')
+      .refine((v) => v >= 10 && v <= 500, 'Комерційний курс має бути в межах від 10 до 500 грн/USD'),
+  ),
 });
 
 export const clientRegisterSchema = z.object({

@@ -1,4 +1,4 @@
-import { Component, useCallback, useEffect, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
+import { Component, useCallback, useEffect, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
 import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check } from 'lucide-react';
 import type {
   AdminAuthStatus,
@@ -13,7 +13,16 @@ import type {
   UnifiedAuthResult,
 } from './types.ts';
 import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
-import { initAnalytics, track, trackEvent, type Placement } from './lib/analytics.ts';
+import {
+  captureAttribution,
+  initAnalytics,
+  resolveAnalyticsMoney,
+  toAnalyticsCartItem,
+  toAnalyticsProductItem,
+  track,
+  trackEvent,
+  type Placement,
+} from './lib/analytics.ts';
 import { reportClientError, type ClientErrorReportPayload } from './lib/errorReporting.ts';
 import { signOutFirebase } from './lib/firebaseAuth.ts';
 import { getProductAggregateRating } from './lib/seoRating.ts';
@@ -62,34 +71,36 @@ const DEFAULT_SOCIAL_LINKS: SocialLinksConfig = {
 function parseRouteFromLocation(): {
   view: AppView;
   cat: ProductCategory | 'all';
+  searchQuery: string;
   productId: string | null;
   authMode: 'login' | 'register';
 } {
   if (typeof window === 'undefined') {
-    return { view: 'home', cat: 'all', productId: null, authMode: 'login' };
+    return { view: 'home', cat: 'all', searchQuery: '', productId: null, authMode: 'login' };
   }
   const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
   const params = new URLSearchParams(window.location.search);
   const qCat = params.get('cat');
   const cat: ProductCategory | 'all' = qCat && VALID_CATS.includes(qCat as ProductCategory) ? (qCat as ProductCategory) : 'all';
+  const searchQuery = params.get('q')?.trim() || '';
   const authMode: 'login' | 'register' = params.get('mode') === 'register' ? 'register' : 'login';
 
   if (pathname === '/shop') {
-    return { view: 'shop', cat, productId: null, authMode };
+    return { view: 'shop', cat, searchQuery, productId: null, authMode };
   }
   if (pathname.startsWith('/shop/')) {
     const rawId = pathname.slice('/shop/'.length).split('/')[0];
-    return { view: 'shop', cat: 'all', productId: rawId ? decodeURIComponent(rawId) : null, authMode };
+    return { view: 'shop', cat: 'all', searchQuery: '', productId: rawId ? decodeURIComponent(rawId) : null, authMode };
   }
-  if (pathname === '/services') return { view: 'services', cat: 'all', productId: null, authMode };
-  if (pathname === '/projects') return { view: 'projects', cat: 'all', productId: null, authMode };
-  if (pathname === '/contacts') return { view: 'contacts', cat: 'all', productId: null, authMode };
-  if (pathname === '/payment-delivery') return { view: 'payment-delivery', cat: 'all', productId: null, authMode };
-  if (pathname === '/public-offer') return { view: 'offer', cat: 'all', productId: null, authMode };
-  if (pathname === '/login') return { view: 'login', cat: 'all', productId: null, authMode };
-  if (pathname === '/account') return { view: 'account', cat: 'all', productId: null, authMode };
-  if (pathname === '/crm') return { view: 'crm', cat: 'all', productId: null, authMode };
-  return { view: 'home', cat: 'all', productId: null, authMode };
+  if (pathname === '/services') return { view: 'services', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/projects') return { view: 'projects', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/contacts') return { view: 'contacts', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/payment-delivery') return { view: 'payment-delivery', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/public-offer') return { view: 'offer', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/login') return { view: 'login', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/account') return { view: 'account', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/crm') return { view: 'crm', cat: 'all', searchQuery: '', productId: null, authMode };
+  return { view: 'home', cat: 'all', searchQuery: '', productId: null, authMode };
 }
 
 function buildPathForRoute(
@@ -97,13 +108,18 @@ function buildPathForRoute(
   cat: ProductCategory | 'all',
   productId?: string | null,
   authMode?: 'login' | 'register',
+  searchQuery?: string,
 ): string {
   if (productId) {
     return `/shop/${encodeURIComponent(productId)}`;
   }
   if (view === 'home') return '/';
   if (view === 'shop') {
-    return cat !== 'all' ? `/shop?cat=${encodeURIComponent(cat)}` : '/shop';
+    const qs = new URLSearchParams();
+    if (cat !== 'all') qs.set('cat', cat);
+    if (searchQuery?.trim()) qs.set('q', searchQuery.trim());
+    const qStr = qs.toString();
+    return qStr ? `/shop?${qStr}` : '/shop';
   }
   if (view === 'login') {
     return authMode === 'register' ? '/login?mode=register' : '/login';
@@ -298,13 +314,21 @@ function AppContent() {
   const [view, setView] = useState<AppView>(initialRoute.view);
   const [authPortalMode, setAuthPortalMode] = useState<'login' | 'register'>(initialRoute.authMode);
   const [shopInitialCat, setShopInitialCat] = useState<ProductCategory | 'all'>(initialRoute.cat);
+  const [shopInitialQuery, setShopInitialQuery] = useState<string>(initialRoute.searchQuery);
   const [pendingProductId, setPendingProductId] = useState<string | null>(initialRoute.productId);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [analyticsReady, setAnalyticsReady] = useState(false);
   const [locale, setLocale] = useState<Locale>(() => getSavedLocale());
+  const lastTrackedPageKeyRef = useRef('');
 
   useEffect(() => {
     setActiveLocale(locale);
+    document.documentElement.lang = locale;
   }, [locale]);
+
+  useEffect(() => {
+    captureAttribution();
+  }, []);
 
   useEffect(() => {
     const handleWindowError = (event: ErrorEvent) => {
@@ -400,7 +424,7 @@ function AppContent() {
     const loadExchangeRate = async () => {
       try {
         const response = await fetch('/api/public/exchange-rate');
-        if (!response.ok) throw new Error('Курс НБУ тимчасово недоступний');
+        if (!response.ok) throw new Error('Комерційний курс тимчасово недоступний');
         const data = (await response.json()) as { rate?: number };
         if (active && data.rate && Number.isFinite(data.rate)) setUsdUahRate(data.rate);
       } catch {
@@ -408,7 +432,7 @@ function AppContent() {
       }
     };
     void loadExchangeRate();
-    const timer = window.setInterval(() => void loadExchangeRate(), 6 * 60 * 60 * 1000);
+    const timer = window.setInterval(() => void loadExchangeRate(), 5 * 60 * 1000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -473,10 +497,7 @@ function AppContent() {
         if (cfg.socialLinks) {
           setSocialLinks(cfg.socialLinks);
         }
-        trackEvent('page_view', {
-          page_path: window.location.pathname || '/',
-          page_title: document.title,
-        });
+        setAnalyticsReady(true);
       }
     } catch {
       // Static mode without backend config API: skip remote pixel init silently
@@ -569,6 +590,7 @@ function AppContent() {
       setView(parsed.view);
       setAuthPortalMode(parsed.authMode);
       setShopInitialCat(parsed.cat);
+      setShopInitialQuery(parsed.searchQuery);
       if (parsed.productId) {
         const match = products.find((p) => p.id === parsed.productId);
         if (match) {
@@ -595,7 +617,12 @@ function AppContent() {
 
     if (selectedProduct) {
       const priceText = selectedProduct.price > 0 ? formatUahFromUsd(selectedProduct.price, usdUahRate) : 'За запитом';
-      title = `${selectedProduct.title} (${priceText}) — Energo Comfort`.slice(0, 70);
+      const maxTitleLen = 46;
+      const shortProdTitle =
+        selectedProduct.title.length > maxTitleLen
+          ? `${selectedProduct.title.slice(0, maxTitleLen - 1).trimEnd()}…`
+          : selectedProduct.title;
+      title = `${shortProdTitle} (${priceText}) — Energo Comfort`;
       description = (
         selectedProduct.description.trim() ||
         `${selectedProduct.title} (${selectedProduct.brand}). ${selectedProduct.statusLabel}. Доставка зі складу в Одесі, гарантія та професійний монтаж.`
@@ -662,6 +689,10 @@ function AppContent() {
       el.setAttribute('content', content);
     };
 
+    const removeMeta = (attrName: 'name' | 'property', key: string) => {
+      document.querySelector(`meta[${attrName}="${key}"]`)?.remove();
+    };
+
     ensureMeta('name', 'description', description);
     ensureMeta('name', 'robots', isPrivateView ? 'noindex, nofollow' : 'index, follow');
     ensureMeta('property', 'og:type', ogType);
@@ -669,14 +700,44 @@ function AppContent() {
     ensureMeta('property', 'og:description', description);
     ensureMeta('property', 'og:url', canonicalUrl);
     ensureMeta('property', 'og:image', ogImage);
+    ensureMeta('property', 'og:locale', locale === 'ru' ? 'ru_UA' : 'uk_UA');
     ensureMeta('name', 'twitter:title', title);
     ensureMeta('name', 'twitter:description', description);
     ensureMeta('name', 'twitter:image', ogImage);
+
+    if (selectedProduct) {
+      const productUah = selectedProduct.price > 0 && usdUahRate ? Math.round(selectedProduct.price * usdUahRate) : null;
+      ensureMeta('property', 'product:brand', selectedProduct.brand || 'Energo Comfort');
+      ensureMeta('property', 'product:availability', selectedProduct.inStock ? 'in stock' : 'available for order');
+      ensureMeta('property', 'product:condition', 'new');
+      ensureMeta('property', 'product:retailer_item_id', selectedProduct.sku || selectedProduct.id);
+      if (productUah) {
+        ensureMeta('property', 'product:price:amount', String(productUah));
+        ensureMeta('property', 'product:price:currency', 'UAH');
+      } else if (selectedProduct.price > 0) {
+        ensureMeta('property', 'product:price:amount', String(selectedProduct.price));
+        ensureMeta('property', 'product:price:currency', 'USD');
+      } else {
+        removeMeta('property', 'product:price:amount');
+        removeMeta('property', 'product:price:currency');
+      }
+    } else {
+      removeMeta('property', 'product:brand');
+      removeMeta('property', 'product:availability');
+      removeMeta('property', 'product:condition');
+      removeMeta('property', 'product:retailer_item_id');
+      removeMeta('property', 'product:price:amount');
+      removeMeta('property', 'product:price:currency');
+    }
 
     const canonicalEl = document.querySelector('link[rel="canonical"]');
     if (canonicalEl) {
       canonicalEl.setAttribute('href', canonicalUrl);
     }
+
+    const sameAs = Object.values(socialLinks)
+      .map((v) => v.trim())
+      .filter((v) => /^https?:\/\//i.test(v));
 
     const storeEntity = {
       '@type': 'Store',
@@ -687,12 +748,18 @@ function AppContent() {
       telephone: '+380507777172',
       email: COMPANY_INFO.email,
       priceRange: '$$',
-      areaServed: 'Одеса та Одеська область',
+      areaServed: ['Одеса', 'Одеська область', 'Україна'],
       address: {
         '@type': 'PostalAddress',
         streetAddress: 'вул. Європейська 93',
         addressLocality: 'Одеса',
+        addressRegion: 'Одеська область',
         addressCountry: 'UA',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: 46.4694,
+        longitude: 30.7376,
       },
       openingHoursSpecification: [
         {
@@ -702,34 +769,49 @@ function AppContent() {
           closes: '18:00',
         },
       ],
+      ...(sameAs.length > 0 ? { sameAs } : {}),
     };
 
     const jsonLdEl = document.getElementById('ec-jsonld');
     if (jsonLdEl && !isPrivateView) {
       if (selectedProduct) {
+        const priceValidUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
         jsonLdEl.textContent = JSON.stringify({
           '@context': 'https://schema.org',
           '@graph': [
             {
               '@type': 'Product',
               name: selectedProduct.title,
-              sku: selectedProduct.sku,
-              mpn: selectedProduct.sku,
+              sku: selectedProduct.sku || selectedProduct.id,
+              mpn: selectedProduct.sku || selectedProduct.id,
               image: ogImage,
               description,
               brand: { '@type': 'Brand', name: selectedProduct.brand || 'Energo Comfort' },
               aggregateRating: getProductAggregateRating(selectedProduct),
-              ...(selectedProduct.price > 0 && usdUahRate ? { offers: {
-                '@type': 'Offer',
-                url: canonicalUrl,
-                priceCurrency: 'UAH',
-                price: Math.round(selectedProduct.price * usdUahRate),
-                itemCondition: 'https://schema.org/NewCondition',
-                availability: selectedProduct.inStock
-                  ? 'https://schema.org/InStock'
-                  : 'https://schema.org/PreOrder',
-                seller: { '@type': 'Organization', name: 'Energo Comfort' },
-              } } : {}),
+              ...(selectedProduct.price > 0 && usdUahRate
+                ? {
+                    offers: {
+                      '@type': 'Offer',
+                      url: canonicalUrl,
+                      priceCurrency: 'UAH',
+                      price: Math.round(selectedProduct.price * usdUahRate),
+                      priceValidUntil,
+                      itemCondition: 'https://schema.org/NewCondition',
+                      availability: selectedProduct.inStock
+                        ? 'https://schema.org/InStock'
+                        : 'https://schema.org/PreOrder',
+                      seller: { '@id': `${window.location.origin}/#organization`, '@type': 'Organization', name: 'Energo Comfort' },
+                      hasMerchantReturnPolicy: {
+                        '@type': 'MerchantReturnPolicy',
+                        applicableCountry: 'UA',
+                        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+                        merchantReturnDays: 14,
+                        returnMethod: 'https://schema.org/ReturnByMail',
+                        returnFees: 'https://schema.org/ReturnShippingFees',
+                      },
+                    },
+                  }
+                : {}),
             },
             {
               '@type': 'BreadcrumbList',
@@ -748,8 +830,14 @@ function AppContent() {
             storeEntity,
             {
               '@type': 'WebSite',
+              '@id': `${window.location.origin}/#website`,
               name: 'Energo Comfort',
               url: window.location.origin,
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: `${window.location.origin}/shop?q={search_term_string}`,
+                'query-input': 'required name=search_term_string',
+              },
             },
             {
               '@type': 'FAQPage',
@@ -807,7 +895,42 @@ function AppContent() {
         });
       }
     }
-  }, [view, shopInitialCat, selectedProduct, products.length, projects.length, usdUahRate]);
+
+    if (analyticsReady && !isPrivateView) {
+      const pageKey = `${canonicalUrl}|${selectedProduct?.id ?? ''}`;
+      if (lastTrackedPageKeyRef.current !== pageKey) {
+        lastTrackedPageKeyRef.current = pageKey;
+        trackEvent('page_view', {
+          page_path: `${window.location.pathname}${window.location.search}`,
+          page_location: window.location.href,
+          page_title: title,
+          locale,
+        });
+      }
+    }
+  }, [view, shopInitialCat, selectedProduct, products.length, projects.length, usdUahRate, locale, socialLinks, analyticsReady]);
+
+  useEffect(() => {
+    if (!analyticsReady || view === 'crm' || view === 'login' || view === 'account') return;
+    const fired = new Set<number>();
+    const routePath = `${window.location.pathname}${window.location.search}`;
+    const onScroll = () => {
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight <= 150) return;
+      const pct = Math.round((window.scrollY / docHeight) * 100);
+      for (const threshold of [50, 90]) {
+        if (pct >= threshold && !fired.has(threshold)) {
+          fired.add(threshold);
+          trackEvent('scroll_depth', {
+            percent_scrolled: threshold,
+            page_path: routePath,
+          });
+        }
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [analyticsReady, view, shopInitialCat, selectedProduct]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -833,6 +956,10 @@ function AppContent() {
     const resolvedCat = nextView === 'shop' ? cat ?? 'all' : 'all';
     if (nextView === 'shop') {
       setShopInitialCat(resolvedCat);
+      if (!cat || cat === 'all') {
+        // clear stale search query only when navigating fresh via menu unless specified
+        if (nextView === 'shop' && cat !== undefined) setShopInitialQuery('');
+      }
     }
     if (nextView === 'login') {
       setAuthPortalMode(authMode);
@@ -843,17 +970,11 @@ function AppContent() {
     setSelectedProduct(null);
     setView(nextView);
     setMobileMenuOpen(false);
-    const targetUrl = buildPathForRoute(nextView, resolvedCat, null, authMode);
+    const targetUrl = buildPathForRoute(nextView, resolvedCat, null, authMode, nextView === 'shop' && cat === undefined ? shopInitialQuery : '');
     if (window.location.pathname + window.location.search !== targetUrl) {
       window.history.pushState({}, '', targetUrl);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (nextView !== 'crm' && nextView !== 'login' && nextView !== 'account') {
-      trackEvent('page_view', {
-        page_path: targetUrl,
-        page_title: nextView,
-      });
-    }
   }
 
   function handleUnifiedAuthenticated(result: UnifiedAuthResult) {
@@ -908,20 +1029,30 @@ function AppContent() {
     if (window.location.pathname !== targetUrl) {
       window.history.pushState({}, '', targetUrl);
     }
+    const money = resolveAnalyticsMoney(product.price, usdUahRate);
     trackEvent('view_item', {
-      item_id: product.sku,
+      item_id: product.sku || product.id,
       item_name: product.title,
       item_category: product.cat,
-      value: product.price,
-      currency: 'USD',
+      value: money.value,
+      currency: money.currency,
+      items: [toAnalyticsProductItem(product, usdUahRate, 1)],
     });
   }
 
   function handleCloseProductModal() {
     setSelectedProduct(null);
     if (window.location.pathname.startsWith('/shop/')) {
-      const targetUrl = buildPathForRoute(view, shopInitialCat, null);
+      const targetUrl = buildPathForRoute(view, shopInitialCat, null, undefined, shopInitialQuery);
       window.history.pushState({}, '', targetUrl);
+    }
+  }
+
+  function handleShopCategorySync(nextCat: ProductCategory | 'all') {
+    setShopInitialCat(nextCat);
+    const targetUrl = buildPathForRoute('shop', nextCat, null, undefined, shopInitialQuery);
+    if (window.location.pathname + window.location.search !== targetUrl) {
+      window.history.replaceState({}, '', targetUrl);
     }
   }
 
@@ -943,12 +1074,14 @@ function AppContent() {
         },
       ];
     });
+    const money = resolveAnalyticsMoney(product.price, usdUahRate);
     trackEvent('add_to_cart', {
-      item_id: product.sku,
+      item_id: product.sku || product.id,
       item_name: product.title,
       item_category: product.cat,
-      value: product.price,
-      currency: 'USD',
+      value: money.value,
+      currency: money.currency,
+      items: [toAnalyticsProductItem(product, usdUahRate, 1)],
     });
     setCartOpen(true);
   }
@@ -956,16 +1089,27 @@ function AppContent() {
   function handleOpenCart() {
     if (cart.length > 0) {
       const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      const money = resolveAnalyticsMoney(subtotal, usdUahRate);
       trackEvent('begin_checkout', {
-        value: subtotal,
-        currency: 'USD',
+        value: money.value,
+        currency: money.currency,
         items_count: cart.reduce((s, i) => s + i.qty, 0),
+        items: cart.map((item) => toAnalyticsCartItem(item, usdUahRate)),
       });
     }
     setCartOpen(true);
   }
 
   function handleUpdateCartQty(id: string, delta: number) {
+    const existing = cart.find((i) => i.id === id);
+    if (existing && existing.qty + delta <= 0) {
+      const money = resolveAnalyticsMoney(existing.price * existing.qty, usdUahRate);
+      trackEvent('remove_from_cart', {
+        value: money.value,
+        currency: money.currency,
+        items: [toAnalyticsCartItem(existing, usdUahRate)],
+      });
+    }
     setCart((prev) =>
       prev
         .map((i) => (i.id === id ? { ...i, qty: i.qty + delta } : i))
@@ -974,6 +1118,15 @@ function AppContent() {
   }
 
   function handleRemoveFromCart(id: string) {
+    const existing = cart.find((i) => i.id === id);
+    if (existing) {
+      const money = resolveAnalyticsMoney(existing.price * existing.qty, usdUahRate);
+      trackEvent('remove_from_cart', {
+        value: money.value,
+        currency: money.currency,
+        items: [toAnalyticsCartItem(existing, usdUahRate)],
+      });
+    }
     setCart((prev) => prev.filter((i) => i.id !== id));
   }
 
@@ -1005,10 +1158,7 @@ function AppContent() {
             <span className="hidden md:inline">{COMPANY_INFO.address} · </span>
             <a
               href={COMPANY_INFO.phone1Href}
-              onClick={() => {
-                track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' });
-                trackEvent('contact', { phone: COMPANY_INFO.phone1 });
-              }}
+              onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })}
               className="font-semibold text-white hover:text-sky-200 font-mono text-[11px] sm:text-xs"
             >
               {COMPANY_INFO.phone1}
@@ -1254,6 +1404,7 @@ function AppContent() {
                 products={products}
                 projects={projects}
                 telegramUrl={socialLinks.telegram}
+                isStaff={Boolean(adminToken)}
                 onNavigateShop={(cat) => navigateTo('shop', cat)}
                 onNavigateServices={() => navigateTo('services')}
                 onNavigateProjects={() => navigateTo('projects')}
@@ -1269,12 +1420,14 @@ function AppContent() {
             {view === 'shop' && (
               <ShopView
                 usdUahRate={usdUahRate}
-                key={shopInitialCat}
                 products={products}
                 initialCategory={shopInitialCat}
+                initialQuery={shopInitialQuery}
+                onCategoryChange={handleShopCategorySync}
                 onSelectProduct={handleSelectProduct}
                 onAddToCart={handleAddToCart}
                 onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+                onOpenCustomRequest={(topic, notes) => openLeadModal(topic, undefined, 'section', notes)}
                 onBackHome={() => navigateTo('home')}
               />
             )}
@@ -1360,6 +1513,7 @@ function AppContent() {
                   onRefreshProjects={fetchProjects}
                   onSocialLinksUpdated={setSocialLinks}
                   onAnalyticsUpdated={(cfg) => initAnalytics(cfg)}
+                  onExchangeRateUpdated={(rate) => setUsdUahRate(rate)}
                   onLogout={handleAdminLogout}
                   onBackToStore={() => navigateTo('home')}
                 />
@@ -1479,13 +1633,25 @@ function AppContent() {
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Контакти · Одеса', 'Контакты · Одесса')}</h2>
                 <div className="space-y-1.5 text-xs text-slate-400">
                   <p>{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
-                  <a href={COMPANY_INFO.phone1Href} className="block font-mono hover:text-white">
+                  <a
+                    href={COMPANY_INFO.phone1Href}
+                    onClick={() => track({ name: 'phone_click', placement: 'footer', scenario: 'unspecified' })}
+                    className="block font-mono hover:text-white"
+                  >
                     {COMPANY_INFO.phone1}
                   </a>
-                  <a href={COMPANY_INFO.phone2Href} className="block font-mono hover:text-white">
+                  <a
+                    href={COMPANY_INFO.phone2Href}
+                    onClick={() => track({ name: 'phone_click', placement: 'footer', scenario: 'unspecified' })}
+                    className="block font-mono hover:text-white"
+                  >
                     {COMPANY_INFO.phone2}
                   </a>
-                  <a href={`mailto:${COMPANY_INFO.email}`} className="block hover:text-white">
+                  <a
+                    href={`mailto:${COMPANY_INFO.email}`}
+                    onClick={() => trackEvent('contact', { channel: 'email', placement: 'footer' })}
+                    className="block hover:text-white"
+                  >
                     {COMPANY_INFO.email}
                   </a>
                 </div>
@@ -1505,10 +1671,7 @@ function AppContent() {
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
-            onClick={() => {
-              track({ name: 'phone_click', placement: 'sticky', scenario: 'unspecified' });
-              trackEvent('contact', { phone: COMPANY_INFO.phone1, source: 'mobile_bar' });
-            }}
+            onClick={() => track({ name: 'phone_click', placement: 'sticky', scenario: 'unspecified' })}
             className="flex-1 min-w-0 min-h-12 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"
           >
             <PhoneCall className="w-4 h-4 text-[#1769aa]" />
@@ -1548,6 +1711,8 @@ function AppContent() {
         initialTopic={leadTopic}
         initialNotes={leadNotes}
         estimatedTotalUsd={leadEstimateUsd}
+        usdUahRate={usdUahRate}
+        isStaff={Boolean(adminToken)}
         clientToken={clientToken}
         clientCustomer={clientCustomer}
         onClose={() => setLeadModalOpen(false)}
@@ -1562,6 +1727,7 @@ function AppContent() {
       <CartDrawer
         open={cartOpen}
         items={cart}
+        isStaff={Boolean(adminToken)}
         clientToken={clientToken}
         clientCustomer={clientCustomer}
         onClose={() => setCartOpen(false)}

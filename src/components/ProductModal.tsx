@@ -1,8 +1,10 @@
-import { X, ShoppingBag, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { X, ShoppingBag, ArrowUpRight, CheckCircle2, Truck, ShieldCheck, PhoneCall } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
+import { COMPANY_INFO } from '../data/siteContent.ts';
+import { track } from '../lib/analytics.ts';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення під ключ',
@@ -29,6 +31,10 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
     : product.specs;
   const description = isRussian ? product.descriptionRu ?? localizeCatalogText(product.description) : product.description;
   const canBuyDirect = !product.isKit && product.price > 0;
+  const discountPct =
+    product.oldPrice > product.price && product.price > 0
+      ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
+      : 0;
 
   return (
     <div
@@ -61,12 +67,17 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-          <div className="bg-[#f8fafc] border border-slate-200 rounded-xl h-72 md:h-80 overflow-hidden flex items-center justify-center">
+          <div className="bg-[#f8fafc] border border-slate-200 rounded-xl h-72 md:h-80 overflow-hidden flex items-center justify-center relative">
             <SmartImage
               src={product.img}
               alt={title}
               className={`w-full h-full ${product.isKit ? 'object-cover' : 'object-contain p-6'}`}
             />
+            {discountPct > 0 && (
+              <span className="absolute top-3 left-3 px-2 py-1 rounded-md bg-rose-600 text-white font-mono text-xs font-extrabold">
+                -{discountPct}%
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col justify-between gap-4">
@@ -75,7 +86,7 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
                 {title}
               </h2>
 
-              <div className="flex items-baseline gap-3 mb-4">
+              <div className="flex items-baseline gap-3 mb-3">
                 {product.price > 0 ? (
                   <>
                     <span className="font-mono text-2xl font-extrabold text-[#0d1f33] tabular-nums">
@@ -111,37 +122,60 @@ export function ProductModal({ product, onClose, onAddToCart, onRequestQuote, us
               )}
 
               {description && (
-                <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line max-h-36 overflow-y-auto pr-1">
+                <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line max-h-36 overflow-y-auto pr-1 mb-4">
                   {description}
                 </p>
               )}
+
+              <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-3 space-y-1.5 text-[11px] text-slate-600">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-3.5 h-3.5 text-[#1769aa] shrink-0" />
+                  <span>{tr('Самовивіз в Одесі (вул. Європейська, 93) або Нова Пошта по Україні', 'Самовывоз в Одессе (ул. Европейская, 93) или Новая Почта по Украине')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#169374] shrink-0" />
+                  <span>{tr('Безкоштовна перевірка сумісності інвертора/АКБ · Оплата: готівка, ФОП, ТОВ з ПДВ', 'Бесплатная проверка совместимости инвертора/АКБ · Оплата: наличные, ФЛП, ООО с НДС')}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2.5 pt-3 border-t border-slate-200">
-              {canBuyDirect && (
+            <div className="space-y-2 pt-3 border-t border-slate-200">
+              <div className="flex flex-wrap gap-2.5">
+                {canBuyDirect && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddToCart(product);
+                      onClose();
+                    }}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    {tr('Додати в кошик', 'Добавить в корзину')}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
-                    onAddToCart(product);
                     onClose();
+                    onRequestQuote(product);
                   }}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer"
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                  {tr('Додати в кошик', 'Добавить в корзину')}
+                  {tr('Підбір під об’єкт', 'Подбор для объекта')}
+                  <ArrowUpRight className="w-4 h-4" />
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onRequestQuote(product);
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold transition-colors whitespace-nowrap cursor-pointer"
-              >
-                {tr('Підбір під об’єкт', 'Подбор для объекта')}
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
+              </div>
+              <div className="text-center text-[11px] text-slate-500">
+                <a
+                  href={COMPANY_INFO.phone1Href}
+                  onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })}
+                  className="inline-flex items-center gap-1.5 font-semibold text-[#1769aa] hover:underline"
+                >
+                  <PhoneCall className="w-3 h-3" />
+                  {tr('Швидке уточнення по телефону:', 'Быстрое уточнение по телефону:')} {COMPANY_INFO.phone1}
+                </a>
+              </div>
             </div>
           </div>
         </div>

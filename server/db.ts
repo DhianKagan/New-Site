@@ -904,6 +904,8 @@ function nextDealNumber(db: DatabaseSync): string {
 
 export function createDeal(input: {
   type: DealType;
+  stage?: DealStage;
+  assignee?: string;
   customerName?: string;
   phone: string;
   city?: string;
@@ -914,6 +916,8 @@ export function createDeal(input: {
   items?: Array<{ productId: string; qty: number }>;
   notes?: string;
   estimatedTotalUsd?: number;
+  totalUsd?: number;
+  contactId?: number | null;
   customerId?: number | null;
   customerEmail?: string;
 }): Deal {
@@ -922,7 +926,7 @@ export function createDeal(input: {
   const dealNumber = nextDealNumber(db);
 
   let verifiedItems: DealItem[] = [];
-  let totalUsd = 0;
+  let catalogTotalUsd = 0;
 
   if (input.items && input.items.length > 0) {
     for (const reqItem of input.items) {
@@ -936,8 +940,15 @@ export function createDeal(input: {
         price: prod.price,
         qty,
       });
-      totalUsd += prod.price * qty;
+      catalogTotalUsd += prod.price * qty;
     }
+  }
+
+  let totalUsd = 0;
+  if (typeof input.totalUsd === 'number' && Number.isFinite(input.totalUsd)) {
+    totalUsd = Math.max(0, Math.round(input.totalUsd));
+  } else if (verifiedItems.length > 0) {
+    totalUsd = catalogTotalUsd;
   } else if (input.estimatedTotalUsd) {
     totalUsd = Math.max(0, Math.round(Number(input.estimatedTotalUsd)));
   }
@@ -945,14 +956,39 @@ export function createDeal(input: {
   const topic =
     input.topic?.trim() ||
     (input.type === 'order'
-      ? `Замовлення обладнання з кошика (${verifiedItems.length} поз.)`
+      ? verifiedItems.length > 0
+        ? `Замовлення обладнання (${verifiedItems.length} поз.)`
+        : 'Замовлення обладнання'
       : input.taskType?.trim() || 'Інженерний розрахунок системи');
 
   const customerName = (input.customerName ?? '').trim() || 'Клієнт сайту';
   const city = (input.city ?? '').trim() || 'Одеса';
   const channel = (input.channel ?? '').trim() || 'Telegram';
   const taskType = (input.taskType ?? '').trim() || (input.type === 'order' ? 'Кошик / Shop' : 'Консультація');
-  const customerEmailNorm = (input.customerEmail ?? '').trim().toLowerCase();
+
+  let resolvedCustomerId: number | null = null;
+  let customerEmailNorm = (input.customerEmail ?? '').trim().toLowerCase();
+  if (input.customerId) {
+    const custRow = db
+      .prepare('SELECT id, email FROM customer_accounts WHERE id = ?')
+      .get(input.customerId) as { id: number; email: string } | undefined;
+    if (custRow) {
+      resolvedCustomerId = Number(custRow.id);
+      if (!customerEmailNorm && custRow.email) {
+        customerEmailNorm = String(custRow.email).trim().toLowerCase();
+      }
+    }
+  }
+
+  if (!customerEmailNorm && input.contactId) {
+    const existingContact = db
+      .prepare('SELECT email FROM contacts WHERE id = ?')
+      .get(input.contactId) as { email: string } | undefined;
+    if (existingContact?.email) {
+      customerEmailNorm = String(existingContact.email).trim().toLowerCase();
+    }
+  }
+
   const segment: ContactSegment = /бізнес|сто|380\s*в|тов/i.test(`${customerName} ${taskType} ${topic}`)
     ? 'b2b'
     : 'b2c';
@@ -967,20 +1003,27 @@ export function createDeal(input: {
     segment,
   });
 
+  const validStages: DealStage[] = ['new', 'audit', 'proposal', 'fulfillment', 'done', 'archived'];
+  const stage: DealStage = input.stage && validStages.includes(input.stage) ? input.stage : 'new';
+  const assignee =
+    (input.assignee ?? '').trim() ||
+    (input.type === 'order' ? 'Дмитро (менеджер)' : 'Олександр (інженер)');
+
   const res = db
     .prepare(`
       INSERT INTO deals (
         deal_number, contact_id, customer_id, customer_email, type, stage, customer_name, phone, city, channel,
         topic, task_type, loads_json, items_json, total_usd, assignee, notes,
         telegram_sent, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     `)
     .run(
       dealNumber,
       contactId,
-      input.customerId ?? null,
+      resolvedCustomerId,
       customerEmailNorm,
       input.type,
+      stage,
       customerName,
       normalizeContactPhone(input.phone.trim()),
       city,
@@ -990,7 +1033,7 @@ export function createDeal(input: {
       JSON.stringify(input.loads ?? []),
       JSON.stringify(verifiedItems),
       totalUsd,
-      input.type === 'order' ? 'Дмитро (менеджер)' : 'Олександр (інженер)',
+      assignee,
       (input.notes ?? '').trim(),
       now,
       now,

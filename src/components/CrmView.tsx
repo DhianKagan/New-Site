@@ -5,7 +5,6 @@ import {
   Plus,
   Trash2,
   Send,
-  CheckCircle2,
   X,
   ArrowLeft,
   LogOut,
@@ -21,6 +20,7 @@ import {
   Link2,
   ExternalLink,
   Activity,
+  Banknote,
   BriefcaseBusiness,
   ChartNoAxesCombined,
   CheckSquare,
@@ -37,10 +37,12 @@ import type {
   ClientErrorRecord,
   Contact,
   CrmCustomer,
+  CrmExchangeRateResponse,
   CrmSessionUser,
   CrmTask,
   Deal,
   DealStage,
+  DealType,
   FirebaseRuntimeWebConfig,
   Product,
   ProductCategory,
@@ -53,6 +55,9 @@ import type {
 import { SmartImage } from './SmartImage.tsx';
 import { SocialIcons } from './SocialIcons.tsx';
 import { DealsDataTable } from './crm/DealsDataTable.tsx';
+import { CreateDealModal } from './crm/CreateDealModal.tsx';
+import { DealOrderDetailsModal } from './crm/DealOrderDetailsModal.tsx';
+import { ExchangeRateTab } from './crm/ExchangeRateTab.tsx';
 import { ClientsUnifiedTab } from './crm/ClientsUnifiedTab.tsx';
 import { TasksTab } from './crm/TasksTab.tsx';
 import { StaffTab } from './crm/StaffTab.tsx';
@@ -70,6 +75,7 @@ interface CrmViewProps {
   onRefreshProjects: () => Promise<void>;
   onSocialLinksUpdated: (links: SocialLinksConfig) => void;
   onAnalyticsUpdated: (cfg: AnalyticsConfig) => void;
+  onExchangeRateUpdated?: (rate: number) => void;
   onLogout: () => void;
   onBackToStore: () => void;
 }
@@ -101,12 +107,15 @@ export function CrmView({
   onRefreshProjects,
   onSocialLinksUpdated,
   onAnalyticsUpdated,
+  onExchangeRateUpdated,
   onLogout,
   onBackToStore,
 }: CrmViewProps) {
   const [crmTab, setCrmTab] = useState<
-    'pipeline' | 'table' | 'clients' | 'tasks' | 'staff' | 'catalog' | 'projects' | 'analytics' | 'social' | 'deploy'
+    'pipeline' | 'table' | 'clients' | 'tasks' | 'staff' | 'catalog' | 'projects' | 'rates' | 'analytics' | 'social' | 'deploy'
   >('pipeline');
+  const [exchangeRateData, setExchangeRateData] = useState<CrmExchangeRateResponse | null>(null);
+  const [loadingExchangeRate, setLoadingExchangeRate] = useState(false);
   const [customers, setCustomers] = useState<CrmCustomer[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [tasks, setTasks] = useState<CrmTask[]>([]);
@@ -120,6 +129,15 @@ export function CrmView({
   const [draggedDealId, setDraggedDealId] = useState<number | null>(null);
   const [dropTargetStage, setDropTargetStage] = useState<DealStage | null>(null);
   const [dealActionMsg, setDealActionMsg] = useState('');
+  const [createDealOpen, setCreateDealOpen] = useState(false);
+  const [createDealType, setCreateDealType] = useState<DealType>('lead');
+  const [createDealStage, setCreateDealStage] = useState<DealStage>('new');
+
+  function openCreateDealModal(type: DealType, stage: DealStage = 'new') {
+    setCreateDealType(type);
+    setCreateDealStage(stage);
+    setCreateDealOpen(true);
+  }
 
   async function refreshWorkspace() {
     setRefreshingCrm(true);
@@ -134,6 +152,7 @@ export function CrmView({
         loadTasks(),
         loadStaff(),
         loadCurrentUser(),
+        loadExchangeRate(false),
       ]);
       if (crmTab === 'analytics') await loadAnalytics();
       if (crmTab === 'deploy' || crmTab === 'catalog') await loadDiagnostics();
@@ -373,6 +392,22 @@ export function CrmView({
     }
   }, [authFetch]);
 
+  const loadExchangeRate = useCallback(
+    async (forceMarketRefresh = false) => {
+      setLoadingExchangeRate(true);
+      try {
+        const resp = await authFetch(`/api/crm/exchange-rate${forceMarketRefresh ? '?refresh=1' : ''}`);
+        if (resp.ok) {
+          const data = (await resp.json()) as CrmExchangeRateResponse;
+          setExchangeRateData(data);
+        }
+      } finally {
+        setLoadingExchangeRate(false);
+      }
+    },
+    [authFetch],
+  );
+
   useEffect(() => {
     void loadCurrentUser();
     void loadStaff();
@@ -383,6 +418,7 @@ export function CrmView({
     void loadDiagnostics();
     void loadContacts();
     void loadTasks();
+    void loadExchangeRate(false);
   }, [
     loadCurrentUser,
     loadStaff,
@@ -393,6 +429,7 @@ export function CrmView({
     loadDiagnostics,
     loadContacts,
     loadTasks,
+    loadExchangeRate,
   ]);
 
   const assigneeOptions = useMemo(() => {
@@ -1154,6 +1191,12 @@ export function CrmView({
                     items: [
                       { id: 'catalog', label: tr('Каталог обладнання'), Icon: Package, badge: products.length },
                       { id: 'projects', label: tr('Реальні об’єкти'), Icon: BriefcaseBusiness, badge: projectsList.length },
+                      {
+                        id: 'rates',
+                        label: tr('Курс валют (USD/UAH)', 'Курс валют (USD/UAH)'),
+                        Icon: Banknote,
+                        badge: exchangeRateData?.effectiveRate ? `${exchangeRateData.effectiveRate.toFixed(2)} ₴` : null,
+                      },
                     ],
                   },
                   {
@@ -1250,6 +1293,22 @@ export function CrmView({
                   <option value="lead">{tr('Інженерні ліди')}</option>
                   <option value="order">{tr('Замовлень із кошика')}</option>
                 </select>
+                <button
+                  type="button"
+                  onClick={() => openCreateDealModal('lead')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {tr('Нова угода', 'Новая сделка')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openCreateDealModal('order')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs font-bold cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-3.5 h-3.5 text-amber-700" />
+                  {tr('Нове замовлення', 'Новый заказ')}
+                </button>
               </div>
             </div>
 
@@ -1279,9 +1338,20 @@ export function CrmView({
                   >
                     <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
                       <span className={`text-xs font-extrabold ${stage.colorClass}`}>{tr(stage.label)}</span>
-                      <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 tabular-nums">
-                        {stageDeals.length}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 tabular-nums">
+                          {stageDeals.length}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openCreateDealModal('lead', stage.id)}
+                          title={tr('Створити угоду на цьому етапі', 'Создать сделку на этом этапе')}
+                          aria-label={tr('Створити угоду на цьому етапі', 'Создать сделку на этом этапе')}
+                          className="w-6 h-6 rounded-md border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-[#1769aa]/40 text-slate-500 hover:text-[#1769aa] flex items-center justify-center cursor-pointer transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {stageDeals.length === 0 ? (
@@ -1344,6 +1414,7 @@ export function CrmView({
             onDealTypeFilterChange={setDealTypeFilter}
             onSelectDeal={setSelectedDeal}
             onExportCsv={exportCsv}
+            onCreateDeal={(type) => openCreateDealModal(type)}
           />
         )}
 
@@ -1386,6 +1457,23 @@ export function CrmView({
             onRefreshProfile={loadCurrentUser}
             onRefreshDeals={onRefreshDeals}
             onRefreshTasks={loadTasks}
+          />
+        )}
+
+        {/* TAB 2E: EXCHANGE RATE TOOL (Manual Commercial Rate + Live 7km Odessa) */}
+        {crmTab === 'rates' && (
+          <ExchangeRateTab
+            data={exchangeRateData}
+            loading={loadingExchangeRate}
+            currentUser={currentUser}
+            authFetch={authFetch}
+            onRefresh={loadExchangeRate}
+            onDataUpdated={(next) => {
+              setExchangeRateData(next);
+              if (next.effectiveRate && onExchangeRateUpdated) {
+                onExchangeRateUpdated(next.effectiveRate);
+              }
+            }}
           />
         )}
 
@@ -1943,6 +2031,42 @@ export function CrmView({
               </div>
             </form>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
+                <div className="text-[11px] font-bold text-[#1769aa]">Meta Pixel + Catalog DPA</div>
+                <div className="text-sm font-extrabold text-[#0d1f33]">
+                  {/^\d{8,20}$/.test(metaPixelId) ? 'Активний та синхронізований' : 'Вкажіть Meta Pixel ID'}
+                </div>
+                <p className="text-[11px] text-[#52657a]">
+                  IDs (`content_ids`) збігаються з{' '}
+                  <a href="/feed.xml" target="_blank" rel="noopener noreferrer" className="font-mono text-[#1769aa] underline">
+                    /feed.xml
+                  </a>{' '}
+                  у UAH з дедуплікацією `eventID`.
+                </p>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
+                <div className="text-[11px] font-bold text-[#1769aa]">GA4 & GTM Ecommerce</div>
+                <div className="text-sm font-extrabold text-[#0d1f33]">
+                  {/^G-[A-Z0-9]{4,20}$/i.test(ga4MeasurementId) || /^GTM-[A-Z0-9]{4,20}$/i.test(gtmContainerId)
+                    ? 'Повна воронка (`items[]`)'
+                    : 'Очікує GA4 / GTM ID'}
+                </div>
+                <p className="text-[11px] text-[#52657a]">
+                  Трекінг: `view_item_list`, `search`, `view_item`, `add_to_cart`, `begin_checkout`, `purchase`, `generate_lead`, `calculator_used`.
+                </p>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
+                <div className="text-[11px] font-bold text-[#1769aa]">UTM / Click-ID Атрибуція</div>
+                <div className="text-sm font-extrabold text-[#0d1f33]">
+                  {recentEvents.filter((ev) => ['generate_lead', 'purchase', 'lead_submit'].includes(ev.eventName)).length} конверсій у буфері
+                </div>
+                <p className="text-[11px] text-[#52657a]">
+                  `utm_*`, `fbclid`, `gclid`, `ttclid` зберігаються у сесії й автоматично записуються в картку угоди CRM.
+                </p>
+              </div>
+            </div>
+
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-extrabold text-[#0d1f33] flex items-center gap-2">
@@ -2050,7 +2174,7 @@ export function CrmView({
                   SEO-файли та товарні фіди для Google Shopping / Meta Catalog
                 </h3>
                 <p className="text-xs text-[#52657a] mt-0.5">
-                  Генеруються автоматично з актуальної бази товарів SQLite за поточним курсом НБУ.
+                  Генеруються автоматично з актуальної бази товарів SQLite за встановленим комерційним курсом.
                 </p>
               </div>
 
@@ -2372,147 +2496,19 @@ export function CrmView({
         </div>
       </div>
 
-      {/* Deal Inspector Modal */}
-      {selectedDeal && (
-        <div
-          className="fixed inset-0 z-50 bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setSelectedDeal(null)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="bg-white rounded-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div>
-                <div className="font-mono text-xs font-bold text-[#1769aa]">{selectedDeal.dealNumber}</div>
-                <h3 className="text-base font-extrabold text-[#0d1f33]">{selectedDeal.topic}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedDeal(null)}
-                className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div>
-                  <div className="text-slate-500">{tr('Клієнт')}</div>
-                  <div className="font-bold text-[#0d1f33] mt-0.5">{selectedDeal.customerName}</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">{tr('Телефон')}</div>
-                  <div className="font-mono font-bold text-[#0d1f33] mt-0.5">{selectedDeal.phone}</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">{tr('Місто / Об’єкт')}</div>
-                  <div className="font-semibold text-[#0d1f33] mt-0.5">{selectedDeal.city}</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">{tr('Канал зв’язку')}</div>
-                  <div className="font-semibold text-[#0d1f33] mt-0.5">{selectedDeal.channel}</div>
-                </div>
-              </div>
-
-              {selectedDeal.loads.length > 0 && (
-                <div>
-                  <div className="font-bold text-slate-500 mb-1">{tr('Критичні прилади')}</div>
-                  <div className="text-[#0d1f33] font-semibold">{selectedDeal.loads.join(' · ')}</div>
-                </div>
-              )}
-
-              {selectedDeal.items.length > 0 && (
-                <div>
-                  <div className="font-bold text-slate-500 mb-1.5">{tr('Склад замовлення')}</div>
-                  <div className="border border-slate-200 rounded-xl divide-y divide-slate-100">
-                    {selectedDeal.items.map((it) => (
-                      <div key={it.productId} className="p-2.5 flex items-center justify-between gap-2">
-                        <span className="font-semibold text-[#0d1f33]">{it.title}</span>
-                        <span className="font-mono font-bold whitespace-nowrap tabular-nums">
-                          {it.qty} × ${it.price}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-600 mb-1">{tr('Етап воронки')}</label>
-                  <select
-                    value={selectedDeal.stage}
-                    disabled={savingDeal}
-                    onChange={(e) => handlePatchDeal(selectedDeal.id, { stage: e.target.value as DealStage })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
-                  >
-                    {STAGES.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-600 mb-1">{tr('Відповідальний')}</label>
-                  <select
-                    value={selectedDeal.assignee}
-                    disabled={savingDeal}
-                    onChange={(e) => handlePatchDeal(selectedDeal.id, { assignee: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
-                  >
-                    {assigneeOptions.map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                  <label className="block font-bold text-slate-600 mb-1">{tr('Бюджет / Сума угоди (USD)')}</label>
-                <input
-                  type="number"
-                  min="0"
-                  defaultValue={selectedDeal.totalUsd}
-                  onBlur={(e) => handlePatchDeal(selectedDeal.id, { totalUsd: Number(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-600 mb-1">{tr('Нотатки інженера / менеджера')}</label>
-                <textarea
-                  rows={3}
-                  defaultValue={selectedDeal.notes}
-                  onBlur={(e) => handlePatchDeal(selectedDeal.id, { notes: e.target.value })}
-                  placeholder={tr('Додайте нотатку по об’єкту...')}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-                <div className="inline-flex items-center gap-1.5 text-slate-500">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#169374]" />
-                  <span>{tr('Зміни зберігаються в SQLite автоматично')}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteDeal(selectedDeal.id)}
-                  className="text-red-600 font-bold hover:underline cursor-pointer"
-                >
-                  {tr('Видалити угоду')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DealOrderDetailsModal
+        deal={selectedDeal}
+        stages={STAGES}
+        products={products}
+        contacts={contacts}
+        customers={customers}
+        tasks={tasks}
+        assignees={assigneeOptions}
+        saving={savingDeal}
+        onClose={() => setSelectedDeal(null)}
+        onPatchDeal={handlePatchDeal}
+        onDeleteDeal={handleDeleteDeal}
+      />
       {/* Product Card Editor Modal (Create & Full Edit) */}
       {productModalOpen && (
         <div
@@ -2818,6 +2814,28 @@ export function CrmView({
           </div>
         </div>
       )}
+      <CreateDealModal
+        open={createDealOpen}
+        initialType={createDealType}
+        initialStage={createDealStage}
+        stages={STAGES}
+        products={products}
+        contacts={contacts}
+        customers={customers}
+        assignees={assigneeOptions}
+        defaultAssignee={currentUser?.assigneeLabel || currentUser?.name || ''}
+        telegramConfigured={telegramConfigured}
+        authFetch={authFetch}
+        onClose={() => setCreateDealOpen(false)}
+        onCreated={async (createdDeal) => {
+          await Promise.all([onRefreshDeals(), loadContacts(), loadCustomers()]);
+          setDealActionMsg(
+            createdDeal.type === 'order'
+              ? tr(`Створено замовлення ${createdDeal.dealNumber}`, `Создан заказ ${createdDeal.dealNumber}`)
+              : tr(`Створено угоду ${createdDeal.dealNumber}`, `Создана сделка ${createdDeal.dealNumber}`),
+          );
+        }}
+      />
     </div>
   );
 }

@@ -16,7 +16,7 @@ import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
 import { BRAND_PARTNERS, COMPANY_INFO, FAQ_ITEMS } from '../data/siteContent.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
-import { track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
+import { getAttributionSummary, resolveAnalyticsMoney, track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { getActiveLocale, tr } from '../lib/i18n.ts';
 import { formatUaPhone, isValidUaPhone } from '../lib/leadForm.ts';
@@ -25,6 +25,7 @@ interface HomeViewProps {
   products: Product[];
   projects: ProjectCase[];
   telegramUrl?: string;
+  isStaff?: boolean;
   onNavigateShop: (cat?: ProductCategory | 'all') => void;
   onNavigateServices: () => void;
   onNavigateProjects: () => void;
@@ -48,6 +49,7 @@ export function HomeView({
   products,
   projects,
   telegramUrl,
+  isStaff = false,
   onNavigateShop,
   onNavigateServices,
   onNavigateProjects,
@@ -94,6 +96,7 @@ export function HomeView({
   const [formError, setFormError] = useState('');
   const [createdBrief, setCreatedBrief] = useState<Deal | null>(null);
   const briefFormStarted = useRef(false);
+  const calcTrackedRef = useRef(false);
 
   function getFormScenario(topic: string): Scenario {
     if (/сес|соняч|solar/i.test(topic)) return 'solar';
@@ -256,6 +259,7 @@ export function HomeView({
           taskType,
           loads,
           website,
+          attribution: getAttributionSummary(),
           consent: true,
         }),
       });
@@ -265,11 +269,14 @@ export function HomeView({
         track({ name: 'form_error', field: 'phone', placement: 'section', scenario });
       } else {
         setCreatedBrief(data.deal);
+        const leadMoney = resolveAnalyticsMoney(0, usdUahRate);
         track({ name: 'lead_submit', property: getFormProperty(taskType), placement: 'section', scenario });
         trackEvent('generate_lead', {
           lead_topic: taskType,
-          value: 0,
-          currency: 'USD',
+          placement: 'section',
+          scenario,
+          value: leadMoney.value,
+          currency: leadMoney.currency,
         });
         onLeadCreated(data.deal);
         setPhone('');
@@ -297,8 +304,9 @@ export function HomeView({
               <div className="text-xs font-extrabold text-[#1769aa] tracking-wide mb-2.5">
                 {tr('Резервне живлення · Сонячні електростанції · Одеса')}
               </div>
-              <h1 className="text-[clamp(2rem,3.8vw,2.75rem)] font-extrabold text-[#0d1f33] leading-[1.1] tracking-tight mb-4 max-w-xl">
-                {tr('Енергія, на яку можна')} <span className="text-[#1769aa]">{tr('покластися')}</span>
+              <h1 className="text-[clamp(1.85rem,3.6vw,2.65rem)] font-extrabold text-[#0d1f33] leading-[1.12] tracking-tight mb-4 max-w-2xl">
+                {tr('Сонячні електростанції та резервне живлення', 'Солнечные электростанции и резервное питание')}{' '}
+                <span className="text-[#1769aa]">{tr('в Одесі під ключ', 'в Одессе под ключ')}</span>
               </h1>
               <p className="text-[15px] text-[#52657a] leading-relaxed mb-6 max-w-xl">
                 {tr('Проєктування, офіційне постачання обладнання (Deye, SolaX, Solis, Dyness, Trina) та сертифікований монтаж «під ключ» з гарантією в Одесі та області.', 'Проектирование, официальные поставки оборудования (Deye, SolaX, Solis, Dyness, Trina) и сертифицированный монтаж под ключ с гарантией в Одессе и области.')}
@@ -331,7 +339,6 @@ export function HomeView({
                     rel="noopener noreferrer"
                     onClick={() => {
                       track({ name: 'messenger_click', placement: 'hero', scenario: 'unspecified', channel: 'telegram' });
-                      trackEvent('contact', { channel: 'telegram_hero' });
                     }}
                     className="inline-flex min-h-12 items-center gap-1.5 px-3.5 py-3 rounded-lg border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#1769aa] text-xs sm:text-sm font-bold transition-colors whitespace-nowrap"
                   >
@@ -546,6 +553,10 @@ export function HomeView({
                 onClick={() => {
                   setCalcTariffType('home');
                   setTariffUah(4.32);
+                  if (!calcTrackedRef.current) {
+                    calcTrackedRef.current = true;
+                    trackEvent('calculator_used', { tariff_type: 'home', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
+                  }
                 }}
                 className={`px-3.5 py-2 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                   calcTariffType === 'home' ? 'bg-[#0d1f33] text-white' : 'text-slate-600 hover:text-[#0d1f33]'
@@ -558,6 +569,10 @@ export function HomeView({
                 onClick={() => {
                   setCalcTariffType('business');
                   setTariffUah(8.8);
+                  if (!calcTrackedRef.current) {
+                    calcTrackedRef.current = true;
+                    trackEvent('calculator_used', { tariff_type: 'business', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
+                  }
                 }}
                 className={`px-3.5 py-2 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                   calcTariffType === 'business' ? 'bg-[#0d1f33] text-white' : 'text-slate-600 hover:text-[#0d1f33]'
@@ -588,7 +603,14 @@ export function HomeView({
                     max={50000}
                     step={50}
                     value={monthlyKwh}
-                    onChange={(e) => setMonthlyKwh(Number(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const nextVal = Number(e.target.value) || 0;
+                      setMonthlyKwh(nextVal);
+                      if (!calcTrackedRef.current) {
+                        calcTrackedRef.current = true;
+                        trackEvent('calculator_used', { tariff_type: calcTariffType, monthly_kwh: nextVal, recommended_kw: recommendedKw });
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-base font-bold text-[#0d1f33] focus:outline-none focus:border-[#1769aa] mb-3"
                   />
                   <input
@@ -598,7 +620,14 @@ export function HomeView({
                     max={6000}
                     step={50}
                     value={Math.min(6000, Math.max(100, safeMonthlyKwh))}
-                    onChange={(e) => setMonthlyKwh(Number(e.target.value))}
+                    onChange={(e) => {
+                      const nextVal = Number(e.target.value);
+                      setMonthlyKwh(nextVal);
+                      if (!calcTrackedRef.current) {
+                        calcTrackedRef.current = true;
+                        trackEvent('calculator_used', { tariff_type: calcTariffType, monthly_kwh: nextVal, recommended_kw: recommendedKw });
+                      }
+                    }}
                     className="w-full accent-[#1769aa] cursor-pointer"
                   />
                   <div className="flex flex-wrap gap-1.5 mt-3">
@@ -606,7 +635,13 @@ export function HomeView({
                       <button
                         key={preset}
                         type="button"
-                        onClick={() => setMonthlyKwh(preset)}
+                        onClick={() => {
+                          setMonthlyKwh(preset);
+                          if (!calcTrackedRef.current) {
+                            calcTrackedRef.current = true;
+                            trackEvent('calculator_used', { tariff_type: calcTariffType, monthly_kwh: preset, recommended_kw: recommendedKw });
+                          }
+                        }}
                         className={`px-2.5 py-1 rounded-md border text-[11px] font-mono font-bold cursor-pointer transition-colors ${
                           safeMonthlyKwh === preset
                             ? 'bg-[#eff6fc] border-[#1769aa] text-[#1769aa]'
@@ -716,6 +751,7 @@ export function HomeView({
                       .filter(Boolean)
                       .join('\n');
                     track({ name: 'cta_click', placement: 'section', scenario: 'solar' });
+                    trackEvent('calculator_used', { tariff_type: calcTariffType, monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw, submitted: true });
                     onOpenLeadModal(
                       `Калькулятор окупності: СЕС ${recommendedKw} кВт (${safeMonthlyKwh} кВт·год/міс)`,
                       primaryCalcKit?.price,
@@ -1282,17 +1318,19 @@ export function HomeView({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
                   <span>
-                    {tr('Угоду', 'Сделка')} <strong className="font-mono">{createdBrief.dealNumber}</strong> {tr('створено у CRM (', 'создана в CRM (')}
-                    {createdBrief.taskType}).
+                    {tr('Заявку', 'Заявка')} <strong className="font-mono">{createdBrief.dealNumber}</strong>{' '}
+                    {tr('прийнято! Інженер зв’яжеться протягом 15 хвилин у робочий час.', 'принята! Инженер свяжется в течение 15 минут в рабочее время.')}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={onOpenCrm}
-                  className="px-3 py-1.5 rounded-md bg-white text-[#0d1f33] font-bold hover:bg-slate-100 cursor-pointer"
-                >
-                  {tr('Відкрити в CRM →', 'Открыть в CRM →')}
-                </button>
+                {isStaff && (
+                  <button
+                    type="button"
+                    onClick={onOpenCrm}
+                    className="px-3 py-1.5 rounded-md bg-white text-[#0d1f33] font-bold hover:bg-slate-100 cursor-pointer"
+                  >
+                    {tr('Відкрити в CRM →', 'Открыть в CRM →')}
+                  </button>
+                )}
               </div>
             )}
           </form>

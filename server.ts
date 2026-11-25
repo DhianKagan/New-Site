@@ -80,10 +80,12 @@ import {
   clientErrorReportSchema,
   clientProfilePatchSchema,
   clientRegisterSchema,
+  commercialExchangeRatePutSchema,
   contactCreateSchema,
   contactPatchSchema,
   crmCustomerCreateSchema,
   crmCustomerPatchSchema,
+  crmDealCreateSchema,
   dealPatchSchema,
   firebaseDomainsPutSchema,
   isSafeExternalUrl,
@@ -132,46 +134,25 @@ import {
   sendTelegramText,
   setTelegramWebhook,
 } from './server/telegram.ts';
+import {
+  getActiveStorefrontRate,
+  getCachedActiveRateSync,
+  getMarket7kmRate,
+  getStoredCommercialRate,
+  saveCommercialRate,
+} from './server/exchangeRate.ts';
+import {
+  renderRouteSeoHtml,
+  resolveGoogleProductCategory,
+  resolveProductTypeLabel,
+} from './server/seo.ts';
 import type { DealStage, ProductCategory, SocialLinksConfig } from './src/types.ts';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-const EXCHANGE_RATE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
-let cachedUsdUahRate: { rate: number; exchangedate: string; fetchedAt: number } | null = null;
-
-async function getUsdUahRate(): Promise<{ rate: number; exchangedate: string; stale?: boolean }> {
-  const now = Date.now();
-  if (cachedUsdUahRate && now - cachedUsdUahRate.fetchedAt < EXCHANGE_RATE_CACHE_TTL_MS) {
-    return { rate: cachedUsdUahRate.rate, exchangedate: cachedUsdUahRate.exchangedate };
-  }
-
-  try {
-    const resp = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&json', {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!resp.ok) {
-      throw new Error(`NBU responded ${resp.status}`);
-    }
-    const data = (await resp.json()) as Array<{ rate?: number; exchangedate?: string }>;
-    const first = Array.isArray(data) ? data[0] : undefined;
-    if (first && typeof first.rate === 'number' && Number.isFinite(first.rate) && first.rate > 0) {
-      cachedUsdUahRate = {
-        rate: Number(first.rate.toFixed(4)),
-        exchangedate: String(first.exchangedate || ''),
-        fetchedAt: now,
-      };
-      return { rate: cachedUsdUahRate.rate, exchangedate: cachedUsdUahRate.exchangedate };
-    }
-    throw new Error('Invalid NBU payload');
-  } catch (err) {
-    if (cachedUsdUahRate) {
-      return { rate: cachedUsdUahRate.rate, exchangedate: cachedUsdUahRate.exchangedate, stale: true };
-    }
-    throw err;
-  }
-}
+// Exchange rate is managed manually in CRM (commercial rate) with Odessa 7km market reference in ./server/exchangeRate.ts
 
 // Helpers imported from ./server/validation.ts (isSafeImageUrl, isSafeExternalUrl, normalizePhoneInput)
 
@@ -196,10 +177,6 @@ function getBaseUrl(req: express.Request): string {
   return 'https://energocomfort.shop';
 }
 
-function escapeHtmlAttr(value: string): string {
-  return escapeXml(value);
-}
-
 function parseAdminEmailList(raw: string): string[] {
   return Array.from(
     new Set(
@@ -221,149 +198,22 @@ function getEmailAllowlists(): { envEmails: string[]; dbEmails: string[]; effect
 function buildRouteSeoHtml(template: string, req: express.Request): string {
   const baseUrl = getBaseUrl(req);
   const rawPath = (req.path || '/').replace(/\/+$/, '') || '/';
-
-  let title = 'Energo Comfort — СЕС та резервне живлення в Одесі';
-  let description =
-    'Сонячні електростанції та резервне живлення в Одесі: інвертори Deye, SolaX, Solis, АКБ LiFePO4, панелі та монтаж під ключ із гарантією. Замовте розрахунок!';
-  let ogType = 'website';
-  let ogImage = `${baseUrl}/assets/energocomfort/sto_110kw.jpg`;
-  let robots = 'index, follow';
-  let canonicalPath = rawPath;
-
-  if (rawPath === '/shop') {
-    const rawCat = typeof req.query.cat === 'string' ? req.query.cat.trim() : '';
-    const catMeta: Record<ProductCategory, { title: string; description: string }> = {
-      kits: {
-        title: 'Готові комплекти резервного живлення та СЕС — Energo Comfort',
-        description:
-          'Готові комплекти резервного живлення та сонячних електростанцій під ключ в Одесі: інвертори Deye та акумулятори LiFePO4.',
-      },
-      inverters: {
-        title: 'Гібридні та мережеві інвертори Deye, SolaX, Solis — Energo Comfort',
-        description:
-          'Гібридні й мережеві інвертори Deye, SolaX, Solis, Must зі складу в Одесі з офіційною гарантією та доставкою по Україні.',
-      },
-      batteries: {
-        title: 'Акумулятори LiFePO4 Deye, Dyness в Одесі — Energo Comfort',
-        description:
-          'Акумуляторні батареї LiFePO4 на 24V, 48V та високовольтні модулі для систем резервного живлення та СЕС в Одесі.',
-      },
-      panels: {
-        title: 'Сонячні панелі Jinko, Trina, JA Solar в Одесі — Energo Comfort',
-        description:
-          'Монокристалічні сонячні панелі N-Type та Bifacial від Jinko Solar, Trina Solar, JA Solar, Tongwei в Одесі.',
-      },
-      parts: {
-        title: 'Комплектуючі та захист AC/DC для СЕС — Energo Comfort',
-        description:
-          'Автоматика захисту AC/DC, ОПН, кабелі, кріплення, перемикачі та щити для сонячних електростанцій зі складу в Одесі.',
-      },
-    };
-    const matchedCat = ALLOWED_PRODUCT_CATS.find((c) => c === rawCat);
-    if (matchedCat) {
-      title = catMeta[matchedCat].title;
-      description = catMeta[matchedCat].description;
-      canonicalPath = `/shop?cat=${encodeURIComponent(matchedCat)}`;
-    } else {
-      title = 'Каталог обладнання СЕС та резервного живлення — Energo Comfort';
-      description =
-        'Каталог інверторів Deye, SolaX, Solis, акумуляторів LiFePO4, сонячних панелей та готових комплектів в Одесі з доставкою по Україні.';
-    }
-  } else if (rawPath.startsWith('/shop/')) {
+  const queryCat = typeof req.query.cat === 'string' ? req.query.cat.trim() : '';
+  let product = null;
+  if (rawPath.startsWith('/shop/')) {
     const prodId = decodeURIComponent(rawPath.slice('/shop/'.length).split('/')[0] || '');
-    const product = prodId ? getProductById(prodId) : null;
-    if (product) {
-      title = `${product.title} — Energo Comfort`.slice(0, 70);
-      description = (
-        product.description.trim() ||
-        `${product.title} (${product.brand}). ${product.statusLabel}. Доставка зі складу в Одесі, гарантія та монтаж.`
-      ).slice(0, 158);
-      ogType = 'product';
-      if (product.img) {
-        ogImage = product.img.startsWith('http')
-          ? product.img
-          : `${baseUrl}${product.img.startsWith('/') ? '' : '/'}${product.img}`;
-      }
-      canonicalPath = `/shop/${encodeURIComponent(product.id)}`;
-    }
-  } else if (rawPath === '/services') {
-    title = 'Послуги монтажу СЕС та інжинірингу — Energo Comfort';
-    description =
-      'Професійний монтаж сонячних електростанцій, систем резервного живлення та енергоаудит для дому і бізнесу в Одесі та області з гарантією.';
-  } else if (rawPath === '/projects') {
-    title = 'Реалізовані об’єкти — Energo Comfort Одеса';
-    description =
-      'Реальні кейси СЕС і резервного живлення 6–110 кВт для бізнесу та приватних будинків в Одесі й області. Дивіться характеристики та фото об’єктів.';
-  } else if (rawPath === '/contacts') {
-    title = 'Контакти та умови співпраці — Energo Comfort Одеса';
-    description =
-      'Офіс та склад Energo Comfort: м. Одеса, вул. Європейська 93. Телефони +38 (050) 777-71-72, +38 (098) 152-32-61. Графік Пн–Сб 09:00–18:00.';
-  } else if (rawPath === '/payment-delivery') {
-    title = 'Оплата і доставка — Energo Comfort';
-    description =
-      'Умови оплати за курсом НБУ, самовивіз в Одесі та доставка обладнання СЕС по Україні.';
-  } else if (rawPath === '/public-offer') {
-    title = 'Публічна оферта (проєкт) — Energo Comfort';
-    description = 'Проєкт умов дистанційного замовлення обладнання та послуг Energo Comfort.';
-  } else if (rawPath === '/crm') {
-    title = 'CRM — Energo Comfort';
-    robots = 'noindex, nofollow';
-  } else if (rawPath === '/login') {
-    title = 'Вхід та реєстрація — Energo Comfort';
-    robots = 'noindex, nofollow';
-  } else if (rawPath === '/account') {
-    title = 'Особистий кабінет — Energo Comfort';
-    robots = 'noindex, nofollow';
+    product = prodId ? getProductById(prodId) : null;
   }
 
-  const canonicalUrl = `${baseUrl}${canonicalPath === '/' ? '/' : canonicalPath}`;
-
-  return template
-    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtmlAttr(title)}</title>`)
-    .replace(
-      /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="description" content="${escapeHtmlAttr(description)}" />`,
-    )
-    .replace(
-      /<meta\s+name="robots"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="robots" content="${escapeHtmlAttr(robots)}" />`,
-    )
-    .replace(
-      /<meta\s+property="og:type"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:type" content="${escapeHtmlAttr(ogType)}" />`,
-    )
-    .replace(
-      /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:title" content="${escapeHtmlAttr(title)}" />`,
-    )
-    .replace(
-      /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:description" content="${escapeHtmlAttr(description)}" />`,
-    )
-    .replace(
-      /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:url" content="${escapeHtmlAttr(canonicalUrl)}" />`,
-    )
-    .replace(
-      /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:image" content="${escapeHtmlAttr(ogImage)}" />`,
-    )
-    .replace(
-      /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="twitter:title" content="${escapeHtmlAttr(title)}" />`,
-    )
-    .replace(
-      /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="twitter:description" content="${escapeHtmlAttr(description)}" />`,
-    )
-    .replace(
-      /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="twitter:image" content="${escapeHtmlAttr(ogImage)}" />`,
-    )
-    .replace(
-      /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i,
-      `<link rel="canonical" href="${escapeHtmlAttr(canonicalUrl)}" />`,
-    );
+  return renderRouteSeoHtml({
+    template,
+    baseUrl,
+    rawPath,
+    queryCat,
+    product,
+    usdUahRate: getCachedActiveRateSync(),
+    socialLinks: getSocialLinks(),
+  });
 }
 
 function createRateLimiter(options: { windowMs: number; max: number; message: string }): express.RequestHandler {
@@ -518,12 +368,12 @@ async function startServer() {
 
   const handleMerchantFeed: express.RequestHandler = async (req, res) => {
     const baseUrl = getBaseUrl(req);
-    let nbuRate: number | null = null;
+    let commercialRate: number | null = null;
     try {
-      const rateInfo = await getUsdUahRate();
-      nbuRate = rateInfo.rate;
+      const rateInfo = await getActiveStorefrontRate();
+      commercialRate = rateInfo.rate;
     } catch {
-      nbuRate = null;
+      commercialRate = null;
     }
 
     const items = listProducts().filter((p) => p.price > 0);
@@ -535,23 +385,32 @@ async function startServer() {
           : `${baseUrl}${p.img.startsWith('/') ? '' : '/'}${p.img}`
         : `${baseUrl}/assets/energocomfort/sto_110kw.jpg`;
       const availability = p.inStock ? 'in_stock' : 'preorder';
-      const priceValue = nbuRate ? `${Math.round(p.price * nbuRate)} UAH` : `${p.price} USD`;
+      const hasDiscount = p.oldPrice > p.price;
+      const formatFeedMoney = (usd: number) =>
+        commercialRate ? `${Math.round(usd * commercialRate)} UAH` : `${usd} USD`;
+      const priceValue = hasDiscount ? formatFeedMoney(p.oldPrice) : formatFeedMoney(p.price);
+      const salePriceValue = hasDiscount ? formatFeedMoney(p.price) : '';
       const desc = (
         p.description.trim() ||
         `${p.title} (${p.brand}). Офіційне обладнання Energo Comfort в Одесі.`
       ).slice(0, 1000);
+      const itemId = p.sku || p.id;
 
       return [
         '    <item>',
-        `      <g:id>${escapeXml(p.sku || p.id)}</g:id>`,
+        `      <g:id>${escapeXml(itemId)}</g:id>`,
+        `      <g:mpn>${escapeXml(itemId)}</g:mpn>`,
         `      <g:title>${escapeXml(p.title.slice(0, 150))}</g:title>`,
         `      <g:description>${escapeXml(desc)}</g:description>`,
         `      <g:link>${escapeXml(link)}</g:link>`,
         `      <g:image_link>${escapeXml(imageLink)}</g:image_link>`,
         `      <g:brand>${escapeXml(p.brand || 'Energo Comfort')}</g:brand>`,
+        `      <g:product_type>${escapeXml(resolveProductTypeLabel(p.cat))}</g:product_type>`,
+        `      <g:google_product_category>${escapeXml(resolveGoogleProductCategory(p.cat))}</g:google_product_category>`,
         '      <g:condition>new</g:condition>',
         `      <g:availability>${availability}</g:availability>`,
         `      <g:price>${escapeXml(priceValue)}</g:price>`,
+        ...(salePriceValue ? [`      <g:sale_price>${escapeXml(salePriceValue)}</g:sale_price>`] : []),
         '    </item>',
       ].join('\n');
     });
@@ -568,6 +427,7 @@ async function startServer() {
       '</rss>',
     ].join('\n');
 
+    res.setHeader('Cache-Control', 'public, max-age=300');
     res.type('application/xml; charset=utf-8').send(xml);
   };
 
@@ -585,10 +445,11 @@ async function startServer() {
 
   app.get('/api/public/exchange-rate', async (_req, res) => {
     try {
-      const rateInfo = await getUsdUahRate();
+      const rateInfo = await getActiveStorefrontRate();
+      res.setHeader('Cache-Control', 'no-store');
       res.json(rateInfo);
     } catch {
-      res.status(503).json({ error: 'Курс НБУ тимчасово недоступний' });
+      res.status(503).json({ error: 'Комерційний курс тимчасово недоступний' });
     }
   });
 
@@ -701,6 +562,12 @@ async function startServer() {
     }
 
     const linkedClient = resolveOptionalClient(req);
+    const combinedLeadNotes = [
+      body.notes.trim(),
+      body.attribution.trim() ? `Джерело / UTM: ${body.attribution.trim()}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const deal = createDeal({
       type: 'lead',
@@ -711,7 +578,7 @@ async function startServer() {
       topic: body.topic.trim(),
       taskType: body.taskType.trim(),
       loads: body.loads.map((item) => item.trim()).filter(Boolean),
-      notes: body.notes.trim(),
+      notes: combinedLeadNotes,
       estimatedTotalUsd: body.estimatedTotalUsd,
       customerId: linkedClient?.customerId ?? null,
       customerEmail: linkedClient?.customerEmail ?? '',
@@ -751,6 +618,12 @@ async function startServer() {
     }
 
     const linkedClient = resolveOptionalClient(req);
+    const combinedOrderNotes = [
+      body.notes.trim(),
+      body.attribution.trim() ? `Джерело / UTM: ${body.attribution.trim()}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const deal = createDeal({
       type: 'order',
@@ -758,7 +631,7 @@ async function startServer() {
       phone: normalizedPhone,
       city: body.city.trim(),
       channel: body.channel.trim(),
-      notes: body.notes.trim(),
+      notes: combinedOrderNotes,
       items: body.items,
       customerId: linkedClient?.customerId ?? null,
       customerEmail: linkedClient?.customerEmail ?? '',
@@ -1423,6 +1296,62 @@ async function startServer() {
     res.json({ deals: listDeals() });
   });
 
+  app.post('/api/crm/deals', async (req, res) => {
+    const parsed = crmDealCreateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні дані угоди' });
+      return;
+    }
+
+    const body = parsed.data;
+    const normalizedPhone = normalizePhoneInput(body.phone);
+    if (!normalizedPhone) {
+      res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
+      return;
+    }
+
+    const crmUser = getCrmUser(req);
+    const defaultAssignee =
+      crmUser?.assigneeLabel?.trim() ||
+      crmUser?.name?.trim() ||
+      (body.type === 'order' ? 'Дмитро (менеджер)' : 'Олександр (інженер)');
+
+    const deal = createDeal({
+      type: body.type,
+      stage: body.stage,
+      assignee: body.assignee || defaultAssignee,
+      customerName: body.customerName,
+      phone: normalizedPhone,
+      city: body.city,
+      channel: body.channel || 'CRM (вручну)',
+      topic: body.topic,
+      taskType: body.taskType,
+      loads: body.loads.map((item) => item.trim()).filter(Boolean),
+      items: body.items,
+      notes: body.notes,
+      totalUsd: body.totalUsd,
+      contactId: body.contactId,
+      customerId: body.customerId,
+      customerEmail: body.customerEmail,
+    });
+
+    if (body.items.length > 0 && deal.items.length === 0) {
+      deleteDeal(deal.id);
+      res.status(400).json({ error: 'Не знайдено жодного актуального товару з каталогу' });
+      return;
+    }
+
+    if (body.sendTelegram) {
+      const tg = await sendDealToTelegram(deal);
+      if (tg.sent) {
+        markDealTelegramSent(deal.id);
+        deal.telegramSent = true;
+      }
+    }
+
+    res.status(201).json({ deal });
+  });
+
   app.patch('/api/crm/deals/:id', (req, res) => {
     const dealId = Number(req.params.id);
     if (!Number.isFinite(dealId) || dealId <= 0) {
@@ -1632,6 +1561,39 @@ async function startServer() {
       return;
     }
     res.json({ ok: true });
+  });
+
+  app.get('/api/crm/exchange-rate', async (req, res) => {
+    const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
+    const commercial = getStoredCommercialRate();
+    const market7km = await getMarket7kmRate(forceRefresh);
+    const effectiveRate = commercial.rate ?? (market7km.available ? market7km.sell : null);
+    const effectiveSource =
+      commercial.rate !== null ? 'commercial' : market7km.available && market7km.sell ? 'market_fallback' : 'unset';
+    res.json({
+      commercial,
+      effectiveRate,
+      effectiveSource,
+      market7km,
+    });
+  });
+
+  app.put('/api/crm/exchange-rate', requireRoles('admin', 'manager'), async (req, res) => {
+    const parsed = commercialExchangeRatePutSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректний курс валют' });
+      return;
+    }
+    const crmUser = getCrmUser(req);
+    const actor = crmUser?.assigneeLabel || crmUser?.name || 'CRM';
+    const commercial = saveCommercialRate(parsed.data.rate, actor);
+    const market7km = await getMarket7kmRate(false);
+    res.json({
+      commercial,
+      effectiveRate: commercial.rate,
+      effectiveSource: 'commercial',
+      market7km,
+    });
   });
 
   app.get('/api/crm/analytics', (_req, res) => {
@@ -2038,9 +2000,23 @@ async function startServer() {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: 'custom',
     });
     app.use(vite.middlewares);
+    app.get('*', async (req, res, next) => {
+      if (req.path.startsWith('/api/')) {
+        next();
+        return;
+      }
+      try {
+        const rawTemplate = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
+        const transformed = await vite.transformIndexHtml(req.originalUrl, rawTemplate);
+        res.status(200).type('text/html; charset=utf-8').send(buildRouteSeoHtml(transformed, req));
+      } catch (err) {
+        vite.ssrFixStacktrace(err as Error);
+        next(err);
+      }
+    });
   } else {
     const distDir = path.resolve(process.cwd(), 'dist');
     const publicDir = path.resolve(process.cwd(), 'public');

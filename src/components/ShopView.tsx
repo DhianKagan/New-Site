@@ -1,42 +1,65 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { tr } from '../lib/i18n.ts';
 import { filterAndRankProductsBySearch } from '../lib/shopSearch.ts';
+import { toAnalyticsProductItem, track, trackEvent } from '../lib/analytics.ts';
 
 interface ShopViewProps {
   products: Product[];
   initialCategory: ProductCategory | 'all';
+  initialQuery?: string;
+  onCategoryChange?: (cat: ProductCategory | 'all') => void;
   onSelectProduct: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
+  onOpenCustomRequest?: (topic: string, notes?: string) => void;
   onBackHome: () => void;
   usdUahRate: number | null;
 }
 
 const PAGE_SIZE = 24;
 
+const CATEGORY_TITLES: Record<ProductCategory | 'all', string> = {
+  all: 'Усі товари',
+  kits: 'Готові рішення',
+  inverters: 'Інвертори',
+  batteries: 'Акумулятори LiFePO4',
+  panels: 'Сонячні панелі',
+  parts: 'Комплектуючі та захист',
+};
+
 export function ShopView({
   products,
   initialCategory,
+  initialQuery = '',
+  onCategoryChange,
   onSelectProduct,
   onAddToCart,
   onRequestQuote,
+  onOpenCustomRequest,
   onBackHome,
   usdUahRate,
 }: ShopViewProps) {
   const [cat, setCat] = useState<ProductCategory | 'all'>(initialCategory);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [brand, setBrand] = useState('all');
   const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
+  const lastTrackedListKeyRef = useRef('');
+  const lastTrackedSearchRef = useRef('');
 
   useEffect(() => {
     setCat(initialCategory);
     setPage(1);
   }, [initialCategory]);
+
+  useEffect(() => {
+    setQuery(initialQuery);
+    setPage(1);
+  }, [initialQuery]);
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: products.length, kits: 0, inverters: 0, batteries: 0, panels: 0, parts: 0 };
@@ -75,11 +98,47 @@ export function ShopView({
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const paginated = useMemo(
+    () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filtered, safePage],
+  );
+
+  useEffect(() => {
+    if (paginated.length === 0) return;
+    const listKey = `${cat}|${safePage}|${brand}|${inStockOnly}|${usdUahRate ?? 'usd'}`;
+    if (lastTrackedListKeyRef.current === listKey) return;
+    lastTrackedListKeyRef.current = listKey;
+
+    trackEvent('view_item_list', {
+      item_list_id: cat,
+      item_list_name: CATEGORY_TITLES[cat] || cat,
+      item_category: cat,
+      items: paginated.slice(0, 10).map((p) => toAnalyticsProductItem(p, usdUahRate, 1)),
+    });
+  }, [cat, safePage, brand, inStockOnly, paginated, usdUahRate]);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
+    const searchKey = `${trimmed.toLowerCase()}|${cat}`;
+    if (lastTrackedSearchRef.current === searchKey) return;
+
+    const timer = window.setTimeout(() => {
+      lastTrackedSearchRef.current = searchKey;
+      trackEvent('search', {
+        search_term: trimmed,
+        item_category: cat,
+        items_count: filtered.length,
+      });
+    }, 600);
+
+    return () => window.clearTimeout(timer);
+  }, [query, cat, filtered.length]);
 
   function handleCategoryChange(nextCat: ProductCategory | 'all') {
     setCat(nextCat);
     setPage(1);
+    onCategoryChange?.(nextCat);
   }
 
   return (
@@ -241,21 +300,52 @@ export function ShopView({
           </div>
 
           {paginated.length === 0 ? (
-            <div className="p-12 text-center border border-dashed border-slate-300 rounded-2xl bg-slate-50">
+            <div className="p-10 sm:p-12 text-center border border-dashed border-slate-300 rounded-2xl bg-slate-50">
               <p className="text-sm font-bold text-[#0d1f33] mb-1">{tr('За вашим запитом товарів не знайдено', 'По вашему запросу товары не найдены')}</p>
-              <p className="text-xs text-slate-500 mb-4">{tr('Спробуйте змінити фільтр бренду, категорію або пошуковий запит.', 'Измените фильтр бренда, категорию или поисковый запрос.')}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setCat('all');
-                  setBrand('all');
-                  setQuery('');
-                  setInStockOnly(false);
-                }}
-                className="px-4 py-2 rounded-lg bg-[#1769aa] text-white text-xs font-bold cursor-pointer"
-              >
-                {tr('Скинути фільтри', 'Сбросить фильтры')}
-              </button>
+              <p className="text-xs text-slate-500 mb-5">
+                {tr(
+                  'Спробуйте змінити фільтр або залиште запит — інженер перевірить наявність на складі та підбере сумісний аналог за 15 хв.',
+                  'Измените фильтр или оставьте запрос — инженер проверит наличие на складе и подберёт совместимый аналог за 15 мин.',
+                )}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCategoryChange('all');
+                    setBrand('all');
+                    setQuery('');
+                    setInStockOnly(false);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold hover:bg-slate-100 cursor-pointer"
+                >
+                  {tr('Скинути фільтри', 'Сбросить фильтры')}
+                </button>
+                {onOpenCustomRequest && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      track({ name: 'cta_click', placement: 'section', scenario: 'unspecified' });
+                      onOpenCustomRequest(
+                        query.trim()
+                          ? `Підбір за запитом: ${query.trim()}`
+                          : `Інженерний підбір (${CATEGORY_TITLES[cat] || cat})`,
+                        [
+                          query.trim() ? `Пошуковий запит: ${query.trim()}` : '',
+                          brand !== 'all' ? `Бренд: ${brand}` : '',
+                          `Категорія: ${CATEGORY_TITLES[cat] || cat}`,
+                        ]
+                          .filter(Boolean)
+                          .join('\n'),
+                      );
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer"
+                  >
+                    <MessageSquarePlus className="w-3.5 h-3.5" />
+                    {tr('Підібрати з інженером за 15 хв', 'Подобрать с инженером за 15 мин')}
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -300,6 +390,36 @@ export function ShopView({
               >
                 Далі
                 <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {onOpenCustomRequest && paginated.length > 0 && (
+            <div className="mt-10 rounded-2xl border border-slate-200 bg-gradient-to-r from-[#f3f8fd] to-[#f8fafc] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-extrabold text-[#1769aa] mb-1">
+                  {tr('Потрібна перевірка сумісності або оптова ціна?', 'Нужна проверка совместимости или оптовая цена?')}
+                </div>
+                <p className="text-sm font-extrabold text-[#0d1f33]">
+                  {tr(
+                    'Не знайшли потрібну модель чи комплект? Інженер підбере рішення під ваш бюджет за 15 хв',
+                    'Не нашли нужную модель или комплект? Инженер подберёт решение под ваш бюджет за 15 мин',
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  track({ name: 'cta_click', placement: 'section', scenario: 'unspecified' });
+                  onOpenCustomRequest(
+                    `Запит на підбір із каталогу (${CATEGORY_TITLES[cat] || cat})`,
+                    query.trim() ? `Фільтр пошуку: ${query.trim()}` : undefined,
+                  );
+                }}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold whitespace-nowrap cursor-pointer shrink-0"
+              >
+                <MessageSquarePlus className="w-4 h-4" />
+                {tr('Підібрати під об’єкт', 'Подобрать под объект')}
               </button>
             </div>
           )}

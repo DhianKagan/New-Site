@@ -289,3 +289,29 @@ export interface ClientErrorRecord {
   createdAt: string;
 }
 
+export interface CommercialRateInfo {
+  rate: number | null;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface Market7kmRateInfo {
+  available: boolean;
+  buy: number | null;
+  sell: number | null;
+  wholesaleBuy: number | null;
+  wholesaleSell: number | null;
+  cityAverageBuy: number | null;
+  cityAverageSell: number | null;
+  sourceLabel: string;
+  fetchedAt: string;
+  stale?: boolean;
+  error?: string;
+}
+
+export interface CrmExchangeRateResponse {
+  commercial: CommercialRateInfo;
+  effectiveRate: number | null;
+  effectiveSource: 'commercial' | 'market_fallback' | 'unset';
+  market7km: Market7kmRateInfo;
+}
