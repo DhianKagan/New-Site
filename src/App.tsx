@@ -1416,7 +1416,7 @@ function AppContent() {
           </a>
 
           {/* Zone 2: 5 concise single-line nav links (desktop lg+) */}
-          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-5 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
+          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
             <a
               href="/"
               onClick={(e) => handleNavAnchor(e, 'home')}

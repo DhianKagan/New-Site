@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+@theme {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.925rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.55;
+  --text-lg: 1.15rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.3rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.55rem;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 1.95rem;
+  --text-3xl--line-height: 1.2;
+}
+
 @layer base {
   :root {
     --navy: #0d1f33;
@@ -16,11 +33,25 @@
   }
 
   html {
+    font-size: 16.5px;
     scroll-behavior: smooth;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 17.5px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 18.5px;
+    }
   }
 
   body {
     font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
     color: var(--ink);
     background: transparent;
   }
@@ -39,3 +70,43 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+@layer utilities {
+  .text-\[10px\] {
+    font-size: 0.7rem;
+  }
+  .text-\[10\.5px\] {
+    font-size: 0.73rem;
+  }
+  .text-\[11px\] {
+    font-size: 0.77rem;
+  }
+  .text-\[13px\] {
+    font-size: 0.89rem;
+  }
+  .text-\[15px\] {
+    font-size: 1.03rem;
+  }
+}
+
+@keyframes videoBackgroundFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.video-bg-fade-in {
+  animation: videoBackgroundFadeIn 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-bg-fade-in {
+    animation: none;
+    opacity: 1;
+  }
+}
+

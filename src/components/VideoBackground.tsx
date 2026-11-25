@@ -197,72 +197,75 @@ export function VideoBackground({
       className={`fixed inset-0 overflow-hidden pointer-events-none select-none bg-[#081421] ${className}`}
       style={{ zIndex: -1 }}
     >
-      {/* Poster fallback layer ensures instant visual coverage while video initializes */}
-      <img
-        src={poster}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover scale-105"
-      />
+      {/* Fade-in visual stage ensures smooth transition from blank dark state to video content */}
+      <div className="absolute inset-0 video-bg-fade-in">
+        {/* Poster fallback layer ensures instant visual coverage while video initializes */}
+        <img
+          src={poster}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover scale-105"
+        />
 
-      {youtubeEmbedUrl ? (
-        <iframe
-          ref={iframeRef}
-          src={youtubeEmbedUrl}
-          title="Energo Comfort solar station background video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          referrerPolicy="strict-origin-when-cross-origin"
-          tabIndex={-1}
-          onLoad={() => {
-            const win = iframeRef.current?.contentWindow;
-            if (win) {
-              win.postMessage(JSON.stringify({ event: 'listening' }), '*');
-              if (muted) {
-                win.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+        {youtubeEmbedUrl ? (
+          <iframe
+            ref={iframeRef}
+            src={youtubeEmbedUrl}
+            title="Energo Comfort solar station background video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            referrerPolicy="strict-origin-when-cross-origin"
+            tabIndex={-1}
+            onLoad={() => {
+              const win = iframeRef.current?.contentWindow;
+              if (win) {
+                win.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                if (muted) {
+                  win.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+                }
+                if (autoPlay) {
+                  win.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                }
               }
-              if (autoPlay) {
-                win.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-              }
-            }
-            window.setTimeout(() => setMediaVisible(true), 450);
-          }}
-          className={`absolute top-1/2 left-1/2 border-0 pointer-events-none transition-opacity duration-700 ${
-            mediaVisible ? 'opacity-100' : 'opacity-0'
-          }`}
+              window.setTimeout(() => setMediaVisible(true), 450);
+            }}
+            className={`absolute top-1/2 left-1/2 border-0 pointer-events-none transition-opacity duration-1000 ease-out ${
+              mediaVisible ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              width: 'max(100vw, 177.78vh)',
+              height: 'max(100vh, 56.25vw)',
+              transform: 'translate(-50%, -50%) scale(1.08)',
+            }}
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            src={src}
+            poster={poster}
+            autoPlay={autoPlay}
+            loop={loop}
+            muted={muted}
+            playsInline={playsInline}
+            preload="auto"
+            onCanPlay={() => setMediaVisible(true)}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-out ${
+              mediaVisible ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        )}
+
+        {/* Darkened backdrop-filter overlay across the entire viewport */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
           style={{
-            width: 'max(100vw, 177.78vh)',
-            height: 'max(100vh, 56.25vw)',
-            transform: 'translate(-50%, -50%) scale(1.08)',
+            backdropFilter: `brightness(${clampedBrightness})`,
+            WebkitBackdropFilter: `brightness(${clampedBrightness})`,
+            background:
+              'linear-gradient(180deg, rgba(8, 20, 33, 0.36) 0%, rgba(13, 31, 51, 0.24) 50%, rgba(8, 20, 33, 0.44) 100%)',
           }}
         />
-      ) : (
-        <video
-          ref={videoRef}
-          src={src}
-          poster={poster}
-          autoPlay={autoPlay}
-          loop={loop}
-          muted={muted}
-          playsInline={playsInline}
-          preload="auto"
-          onCanPlay={() => setMediaVisible(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-            mediaVisible ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-      )}
-
-      {/* Darkened backdrop-filter overlay across the entire viewport */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0"
-        style={{
-          backdropFilter: `brightness(${clampedBrightness})`,
-          WebkitBackdropFilter: `brightness(${clampedBrightness})`,
-          background:
-            'linear-gradient(180deg, rgba(8, 20, 33, 0.36) 0%, rgba(13, 31, 51, 0.24) 50%, rgba(8, 20, 33, 0.44) 100%)',
-        }}
-      />
+      </div>
     </div>
   );
 }

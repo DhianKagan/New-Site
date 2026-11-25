@@ -44,6 +44,11 @@ test('VideoBackground component uses z-index -1, brightness(0.4) backdrop-filter
   assert.ok(source.includes('loop={loop}'));
   assert.ok(source.includes('muted={muted}'));
   assert.ok(source.includes('playsInline={playsInline}'));
+  assert.ok(source.includes('video-bg-fade-in'));
+
+  const cssSource = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  assert.ok(cssSource.includes('@keyframes videoBackgroundFadeIn'));
+  assert.ok(cssSource.includes('.video-bg-fade-in'));
 
   const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.ok(appSource.includes('<VideoBackground'));
