@@ -5,6 +5,7 @@ import path from 'node:path';
 import express from 'express';
 import {
   claimMasterAdminAccount,
+  clearClientErrorLogs,
   createContact,
   createCustomerAccountByCrm,
   createDeal,
@@ -48,12 +49,14 @@ import {
   listProducts,
   listProjectCases,
   listRecentAnalyticsEvents,
+  listRecentClientErrorLogs,
   listSitemapCategoryEntries,
   listSitemapProductEntries,
   listStaffUsers,
   listTasks,
   markDealTelegramSent,
   recordAnalyticsEvent,
+  recordClientErrorLog,
   registerCustomerWithPassword,
   saveAnalyticsSettings,
   saveSocialLinks,
@@ -74,6 +77,7 @@ import {
   adminLoginSchema,
   adminSetupSchema,
   analyticsPutSchema,
+  clientErrorReportSchema,
   clientProfilePatchSchema,
   clientRegisterSchema,
   contactCreateSchema,
@@ -92,6 +96,7 @@ import {
   productPatchSchema,
   projectCreateSchema,
   projectPatchSchema,
+  scrubSensitiveErrorText,
   socialPutSchema,
   staffCreateSchema,
   staffPatchSchema,
@@ -464,6 +469,12 @@ async function startServer() {
     message: 'Rate limit exceeded',
   });
 
+  const errorReportRateLimit = createRateLimiter({
+    windowMs: 60_000,
+    max: 20,
+    message: 'Too many error reports',
+  });
+
   function resolveOptionalClient(req: express.Request): { customerId: number; customerEmail: string } | null {
     const header = req.headers.authorization;
     if (!header || !header.startsWith('Bearer ')) return null;
@@ -638,6 +649,37 @@ async function startServer() {
     }
     recordAnalyticsEvent(eventName, metaEvent, ga4Event, safePayload);
     res.json({ ok: true });
+  });
+
+  app.post('/api/telemetry/errors', errorReportRateLimit, (req, res) => {
+    const parsed = clientErrorReportSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid error report payload' });
+      return;
+    }
+
+    const errorId = parsed.data.errorId || `ec-${crypto.randomBytes(6).toString('hex')}`;
+    const sanitizedEntry = {
+      errorId,
+      kind: parsed.data.kind,
+      name: scrubSensitiveErrorText(parsed.data.name).slice(0, 120),
+      message: scrubSensitiveErrorText(parsed.data.message).slice(0, 600),
+      stack: scrubSensitiveErrorText(parsed.data.stack).slice(0, 4000),
+      componentStack: scrubSensitiveErrorText(parsed.data.componentStack).slice(0, 4000),
+      route: parsed.data.route,
+      locale: parsed.data.locale,
+    };
+
+    console.error('[ClientRuntimeError]', {
+      errorId: sanitizedEntry.errorId,
+      kind: sanitizedEntry.kind,
+      route: sanitizedEntry.route,
+      name: sanitizedEntry.name,
+      message: sanitizedEntry.message,
+    });
+
+    recordClientErrorLog(sanitizedEntry);
+    res.status(201).json({ ok: true, errorId });
   });
 
   app.post('/api/leads', formRateLimit, async (req, res) => {
@@ -1607,6 +1649,15 @@ async function startServer() {
     }
     saveAnalyticsSettings(parsed.data);
     res.json(parsed.data);
+  });
+
+  app.get('/api/crm/errors', requireRoles('admin'), (_req, res) => {
+    res.json({ errors: listRecentClientErrorLogs(30) });
+  });
+
+  app.delete('/api/crm/errors', requireRoles('admin'), (_req, res) => {
+    clearClientErrorLogs();
+    res.json({ ok: true });
   });
 
   app.put('/api/crm/social', requireRoles('admin'), (req, res) => {

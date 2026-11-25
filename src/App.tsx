@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { ShoppingBag, Menu, X, PhoneCall, Send, User } from 'lucide-react';
+import { Component, useCallback, useEffect, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
+import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check } from 'lucide-react';
 import type {
   AdminAuthStatus,
   AnalyticsConfig,
@@ -14,6 +14,7 @@ import type {
 } from './types.ts';
 import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
 import { initAnalytics, track, trackEvent, type Placement } from './lib/analytics.ts';
+import { reportClientError, type ClientErrorReportPayload } from './lib/errorReporting.ts';
 import { signOutFirebase } from './lib/firebaseAuth.ts';
 import { getProductAggregateRating } from './lib/seoRating.ts';
 import { HomeView } from './components/HomeView.tsx';
@@ -111,7 +112,188 @@ function buildPathForRoute(
   return `/${view}`;
 }
 
-export default function App() {
+interface GlobalErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface GlobalErrorBoundaryState {
+  hasError: boolean;
+  report: ClientErrorReportPayload | null;
+  copied: boolean;
+  resetCounter: number;
+}
+
+export class GlobalErrorBoundary extends Component<GlobalErrorBoundaryProps, GlobalErrorBoundaryState> {
+  state: GlobalErrorBoundaryState = {
+    hasError: false,
+    report: null,
+    copied: false,
+    resetCounter: 0,
+  };
+
+  static getDerivedStateFromError(error: Error): Partial<GlobalErrorBoundaryState> {
+    return {
+      hasError: true,
+      report: {
+        errorId: 'ec-pending',
+        kind: 'react_boundary',
+        name: error.name || 'Error',
+        message: error.message || 'Unexpected UI error',
+        stack: error.stack || '',
+        componentStack: '',
+        route: typeof window !== 'undefined' ? window.location.pathname : '/',
+        locale: getSavedLocale(),
+      },
+    };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    const payload = reportClientError({
+      kind: 'react_boundary',
+      error,
+      componentStack: errorInfo.componentStack ?? '',
+      route: typeof window !== 'undefined' ? window.location.pathname : '/',
+      locale: getSavedLocale(),
+    });
+    this.setState({ report: payload });
+  }
+
+  private handleRetry = (): void => {
+    this.setState((prev) => ({
+      hasError: false,
+      report: null,
+      copied: false,
+      resetCounter: prev.resetCounter + 1,
+    }));
+  };
+
+  private handleGoHome = (): void => {
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/');
+    }
+    this.setState((prev) => ({
+      hasError: false,
+      report: null,
+      copied: false,
+      resetCounter: prev.resetCounter + 1,
+    }));
+  };
+
+  private handleCopyDiagnostics = async (): Promise<void> => {
+    const rep = this.state.report;
+    if (!rep || typeof navigator === 'undefined' || !navigator.clipboard) return;
+    const text = [
+      `Error ID: ${rep.errorId}`,
+      `Route: ${rep.route}`,
+      `${rep.name}: ${rep.message}`,
+      rep.componentStack ? `Component stack:\n${rep.componentStack}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      this.setState({ copied: true });
+      window.setTimeout(() => this.setState({ copied: false }), 2500);
+    } catch {
+      this.setState({ copied: false });
+    }
+  };
+
+  render(): ReactNode {
+    if (!this.state.hasError) {
+      return <div key={this.state.resetCounter}>{this.props.children}</div>;
+    }
+
+    const rep = this.state.report;
+    return (
+      <div className="min-h-screen bg-[#f6f8fb] text-[#0d1f33] flex items-center justify-center p-5">
+        <div
+          role="alert"
+          className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-7 shadow-sm space-y-5"
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold text-[#1769aa]">Energo Comfort</div>
+              <h1 className="text-lg font-extrabold text-[#0d1f33]">
+                {tr('Виникла неочікувана помилка інтерфейсу', 'Возникла непредвиденная ошибка интерфейса')}
+              </h1>
+              <p className="text-xs text-[#52657a] mt-1 leading-relaxed">
+                {tr(
+                  'Ми вже зафіксували інформацію про збій для команди розробки. Спробуйте оновити інтерфейс або повернутися на головну сторінку.',
+                  'Мы уже зафиксировали информацию о сбое для команды разработки. Попробуйте обновить интерфейс или вернуться на главную страницу.',
+                )}
+              </p>
+            </div>
+          </div>
+
+          {rep && (
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono font-bold text-[#0d1f33]">
+                  ID: {rep.errorId}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void this.handleCopyDiagnostics()}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-300 bg-white hover:bg-slate-100 text-[11px] font-bold text-[#0d1f33] cursor-pointer"
+                >
+                  {this.state.copied ? <Check className="w-3 h-3 text-[#169374]" /> : <Copy className="w-3 h-3" />}
+                  {this.state.copied ? tr('Скопійовано', 'Скопировано') : tr('Копіювати деталі', 'Копировать детали')}
+                </button>
+              </div>
+              <details className="text-[11px] text-[#52657a]">
+                <summary className="cursor-pointer font-semibold text-[#1769aa] hover:underline">
+                  {tr('Технічні деталі збою', 'Технические детали сбоя')}
+                </summary>
+                <div className="mt-2 font-mono text-[11px] text-red-700 break-words bg-white border border-slate-200 rounded-lg p-2.5">
+                  <div>
+                    {rep.name}: {rep.message}
+                  </div>
+                  {rep.componentStack && (
+                    <pre className="mt-1.5 text-[10px] text-slate-600 whitespace-pre-wrap overflow-x-auto max-h-40">
+                      {rep.componentStack.trim()}
+                    </pre>
+                  )}
+                </div>
+              </details>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={this.handleRetry}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {tr('Спробувати відновити', 'Попробовать восстановить')}
+            </button>
+            <button
+              type="button"
+              onClick={this.handleGoHome}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#0d1f33] text-xs font-bold cursor-pointer"
+            >
+              <Home className="w-3.5 h-3.5" />
+              {tr('На головну', 'На главную')}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-[#1769aa] hover:underline text-xs font-bold cursor-pointer"
+            >
+              {tr('Перезавантажити сторінку', 'Перезагрузить страницу')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
+function AppContent() {
   const initialRoute = parseRouteFromLocation();
   const [view, setView] = useState<AppView>(initialRoute.view);
   const [authPortalMode, setAuthPortalMode] = useState<'login' | 'register'>(initialRoute.authMode);
@@ -123,6 +305,36 @@ export default function App() {
   useEffect(() => {
     setActiveLocale(locale);
   }, [locale]);
+
+  useEffect(() => {
+    const handleWindowError = (event: ErrorEvent) => {
+      reportClientError({
+        kind: 'window_error',
+        error: event.error instanceof Error ? event.error : new Error(event.message || 'Unhandled script error'),
+        route: window.location.pathname,
+        locale: getSavedLocale(),
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      reportClientError({
+        kind: 'unhandled_rejection',
+        error:
+          event.reason instanceof Error
+            ? event.reason
+            : new Error(typeof event.reason === 'string' ? event.reason : 'Unhandled promise rejection'),
+        route: window.location.pathname,
+        locale: getSavedLocale(),
+      });
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => {
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   function changeLocale(nextLocale: Locale) {
     setActiveLocale(nextLocale);
@@ -1364,5 +1576,13 @@ export default function App() {
         usdUahRate={usdUahRate}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <GlobalErrorBoundary>
+      <AppContent />
+    </GlobalErrorBoundary>
   );
 }

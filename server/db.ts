@@ -7,6 +7,8 @@ import { drizzle } from 'drizzle-orm/sqlite-proxy';
 import * as schema from './schema.ts';
 import { hashPassword } from './auth.ts';
 import type {
+  ClientErrorKind,
+  ClientErrorRecord,
   Contact,
   ContactSegment,
   CrmCustomer,
@@ -217,6 +219,19 @@ function getDb(): DatabaseSync {
       last_login_at TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS client_error_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      error_id TEXT NOT NULL,
+      kind TEXT NOT NULL DEFAULT 'react_boundary',
+      name TEXT NOT NULL DEFAULT 'Error',
+      message TEXT NOT NULL,
+      stack TEXT NOT NULL DEFAULT '',
+      component_stack TEXT NOT NULL DEFAULT '',
+      route TEXT NOT NULL DEFAULT '/',
+      locale TEXT NOT NULL DEFAULT 'uk',
+      created_at TEXT NOT NULL
     );
   `);
 
@@ -1135,6 +1150,70 @@ export function listRecentAnalyticsEvents(limit = 35): Array<{
     payload: JSON.parse(String(r.payload_json || '{}')) as Record<string, string | number>,
     createdAt: String(r.created_at),
   }));
+}
+
+export function recordClientErrorLog(input: {
+  errorId: string;
+  kind: ClientErrorKind;
+  name: string;
+  message: string;
+  stack: string;
+  componentStack: string;
+  route: string;
+  locale: 'uk' | 'ru';
+}): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO client_error_logs
+      (error_id, kind, name, message, stack, component_stack, route, locale, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    input.errorId,
+    input.kind,
+    input.name,
+    input.message,
+    input.stack,
+    input.componentStack,
+    input.route,
+    input.locale,
+    now,
+  );
+
+  // Bound stored client error records to latest 200 entries
+  db.prepare(
+    'DELETE FROM client_error_logs WHERE id NOT IN (SELECT id FROM client_error_logs ORDER BY id DESC LIMIT 200)',
+  ).run();
+  checkpointDb(db);
+}
+
+export function listRecentClientErrorLogs(limit = 30): ClientErrorRecord[] {
+  const db = getDb();
+  const safeLimit = Math.max(1, Math.min(100, Math.round(limit)));
+  const rows = db.prepare('SELECT * FROM client_error_logs ORDER BY id DESC LIMIT ?').all(safeLimit);
+  return rows.map((r) => {
+    const rawKind = String(r.kind || 'react_boundary');
+    const kind: ClientErrorKind =
+      rawKind === 'window_error' || rawKind === 'unhandled_rejection' ? rawKind : 'react_boundary';
+    return {
+      id: Number(r.id),
+      errorId: String(r.error_id),
+      kind,
+      name: String(r.name),
+      message: String(r.message),
+      stack: String(r.stack || ''),
+      componentStack: String(r.component_stack || ''),
+      route: String(r.route || '/'),
+      locale: String(r.locale || 'uk'),
+      createdAt: String(r.created_at),
+    };
+  });
+}
+
+export function clearClientErrorLogs(): void {
+  const db = getDb();
+  db.prepare('DELETE FROM client_error_logs').run();
+  checkpointDb(db);
 }
 
 function seedProjectsIfEmpty(db: DatabaseSync): void {

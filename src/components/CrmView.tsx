@@ -33,6 +33,7 @@ import { clearRuntimeFirebaseConfigCache, getFirebaseProjectId } from '../lib/fi
 import type {
   AnalyticsConfig,
   AnalyticsEventRecord,
+  ClientErrorRecord,
   Contact,
   CrmCustomer,
   CrmSessionUser,
@@ -232,6 +233,10 @@ export function CrmView({
   const [domainsMsg, setDomainsMsg] = useState('');
   const [domainsErr, setDomainsErr] = useState('');
 
+  // Client Runtime Error Logs state
+  const [clientErrors, setClientErrors] = useState<ClientErrorRecord[]>([]);
+  const [clearingErrors, setClearingErrors] = useState(false);
+
   // Projects / Case Studies Editor state
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -312,9 +317,10 @@ export function CrmView({
   }, [authFetch]);
 
   const loadDiagnostics = useCallback(async () => {
-    const [statusResp, webhookResp] = await Promise.all([
+    const [statusResp, webhookResp, errorsResp] = await Promise.all([
       authFetch('/api/crm/status'),
       authFetch('/api/crm/telegram-webhook'),
+      authFetch('/api/crm/errors'),
     ]);
     if (statusResp.ok) {
       const data = (await statusResp.json()) as {
@@ -333,7 +339,23 @@ export function CrmView({
       };
       setWebhookStatus(info);
     }
+    if (errorsResp.ok) {
+      const data = (await errorsResp.json()) as { errors?: ClientErrorRecord[] };
+      if (Array.isArray(data.errors)) setClientErrors(data.errors);
+    }
   }, [authFetch]);
+
+  async function handleClearClientErrors() {
+    setClearingErrors(true);
+    try {
+      const resp = await authFetch('/api/crm/errors', { method: 'DELETE' });
+      if (resp.ok) {
+        setClientErrors([]);
+      }
+    } finally {
+      setClearingErrors(false);
+    }
+  }
 
   const loadCustomers = useCallback(async () => {
     const resp = await authFetch('/api/crm/customers');
@@ -2499,6 +2521,82 @@ export function CrmView({
               {domainsErr && <div className="text-xs font-semibold text-red-600">{domainsErr}</div>}
               {domainsMsg && <div className="text-xs font-semibold text-[#169374]">{domainsMsg}</div>}
             </div>
+
+            {/* Production Client Runtime Error Logs Card */}
+            {isAdmin && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-red-600" />
+                    {tr('Журнал клієнтських помилок (Production Debug)', 'Журнал клиентских ошибок (Production Debug)')}
+                  </h2>
+                  <p className="text-xs text-[#52657a] mt-0.5">
+                    {tr(
+                      'Звіти від GlobalErrorBoundary та неперехоплені винятки браузера (без токенів і секретів).',
+                      'Отчёты от GlobalErrorBoundary и неперехваченные исключения браузера (без токенов и секретов).',
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void loadDiagnostics()}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    {tr('Оновити', 'Обновить')}
+                  </button>
+                  {clientErrors.length > 0 && (
+                    <button
+                      type="button"
+                      disabled={clearingErrors}
+                      onClick={() => void handleClearClientErrors()}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-bold text-red-700 cursor-pointer disabled:opacity-60"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {tr('Очистити', 'Очистить')}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {clientErrors.length === 0 ? (
+                <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                  {tr('Критичних помилок інтерфейсу не зафіксовано.', 'Критических ошибок интерфейса не зафиксировано.')}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {clientErrors.slice(0, 15).map((errItem) => (
+                    <div
+                      key={errItem.id}
+                      className="rounded-lg border border-red-200/80 bg-red-50/40 p-3 text-xs space-y-1.5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="font-mono font-bold text-[#0d1f33]">
+                          [{errItem.kind}] {errItem.name} · <span className="text-[#1769aa]">{errItem.route}</span>
+                        </div>
+                        <div className="font-mono text-[11px] text-slate-500">
+                          {errItem.errorId} · {new Date(errItem.createdAt).toLocaleString('uk-UA')}
+                        </div>
+                      </div>
+                      <div className="text-red-800 font-semibold break-words">{errItem.message}</div>
+                      {(errItem.componentStack || errItem.stack) && (
+                        <details className="text-[11px] text-slate-600">
+                          <summary className="cursor-pointer font-semibold text-[#1769aa] hover:underline">
+                            Stack / Component stack
+                          </summary>
+                          <pre className="mt-1.5 bg-white border border-slate-200 rounded p-2 text-[10px] font-mono whitespace-pre-wrap overflow-x-auto max-h-36">
+                            {errItem.componentStack || errItem.stack}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            )}
           </div>
         )}
           </div>

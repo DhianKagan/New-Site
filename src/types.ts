@@ -274,3 +274,18 @@ export interface FirebaseRuntimeWebConfig {
   authorizedHosts: string[];
 }
 
+export type ClientErrorKind = 'react_boundary' | 'window_error' | 'unhandled_rejection';
+
+export interface ClientErrorRecord {
+  id: number;
+  errorId: string;
+  kind: ClientErrorKind;
+  name: string;
+  message: string;
+  stack: string;
+  componentStack: string;
+  route: string;
+  locale: string;
+  createdAt: string;
+}
+

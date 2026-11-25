@@ -328,3 +328,37 @@ export const firebaseDomainsPutSchema = z.object({
     )
     .max(50),
 });
+
+export const CLIENT_ERROR_KINDS = ['react_boundary', 'window_error', 'unhandled_rejection'] as const;
+
+export function scrubSensitiveErrorText(raw: string): string {
+  return raw
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+    .replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, '[JWT_REDACTED]')
+    .replace(/AIza[0-9A-Za-z_-]{20,}/g, '[API_KEY_REDACTED]')
+    .replace(/([?&](?:token|idToken|access_token|secret|password|key)=)[^&\s]+/gi, '$1[REDACTED]');
+}
+
+export const clientErrorReportSchema = z.object({
+  errorId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[a-zA-Z0-9_-]+$/)
+    .optional(),
+  kind: z.enum(CLIENT_ERROR_KINDS).default('react_boundary'),
+  name: z.string().trim().min(1).max(120).default('Error'),
+  message: z.string().trim().min(1).max(600),
+  stack: z.string().max(4000).optional().default(''),
+  componentStack: z.string().max(4000).optional().default(''),
+  route: z
+    .string()
+    .trim()
+    .max(300)
+    .transform((v) => v.split('?')[0].split('#')[0] || '/')
+    .optional()
+    .default('/'),
+  locale: z.enum(['uk', 'ru']).optional().default('uk'),
+});
+

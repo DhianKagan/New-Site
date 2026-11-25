@@ -10,7 +10,7 @@
     "dev": "tsx server.ts",
     "start": "node server.ts",
     "build": "vite build",
-    "test": "tsx --test tests/leadForm.test.ts tests/sitemap.test.ts tests/shopSearch.test.ts tests/seoRating.test.ts tests/firebaseConfig.test.ts",
+    "test": "tsx --test tests/leadForm.test.ts tests/sitemap.test.ts tests/shopSearch.test.ts tests/seoRating.test.ts tests/firebaseConfig.test.ts tests/errorReporting.test.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
