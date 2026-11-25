@@ -36,6 +36,7 @@ interface HomeViewProps {
     initialNotes?: string,
   ) => void;
   onSelectProduct: (product: Product) => void;
+  onQuickViewProduct?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onSelectCase: (project: ProjectCase) => void;
   onLeadCreated: (deal: Deal) => void;
@@ -55,6 +56,7 @@ export function HomeView({
   onNavigateProjects,
   onOpenLeadModal,
   onSelectProduct,
+  onQuickViewProduct,
   onAddToCart,
   onSelectCase,
   onLeadCreated,
@@ -790,6 +792,7 @@ export function HomeView({
                     key={`calc-${prod.id}`}
                     product={prod}
                     onSelect={onSelectProduct}
+                    onQuickView={onQuickViewProduct}
                     onAddToCart={onAddToCart}
                     onRequestQuote={(p) =>
                       onOpenLeadModal(
@@ -863,6 +866,7 @@ export function HomeView({
                 key={prod.id}
                 product={prod}
                 onSelect={onSelectProduct}
+                onQuickView={onQuickViewProduct}
                 onAddToCart={onAddToCart}
                 onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
               />

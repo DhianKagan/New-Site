@@ -1,4 +1,4 @@
-import { ShoppingBag, ArrowUpRight } from 'lucide-react';
+import { ShoppingBag, ArrowUpRight, Eye } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
@@ -15,12 +15,20 @@ const CAT_LABELS: Record<string, string> = {
 interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
+  onQuickView?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   usdUahRate: number | null;
 }
 
-export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, usdUahRate }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onSelect,
+  onQuickView,
+  onAddToCart,
+  onRequestQuote,
+  usdUahRate,
+}: ProductCardProps) {
   const isRussian = getActiveLocale() === 'ru';
   const specs = isRussian
     ? product.specsRu ?? product.specs.map(([key, value]) => [localizeCatalogText(key), localizeCatalogText(value)] as [string, string])
@@ -30,19 +38,37 @@ export function ProductCard({ product, onSelect, onAddToCart, onRequestQuote, us
 
   return (
     <article className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300">
-      <button
-        type="button"
-        onClick={() => onSelect(product)}
-        className="relative h-52 w-full bg-[#f8fafc] border-b border-slate-100 overflow-hidden text-left cursor-pointer group"
-      >
-        <SmartImage
-          src={product.img}
-          alt={product.title}
-          className={`w-full h-full transition-transform duration-200 group-hover:scale-[1.02] ${
-            product.isKit ? 'object-cover' : 'object-contain p-4'
-          }`}
-        />
-      </button>
+      <div className="relative h-52 w-full bg-[#f8fafc] border-b border-slate-100 overflow-hidden group">
+        <button
+          type="button"
+          onClick={() => onSelect(product)}
+          aria-label={localizedTitle}
+          className="w-full h-full block text-left cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
+        >
+          <SmartImage
+            src={product.img}
+            alt={product.title}
+            className={`w-full h-full transition-transform duration-200 group-hover:scale-[1.02] ${
+              product.isKit ? 'object-cover' : 'object-contain p-4'
+            }`}
+          />
+        </button>
+
+        {onQuickView && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickView(product);
+            }}
+            aria-label={`${tr('Швидкий перегляд', 'Быстрый просмотр')}: ${localizedTitle}`}
+            title={tr('Швидкий перегляд', 'Быстрый просмотр')}
+            className="absolute top-2.5 right-2.5 z-10 w-10 h-10 rounded-lg bg-white/95 hover:bg-[#1769aa] text-[#0d1f33] hover:text-white border border-slate-200 shadow-xs flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
       <div className="p-4 flex-1 flex flex-col justify-between gap-3">
         <div>

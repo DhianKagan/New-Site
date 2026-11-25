@@ -12,6 +12,7 @@ interface ShopViewProps {
   initialQuery?: string;
   onCategoryChange?: (cat: ProductCategory | 'all') => void;
   onSelectProduct: (product: Product) => void;
+  onQuickViewProduct?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   onOpenCustomRequest?: (topic: string, notes?: string) => void;
@@ -36,6 +37,7 @@ export function ShopView({
   initialQuery = '',
   onCategoryChange,
   onSelectProduct,
+  onQuickViewProduct,
   onAddToCart,
   onRequestQuote,
   onOpenCustomRequest,
@@ -354,6 +356,7 @@ export function ShopView({
                   key={p.id}
                   product={p}
                   onSelect={onSelectProduct}
+                  onQuickView={onQuickViewProduct}
                   onAddToCart={onAddToCart}
                   onRequestQuote={(prod) => onRequestQuote(prod)}
                   usdUahRate={usdUahRate}

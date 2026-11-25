@@ -35,6 +35,7 @@ import { CrmView } from './components/CrmView.tsx';
 import { AuthPortalView } from './components/AuthPortalView.tsx';
 import { ClientCabinetView } from './components/ClientCabinetView.tsx';
 import { ProductModal } from './components/ProductModal.tsx';
+import { QuickViewModal } from './components/QuickViewModal.tsx';
 import { CaseModal } from './components/CaseModal.tsx';
 import { LeadModal } from './components/LeadModal.tsx';
 import { CartDrawer } from './components/CartDrawer.tsx';
@@ -394,6 +395,7 @@ function AppContent() {
 
   // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [selectedCase, setSelectedCase] = useState<ProjectCase | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [leadPlacement, setLeadPlacement] = useState<Placement>('section');
@@ -938,6 +940,7 @@ function AppContent() {
         if (selectedProduct) {
           handleCloseProductModal();
         }
+        setQuickViewProduct(null);
         setSelectedCase(null);
         setLeadModalOpen(false);
         setCartOpen(false);
@@ -968,6 +971,7 @@ function AppContent() {
       void fetchAuthStatus();
     }
     setSelectedProduct(null);
+    setQuickViewProduct(null);
     setView(nextView);
     setMobileMenuOpen(false);
     const targetUrl = buildPathForRoute(nextView, resolvedCat, null, authMode, nextView === 'shop' && cat === undefined ? shopInitialQuery : '');
@@ -998,6 +1002,7 @@ function AppContent() {
     setClientCustomer(null);
     void signOutFirebase();
     setSelectedProduct(null);
+    setQuickViewProduct(null);
     setView('home');
     setMobileMenuOpen(false);
     if (window.location.pathname + window.location.search !== '/') {
@@ -1046,6 +1051,19 @@ function AppContent() {
       const targetUrl = buildPathForRoute(view, shopInitialCat, null, undefined, shopInitialQuery);
       window.history.pushState({}, '', targetUrl);
     }
+  }
+
+  function handleQuickViewProduct(product: Product) {
+    setQuickViewProduct(product);
+    const money = resolveAnalyticsMoney(product.price, usdUahRate);
+    trackEvent('view_item', {
+      item_id: product.sku || product.id,
+      item_name: product.title,
+      item_category: product.cat,
+      value: money.value,
+      currency: money.currency,
+      items: [toAnalyticsProductItem(product, usdUahRate, 1)],
+    });
   }
 
   function handleShopCategorySync(nextCat: ProductCategory | 'all') {
@@ -1410,6 +1428,7 @@ function AppContent() {
                 onNavigateProjects={() => navigateTo('projects')}
                 onOpenLeadModal={openLeadModal}
                 onSelectProduct={handleSelectProduct}
+                onQuickViewProduct={handleQuickViewProduct}
                 onAddToCart={handleAddToCart}
                 onSelectCase={setSelectedCase}
                 onLeadCreated={() => void fetchDeals()}
@@ -1425,6 +1444,7 @@ function AppContent() {
                 initialQuery={shopInitialQuery}
                 onCategoryChange={handleShopCategorySync}
                 onSelectProduct={handleSelectProduct}
+                onQuickViewProduct={handleQuickViewProduct}
                 onAddToCart={handleAddToCart}
                 onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
                 onOpenCustomRequest={(topic, notes) => openLeadModal(topic, undefined, 'section', notes)}
@@ -1667,7 +1687,7 @@ function AppContent() {
       )}
 
       {/* Slim Mobile Thumb CTA Bar (<= 44px height) */}
-      {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !selectedCase && (
+      {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !quickViewProduct && !selectedCase && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
@@ -1702,6 +1722,18 @@ function AppContent() {
         adminToken={adminToken}
         clientCustomerName={clientCustomer?.name ?? null}
         onRequireLogin={() => navigateTo('login', undefined, 'login')}
+      />
+
+      <QuickViewModal
+        product={quickViewProduct}
+        onClose={() => setQuickViewProduct(null)}
+        onAddToCart={handleAddToCart}
+        onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+        onOpenFullDetails={(p) => {
+          setQuickViewProduct(null);
+          handleSelectProduct(p);
+        }}
+        usdUahRate={usdUahRate}
       />
 
       <CaseModal
