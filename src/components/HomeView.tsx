@@ -306,7 +306,7 @@ export function HomeView({
               </div>
               <h1 className="text-[clamp(1.85rem,3.6vw,2.65rem)] font-extrabold text-[#0d1f33] leading-[1.12] tracking-tight mb-4 max-w-2xl">
                 {tr('Сонячні електростанції та резервне живлення', 'Солнечные электростанции и резервное питание')}{' '}
-                <span className="text-[#1769aa]">{tr('в Одесі під ключ', 'в Одессе под ключ')}</span>
+                <span className="text-[#1769aa]">{tr('в Одесі та області під ключ', 'в Одессе и области под ключ')}</span>
               </h1>
               <p className="text-[15px] text-[#52657a] leading-relaxed mb-6 max-w-xl">
                 {tr('Проєктування, офіційне постачання обладнання (Deye, SolaX, Solis, Dyness, Trina) та сертифікований монтаж «під ключ» з гарантією в Одесі та області.', 'Проектирование, официальные поставки оборудования (Deye, SolaX, Solis, Dyness, Trina) и сертифицированный монтаж под ключ с гарантией в Одессе и области.')}
