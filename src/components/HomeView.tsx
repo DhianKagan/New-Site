@@ -316,15 +316,15 @@ export function HomeView({
         />
         <div className="relative ec-container">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-6">
-            <div className="lg:col-span-7 min-w-0 flex flex-col justify-center ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 break-words hyphens-none">
-              <div className="text-xs font-extrabold text-[#0b66b2] uppercase tracking-wider mb-2.5">
+            <div className="lg:col-span-7 min-w-0 flex flex-col justify-center ec-glass-plate rounded-2xl p-5 sm:p-6 lg:p-7 break-words hyphens-none">
+              <div className="text-[11px] sm:text-xs font-bold text-[#0b66b2] uppercase tracking-[0.06em] mb-2">
                 {tr('Резервне живлення · Сонячні електростанції · Одеса')}
               </div>
-              <h1 className="text-[clamp(1.35rem,5.1vw,2.65rem)] font-extrabold text-[#07213e] leading-[1.18] tracking-normal mb-4 max-w-2xl">
+              <h1 className="text-[clamp(1.4rem,3vw,2.15rem)] font-bold text-[#07213e] leading-[1.16] tracking-[-0.02em] mb-3.5">
                 {tr('Сонячні електростанції та резервне живлення', 'Солнечные электростанции и резервное питание')}{' '}
                 <span className="text-[#0b66b2]">{tr('в Одесі та області під ключ', 'в Одессе и области под ключ')}</span>
               </h1>
-              <p className="text-[15px] text-[#1c3d5e] font-medium leading-relaxed mb-6 max-w-xl">
+              <p className="text-[14.5px] sm:text-[15px] text-[#1c3d5e] font-medium leading-[1.55] mb-5 max-w-[60ch]">
                 {tr('Проєктування, офіційне постачання обладнання (Deye, SolaX, Solis, Dyness, Trina) та сертифікований монтаж «під ключ» з гарантією в Одесі та області.', 'Проектирование, официальные поставки оборудования (Deye, SolaX, Solis, Dyness, Trina) и сертифицированный монтаж под ключ с гарантией в Одессе и области.')}
               </p>
 
@@ -383,7 +383,7 @@ export function HomeView({
             <div className="lg:col-span-5 flex items-stretch">
               {activeHeroCase && (
                 <div
-                  className="relative w-full min-h-[310px] sm:min-h-[340px] h-full rounded-2xl overflow-hidden border border-white/60 bg-[#07213e] shadow-xl group"
+                  className="relative w-full min-h-[290px] sm:min-h-[320px] h-full rounded-2xl overflow-hidden border border-white/60 bg-[#07213e] shadow-xl group"
                   onMouseEnter={() => setHeroPaused(true)}
                   onMouseLeave={() => setHeroPaused(false)}
                 >
@@ -400,7 +400,7 @@ export function HomeView({
                       priority
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#041830]/90 via-[#041830]/25 to-[#041830]/15 flex flex-col justify-between p-5 text-white">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#041830]/92 via-[#041830]/25 to-[#041830]/15 flex flex-col justify-between p-4 sm:p-5 text-white">
                       <div className="flex items-center justify-between gap-2">
                         <span className="px-2.5 py-1 rounded-lg bg-[#07213e]/75 backdrop-blur-sm border border-sky-200/25 text-[11px] font-bold text-sky-100">
                           {isRussian ? activeHeroCase.tagRu ?? activeHeroCase.tag : activeHeroCase.tag}
@@ -415,7 +415,7 @@ export function HomeView({
                           <div className="text-[11px] font-semibold text-sky-200 mb-0.5 line-clamp-1">
                             {isRussian ? activeHeroCase.titleRu ?? activeHeroCase.title : activeHeroCase.title}
                           </div>
-                          <div className="text-sm sm:text-base font-extrabold leading-snug line-clamp-2">
+                          <div className="text-[13.5px] sm:text-[15px] font-bold leading-snug line-clamp-2">
                             {(isRussian ? activeHeroCase.specsRu ?? activeHeroCase.specs : activeHeroCase.specs) || activeHeroCase.solution}
                           </div>
                         </div>
@@ -1161,10 +1161,10 @@ export function HomeView({
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between gap-3 min-w-0">
                   <div className="min-w-0">
-                    <h3 className="text-[15.5px] font-extrabold text-[#061c36] mb-1.5 line-clamp-2 overflow-hidden text-ellipsis min-h-[2.6rem]">
+                    <h3 className="text-[15px] font-bold text-[#061c36] mb-1.5 leading-snug line-clamp-2 overflow-hidden text-ellipsis">
                       {isRussian ? c.titleRu ?? c.title : c.title}
                     </h3>
-                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium line-clamp-2 min-h-[2.5rem] leading-[1.6]">
+                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium line-clamp-2 leading-[1.55]">
                       {isRussian ? c.taskRu ?? c.task : c.task}
                     </p>
                   </div>
@@ -1252,8 +1252,8 @@ export function HomeView({
                       {number}
                     </span>
                   </div>
-                  <h3 className="mb-2 text-[16px] font-extrabold text-white">{tr(title)}</h3>
-                  <p className="text-[13px] leading-[1.6] text-sky-50/90 min-h-[3.9rem]">{tr(desc)}</p>
+                  <h3 className="mb-1.5 text-[16px] font-bold text-white">{tr(title)}</h3>
+                  <p className="text-[13px] leading-[1.55] text-sky-50/90">{tr(desc)}</p>
                 </div>
                 <div className="mt-5 border-t border-sky-200/15 pt-3 text-[11px] font-bold text-sky-200">
                   {tr(detail)}

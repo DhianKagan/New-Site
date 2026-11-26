@@ -1424,7 +1424,7 @@ function AppContent() {
             <a
               href={COMPANY_INFO.phone1Href}
               onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })}
-              className="font-semibold text-white hover:text-sky-200 font-mono text-[11px] sm:text-xs"
+              className="font-semibold text-white hover:text-sky-200 tabular-nums text-[11px] sm:text-xs"
             >
               {COMPANY_INFO.phone1}
             </a>
@@ -1530,7 +1530,7 @@ function AppContent() {
           </a>
 
           {/* Zone 2: 5 concise single-line nav links (desktop lg+) */}
-          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-semibold text-sky-100/85 min-w-0 overflow-hidden">
+          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-3.5 xl:gap-5 text-[13px] xl:text-sm font-semibold text-sky-100/85 min-w-0 overflow-hidden">
             <a
               href="/"
               onClick={(e) => handleNavAnchor(e, 'home')}

@@ -77,10 +77,10 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between gap-3 min-w-0">
                   <div className="min-w-0">
-                    <h3 className="text-[15.5px] font-extrabold text-[#061c36] mb-1.5 line-clamp-2 overflow-hidden text-ellipsis min-h-[2.6rem]">
+                    <h3 className="text-[15px] font-bold text-[#061c36] mb-1.5 leading-snug line-clamp-2 overflow-hidden text-ellipsis">
                       {isRussian ? c.titleRu ?? c.title : c.title}
                     </h3>
-                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium leading-[1.6] line-clamp-3 overflow-hidden text-ellipsis">
+                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium leading-[1.55] line-clamp-3 overflow-hidden text-ellipsis">
                       {isRussian ? c.taskRu ?? c.task : c.task}
                     </p>
                   </div>
