@@ -11,7 +11,10 @@ import {
   MessageSquarePlus,
   Heart,
   Scale,
+  Share2,
+  Check,
 } from 'lucide-react';
+import { buildProductShareUrl, shareOrCopyProductUrl } from '../lib/shareProduct.ts';
 import type { Product, ProductReview } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
@@ -82,6 +85,8 @@ export function ProductModal({
   const [reviewsReloadNonce, setReviewsReloadNonce] = useState(0);
   const [composeNonce, setComposeNonce] = useState(0);
   const [loginPromptNonce, setLoginPromptNonce] = useState(0);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'failed'>('idle');
+  const shareResetTimerRef = useRef<number | null>(null);
   const reviewsSectionRef = useRef<HTMLDivElement | null>(null);
 
   const isAuthenticated = Boolean(clientToken || adminToken || authUser);
@@ -98,7 +103,20 @@ export function ProductModal({
   useEffect(() => {
     setComposeNonce(0);
     setLoginPromptNonce(0);
+    setShareStatus('idle');
+    if (shareResetTimerRef.current !== null) {
+      window.clearTimeout(shareResetTimerRef.current);
+      shareResetTimerRef.current = null;
+    }
   }, [productId]);
+
+  useEffect(() => {
+    return () => {
+      if (shareResetTimerRef.current !== null) {
+        window.clearTimeout(shareResetTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!productId) {
@@ -164,6 +182,26 @@ export function ProductModal({
     reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  async function handleShareProduct() {
+    if (!product) return;
+    const shareUrl = buildProductShareUrl(product.id);
+    const outcome = await shareOrCopyProductUrl({
+      title: `${title} · Energo Comfort`,
+      text: `${title} (SKU ${product.sku})`,
+      url: shareUrl,
+    });
+    if (outcome === 'cancelled') return;
+
+    setShareStatus(outcome);
+    if (shareResetTimerRef.current !== null) {
+      window.clearTimeout(shareResetTimerRef.current);
+    }
+    shareResetTimerRef.current = window.setTimeout(() => {
+      setShareStatus('idle');
+      shareResetTimerRef.current = null;
+    }, 2500);
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
@@ -185,6 +223,34 @@ export function ProductModal({
             <span className="font-mono">SKU {product.sku}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => void handleShareProduct()}
+              aria-label={tr('Поділитися товаром', 'Поделиться товаром')}
+              title={tr('Поділитися посиланням на товар', 'Поделиться ссылкой на товар')}
+              className={`h-8 px-2.5 rounded-lg border inline-flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${
+                shareStatus === 'copied' || shareStatus === 'shared'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : shareStatus === 'failed'
+                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'border-slate-200 text-slate-600 hover:bg-sky-50 hover:text-[#0b66b2]'
+              }`}
+            >
+              {shareStatus === 'copied' || shareStatus === 'shared' ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {shareStatus === 'copied'
+                  ? tr('Скопійовано', 'Скопировано')
+                  : shareStatus === 'shared'
+                    ? tr('Надіслано', 'Отправлено')
+                    : shareStatus === 'failed'
+                      ? tr('Помилка', 'Ошибка')
+                      : tr('Поділитися', 'Поделиться')}
+              </span>
+            </button>
             {onToggleCompare && (
               <button
                 type="button"

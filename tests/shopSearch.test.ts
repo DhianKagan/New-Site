@@ -256,3 +256,24 @@ test('matchesEquipmentTypes and computeEquipmentTypeCounts filter inverters, bat
     },
   );
 });
+
+test('ShopView renders ShopEmptyState with reset-all-filters button and search suggestions', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const emptyStateSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopEmptyState.tsx'),
+    'utf-8',
+  );
+  const shopViewSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopView.tsx'),
+    'utf-8',
+  );
+
+  assert.match(emptyStateSource, /export function ShopEmptyState/);
+  assert.match(emptyStateSource, /onResetFilters/);
+  assert.match(emptyStateSource, /Скинути всі фільтри/);
+  assert.match(emptyStateSource, /Сбросить все фильтры/);
+  assert.match(shopViewSource, /<ShopEmptyState/);
+  assert.match(shopViewSource, /onResetFilters=\{handleResetAllFilters\}/);
+});
+

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
+import { ShopEmptyState } from './ShopEmptyState.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
 import { tr } from '../lib/i18n.ts';
 import {
@@ -272,6 +273,31 @@ export function ShopView({
   const activePowerLabel = INVERTER_POWER_FILTERS.filter((r) => selectedPowerRanges.includes(r.id))
     .map((r) => tr(r.labelUk, r.labelRu))
     .join(', ');
+
+  function handleResetAllFilters() {
+    handleCategoryChange('all');
+    setSelectedEquipmentTypes([]);
+    setBrand('all');
+    setSelectedBrands([]);
+    setSelectedPowerRanges([]);
+    setSort('default');
+    setQuery('');
+    onQueryChange?.('');
+    setInStockOnly(false);
+    setPage(1);
+  }
+
+  function handleApplySuggestedQuery(term: string) {
+    handleCategoryChange('all');
+    setSelectedEquipmentTypes([]);
+    setBrand('all');
+    setSelectedBrands([]);
+    setSelectedPowerRanges([]);
+    setInStockOnly(false);
+    setQuery(term);
+    onQueryChange?.(term);
+    setPage(1);
+  }
 
   return (
     <div>
@@ -648,35 +674,23 @@ export function ShopView({
               </div>
 
               {paginated.length === 0 ? (
-                <div className="ec-glass-plate p-10 sm:p-12 text-center rounded-2xl">
-                  <p className="text-sm font-bold text-[#07213e] mb-1">{tr('За вашим запитом товарів не знайдено', 'По вашему запросу товары не найдены')}</p>
-                  <p className="text-xs text-[#1c3d5e] font-medium mb-5">
-                    {tr(
-                      'Спробуйте змінити фільтр або залиште запит — інженер перевірить наявність на складі та підбере сумісний аналог за 15 хв.',
-                      'Измените фильтр или оставьте запрос — инженер проверит наличие на складе и подберёт совместимый аналог за 15 мин.',
-                    )}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleCategoryChange('all');
-                        setSelectedEquipmentTypes([]);
-                        setBrand('all');
-                        setSelectedBrands([]);
-                        setSelectedPowerRanges([]);
-                        setQuery('');
-                        onQueryChange?.('');
-                        setInStockOnly(false);
-                      }}
-                      className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-[#0d1f33] text-xs font-bold hover:bg-slate-100 cursor-pointer"
-                    >
-                      {tr('Скинути фільтри', 'Сбросить фильтры')}
-                    </button>
-                    {onOpenCustomRequest && (
-                      <button
-                        type="button"
-                        onClick={() => {
+                <ShopEmptyState
+                  query={query}
+                  categoryLabel={cat !== 'all' ? tr(CATEGORY_TITLES[cat] || cat) : undefined}
+                  activeEquipmentTypeLabel={activeEquipmentTypeLabel}
+                  activeBrandLabel={activeBrandLabel}
+                  activePowerLabel={activePowerLabel}
+                  inStockOnly={inStockOnly}
+                  onResetFilters={handleResetAllFilters}
+                  onClearSearch={() => {
+                    setQuery('');
+                    onQueryChange?.('');
+                    setPage(1);
+                  }}
+                  onSelectSuggestion={handleApplySuggestedQuery}
+                  onOpenCustomRequest={
+                    onOpenCustomRequest
+                      ? () => {
                           track({ name: 'cta_click', placement: 'section', scenario: 'unspecified' });
                           onOpenCustomRequest(
                             query.trim()
@@ -692,15 +706,10 @@ export function ShopView({
                               .filter(Boolean)
                               .join('\n'),
                           );
-                        }}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer"
-                      >
-                        <MessageSquarePlus className="w-3.5 h-3.5" />
-                        {tr('Підібрати з інженером за 15 хв', 'Подобрать с инженером за 15 мин')}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                        }
+                      : undefined
+                  }
+                />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 items-stretch">
                   {paginated.map((p, index) => (
