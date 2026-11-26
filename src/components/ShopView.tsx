@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale, Banknote } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { ShopEmptyState } from './ShopEmptyState.tsx';
@@ -11,14 +11,18 @@ import {
   computeEquipmentTypeCounts,
   computeFeaturedBrandCounts,
   computeInverterPowerCounts,
+  computePriceBounds,
   EQUIPMENT_TYPE_FILTERS,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  getPriceBudgetPresets,
   getProductSearchSuggestions,
   INVERTER_POWER_FILTERS,
   matchesBrandFilters,
   matchesEquipmentTypes,
   matchesInverterPowerRanges,
+  matchesPriceRange,
+  normalizePriceBounds,
   type EquipmentTypeFilterId,
   type InverterPowerRangeId,
 } from '../lib/shopSearch.ts';
@@ -81,6 +85,8 @@ export function ShopView({
   const [selectedEquipmentTypes, setSelectedEquipmentTypes] = useState<EquipmentTypeFilterId[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedPowerRanges, setSelectedPowerRanges] = useState<InverterPowerRangeId[]>([]);
+  const [priceMinInput, setPriceMinInput] = useState('');
+  const [priceMaxInput, setPriceMaxInput] = useState('');
   const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
@@ -133,6 +139,18 @@ export function ShopView({
     return Array.from(bMap.entries()).sort((a, b) => b[1] - a[1]);
   }, [products]);
 
+  const priceBounds = useMemo(
+    () => computePriceBounds(products, usdUahRate),
+    [products, usdUahRate],
+  );
+  const budgetPresets = useMemo(() => getPriceBudgetPresets(usdUahRate), [usdUahRate]);
+  const { min: activeMinPrice, max: activeMaxPrice } = useMemo(
+    () => normalizePriceBounds(priceMinInput, priceMaxInput),
+    [priceMinInput, priceMaxInput],
+  );
+  const hasActivePriceFilter = activeMinPrice !== null || activeMaxPrice !== null;
+  const priceCurrencyUnit = usdUahRate && usdUahRate > 0 ? '₴' : '$';
+
   const equipmentTypeCounts = useMemo(
     () =>
       computeEquipmentTypeCounts(products, {
@@ -141,8 +159,11 @@ export function ShopView({
         powerRanges: selectedPowerRanges,
         inStockOnly,
         query,
+        minPrice: activeMinPrice,
+        maxPrice: activeMaxPrice,
+        usdUahRate,
       }),
-    [products, selectedBrands, brand, selectedPowerRanges, inStockOnly, query],
+    [products, selectedBrands, brand, selectedPowerRanges, inStockOnly, query, activeMinPrice, activeMaxPrice, usdUahRate],
   );
 
   const featuredBrandCounts = useMemo(
@@ -153,8 +174,11 @@ export function ShopView({
         inStockOnly,
         query,
         powerRanges: selectedPowerRanges,
+        minPrice: activeMinPrice,
+        maxPrice: activeMaxPrice,
+        usdUahRate,
       }),
-    [products, cat, selectedEquipmentTypes, inStockOnly, query, selectedPowerRanges],
+    [products, cat, selectedEquipmentTypes, inStockOnly, query, selectedPowerRanges, activeMinPrice, activeMaxPrice, usdUahRate],
   );
 
   const inverterPowerCounts = useMemo(
@@ -166,8 +190,11 @@ export function ShopView({
         dropdownBrand: brand,
         inStockOnly,
         query,
+        minPrice: activeMinPrice,
+        maxPrice: activeMaxPrice,
+        usdUahRate,
       }),
-    [products, cat, selectedEquipmentTypes, selectedBrands, brand, inStockOnly, query],
+    [products, cat, selectedEquipmentTypes, selectedBrands, brand, inStockOnly, query, activeMinPrice, activeMaxPrice, usdUahRate],
   );
 
   const filtered = useMemo(() => {
@@ -176,6 +203,7 @@ export function ShopView({
       if (!matchesEquipmentTypes(p, selectedEquipmentTypes)) return false;
       if (!matchesBrandFilters(p, selectedBrands, brand)) return false;
       if (!matchesInverterPowerRanges(p, selectedPowerRanges)) return false;
+      if (!matchesPriceRange(p, activeMinPrice, activeMaxPrice, usdUahRate)) return false;
       if (inStockOnly && !p.inStock) return false;
       return true;
     });
@@ -189,7 +217,7 @@ export function ShopView({
       return [...searched].sort((a, b) => b.price - a.price);
     }
     return searched;
-  }, [products, cat, selectedEquipmentTypes, brand, selectedBrands, selectedPowerRanges, inStockOnly, query, sort]);
+  }, [products, cat, selectedEquipmentTypes, brand, selectedBrands, selectedPowerRanges, activeMinPrice, activeMaxPrice, usdUahRate, inStockOnly, query, sort]);
 
   const { suggestions, totalMatches: totalSuggestionMatches } = useMemo(
     () => getProductSearchSuggestions(products, query, 6),
@@ -301,6 +329,37 @@ export function ShopView({
   const activePowerLabel = INVERTER_POWER_FILTERS.filter((r) => selectedPowerRanges.includes(r.id))
     .map((r) => tr(r.labelUk, r.labelRu))
     .join(', ');
+  const activePriceLabel = useMemo(() => {
+    if (!hasActivePriceFilter) return '';
+    const formatVal = (val: number) => `${val.toLocaleString('uk-UA')} ${priceCurrencyUnit}`;
+    if (activeMinPrice !== null && activeMaxPrice !== null) {
+      return `${activeMinPrice.toLocaleString('uk-UA')} – ${formatVal(activeMaxPrice)}`;
+    }
+    if (activeMinPrice !== null) {
+      return `${tr('від', 'от')} ${formatVal(activeMinPrice)}`;
+    }
+    if (activeMaxPrice !== null) {
+      return `${tr('до', 'до')} ${formatVal(activeMaxPrice)}`;
+    }
+    return '';
+  }, [hasActivePriceFilter, activeMinPrice, activeMaxPrice, priceCurrencyUnit]);
+
+  function handleResetPriceFilter() {
+    setPriceMinInput('');
+    setPriceMaxInput('');
+    setPage(1);
+  }
+
+  function handleSelectBudgetPreset(min: number | null, max: number | null) {
+    const isSame = activeMinPrice === min && activeMaxPrice === max;
+    if (isSame) {
+      handleResetPriceFilter();
+      return;
+    }
+    setPriceMinInput(min !== null ? String(min) : '');
+    setPriceMaxInput(max !== null ? String(max) : '');
+    setPage(1);
+  }
 
   function handleResetAllFilters() {
     handleCategoryChange('all');
@@ -308,6 +367,8 @@ export function ShopView({
     setBrand('all');
     setSelectedBrands([]);
     setSelectedPowerRanges([]);
+    setPriceMinInput('');
+    setPriceMaxInput('');
     setSort('default');
     setQuery('');
     onQueryChange?.('');
@@ -321,6 +382,8 @@ export function ShopView({
     setBrand('all');
     setSelectedBrands([]);
     setSelectedPowerRanges([]);
+    setPriceMinInput('');
+    setPriceMaxInput('');
     setInStockOnly(false);
     setQuery(term);
     onQueryChange?.(term);
@@ -553,6 +616,8 @@ export function ShopView({
                             setBrand('all');
                             setSelectedBrands([]);
                             setSelectedPowerRanges([]);
+                            setPriceMinInput('');
+                            setPriceMaxInput('');
                             setInStockOnly(false);
                             setIsSuggestionsOpen(false);
                             setActiveSuggestionIndex(-1);
@@ -705,6 +770,126 @@ export function ShopView({
                 </div>
               </div>
 
+              {/* Price Range Filter */}
+              <div className="pb-4 mb-4 border-b border-sky-200/80">
+                <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-sky-200/80">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-[#07213e] uppercase tracking-wide">
+                    <Banknote className="w-3.5 h-3.5 text-[#0d9488]" />
+                    <span>
+                      {tr('Ціна', 'Цена')} ({usdUahRate && usdUahRate > 0 ? 'грн' : 'USD'})
+                    </span>
+                  </div>
+                  {hasActivePriceFilter && (
+                    <button
+                      type="button"
+                      onClick={handleResetPriceFilter}
+                      className="text-[11px] font-bold text-[#0b66b2] hover:underline cursor-pointer"
+                    >
+                      {tr('Скинути', 'Сбросить')}
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <label htmlFor="shop-price-min" className="block text-[10px] font-bold text-[#1c3d5e] mb-1">
+                      {tr('Від', 'От')}
+                    </label>
+                    <input
+                      id="shop-price-min"
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      value={priceMinInput}
+                      onChange={(e) => {
+                        setPriceMinInput(e.target.value);
+                        setPage(1);
+                      }}
+                      placeholder={priceBounds.min > 0 ? String(priceBounds.min) : '0'}
+                      aria-label={tr('Мінімальна ціна', 'Минимальная цена')}
+                      className="w-full pl-2.5 pr-6 py-1.5 rounded-lg border border-sky-200 bg-white/90 text-xs font-mono font-bold text-[#07213e] placeholder:text-[#1c3d5e]/45 focus:outline-none focus:border-[#0b66b2]"
+                    />
+                    <span className="pointer-events-none absolute right-2 bottom-1.5 text-[11px] font-bold text-[#1c3d5e]/70">
+                      {priceCurrencyUnit}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="shop-price-max" className="block text-[10px] font-bold text-[#1c3d5e] mb-1">
+                      {tr('До', 'До')}
+                    </label>
+                    <input
+                      id="shop-price-max"
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      value={priceMaxInput}
+                      onChange={(e) => {
+                        setPriceMaxInput(e.target.value);
+                        setPage(1);
+                      }}
+                      placeholder={priceBounds.max > 0 ? String(priceBounds.max) : ''}
+                      aria-label={tr('Максимальна ціна', 'Максимальная цена')}
+                      className="w-full pl-2.5 pr-6 py-1.5 rounded-lg border border-sky-200 bg-white/90 text-xs font-mono font-bold text-[#07213e] placeholder:text-[#1c3d5e]/45 focus:outline-none focus:border-[#0b66b2]"
+                    />
+                    <span className="pointer-events-none absolute right-2 bottom-1.5 text-[11px] font-bold text-[#1c3d5e]/70">
+                      {priceCurrencyUnit}
+                    </span>
+                  </div>
+                </div>
+
+                {priceBounds.max > priceBounds.min && (
+                  <div className="mt-3">
+                    <label htmlFor="shop-price-slider" className="flex items-center justify-between text-[11px] font-semibold text-[#1c3d5e] mb-1">
+                      <span>{tr('Верхня межа бюджету', 'Верхний предел бюджета')}</span>
+                      <span className="font-mono font-bold text-[#0b66b2] tabular-nums">
+                        {activeMaxPrice !== null
+                          ? `${activeMaxPrice.toLocaleString('uk-UA')} ${priceCurrencyUnit}`
+                          : tr('Усі', 'Все')}
+                      </span>
+                    </label>
+                    <input
+                      id="shop-price-slider"
+                      type="range"
+                      min={priceBounds.min}
+                      max={priceBounds.max}
+                      step={usdUahRate && usdUahRate > 0 ? 500 : 25}
+                      value={Math.min(priceBounds.max, Math.max(priceBounds.min, activeMaxPrice ?? priceBounds.max))}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (val >= priceBounds.max) {
+                          setPriceMaxInput('');
+                        } else {
+                          setPriceMaxInput(String(val));
+                        }
+                        setPage(1);
+                      }}
+                      className="w-full h-1.5 rounded-lg accent-[#0b66b2] cursor-pointer"
+                    />
+                  </div>
+                )}
+
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
+                  {budgetPresets.map((preset) => {
+                    const isSelected = activeMinPrice === preset.min && activeMaxPrice === preset.max;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => handleSelectBudgetPreset(preset.min, preset.max)}
+                        className={`px-2 py-1.5 rounded-lg border text-[11px] font-bold text-center transition-colors cursor-pointer whitespace-nowrap truncate ${
+                          isSelected
+                            ? 'bg-[#0b66b2] border-[#0b66b2] text-white shadow-xs'
+                            : 'bg-white/80 border-sky-100 text-[#1c3d5e] hover:border-sky-300 hover:bg-white'
+                        }`}
+                      >
+                        {tr(preset.labelUk, preset.labelRu)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-sky-200/80">
                 <div className="flex items-center gap-2 text-xs font-extrabold text-[#07213e] uppercase tracking-wide">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-[#0b66b2]" />
@@ -850,6 +1035,19 @@ export function ShopView({
                       {tr('Потужність:', 'Мощность:')} {activePowerLabel}
                     </span>
                   )}
+                  {activePriceLabel && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-[#0d9488] font-bold">
+                      <span>{tr('Ціна:', 'Цена:')} {activePriceLabel}</span>
+                      <button
+                        type="button"
+                        onClick={handleResetPriceFilter}
+                        aria-label={tr('Скинути фільтр ціни', 'Сбросить фильтр цены')}
+                        className="p-0.5 rounded hover:bg-sky-100 text-[#0b66b2] cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
                   {query.trim() && (
                     <span className="text-[11px] text-[#0b66b2] font-bold">
                       {tr('Пошук:', 'Поиск:')} «{query.trim()}»
@@ -884,6 +1082,7 @@ export function ShopView({
                   activeEquipmentTypeLabel={activeEquipmentTypeLabel}
                   activeBrandLabel={activeBrandLabel}
                   activePowerLabel={activePowerLabel}
+                  activePriceLabel={activePriceLabel}
                   inStockOnly={inStockOnly}
                   onResetFilters={handleResetAllFilters}
                   onClearSearch={() => {
@@ -905,6 +1104,7 @@ export function ShopView({
                               activeEquipmentTypeLabel ? `Тип обладнання: ${activeEquipmentTypeLabel}` : '',
                               activeBrandLabel ? `Бренд: ${activeBrandLabel}` : '',
                               activePowerLabel ? `Потужність інвертора: ${activePowerLabel}` : '',
+                              activePriceLabel ? `Бюджет: ${activePriceLabel}` : '',
                               `Категорія: ${CATEGORY_TITLES[cat] || cat}`,
                             ]
                               .filter(Boolean)

@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-13942bd7'], (function (workbox) { 'use strict';
+define(['./workbox-eb2a7900'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -78,13 +78,22 @@ define(['./workbox-13942bd7'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "/index.html",
-    "revision": "0.ev1mghfufd"
+    "revision": "0.jdc91v386q8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
     allowlist: [/^\/$/],
     denylist: [/^\/api\//, /^\/uploads\//, /^\/sitemap\.xml$/, /^\/robots\.txt$/, /^\/feed\.xml$/, /^\/products\.xml$/]
   }));
+  workbox.registerRoute(/^\/assets\/.*\.js$/i, new workbox.StaleWhileRevalidate({
+    "cacheName": "lazy-js-chunks-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 60,
+      maxAgeSeconds: 2592000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
   workbox.registerRoute(/^\/api\/(?:catalog|projects|public\/exchange-rate|public\/config)(?:\/.*|\?.*)?$/i, new workbox.NetworkFirst({
     "cacheName": "api-catalog-cache",
     "networkTimeoutSeconds": 4,

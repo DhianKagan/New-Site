@@ -7,6 +7,7 @@ interface ShopEmptyStateProps {
   activeEquipmentTypeLabel?: string;
   activeBrandLabel?: string;
   activePowerLabel?: string;
+  activePriceLabel?: string;
   inStockOnly?: boolean;
   onResetFilters: () => void;
   onClearSearch?: () => void;
@@ -22,6 +23,7 @@ export function ShopEmptyState({
   activeEquipmentTypeLabel,
   activeBrandLabel,
   activePowerLabel,
+  activePriceLabel,
   inStockOnly = false,
   onResetFilters,
   onClearSearch,
@@ -53,6 +55,12 @@ export function ShopEmptyState({
     activeFilters.push({
       label: tr('Потужність', 'Мощность'),
       value: activePowerLabel,
+    });
+  }
+  if (activePriceLabel) {
+    activeFilters.push({
+      label: tr('Ціна', 'Цена'),
+      value: activePriceLabel,
     });
   }
   if (inStockOnly) {

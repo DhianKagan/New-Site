@@ -4,15 +4,20 @@ import {
   computeEquipmentTypeCounts,
   computeFeaturedBrandCounts,
   computeInverterPowerCounts,
+  computePriceBounds,
   EQUIPMENT_TYPE_FILTERS,
   extractInverterPowerKw,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  getPriceBudgetPresets,
+  getProductDisplayPrice,
   getProductSearchSuggestions,
   INVERTER_POWER_FILTERS,
   matchesBrandFilters,
   matchesEquipmentTypes,
   matchesInverterPowerRanges,
+  matchesPriceRange,
+  normalizePriceBounds,
 } from '../src/lib/shopSearch.ts';
 import type { Product } from '../src/types.ts';
 
@@ -319,6 +324,44 @@ test('ProductCard displays full product titles with adaptive typography and no l
 
   assert.doesNotMatch(cardSource, /line-clamp-/);
   assert.match(cardSource, /getProductTitleSizeClass/);
+});
+
+test('price range helpers compute display price bounds, normalize inputs, and filter products accurately', () => {
+  const rate = 42;
+  assert.equal(getProductDisplayPrice(SAMPLE_PRODUCTS[0], rate), 1650 * 42);
+  assert.equal(getProductDisplayPrice(SAMPLE_PRODUCTS[0], null), 1650);
+
+  const zeroPriceProduct: Product = { ...SAMPLE_PRODUCTS[0], id: 'custom-kit', price: 0 };
+  assert.equal(getProductDisplayPrice(zeroPriceProduct, rate), null);
+
+  const bounds = computePriceBounds([...SAMPLE_PRODUCTS, zeroPriceProduct], rate);
+  assert.deepEqual(bounds, { min: 123 * 42, max: 1650 * 42 });
+
+  assert.deepEqual(normalizePriceBounds(' 65000 ', '15000'), { min: 15000, max: 65000 });
+  assert.deepEqual(normalizePriceBounds('', '50000'), { min: null, max: 50000 });
+  assert.deepEqual(normalizePriceBounds('-10', 'invalid'), { min: null, max: null });
+
+  assert.equal(matchesPriceRange(zeroPriceProduct, null, null, rate), true);
+  assert.equal(matchesPriceRange(zeroPriceProduct, 1000, null, rate), false);
+  assert.equal(matchesPriceRange(SAMPLE_PRODUCTS[2], 4000, 10000, rate), true); // 5166 UAH
+  assert.equal(matchesPriceRange(SAMPLE_PRODUCTS[0], 4000, 60000, rate), false); // 69300 UAH
+
+  assert.equal(getPriceBudgetPresets(rate).length, 4);
+  assert.equal(getPriceBudgetPresets(null).length, 4);
+});
+
+test('ShopView renders price range inputs, budget slider, and budget presets', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const shopViewSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopView.tsx'),
+    'utf-8',
+  );
+
+  assert.match(shopViewSource, /id="shop-price-min"/);
+  assert.match(shopViewSource, /id="shop-price-max"/);
+  assert.match(shopViewSource, /id="shop-price-slider"/);
+  assert.match(shopViewSource, /matchesPriceRange/);
 });
 
 

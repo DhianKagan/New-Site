@@ -221,6 +221,97 @@ export function matchesInverterPowerRanges(
   });
 }
 
+export interface PriceBudgetPreset {
+  id: string;
+  labelUk: string;
+  labelRu: string;
+  min: number | null;
+  max: number | null;
+}
+
+export function getProductDisplayPrice(
+  product: Product,
+  usdUahRate: number | null,
+): number | null {
+  if (!Number.isFinite(product.price) || product.price <= 0) return null;
+  if (usdUahRate && Number.isFinite(usdUahRate) && usdUahRate > 0) {
+    return Math.round(product.price * usdUahRate);
+  }
+  return Math.round(product.price);
+}
+
+export function computePriceBounds(
+  products: Product[],
+  usdUahRate: number | null,
+): { min: number; max: number } {
+  let min = Infinity;
+  let max = 0;
+  for (const product of products) {
+    const price = getProductDisplayPrice(product, usdUahRate);
+    if (price === null) continue;
+    if (price < min) min = price;
+    if (price > max) max = price;
+  }
+  if (!Number.isFinite(min) || max <= 0) {
+    return { min: 0, max: 0 };
+  }
+  return { min, max };
+}
+
+export function normalizePriceBounds(
+  rawMin: string | number | null | undefined,
+  rawMax: string | number | null | undefined,
+): { min: number | null; max: number | null } {
+  const parseBound = (val: string | number | null | undefined): number | null => {
+    if (val === null || val === undefined) return null;
+    if (typeof val === 'number') {
+      return Number.isFinite(val) && val >= 0 ? Math.round(val) : null;
+    }
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed.replace(/\s+/g, ''));
+    return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
+  };
+
+  const min = parseBound(rawMin);
+  const max = parseBound(rawMax);
+  if (min !== null && max !== null && min > max) {
+    return { min: max, max: min };
+  }
+  return { min, max };
+}
+
+export function matchesPriceRange(
+  product: Product,
+  minPrice: number | null,
+  maxPrice: number | null,
+  usdUahRate: number | null,
+): boolean {
+  if (minPrice === null && maxPrice === null) return true;
+  const price = getProductDisplayPrice(product, usdUahRate);
+  if (price === null) return false;
+  if (minPrice !== null && price < minPrice) return false;
+  if (maxPrice !== null && price > maxPrice) return false;
+  return true;
+}
+
+export function getPriceBudgetPresets(usdUahRate: number | null): PriceBudgetPreset[] {
+  if (usdUahRate && Number.isFinite(usdUahRate) && usdUahRate > 0) {
+    return [
+      { id: 'under-15k', labelUk: 'до 15 000 ₴', labelRu: 'до 15 000 ₴', min: null, max: 15000 },
+      { id: '15k-45k', labelUk: '15–45 тис. ₴', labelRu: '15–45 тыс. ₴', min: 15000, max: 45000 },
+      { id: '45k-100k', labelUk: '45–100 тис. ₴', labelRu: '45–100 тыс. ₴', min: 45000, max: 100000 },
+      { id: 'over-100k', labelUk: 'від 100 000 ₴', labelRu: 'от 100 000 ₴', min: 100000, max: null },
+    ];
+  }
+  return [
+    { id: 'under-400', labelUk: 'до $400', labelRu: 'до $400', min: null, max: 400 },
+    { id: '400-1000', labelUk: '$400–1 000', labelRu: '$400–1 000', min: 400, max: 1000 },
+    { id: '1000-2500', labelUk: '$1 000–2 500', labelRu: '$1 000–2 500', min: 1000, max: 2500 },
+    { id: 'over-2500', labelUk: 'від $2 500', labelRu: 'от $2 500', min: 2500, max: null },
+  ];
+}
+
 export function computeEquipmentTypeCounts(
   products: Product[],
   options: {
@@ -229,6 +320,9 @@ export function computeEquipmentTypeCounts(
     powerRanges?: InverterPowerRangeId[];
     inStockOnly?: boolean;
     query?: string;
+    minPrice?: number | null;
+    maxPrice?: number | null;
+    usdUahRate?: number | null;
   } = {},
 ): Record<EquipmentTypeFilterId, number> {
   const {
@@ -237,11 +331,15 @@ export function computeEquipmentTypeCounts(
     powerRanges = [],
     inStockOnly = false,
     query = '',
+    minPrice = null,
+    maxPrice = null,
+    usdUahRate = null,
   } = options;
 
   const base = products.filter((p) => {
     if (!matchesBrandFilters(p, selectedBrands, dropdownBrand)) return false;
     if (!matchesInverterPowerRanges(p, powerRanges)) return false;
+    if (!matchesPriceRange(p, minPrice, maxPrice, usdUahRate)) return false;
     if (inStockOnly && !p.inStock) return false;
     return true;
   });
@@ -274,6 +372,9 @@ export function computeFeaturedBrandCounts(
     inStockOnly?: boolean;
     query?: string;
     powerRanges?: InverterPowerRangeId[];
+    minPrice?: number | null;
+    maxPrice?: number | null;
+    usdUahRate?: number | null;
   } = {},
 ): Record<string, number> {
   const {
@@ -282,6 +383,9 @@ export function computeFeaturedBrandCounts(
     inStockOnly = false,
     query = '',
     powerRanges = [],
+    minPrice = null,
+    maxPrice = null,
+    usdUahRate = null,
   } = options;
 
   const base = products.filter((p) => {
@@ -289,6 +393,7 @@ export function computeFeaturedBrandCounts(
     if (!matchesEquipmentTypes(p, equipmentTypes)) return false;
     if (inStockOnly && !p.inStock) return false;
     if (!matchesInverterPowerRanges(p, powerRanges)) return false;
+    if (!matchesPriceRange(p, minPrice, maxPrice, usdUahRate)) return false;
     return true;
   });
 
@@ -317,6 +422,9 @@ export function computeInverterPowerCounts(
     dropdownBrand?: string;
     inStockOnly?: boolean;
     query?: string;
+    minPrice?: number | null;
+    maxPrice?: number | null;
+    usdUahRate?: number | null;
   } = {},
 ): Record<InverterPowerRangeId, number> {
   const {
@@ -326,12 +434,16 @@ export function computeInverterPowerCounts(
     dropdownBrand = 'all',
     inStockOnly = false,
     query = '',
+    minPrice = null,
+    maxPrice = null,
+    usdUahRate = null,
   } = options;
 
   const base = products.filter((p) => {
     if (category !== 'all' && p.cat !== category) return false;
     if (!matchesEquipmentTypes(p, equipmentTypes)) return false;
     if (!matchesBrandFilters(p, selectedBrands, dropdownBrand)) return false;
+    if (!matchesPriceRange(p, minPrice, maxPrice, usdUahRate)) return false;
     if (inStockOnly && !p.inStock) return false;
     return p.cat === 'inverters';
   });
