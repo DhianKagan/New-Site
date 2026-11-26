@@ -196,24 +196,26 @@ export function ProductCard({
         </div>
 
         <div className="pt-3 border-t border-sky-200/75 space-y-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            <div className="min-w-0">
-              {product.price > 0 ? (
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="font-mono text-[17px] font-bold text-[#061c36] tabular-nums">
-                    {formatUahFromUsd(product.price, usdUahRate)}
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="h-4 flex items-center">
+                {product.price > 0 && product.oldPrice > product.price && (
+                  <span className="font-mono text-[11px] leading-none text-sky-900/45 line-through tabular-nums truncate">
+                    {formatUahFromUsd(product.oldPrice, usdUahRate)}
                   </span>
-                  {product.oldPrice > product.price && (
-                    <span className="font-mono text-xs text-sky-900/40 line-through tabular-nums">
-                      {formatUahFromUsd(product.oldPrice, usdUahRate)}
-                    </span>
-                  )}
+                )}
+              </div>
+              {product.price > 0 ? (
+                <div className="font-mono text-[16px] sm:text-[17px] leading-tight font-bold text-[#061c36] tabular-nums whitespace-nowrap">
+                  {formatUahFromUsd(product.price, usdUahRate)}
                 </div>
               ) : (
-                <span className="font-mono text-sm font-bold text-[#0b66b2]">{tr('За запитом')}</span>
+                <div className="font-mono text-sm leading-tight font-bold text-[#0b66b2] whitespace-nowrap">
+                  {tr('За запитом')}
+                </div>
               )}
               <div
-                className={`text-[11px] font-semibold mt-0.5 ${
+                className={`text-[11px] leading-snug font-semibold mt-0.5 truncate ${
                   product.inStock ? 'text-[#0d9488]' : 'text-amber-700'
                 }`}
               >

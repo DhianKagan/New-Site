@@ -1142,7 +1142,7 @@ export function HomeView({
                 }}
                 className="px-3.5 py-2 text-xs font-bold text-[#0b66b2] hover:underline whitespace-nowrap"
               >
-                {tr('Усі', 'Все')} {projects.length} {tr('об’єктів', 'объектов')} →
+                {tr('Усі проєкти', 'Все проекты')} →
               </a>
             </div>
           </div>

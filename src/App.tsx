@@ -898,7 +898,7 @@ function AppContent() {
       description =
         'Професійний монтаж сонячних електростанцій, систем резервного живлення та енергоаудит для дому і бізнесу в Одесі та області з гарантією.';
     } else if (view === 'projects') {
-      title = `Реалізовані об’єкти (${projects.length}) — Energo Comfort Одеса`;
+      title = 'Реалізовані проєкти — Energo Comfort Одеса';
       description =
         'Реальні кейси СЕС і резервного живлення 6–110 кВт для бізнесу та приватних будинків в Одесі й області. Дивіться характеристики та фото об’єктів.';
     } else if (view === 'contacts') {
@@ -1752,9 +1752,9 @@ function AppContent() {
                     {
                       v: 'projects' as const,
                       href: '/projects',
-                      label: tr('Реалізовані проєкти'),
+                      label: tr('Реалізовані проєкти', 'Реализованные проекты'),
                       icon: Building2,
-                      count: projects.length,
+                      count: null,
                     },
                   ] as const
                 ).map(({ v, href, label, icon: Icon, count }) => {
@@ -2189,7 +2189,7 @@ function AppContent() {
                     onClick={(e) => handleNavAnchor(e, 'projects')}
                     className="block overflow-hidden text-ellipsis hover:text-white transition-colors"
                   >
-                    {tr('Реалізовані об’єкти')} ({projects.length})
+                    {tr('Реалізовані проєкти', 'Реализованные проекты')}
                   </a>
                   <a
                     href="/contacts"
