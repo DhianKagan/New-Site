@@ -8,6 +8,100 @@ export interface VideoTimeSegment {
   end?: number;
 }
 
+export type VideoBackgroundTint =
+  | 'daylight'
+  | 'sky'
+  | 'cyan'
+  | 'emerald'
+  | 'amber'
+  | 'indigo'
+  | 'teal'
+  | 'warm'
+  | 'slate';
+
+export const VIDEO_TINT_PRESETS: Record<
+  VideoBackgroundTint,
+  {
+    bgClass: string;
+    lightOverlay: string;
+    darkOverlay: string;
+    edgeGlow: string;
+  }
+> = {
+  daylight: {
+    bgClass: 'bg-[#0b2a4f]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(7, 30, 62, 0.56) 0%, rgba(11, 56, 106, 0.42) 52%, rgba(5, 22, 46, 0.62) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(6, 24, 52, 0.64) 0%, rgba(10, 44, 88, 0.52) 55%, rgba(4, 18, 40, 0.70) 100%)',
+    edgeGlow: 'rgba(125, 211, 252, 0.28)',
+  },
+  sky: {
+    bgClass: 'bg-[#0a2f5c]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(6, 36, 74, 0.54) 0%, rgba(12, 72, 130, 0.40) 50%, rgba(5, 25, 54, 0.60) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(6, 28, 62, 0.62) 0%, rgba(11, 56, 108, 0.50) 52%, rgba(4, 20, 46, 0.68) 100%)',
+    edgeGlow: 'rgba(125, 211, 252, 0.32)',
+  },
+  cyan: {
+    bgClass: 'bg-[#09354a]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(5, 38, 56, 0.54) 0%, rgba(10, 82, 108, 0.40) 50%, rgba(4, 28, 44, 0.60) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(5, 32, 48, 0.62) 0%, rgba(9, 64, 88, 0.50) 52%, rgba(4, 22, 36, 0.68) 100%)',
+    edgeGlow: 'rgba(103, 232, 249, 0.30)',
+  },
+  emerald: {
+    bgClass: 'bg-[#083630]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(5, 38, 34, 0.56) 0%, rgba(11, 76, 64, 0.42) 50%, rgba(4, 26, 24, 0.62) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(5, 30, 28, 0.64) 0%, rgba(10, 62, 52, 0.52) 52%, rgba(4, 22, 20, 0.70) 100%)',
+    edgeGlow: 'rgba(110, 231, 183, 0.28)',
+  },
+  amber: {
+    bgClass: 'bg-[#292014]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(28, 22, 16, 0.54) 0%, rgba(88, 56, 16, 0.40) 50%, rgba(14, 24, 44, 0.60) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(24, 18, 12, 0.62) 0%, rgba(68, 42, 14, 0.50) 52%, rgba(12, 20, 38, 0.68) 100%)',
+    edgeGlow: 'rgba(252, 211, 77, 0.30)',
+  },
+  indigo: {
+    bgClass: 'bg-[#141f52]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(14, 22, 58, 0.56) 0%, rgba(38, 56, 122, 0.42) 50%, rgba(10, 18, 46, 0.62) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(12, 18, 48, 0.64) 0%, rgba(30, 44, 98, 0.52) 52%, rgba(8, 14, 38, 0.70) 100%)',
+    edgeGlow: 'rgba(165, 180, 252, 0.30)',
+  },
+  teal: {
+    bgClass: 'bg-[#083540]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(6, 38, 46, 0.56) 0%, rgba(11, 76, 86, 0.42) 50%, rgba(5, 26, 34, 0.62) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(5, 30, 38, 0.64) 0%, rgba(9, 60, 68, 0.52) 52%, rgba(4, 20, 28, 0.70) 100%)',
+    edgeGlow: 'rgba(94, 234, 212, 0.30)',
+  },
+  warm: {
+    bgClass: 'bg-[#2c1c1e]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(38, 20, 22, 0.54) 0%, rgba(92, 44, 24, 0.40) 50%, rgba(14, 24, 48, 0.60) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(30, 16, 18, 0.62) 0%, rgba(72, 34, 18, 0.50) 52%, rgba(12, 20, 40, 0.68) 100%)',
+    edgeGlow: 'rgba(253, 186, 116, 0.30)',
+  },
+  slate: {
+    bgClass: 'bg-[#10294d]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(12, 32, 68, 0.56) 0%, rgba(28, 66, 124, 0.42) 50%, rgba(8, 24, 52, 0.62) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(10, 26, 56, 0.64) 0%, rgba(22, 52, 102, 0.52) 52%, rgba(7, 18, 42, 0.70) 100%)',
+    edgeGlow: 'rgba(147, 197, 253, 0.30)',
+  },
+};
+
 export interface VideoBackgroundProps {
   src?: string;
   poster?: string;
@@ -17,6 +111,7 @@ export interface VideoBackgroundProps {
   playsInline?: boolean;
   brightness?: number;
   tone?: 'dark' | 'light';
+  tint?: VideoBackgroundTint;
   start?: number;
   end?: number;
   position?: 'fixed' | 'absolute';
@@ -165,6 +260,7 @@ export function VideoBackground({
   playsInline = true,
   brightness,
   tone = 'dark',
+  tint = 'daylight',
   start,
   end,
   position = 'fixed',
@@ -338,9 +434,10 @@ export function VideoBackground({
     }
   }, [youtubeEmbedUrl, shouldRenderMedia, autoPlay, muted, playsInline]);
 
-  const resolvedBrightness = brightness ?? (tone === 'light' ? 0.52 : 0.38);
+  const resolvedBrightness = brightness ?? (tone === 'light' ? 0.86 : 0.68);
   const clampedBrightness = Math.max(0.1, Math.min(1.6, resolvedBrightness));
   const isLightTone = tone === 'light';
+  const tintPreset = VIDEO_TINT_PRESETS[tint] ?? VIDEO_TINT_PRESETS.daylight;
   const positionClass = position === 'absolute' ? 'absolute inset-0' : 'fixed inset-0';
 
   return (
@@ -349,10 +446,11 @@ export function VideoBackground({
       aria-hidden="true"
       data-testid="video-background"
       data-tone={tone}
+      data-tint={tint}
       data-start={effectiveStart !== undefined ? String(effectiveStart) : undefined}
       data-end={effectiveEnd !== undefined ? String(effectiveEnd) : undefined}
       className={`${positionClass} overflow-hidden pointer-events-none select-none ${
-        isLightTone ? 'bg-[#0b1929]' : 'bg-[#081421]'
+        isLightTone ? tintPreset.bgClass : 'bg-[#12263d]'
       } ${className}`}
       style={{ zIndex: -1 }}
     >
@@ -367,7 +465,7 @@ export function VideoBackground({
           alt=""
           aria-hidden="true"
           className={`absolute inset-0 w-full h-full object-cover scale-105 ${
-            isLightTone ? 'brightness-75' : ''
+            isLightTone ? 'brightness-95 saturate-105' : 'brightness-90'
           }`}
         />
 
@@ -436,20 +534,19 @@ export function VideoBackground({
             />
           ))}
 
-        {/* Shaded backdrop-filter overlay across the container */}
+        {/* Light-tinted frosted backdrop-filter overlay across the container */}
         <div
           aria-hidden="true"
           className="absolute inset-0"
           style={{
             backdropFilter: isLightTone
-              ? `brightness(${clampedBrightness}) contrast(1.06)`
-              : `brightness(${clampedBrightness})`,
+              ? `brightness(${clampedBrightness}) saturate(1.1) contrast(1.02)`
+              : `brightness(${clampedBrightness}) saturate(1.06)`,
             WebkitBackdropFilter: isLightTone
-              ? `brightness(${clampedBrightness}) contrast(1.06)`
-              : `brightness(${clampedBrightness})`,
-            background: isLightTone
-              ? 'linear-gradient(180deg, rgba(8, 20, 33, 0.56) 0%, rgba(13, 31, 51, 0.44) 50%, rgba(8, 20, 33, 0.62) 100%)'
-              : 'linear-gradient(180deg, rgba(8, 20, 33, 0.44) 0%, rgba(13, 31, 51, 0.32) 50%, rgba(8, 20, 33, 0.52) 100%)',
+              ? `brightness(${clampedBrightness}) saturate(1.1) contrast(1.02)`
+              : `brightness(${clampedBrightness}) saturate(1.06)`,
+            background: isLightTone ? tintPreset.lightOverlay : tintPreset.darkOverlay,
+            boxShadow: `inset 0 1px 0 ${tintPreset.edgeGlow}`,
           }}
         />
       </div>

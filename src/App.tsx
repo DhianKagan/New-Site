@@ -1391,18 +1391,20 @@ function AppContent() {
     <div className={`min-h-screen flex flex-col relative text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
       <VideoBackground
         src="https://www.youtube.com/watch?v=o7fTs8et1QM"
+        tone="light"
+        tint="daylight"
         start={activeVideoSegment.start}
         end={activeVideoSegment.end}
         autoPlay
         loop
         muted
         playsInline
-        brightness={0.4}
+        brightness={0.72}
       />
 
       {/* Slim Utility Strip (Odessa Office + Store/CRM Workspace Switcher) */}
-      <div className="bg-[#0d1f33]/88 backdrop-blur-md text-slate-300 text-xs py-1.5 border-b border-white/10">
-        <div className="max-w-[1180px] mx-auto px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="bg-gradient-to-r from-[#07264d]/92 via-[#0a366c]/90 to-[#07264d]/92 backdrop-blur-md text-sky-100/90 text-xs py-1.5 border-b border-sky-200/20">
+        <div className="ec-container flex items-center justify-between gap-2 sm:gap-4">
           <div className="truncate min-w-0">
             <span className="hidden md:inline">{COMPANY_INFO.address} · </span>
             <a
@@ -1414,7 +1416,7 @@ function AppContent() {
             </a>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="inline-flex items-center rounded-md border border-white/15 bg-white/5 p-0.5" aria-label={tr('Мова сайту')}>
+            <div className="inline-flex items-center rounded-md border border-sky-200/20 bg-white/10 p-0.5" aria-label={tr('Мова сайту')}>
               {(['uk', 'ru'] as const).map((option) => (
                 <button
                   key={option}
@@ -1423,7 +1425,7 @@ function AppContent() {
                   aria-pressed={locale === option}
                   onClick={() => changeLocale(option)}
                   className={`rounded px-2 py-1 text-[10px] font-extrabold transition-colors ${
-                    locale === option ? 'bg-white text-[#0d1f33]' : 'text-slate-300 hover:text-white'
+                    locale === option ? 'bg-white text-[#07213e]' : 'text-sky-100 hover:text-white'
                   }`}
                 >
                   {option.toUpperCase()}
@@ -1441,7 +1443,7 @@ function AppContent() {
                 className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
                   view !== 'crm' && view !== 'login' && view !== 'account'
                     ? 'bg-white/15 text-white'
-                    : 'text-slate-300 hover:text-white'
+                    : 'text-sky-100 hover:text-white'
                 }`}
               >
                 {tr('Магазин')}
@@ -1451,7 +1453,7 @@ function AppContent() {
                   type="button"
                   onClick={() => navigateTo('crm')}
                   className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                    view === 'crm' ? 'bg-[#f59e0b] text-[#0d1f33]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
+                    view === 'crm' ? 'bg-[#f59e0b] text-[#07213e]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
                   }`}
                 >
                   {crmButtonLabel}
@@ -1461,7 +1463,7 @@ function AppContent() {
                   type="button"
                   onClick={() => navigateTo('account')}
                   className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                    view === 'account' ? 'bg-[#1769aa] text-white' : 'bg-white/10 text-sky-200 hover:bg-white/20'
+                    view === 'account' ? 'bg-[#0b66b2] text-white' : 'bg-white/10 text-sky-200 hover:bg-white/20'
                   }`}
                 >
                   <User className="w-3 h-3" />
@@ -1472,7 +1474,7 @@ function AppContent() {
                   type="button"
                   onClick={() => navigateTo('login', undefined, 'login')}
                   className={`px-2 sm:px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                    view === 'login' ? 'bg-[#f59e0b] text-[#0d1f33]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
+                    view === 'login' ? 'bg-[#f59e0b] text-[#07213e]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
                   }`}
                 >
                   {tr('Увійти / Реєстрація', 'Войти / Регистрация')}
@@ -1484,8 +1486,8 @@ function AppContent() {
       </div>
 
       {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
-      <header className="sticky top-0 z-40 bg-white/92 backdrop-blur-md border-b border-slate-200/80">
-        <div className="max-w-[1180px] mx-auto px-3 sm:px-5 h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
+      <header className="sticky top-0 z-40 bg-white/82 backdrop-blur-xl border-b border-sky-200/70 shadow-[0_4px_20px_rgba(7,33,62,0.06)]">
+        <div className="ec-container h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
           {/* Zone 1: Single-line Brand Wordmark */}
           <a
             href="/"
@@ -1652,12 +1654,12 @@ function AppContent() {
       <main className="flex-1">
         <Breadcrumbs items={breadcrumbItems} onNavigate={handleBreadcrumbNavigate} />
         {loadingCatalog && view !== 'crm' ? (
-          <div className="max-w-[1180px] mx-auto px-5 py-16">
-            <div className="rounded-2xl bg-white/90 backdrop-blur-md p-6 space-y-4">
-              <div className="h-8 w-64 bg-slate-200 rounded animate-pulse" />
+          <div className="ec-container py-14">
+            <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
+              <div className="h-8 w-64 bg-sky-100 rounded animate-pulse" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[1, 2, 3].map((n) => (
-                  <div key={n} className="h-72 bg-slate-100 rounded-xl animate-pulse" />
+                  <div key={n} className="h-72 bg-sky-50/80 rounded-2xl animate-pulse" />
                 ))}
               </div>
             </div>
@@ -1815,16 +1817,16 @@ function AppContent() {
 
       {/* Footer */}
       {view !== 'crm' && (
-        <footer className="bg-[#081421]/85 backdrop-blur-md text-slate-300 pt-11 pb-20 lg:pb-11 border-t border-white/15">
-          <div className="max-w-[1180px] mx-auto px-5">
+        <footer className="bg-gradient-to-b from-[#072347]/92 to-[#051a36]/95 backdrop-blur-xl text-sky-100/85 pt-12 pb-20 lg:pb-12 border-t border-sky-200/20">
+          <div className="ec-container">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               <div>
                 <SmartImage
                   src="/assets/energocomfort/logo_full.png"
                   alt="Energo Comfort — сонячні станції та резервне живлення"
-                  className="h-12 w-auto bg-white rounded-lg p-1.5 mb-3"
+                  className="h-12 w-auto bg-white rounded-xl p-1.5 mb-3"
                 />
-                <p className="text-xs text-slate-400 leading-relaxed mb-3.5">
+                <p className="text-xs text-sky-100/75 leading-relaxed mb-3.5">
                   {tr('Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.', 'Системы резервного питания и солнечные электростанции под ключ в Одессе и области.')}
                 </p>
                 <SocialIcons links={socialLinks} variant="footer" />
@@ -1832,7 +1834,7 @@ function AppContent() {
 
               <div>
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Обладнання')}</h2>
-                <div className="space-y-1.5 text-xs text-slate-400">
+                <div className="space-y-1.5 text-xs text-sky-100/75">
                   {(
                     [
                       ['kits', 'Готові рішення'],
@@ -1846,7 +1848,7 @@ function AppContent() {
                       key={c}
                       href={`/shop?cat=${c}`}
                       onClick={(e) => handleNavAnchor(e, 'shop', c)}
-                      className="block hover:text-white"
+                      className="block hover:text-white transition-colors"
                     >
                       {tr(label)}
                     </a>
@@ -1856,32 +1858,32 @@ function AppContent() {
 
               <div>
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Компанія та сервіс', 'Компания и сервис')}</h2>
-                <div className="space-y-1.5 text-xs text-slate-400">
+                <div className="space-y-1.5 text-xs text-sky-100/75">
                   <a
                     href="/services"
                     onClick={(e) => handleNavAnchor(e, 'services')}
-                    className="block hover:text-white"
+                    className="block hover:text-white transition-colors"
                   >
                     {tr('Послуги монтажу та інжинірингу')}
                   </a>
                   <a
                     href="/projects"
                     onClick={(e) => handleNavAnchor(e, 'projects')}
-                    className="block hover:text-white"
+                    className="block hover:text-white transition-colors"
                   >
                     {tr('Реалізовані об’єкти')} ({projects.length})
                   </a>
                   <a
                     href="/contacts"
                     onClick={(e) => handleNavAnchor(e, 'contacts')}
-                    className="block hover:text-white"
+                    className="block hover:text-white transition-colors"
                   >
                     {tr('Контакти')}
                   </a>
-                  <a href="/payment-delivery" onClick={(e) => handleNavAnchor(e, 'payment-delivery')} className="block hover:text-white">
+                  <a href="/payment-delivery" onClick={(e) => handleNavAnchor(e, 'payment-delivery')} className="block hover:text-white transition-colors">
                     {tr('Оплата і доставка')}
                   </a>
-                  <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block hover:text-white">
+                  <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block hover:text-white transition-colors">
                     {tr('Публічна оферта')}
                   </a>
                   {adminToken ? (
@@ -1896,7 +1898,7 @@ function AppContent() {
                     <a
                       href="/account"
                       onClick={(e) => handleNavAnchor(e, 'account')}
-                      className="block hover:text-white"
+                      className="block hover:text-white transition-colors"
                     >
                       {tr('Особистий кабінет', 'Личный кабинет')}
                     </a>
@@ -1914,26 +1916,26 @@ function AppContent() {
 
               <div>
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Контакти · Одеса', 'Контакты · Одесса')}</h2>
-                <div className="space-y-1.5 text-xs text-slate-400">
+                <div className="space-y-1.5 text-xs text-sky-100/75">
                   <p>{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
                   <a
                     href={COMPANY_INFO.phone1Href}
                     onClick={() => track({ name: 'phone_click', placement: 'footer', scenario: 'unspecified' })}
-                    className="block font-mono hover:text-white"
+                    className="block font-mono hover:text-white transition-colors"
                   >
                     {COMPANY_INFO.phone1}
                   </a>
                   <a
                     href={COMPANY_INFO.phone2Href}
                     onClick={() => track({ name: 'phone_click', placement: 'footer', scenario: 'unspecified' })}
-                    className="block font-mono hover:text-white"
+                    className="block font-mono hover:text-white transition-colors"
                   >
                     {COMPANY_INFO.phone2}
                   </a>
                   <a
                     href={`mailto:${COMPANY_INFO.email}`}
                     onClick={() => trackEvent('contact', { channel: 'email', placement: 'footer' })}
-                    className="block hover:text-white"
+                    className="block hover:text-white transition-colors"
                   >
                     {COMPANY_INFO.email}
                   </a>
@@ -1941,7 +1943,7 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-white/10 text-[11px] text-slate-500 flex flex-wrap justify-between gap-2">
+            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap justify-between gap-2">
               <span>© 2026 Energo Comfort · energocomfort.shop</span>
               <span>{tr('Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina', 'Официальное оборудование Deye, SolaX, Solis, Dyness, Trina')}</span>
             </div>
@@ -1951,13 +1953,13 @@ function AppContent() {
 
       {/* Slim Mobile Thumb CTA Bar (<= 44px height) */}
       {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !quickViewProduct && !paybackProduct && !selectedCase && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-xs border-t border-slate-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-[#f0f7ff]/95 backdrop-blur-md border-t border-sky-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
             onClick={() => track({ name: 'phone_click', placement: 'sticky', scenario: 'unspecified' })}
-            className="flex-1 min-w-0 min-h-12 rounded-md border border-slate-300 bg-white text-[#0d1f33] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"
+            className="flex-1 min-w-0 min-h-12 rounded-xl border border-sky-200 bg-white text-[#07213e] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"
           >
-            <PhoneCall className="w-4 h-4 text-[#1769aa]" />
+            <PhoneCall className="w-4 h-4 text-[#0b66b2]" />
             {tr('Подзвонити', 'Позвонить')}
           </a>
           <button
@@ -1966,11 +1968,11 @@ function AppContent() {
               track({ name: 'cta_click', placement: 'sticky', scenario: 'unspecified' });
               openLeadModal('Експрес-підбір із мобільної панелі', undefined, 'sticky');
             }}
-            className="flex-1 min-w-0 min-h-12 rounded-md bg-[#1769aa] text-white text-[11px] font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d1f33]"
+            className="flex-1 min-w-0 min-h-12 rounded-xl bg-[#0b66b2] text-white text-[11px] font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#07213e]"
           >
             {tr('Розрахунок', 'Расчёт')}
           </button>
-          {socialLinks.telegram && <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" aria-label="Telegram" onClick={() => track({ name: 'messenger_click', placement: 'sticky', scenario: 'unspecified', channel: 'telegram' })} className="flex-1 min-w-0 min-h-12 rounded-md border border-sky-200 bg-sky-50 text-[#1769aa] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"><Send className="w-4 h-4" />Telegram</a>}
+          {socialLinks.telegram && <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" aria-label="Telegram" onClick={() => track({ name: 'messenger_click', placement: 'sticky', scenario: 'unspecified', channel: 'telegram' })} className="flex-1 min-w-0 min-h-12 rounded-xl border border-sky-200 bg-sky-50 text-[#0b66b2] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"><Send className="w-4 h-4" />Telegram</a>}
         </div>
       )}
 

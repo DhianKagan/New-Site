@@ -1131,7 +1131,7 @@ export function CrmView({
 
   return (
     <div className="relative overflow-hidden isolate min-h-screen py-8">
-      <VideoBackground position="absolute" tone="light" start={36} end={52} />
+      <VideoBackground position="absolute" tone="light" tint="slate" start={48} end={59} />
       <div className="relative max-w-[1260px] mx-auto px-5 space-y-6">
         {/* Header Bar */}
         <div className="bg-white/95 backdrop-blur-md border border-white/25 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-lg">

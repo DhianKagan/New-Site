@@ -17,27 +17,27 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
 
   return (
     <div>
-      <section className="bg-[#081421]/40 backdrop-blur-[1px] border-b border-white/15 py-8 text-white">
-        <div className="max-w-[1180px] mx-auto px-5">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">
+      <section className="ec-banner text-[#07213e]">
+        <div className="ec-container">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
             {tr('Реалізовані проєкти СЕС та систем живлення в Одеській області', 'Реализованные солнечные электростанции и системы питания в Одесской области')}
           </h1>
-          <p className="text-sm text-slate-200 max-w-2xl">
+          <p className="text-sm text-[#1c3d5e] font-medium max-w-2xl">
             {tr('Комерційні СЕС до 110 кВт та приватні системи резервного живлення для квартир і будинків.', 'Коммерческие солнечные электростанции до 110 кВт и системы резервного питания для квартир и домов.')}
           </p>
         </div>
       </section>
 
-      <section className="relative overflow-hidden isolate py-12">
-        <VideoBackground position="absolute" tone="light" start={28} end={44} />
-        <div className="relative max-w-[1180px] mx-auto px-5">
+      <section className="relative overflow-hidden isolate ec-section">
+        <VideoBackground position="absolute" tone="light" tint="emerald" start={32} end={44} brightness={0.56} />
+        <div className="relative ec-container">
           <h2 className="sr-only">{tr('Кейси встановлених сонячних електростанцій та систем резервного живлення', 'Примеры установленных солнечных электростанций и систем резервного питания')}</h2>
-          <div className="inline-flex flex-wrap gap-1 p-1 bg-[#0d1f33]/85 backdrop-blur-md border border-white/20 rounded-lg mb-7 shadow-md">
+          <div className="inline-flex flex-wrap gap-1.5 p-1.5 ec-glass-plate rounded-2xl mb-6">
             <button
               type="button"
               onClick={() => setSeg('all')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                seg === 'all' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
+              className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                seg === 'all' ? 'bg-[#0b66b2] text-white shadow-sm' : 'text-[#1c3d5e] hover:text-[#07213e] hover:bg-white/60'
               }`}
             >
               {tr('Усі проєкти', 'Все проекты')} ({projects.length})
@@ -45,8 +45,8 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
             <button
               type="button"
               onClick={() => setSeg('b2b')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                seg === 'b2b' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
+              className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                seg === 'b2b' ? 'bg-[#0b66b2] text-white shadow-sm' : 'text-[#1c3d5e] hover:text-[#07213e] hover:bg-white/60'
               }`}
             >
               {tr('Бізнес B2B')} ({projects.filter((p) => p.seg === 'b2b').length})
@@ -54,8 +54,8 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
             <button
               type="button"
               onClick={() => setSeg('b2c')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-md whitespace-nowrap cursor-pointer ${
-                seg === 'b2c' ? 'bg-white text-[#0d1f33] shadow-xs' : 'text-slate-100 hover:text-white'
+              className={`px-4 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
+                seg === 'b2c' ? 'bg-[#0b66b2] text-white shadow-sm' : 'text-[#1c3d5e] hover:text-[#07213e] hover:bg-white/60'
               }`}
             >
               {tr('Дім і квартира B2C')} ({projects.filter((p) => p.seg === 'b2c').length})
@@ -67,22 +67,22 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
               <article
                 key={c.id}
                 onClick={() => onSelectCase(c)}
-                className="bg-white/95 backdrop-blur-md border border-white/25 rounded-xl overflow-hidden flex flex-col cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
+                className="ec-glass-card rounded-2xl overflow-hidden flex flex-col cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
               >
-                <div className="relative h-52 bg-[#0d1f33]">
+                <div className="relative h-48 bg-[#07213e]">
                   <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} className="w-full h-full object-cover" />
-                  <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent text-[11px] font-bold text-white">
+                  <div className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-[#041830]/85 to-transparent text-[11px] font-bold text-white">
                     {isRussian ? c.tagRu ?? c.tag : c.tag}
                   </div>
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-extrabold text-[#0d1f33] mb-1.5">{isRussian ? c.titleRu ?? c.title : c.title}</h3>
-                    <p className="text-xs text-[#334155] font-medium leading-relaxed">{isRussian ? c.taskRu ?? c.task : c.task}</p>
+                    <h3 className="text-base font-extrabold text-[#07213e] mb-1.5">{isRussian ? c.titleRu ?? c.title : c.title}</h3>
+                    <p className="text-xs text-[#1c3d5e] font-medium leading-relaxed">{isRussian ? c.taskRu ?? c.task : c.task}</p>
                   </div>
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] font-bold">
-                    <span className="font-mono text-[#0d1f33] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
-                    <span className="text-[#1769aa] shrink-0">{tr('Деталі')} →</span>
+                  <div className="pt-3 border-t border-sky-200/75 flex items-center justify-between gap-2 text-[11px] font-bold">
+                    <span className="font-mono text-[#07213e] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
+                    <span className="text-[#0b66b2] shrink-0">{tr('Деталі')} →</span>
                   </div>
                 </div>
               </article>

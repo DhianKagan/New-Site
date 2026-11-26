@@ -68,15 +68,18 @@ test('buildYouTubeEmbedUrl sets autoplay, mute, loop, playlist, playsinline, sta
   assert.equal(invalidEndEmbed.searchParams.get('end'), null);
 });
 
-test('VideoBackground component uses z-index -1, dark & light tone backdrop-filters, fade-in, and unique section segments', () => {
+test('VideoBackground component uses z-index -1, light-tinted backdrop-filters, fade-in, distinct tints, and non-overlapping section segments', () => {
   assert.equal(VIDEO_BACKGROUND_DEFAULT_URL, 'https://www.youtube.com/watch?v=o7fTs8et1QM');
   const source = readFileSync(new URL('../src/components/VideoBackground.tsx', import.meta.url), 'utf8');
   assert.ok(source.includes('zIndex: -1'));
   assert.ok(source.includes("tone?: 'dark' | 'light'"));
-  assert.ok(source.includes("tone === 'light' ? 0.52 : 0.38"));
-  assert.ok(source.includes('brightness(${clampedBrightness}) contrast(1.06)'));
-  assert.ok(source.includes('brightness(${clampedBrightness})'));
+  assert.ok(source.includes('tint?: VideoBackgroundTint'));
+  assert.ok(source.includes('VIDEO_TINT_PRESETS'));
+  assert.ok(source.includes("tone === 'light' ? 0.86 : 0.68"));
+  assert.ok(source.includes('brightness(${clampedBrightness}) saturate(1.1) contrast(1.02)'));
+  assert.ok(source.includes('brightness(${clampedBrightness}) saturate(1.06)'));
   assert.ok(source.includes('data-tone={tone}'));
+  assert.ok(source.includes('data-tint={tint}'));
   assert.ok(source.includes('autoPlay={autoPlay}'));
   assert.ok(source.includes('loop={loop && effectiveEnd === undefined}'));
   assert.ok(source.includes('muted={muted}'));
@@ -94,7 +97,7 @@ test('VideoBackground component uses z-index -1, dark & light tone backdrop-filt
   assert.ok(appSource.includes('<VideoBackground'));
   assert.ok(appSource.includes('https://www.youtube.com/watch?v=o7fTs8et1QM'));
   assert.ok(appSource.includes('ROUTE_VIDEO_SEGMENTS'));
-  assert.ok(appSource.includes('brightness={0.4}'));
+  assert.ok(appSource.includes('brightness={0.72}'));
 
   const homeSource = readFileSync(new URL('../src/components/HomeView.tsx', import.meta.url), 'utf8');
   assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS'));
@@ -107,6 +110,39 @@ test('VideoBackground component uses z-index -1, dark & light tone backdrop-filt
   assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.process.start'));
   assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.brief.start'));
   assert.ok(homeSource.includes('tone="light"'));
+  assert.ok(homeSource.includes('HOME_VIDEO_SEGMENTS.hero.tint'));
+
+  const howItWorksSource = readFileSync(new URL('../src/components/HowItWorks.tsx', import.meta.url), 'utf8');
+  const faqSource = readFileSync(new URL('../src/components/FaqSection.tsx', import.meta.url), 'utf8');
+
+  const segmentMatches = [
+    ...Array.from(homeSource.matchAll(/(\w+):\s*\{\s*start:\s*(\d+),\s*end:\s*(\d+),\s*tint:\s*'([^']+)'\s*\}/g)).map((m) => ({
+      name: m[1],
+      start: Number(m[2]),
+      end: Number(m[3]),
+      tint: m[4],
+    })),
+    {
+      name: 'howItWorks',
+      start: Number(howItWorksSource.match(/start=\{(\d+)\}/)?.[1] ?? -1),
+      end: Number(howItWorksSource.match(/end=\{(\d+)\}/)?.[1] ?? -1),
+      tint: howItWorksSource.match(/tint="([^"]+)"/)?.[1] ?? '',
+    },
+    {
+      name: 'faq',
+      start: Number(faqSource.match(/start=\{(\d+)\}/)?.[1] ?? -1),
+      end: Number(faqSource.match(/end=\{(\d+)\}/)?.[1] ?? -1),
+      tint: faqSource.match(/tint="([^"]+)"/)?.[1] ?? '',
+    },
+  ];
+  assert.equal(segmentMatches.length, 10);
+  const sorted = [...segmentMatches].sort((a, b) => a.start - b.start);
+  for (let i = 1; i < sorted.length; i += 1) {
+    assert.ok(
+      sorted[i].start >= sorted[i - 1].end,
+      `Expected non-overlapping segment between ${sorted[i - 1].name} and ${sorted[i].name}`,
+    );
+  }
 
   for (const file of [
     '../src/components/HowItWorks.tsx',
@@ -121,5 +157,6 @@ test('VideoBackground component uses z-index -1, dark & light tone backdrop-filt
   ]) {
     const viewSource = readFileSync(new URL(file, import.meta.url), 'utf8');
     assert.ok(viewSource.includes('tone="light"'), `Expected tone="light" VideoBackground in ${file}`);
+    assert.ok(viewSource.includes('tint="'), `Expected tint prop on VideoBackground in ${file}`);
   }
 });

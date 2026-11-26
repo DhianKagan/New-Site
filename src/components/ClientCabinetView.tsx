@@ -214,15 +214,15 @@ export function ClientCabinetView({
 
   return (
     <div className="relative overflow-hidden isolate min-h-[calc(100vh-140px)] pb-14">
-      <VideoBackground position="absolute" tone="light" start={24} end={40} />
+      <VideoBackground position="absolute" tone="light" tint="indigo" start={38} end={50} brightness={0.56} />
       {/* Cabinet Header Bar */}
-      <div className="relative bg-[#0d1f33]/85 backdrop-blur-md text-white border-b border-white/10">
-        <div className="max-w-[1180px] mx-auto px-4 sm:px-5 py-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="relative ec-glass-sapphire text-white border-x-0 border-t-0 rounded-none">
+        <div className="ec-container py-6 flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <button
               type="button"
               onClick={onBackToStore}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-300 hover:text-white mb-2 cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-200 hover:text-white mb-2 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               {tr('Повернутися до магазину', 'Вернуться в магазин')}
@@ -231,7 +231,7 @@ export function ClientCabinetView({
               {tr('Особистий кабінет', 'Личный кабинет')} · {customer?.name || tr('Клієнт', 'Клиент')}
             </h1>
             {customer?.email && (
-              <div className="mt-1 inline-flex items-center gap-1.5 text-xs text-slate-300">
+              <div className="mt-1 inline-flex items-center gap-1.5 text-xs text-sky-100">
                 <Mail className="w-3.5 h-3.5 text-[#f59e0b]" />
                 <span>{customer.email}</span>
               </div>
@@ -243,12 +243,12 @@ export function ClientCabinetView({
               variant="accent"
               size="sm"
               onClick={() => setActiveTab('constructor')}
-              className="bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] border-0 font-bold"
+              className="bg-[#f59e0b] hover:bg-[#fbbf24] text-[#07213e] border-0 font-bold"
             >
               <Sparkles className="w-3.5 h-3.5" />
               {tr('Конструктор СЕС', 'Конструктор СЭС')}
             </Button>
-            <Button variant="outline" size="sm" onClick={onNavigateShop} className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+            <Button variant="outline" size="sm" onClick={onNavigateShop} className="bg-white/10 text-white border-white/25 hover:bg-white/20">
               <ShoppingBag className="w-3.5 h-3.5" />
               {tr('Каталог', 'Каталог')}
             </Button>
@@ -256,7 +256,7 @@ export function ClientCabinetView({
               variant="outline"
               size="sm"
               onClick={onLogout}
-              className="bg-transparent text-slate-200 border-white/20 hover:bg-white/10"
+              className="bg-transparent text-sky-100 border-white/25 hover:bg-white/10"
             >
               <LogOut className="w-3.5 h-3.5" />
               {tr('Вийти', 'Выйти')}
@@ -265,7 +265,7 @@ export function ClientCabinetView({
         </div>
 
         {/* Interactive Cabinet Sub-Navigation */}
-        <div className="max-w-[1180px] mx-auto px-4 sm:px-5 flex items-center gap-1.5 overflow-x-auto pb-3">
+        <div className="ec-container flex items-center gap-1.5 overflow-x-auto pb-3">
           {(
             [
               ['overview', ClipboardList, tr('Огляд та замовлення', 'Обзор и заказы'), null],
@@ -281,10 +281,10 @@ export function ClientCabinetView({
                 key={tabId}
                 type="button"
                 onClick={() => setActiveTab(tabId)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                   active
-                    ? 'bg-white text-[#0d1f33] shadow-sm'
-                    : 'bg-white/10 text-slate-200 hover:bg-white/15 hover:text-white'
+                    ? 'bg-white text-[#07213e] shadow-sm'
+                    : 'bg-white/10 text-sky-100 hover:bg-white/20 hover:text-white'
                 }`}
               >
                 <Icon
@@ -294,7 +294,7 @@ export function ClientCabinetView({
                         ? 'text-rose-500 fill-rose-500'
                         : 'text-rose-400'
                       : active
-                        ? 'text-[#1769aa]'
+                        ? 'text-[#0b66b2]'
                         : 'text-[#f59e0b]'
                   }`}
                 />
@@ -314,7 +314,7 @@ export function ClientCabinetView({
         </div>
       </div>
 
-      <div className="relative max-w-[1180px] mx-auto px-4 sm:px-5 pt-6 space-y-6">
+      <div className="relative ec-container pt-6 space-y-6">
         {activeTab === 'wishlist' && (
           <div className="space-y-5">
             <Card className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

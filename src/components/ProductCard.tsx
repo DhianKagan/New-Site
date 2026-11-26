@@ -1,8 +1,10 @@
+import type { CSSProperties } from 'react';
 import { ShoppingBag, ArrowUpRight, Eye, Heart, Calculator } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
+import { cn } from '../lib/utils.ts';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення',
@@ -22,6 +24,8 @@ interface ProductCardProps {
   onRequestQuote: (product: Product) => void;
   onCalculatePayback?: (product: Product) => void;
   usdUahRate: number | null;
+  className?: string;
+  style?: CSSProperties;
 }
 
 export function ProductCard({
@@ -34,6 +38,8 @@ export function ProductCard({
   onRequestQuote,
   onCalculatePayback,
   usdUahRate,
+  className,
+  style,
 }: ProductCardProps) {
   const isRussian = getActiveLocale() === 'ru';
   const specs = isRussian
@@ -48,13 +54,19 @@ export function ProductCard({
     : tr('Додати до списку бажань', 'Добавить в список желаний');
 
   return (
-    <article className="bg-white/95 backdrop-blur-md border border-white/25 rounded-xl overflow-hidden flex flex-col shadow-md transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:border-sky-200">
-      <div className="relative h-52 w-full bg-[#f8fafc] border-b border-slate-100 overflow-hidden group">
+    <article
+      style={style}
+      className={cn(
+        'ec-glass-card rounded-2xl overflow-hidden flex flex-col transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:border-sky-300/80',
+        className,
+      )}
+    >
+      <div className="relative h-48 w-full bg-white/85 border-b border-sky-100 overflow-hidden group">
         <button
           type="button"
           onClick={() => onSelect(product)}
           aria-label={localizedTitle}
-          className="w-full h-full block text-left cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
+          className="w-full h-full block text-left cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b66b2]"
         >
           <SmartImage
             src={product.img}
@@ -80,7 +92,7 @@ export function ProductCard({
                 className={`w-10 h-10 rounded-lg border shadow-xs flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 ${
                   isWishlisted
                     ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
-                    : 'bg-white/95 hover:bg-rose-50 text-[#0d1f33] hover:text-rose-600 border-slate-200'
+                    : 'bg-white/90 hover:bg-rose-50 text-[#07213e] hover:text-rose-600 border-sky-100'
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
@@ -96,7 +108,7 @@ export function ProductCard({
                 }}
                 aria-label={`${tr('Швидкий перегляд', 'Быстрый просмотр')}: ${localizedTitle}`}
                 title={tr('Швидкий перегляд', 'Быстрый просмотр')}
-                className="w-10 h-10 rounded-lg bg-white/95 hover:bg-[#1769aa] text-[#0d1f33] hover:text-white border border-slate-200 shadow-xs flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa]"
+                className="w-10 h-10 rounded-lg bg-white/90 hover:bg-[#0b66b2] text-[#07213e] hover:text-white border border-sky-100 shadow-xs flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b66b2]"
               >
                 <Eye className="w-4 h-4" />
               </button>
@@ -105,12 +117,12 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+      <div className="p-5 flex-1 flex flex-col justify-between gap-3.5">
         <div>
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 mb-1.5 truncate">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#1c3d5e] mb-1.5 truncate">
             <span>{tr(CAT_LABELS[product.cat] || product.cat)}</span>
             <span aria-hidden="true">·</span>
-            <span className="text-[#0d1f33] font-bold">{product.brand}</span>
+            <span className="text-[#07213e] font-bold">{product.brand}</span>
             <span aria-hidden="true">·</span>
             <span className="font-mono text-[10.5px]">SKU {product.sku}</span>
           </div>
@@ -120,43 +132,43 @@ export function ProductCard({
             onClick={() => onSelect(product)}
             className="text-left block w-full cursor-pointer group"
           >
-            <h3 className="text-[15px] font-bold text-[#0d1f33] leading-snug line-clamp-2 group-hover:text-[#1769aa] transition-colors">
+            <h3 className="text-[15px] font-bold text-[#07213e] leading-snug line-clamp-2 group-hover:text-[#0b66b2] transition-colors">
               {localizedTitle}
             </h3>
           </button>
 
           {specs.length > 0 && (
-            <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-1.5">
+            <div className="mt-3 pt-2.5 border-t border-sky-100/80 space-y-1.5">
               {specs.slice(0, 3).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="text-slate-600 font-medium">{k}</span>
-                  <span className="font-semibold text-[#0d1f33] text-right truncate">{v}</span>
+                  <span className="text-[#1c3d5e] font-medium">{k}</span>
+                  <span className="font-semibold text-[#07213e] text-right truncate">{v}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="pt-3 border-t border-slate-200 space-y-2.5">
+        <div className="pt-3 border-t border-sky-100 space-y-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               {product.price > 0 ? (
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-[17px] font-bold text-[#0d1f33] tabular-nums">
+                  <span className="font-mono text-[17px] font-bold text-[#07213e] tabular-nums">
                     {formatUahFromUsd(product.price, usdUahRate)}
                   </span>
                   {product.oldPrice > product.price && (
-                    <span className="font-mono text-xs text-slate-400 line-through tabular-nums">
+                    <span className="font-mono text-xs text-sky-900/40 line-through tabular-nums">
                       {formatUahFromUsd(product.oldPrice, usdUahRate)}
                     </span>
                   )}
                 </div>
               ) : (
-                <span className="font-mono text-sm font-bold text-[#1769aa]">{tr('За запитом')}</span>
+                <span className="font-mono text-sm font-bold text-[#0b66b2]">{tr('За запитом')}</span>
               )}
               <div
                 className={`text-[11px] font-semibold mt-0.5 ${
-                  product.inStock ? 'text-[#169374]' : 'text-amber-700'
+                  product.inStock ? 'text-[#0d9488]' : 'text-amber-700'
                 }`}
               >
                 {product.isKit
@@ -171,7 +183,7 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={() => onAddToCart(product)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#0d1f33] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#07213e] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
                 У кошик
@@ -180,7 +192,7 @@ export function ProductCard({
               <button
                 type="button"
                 onClick={() => onRequestQuote(product)}
-                className="inline-flex items-center gap-1 px-3.5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-1 px-3.5 py-2 rounded-lg bg-[#0b66b2] hover:bg-[#08508e] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 Розрахунок
                 <ArrowUpRight className="w-3.5 h-3.5" />
@@ -192,13 +204,13 @@ export function ProductCard({
             <button
               type="button"
               onClick={() => onCalculatePayback?.(product)}
-              className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-bold transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769aa] ${
+              className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-bold transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b66b2] ${
                 isKitProduct
-                  ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-[#0d1f33]'
-                  : 'bg-slate-50 hover:bg-[#eff6fc] border-slate-200 hover:border-sky-200 text-[#0d1f33] hover:text-[#1769aa]'
+                  ? 'bg-amber-50/90 hover:bg-amber-100 border-amber-200 text-[#07213e]'
+                  : 'bg-[#f0f7ff]/80 hover:bg-[#e0f0ff] border-sky-200/80 text-[#07213e] hover:text-[#0b66b2]'
               }`}
             >
-              <Calculator className={`w-3.5 h-3.5 shrink-0 ${isKitProduct ? 'text-[#d97706]' : 'text-[#1769aa]'}`} />
+              <Calculator className={`w-3.5 h-3.5 shrink-0 ${isKitProduct ? 'text-[#d97706]' : 'text-[#0b66b2]'}`} />
               <span>{tr('Розрахунок окупності', 'Расчёт окупаемости')}</span>
             </button>
           )}
