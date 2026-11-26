@@ -324,17 +324,19 @@ export function VideoBackground({
       let idleId: number | null = null;
       const activate = () => setShouldRenderMedia(true);
 
-      if ('requestIdleCallback' in win) {
-        idleId = (win as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(
-          activate,
-          { timeout: 1400 },
-        );
+      const winWithIdle = win as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+        cancelIdleCallback?: (id: number) => void;
+      };
+
+      if (typeof winWithIdle.requestIdleCallback === 'function') {
+        idleId = winWithIdle.requestIdleCallback(activate, { timeout: 1400 });
       } else {
         timerId = win.setTimeout(activate, 1000);
       }
       return () => {
-        if (idleId !== null && 'cancelIdleCallback' in win) {
-          (win as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(idleId);
+        if (idleId !== null && typeof winWithIdle.cancelIdleCallback === 'function') {
+          winWithIdle.cancelIdleCallback(idleId);
         }
         if (timerId !== null) {
           win.clearTimeout(timerId);
