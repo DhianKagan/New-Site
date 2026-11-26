@@ -19,7 +19,7 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
     );
   return (
     <div>
-      <section className="ec-banner text-[#07213e]">
+      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
         <div className="ec-container">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
             {tr('Послуги монтажу СЕС та додатковий інженерний сервіс')}
@@ -32,7 +32,7 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="teal" start={20} end={32} brightness={0.56} />
-        <div className="relative ec-container space-y-12">
+        <div className="relative ec-container space-y-12 break-words hyphens-auto">
           <div>
             <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-7">
               <div className="text-xs font-extrabold text-[#0b66b2] mb-1">{tr('Напрямок 01')}</div>
@@ -48,7 +48,7 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
                   <div>
                     {svc.image && (
                       <div className="h-48 bg-white/80 overflow-hidden">
-                        <SmartImage src={svc.image} alt={svc.imageAlt ?? svc.title} className="w-full h-full object-cover" />
+                        <SmartImage src={svc.image} alt={svc.imageAlt ?? svc.title} loading="lazy" className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div className="p-5 sm:p-6">
@@ -97,7 +97,7 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
                   <div>
                     {svc.image && (
                       <div className="h-48 bg-white/80 overflow-hidden">
-                        <SmartImage src={svc.image} alt={svc.imageAlt ?? svc.title} className="w-full h-full object-cover" />
+                        <SmartImage src={svc.image} alt={svc.imageAlt ?? svc.title} loading="lazy" className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div className="p-5 sm:p-6">

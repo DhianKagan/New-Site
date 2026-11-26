@@ -15,7 +15,7 @@ interface ContactsViewProps {
 export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps) {
   return (
     <div>
-      <section className="ec-banner text-[#07213e]">
+      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
         <div className="ec-container">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
             {tr('Ми на зв’язку та раді відповісти на ваші питання')}
@@ -28,7 +28,7 @@ export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="cyan" start={14} end={26} brightness={0.56} />
-        <div className="relative ec-container grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch">
+        <div className="relative ec-container grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch break-words hyphens-auto">
           <div className="lg:col-span-5 ec-glass-card rounded-2xl p-6 sm:p-7 h-full flex flex-col justify-between">
             <div>
               <div className="mb-6">

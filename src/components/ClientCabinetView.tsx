@@ -227,7 +227,7 @@ export function ClientCabinetView({
               <ArrowLeft className="w-3.5 h-3.5" />
               {tr('Повернутися до магазину', 'Вернуться в магазин')}
             </button>
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-normal truncate">
               {tr('Особистий кабінет', 'Личный кабинет')} · {customer?.name || tr('Клієнт', 'Клиент')}
             </h1>
             {customer?.email && (

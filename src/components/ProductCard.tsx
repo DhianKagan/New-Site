@@ -66,7 +66,7 @@ export function ProductCard({
     <article
       style={style}
       className={cn(
-        'ec-glass-card rounded-2xl overflow-hidden h-full flex flex-col transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:border-sky-300/80',
+        'ec-glass-card rounded-2xl overflow-hidden h-full min-w-0 flex flex-col transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl hover:border-sky-300/80',
         className,
       )}
     >
@@ -80,6 +80,7 @@ export function ProductCard({
           <SmartImage
             src={product.img}
             alt={localizedTitle}
+            loading="lazy"
             className={`w-full h-full transition-transform duration-200 group-hover:scale-[1.02] ${
               useCoverImage ? 'object-cover' : 'object-contain p-3.5'
             }`}
@@ -146,9 +147,9 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="p-5 flex-1 flex flex-col justify-between gap-3.5">
-        <div>
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#133659] mb-1.5 truncate">
+      <div className="p-5 flex-1 flex flex-col justify-between gap-3.5 min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#133659] mb-1.5 overflow-hidden text-ellipsis whitespace-nowrap">
             <span>{tr(CAT_LABELS[product.cat] || product.cat)}</span>
             <span aria-hidden="true">·</span>
             <span className="text-[#061c36] font-bold">{product.brand}</span>
@@ -159,9 +160,9 @@ export function ProductCard({
           <button
             type="button"
             onClick={() => onSelect(product)}
-            className="text-left block w-full cursor-pointer group"
+            className="text-left block w-full min-w-0 overflow-hidden cursor-pointer group"
           >
-            <h3 className="text-[15.5px] font-bold text-[#061c36] leading-snug line-clamp-2 min-h-[2.7rem] group-hover:text-[#0b66b2] transition-colors">
+            <h3 className="text-[15.5px] font-bold text-[#061c36] leading-snug line-clamp-2 overflow-hidden text-ellipsis break-words min-h-[2.7rem] group-hover:text-[#0b66b2] transition-colors">
               {localizedTitle}
             </h3>
           </button>
@@ -169,9 +170,9 @@ export function ProductCard({
           {specs.length > 0 && (
             <div className="mt-3 pt-2.5 border-t border-sky-200/75 space-y-1.5 min-h-[4.6rem]">
               {specs.slice(0, 3).map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="text-[#133659] font-medium">{k}</span>
-                  <span className="font-semibold text-[#061c36] text-right truncate">{v}</span>
+                <div key={k} className="flex items-center justify-between gap-2 text-xs min-w-0">
+                  <span className="text-[#133659] font-medium shrink-0">{k}</span>
+                  <span className="font-semibold text-[#061c36] text-right overflow-hidden text-ellipsis whitespace-nowrap">{v}</span>
                 </div>
               ))}
             </div>

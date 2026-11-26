@@ -17,7 +17,7 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
 
   return (
     <div>
-      <section className="ec-banner text-[#07213e]">
+      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
         <div className="ec-container">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
             {tr('Реалізовані проєкти СЕС та систем живлення в Одеській області', 'Реализованные солнечные электростанции и системы питания в Одесской области')}
@@ -30,7 +30,7 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="emerald" start={32} end={44} brightness={0.56} />
-        <div className="relative ec-container">
+        <div className="relative ec-container break-words hyphens-auto">
           <h2 className="sr-only">{tr('Кейси встановлених сонячних електростанцій та систем резервного живлення', 'Примеры установленных солнечных электростанций и систем резервного питания')}</h2>
           <div className="inline-flex flex-wrap gap-1.5 p-1.5 ec-glass-plate rounded-2xl mb-6">
             <button
@@ -67,20 +67,20 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
               <article
                 key={c.id}
                 onClick={() => onSelectCase(c)}
-                className="ec-glass-card rounded-2xl overflow-hidden h-full flex flex-col cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
+                className="ec-glass-card rounded-2xl overflow-hidden h-full flex flex-col min-w-0 cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
               >
                 <div className="relative h-48 bg-[#061c36]">
-                  <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} className="w-full h-full object-cover" />
+                  <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} loading="lazy" className="w-full h-full object-cover" />
                   <div className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-[#041830]/85 to-transparent text-[11px] font-bold text-white">
                     {isRussian ? c.tagRu ?? c.tag : c.tag}
                   </div>
                 </div>
-                <div className="p-5 flex-1 flex flex-col justify-between gap-3">
-                  <div>
-                    <h3 className="text-[15.5px] font-extrabold text-[#061c36] mb-1.5 line-clamp-2 min-h-[2.6rem]">
+                <div className="p-5 flex-1 flex flex-col justify-between gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <h3 className="text-[15.5px] font-extrabold text-[#061c36] mb-1.5 line-clamp-2 overflow-hidden text-ellipsis min-h-[2.6rem]">
                       {isRussian ? c.titleRu ?? c.title : c.title}
                     </h3>
-                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium leading-[1.6] line-clamp-3">
+                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium leading-[1.6] line-clamp-3 overflow-hidden text-ellipsis">
                       {isRussian ? c.taskRu ?? c.task : c.task}
                     </p>
                   </div>

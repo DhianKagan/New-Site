@@ -63,7 +63,7 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
       className="relative overflow-hidden isolate ec-section border-b border-white/25"
     >
       <VideoBackground position="absolute" tone="light" tint="cyan" start={11} end={17} brightness={0.54} />
-      <div className="relative ec-container">
+      <div className="relative ec-container break-words hyphens-auto">
         <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-7 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
           <div className="max-w-2xl">
             <div className="text-xs font-extrabold text-[#0b66b2] mb-1.5">

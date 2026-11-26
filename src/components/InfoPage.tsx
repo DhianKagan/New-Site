@@ -16,7 +16,7 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
   const isOffer = type === 'offer';
   return (
     <div>
-      <section className="ec-banner text-[#07213e]">
+      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
         <div className="ec-container">
           <h1 className="mb-2 text-2xl font-extrabold text-[#07213e] sm:text-3xl">
             {isOffer ? tr('Публічна оферта') : tr('Оплата і доставка')}
@@ -31,7 +31,7 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="daylight" start={26} end={38} brightness={0.56} />
-        <div className="relative ec-container space-y-6">
+        <div className="relative ec-container space-y-6 break-words hyphens-auto">
           {isOffer ? (
             <>
               <div role="note" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950">

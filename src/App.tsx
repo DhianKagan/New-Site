@@ -1503,11 +1503,11 @@ function AppContent() {
           </a>
 
           {/* Zone 2: 5 concise single-line nav links (desktop lg+) */}
-          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600">
+          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600 min-w-0 overflow-hidden">
             <a
               href="/"
               onClick={(e) => handleNavAnchor(e, 'home')}
-              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
                 view === 'home' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
@@ -1516,7 +1516,7 @@ function AppContent() {
             <a
               href="/shop"
               onClick={(e) => handleNavAnchor(e, 'shop', 'all')}
-              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
                 view === 'shop' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
@@ -1525,7 +1525,7 @@ function AppContent() {
             <a
               href="/services"
               onClick={(e) => handleNavAnchor(e, 'services')}
-              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
                 view === 'services' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
@@ -1534,7 +1534,7 @@ function AppContent() {
             <a
               href="/projects"
               onClick={(e) => handleNavAnchor(e, 'projects')}
-              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
                 view === 'projects' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
@@ -1543,7 +1543,7 @@ function AppContent() {
             <a
               href="/contacts"
               onClick={(e) => handleNavAnchor(e, 'contacts')}
-              className={`whitespace-nowrap shrink-0 hover:text-[#0d1f33] transition-colors ${
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
                 view === 'contacts' ? 'text-[#1769aa] font-bold' : ''
               }`}
             >
@@ -1624,7 +1624,7 @@ function AppContent() {
                 key={v}
                 href={href}
                 onClick={(e) => handleNavAnchor(e, v)}
-                className="block w-full text-left px-3 py-2.5 rounded-lg bg-slate-50 text-sm font-bold text-[#0d1f33]"
+                className="block w-full text-left px-3 py-2.5 rounded-lg bg-slate-50 text-sm font-bold text-[#0d1f33] overflow-hidden text-ellipsis whitespace-nowrap"
               >
                 {label}
               </a>
@@ -1662,7 +1662,7 @@ function AppContent() {
             </div>
           </div>
         ) : (
-          <>
+          <div className="break-words hyphens-auto">
             {view === 'home' && (
               <HomeView
                 usdUahRate={usdUahRate}
@@ -1824,19 +1824,20 @@ function AppContent() {
                   />
                 ))}
             </Suspense>
-          </>
+          </div>
         )}
       </main>
 
       {/* Footer */}
       {view !== 'crm' && (
-        <footer className="bg-gradient-to-b from-[#072347]/92 to-[#051a36]/95 backdrop-blur-xl text-sky-100/85 pt-12 pb-20 lg:pb-12 border-t border-sky-200/20">
+        <footer className="bg-gradient-to-b from-[#072347]/92 to-[#051a36]/95 backdrop-blur-xl text-sky-100/85 pt-12 pb-20 lg:pb-12 border-t border-sky-200/20 break-words hyphens-auto">
           <div className="ec-container">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div>
+              <div className="min-w-0 break-words hyphens-auto">
                 <SmartImage
                   src="/assets/energocomfort/logo_full.png"
                   alt="Energo Comfort — сонячні станції та резервне живлення"
+                  loading="lazy"
                   className="h-12 w-auto bg-white rounded-xl p-1.5 mb-3"
                 />
                 <p className="text-xs text-sky-100/75 leading-relaxed mb-3.5">
@@ -1845,7 +1846,7 @@ function AppContent() {
                 <SocialIcons links={socialLinks} variant="footer" />
               </div>
 
-              <div>
+              <div className="min-w-0 break-words hyphens-auto">
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Обладнання')}</h2>
                 <div className="space-y-1.5 text-xs text-sky-100/75">
                   {(
@@ -1861,7 +1862,7 @@ function AppContent() {
                       key={c}
                       href={`/shop?cat=${c}`}
                       onClick={(e) => handleNavAnchor(e, 'shop', c)}
-                      className="block hover:text-white transition-colors"
+                      className="block overflow-hidden text-ellipsis hover:text-white transition-colors"
                     >
                       {tr(label)}
                     </a>
@@ -1869,41 +1870,41 @@ function AppContent() {
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0 break-words hyphens-auto">
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Компанія та сервіс', 'Компания и сервис')}</h2>
                 <div className="space-y-1.5 text-xs text-sky-100/75">
                   <a
                     href="/services"
                     onClick={(e) => handleNavAnchor(e, 'services')}
-                    className="block hover:text-white transition-colors"
+                    className="block overflow-hidden text-ellipsis hover:text-white transition-colors"
                   >
                     {tr('Послуги монтажу та інжинірингу')}
                   </a>
                   <a
                     href="/projects"
                     onClick={(e) => handleNavAnchor(e, 'projects')}
-                    className="block hover:text-white transition-colors"
+                    className="block overflow-hidden text-ellipsis hover:text-white transition-colors"
                   >
                     {tr('Реалізовані об’єкти')} ({projects.length})
                   </a>
                   <a
                     href="/contacts"
                     onClick={(e) => handleNavAnchor(e, 'contacts')}
-                    className="block hover:text-white transition-colors"
+                    className="block overflow-hidden text-ellipsis hover:text-white transition-colors"
                   >
                     {tr('Контакти')}
                   </a>
-                  <a href="/payment-delivery" onClick={(e) => handleNavAnchor(e, 'payment-delivery')} className="block hover:text-white transition-colors">
+                  <a href="/payment-delivery" onClick={(e) => handleNavAnchor(e, 'payment-delivery')} className="block overflow-hidden text-ellipsis hover:text-white transition-colors">
                     {tr('Оплата і доставка')}
                   </a>
-                  <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block hover:text-white transition-colors">
+                  <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block overflow-hidden text-ellipsis hover:text-white transition-colors">
                     {tr('Публічна оферта')}
                   </a>
                   {adminToken ? (
                     <a
                       href="/crm"
                       onClick={(e) => handleNavAnchor(e, 'crm')}
-                      className="block text-amber-300 hover:text-amber-200"
+                      className="block overflow-hidden text-ellipsis text-amber-300 hover:text-amber-200"
                     >
                       {crmButtonLabel}
                     </a>
@@ -1911,7 +1912,7 @@ function AppContent() {
                     <a
                       href="/account"
                       onClick={(e) => handleNavAnchor(e, 'account')}
-                      className="block hover:text-white transition-colors"
+                      className="block overflow-hidden text-ellipsis hover:text-white transition-colors"
                     >
                       {tr('Особистий кабінет', 'Личный кабинет')}
                     </a>
@@ -1919,7 +1920,7 @@ function AppContent() {
                     <a
                       href="/login"
                       onClick={(e) => handleNavAnchor(e, 'login')}
-                      className="block text-amber-300 hover:text-amber-200"
+                      className="block overflow-hidden text-ellipsis text-amber-300 hover:text-amber-200"
                     >
                       {tr('Увійти / Реєстрація', 'Войти / Регистрация')}
                     </a>
@@ -1927,7 +1928,7 @@ function AppContent() {
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0 break-words hyphens-auto">
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Контакти · Одеса', 'Контакты · Одесса')}</h2>
                 <div className="space-y-1.5 text-xs text-sky-100/75">
                   <p>{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
@@ -1956,7 +1957,7 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap justify-between gap-2">
+            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap justify-between gap-2 break-words hyphens-auto">
               <span>© 2026 Energo Comfort · energocomfort.shop</span>
               <span>{tr('Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina', 'Официальное оборудование Deye, SolaX, Solis, Dyness, Trina')}</span>
             </div>

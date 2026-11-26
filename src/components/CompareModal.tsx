@@ -396,9 +396,9 @@ export function CompareModal({
                                   onClose();
                                   onSelectProduct(product);
                                 }}
-                                className="text-left block w-full group cursor-pointer"
+                                className="text-left block w-full min-w-0 overflow-hidden group cursor-pointer"
                               >
-                                <div className="text-[13px] font-bold text-[#07213e] group-hover:text-[#0b66b2] leading-snug line-clamp-2 min-h-[2.3rem] transition-colors">
+                                <div className="text-[13px] font-bold text-[#07213e] group-hover:text-[#0b66b2] leading-snug line-clamp-2 overflow-hidden text-ellipsis min-h-[2.3rem] transition-colors">
                                   {title}
                                 </div>
                               </button>

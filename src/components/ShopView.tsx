@@ -301,7 +301,7 @@ export function ShopView({
 
   return (
     <div>
-      <section className="ec-banner text-[#061c36]">
+      <section className="ec-banner text-[#061c36] break-words hyphens-auto">
         <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#061c36] mb-2">
             {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
@@ -314,7 +314,7 @@ export function ShopView({
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="sky" start={8} end={20} brightness={0.56} />
-        <div className="relative max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 break-words hyphens-auto">
           <h2 className="sr-only">{tr('Фільтри та перелік обладнання', 'Фильтры и каталог оборудования')}</h2>
           {/* Category Filter Tabs */}
           <div className="ec-glass-plate flex flex-wrap gap-1.5 p-1.5 rounded-2xl mb-6 w-fit max-w-full">
@@ -332,7 +332,7 @@ export function ShopView({
                 key={key}
                 type="button"
                 onClick={() => handleCategoryChange(key)}
-                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-colors whitespace-nowrap max-w-full overflow-hidden text-ellipsis cursor-pointer ${
                   cat === key
                     ? 'bg-[#0b66b2] text-white shadow-sm'
                     : 'text-[#1c3d5e] hover:bg-white/65 hover:text-[#07213e]'

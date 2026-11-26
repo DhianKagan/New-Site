@@ -6,9 +6,26 @@ interface SmartImageProps {
   alt: string;
   className?: string;
   priority?: boolean;
+  loading?: 'lazy' | 'eager';
 }
 
-export function SmartImage({ src, alt, className = '', priority = false }: SmartImageProps) {
+export function resolveSmartImageAttrs({
+  priority = false,
+  loading,
+}: {
+  priority?: boolean;
+  loading?: 'lazy' | 'eager';
+} = {}) {
+  const resolvedLoading: 'lazy' | 'eager' = loading ?? (priority ? 'eager' : 'lazy');
+  const isEager = resolvedLoading === 'eager';
+  return {
+    loading: resolvedLoading,
+    fetchPriority: isEager && priority ? ('high' as const) : ('auto' as const),
+    decoding: isEager ? ('sync' as const) : ('async' as const),
+  };
+}
+
+export function SmartImage({ src, alt, className = '', priority = false, loading }: SmartImageProps) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -28,13 +45,15 @@ export function SmartImage({ src, alt, className = '', priority = false }: Smart
     );
   }
 
+  const attrs = resolveSmartImageAttrs({ priority, loading });
+
   return (
     <img
       src={src}
       alt={alt}
-      loading={priority ? 'eager' : 'lazy'}
-      fetchPriority={priority ? 'high' : 'auto'}
-      decoding={priority ? 'sync' : 'async'}
+      loading={attrs.loading}
+      fetchPriority={attrs.fetchPriority}
+      decoding={attrs.decoding}
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
       className={className}

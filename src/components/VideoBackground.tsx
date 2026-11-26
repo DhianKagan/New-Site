@@ -519,6 +519,8 @@ export function VideoBackground({
           src={poster}
           alt=""
           aria-hidden="true"
+          loading={lazy ? 'lazy' : 'eager'}
+          decoding={lazy ? 'async' : 'sync'}
           className={`absolute inset-0 w-full h-full object-cover scale-105 ${
             !allowYouTubeIframe ? 'opacity-20 ' : ''
           }${isLightTone ? 'brightness-95 saturate-105' : 'brightness-90'}`}
