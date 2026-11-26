@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { FAQ, SOLAR_MAINTENANCE_FAQ } from '../src/components/InfoPage.tsx';
+import { FAQ, FAQ_CATEGORIES, filterFaqByTopic, SOLAR_MAINTENANCE_FAQ } from '../src/components/InfoPage.tsx';
 
-test('SOLAR_MAINTENANCE_FAQ includes installation and maintenance Q&As in UK and RU', () => {
+test('SOLAR_MAINTENANCE_FAQ supports Installation, Maintenance, and Ordering categories in UK and RU', () => {
   assert.equal(typeof FAQ, 'function');
-  assert.ok(SOLAR_MAINTENANCE_FAQ.length >= 4);
+  assert.deepEqual(
+    FAQ_CATEGORIES.map((c) => c.id),
+    ['all', 'installation', 'maintenance', 'ordering'],
+  );
 
   const topics = new Set(SOLAR_MAINTENANCE_FAQ.map((item) => item.topic));
   assert.ok(topics.has('installation'));
   assert.ok(topics.has('maintenance'));
+  assert.ok(topics.has('ordering'));
+
+  assert.equal(filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, 'all').length, SOLAR_MAINTENANCE_FAQ.length);
+  assert.ok(filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, 'installation').every((i) => i.topic === 'installation'));
+  assert.ok(filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, 'maintenance').every((i) => i.topic === 'maintenance'));
+  assert.ok(filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, 'ordering').every((i) => i.topic === 'ordering'));
 
   for (const item of SOLAR_MAINTENANCE_FAQ) {
     assert.ok(item.id.trim().length > 0);

@@ -11,16 +11,30 @@ interface InfoPageProps {
   onBackHome: () => void;
 }
 
-type FaqTopic = 'all' | 'installation' | 'maintenance';
+export type FaqTopic = 'all' | 'installation' | 'maintenance' | 'ordering';
+export type FaqItemTopic = Exclude<FaqTopic, 'all'>;
 
 export interface InfoFaqItem {
   id: string;
-  topic: Exclude<FaqTopic, 'all'>;
+  topic: FaqItemTopic;
   questionUk: string;
   questionRu: string;
   answerUk: string;
   answerRu: string;
 }
+
+export interface FaqCategoryMeta {
+  id: FaqTopic;
+  labelUk: string;
+  labelRu: string;
+}
+
+export const FAQ_CATEGORIES: FaqCategoryMeta[] = [
+  { id: 'all', labelUk: 'Усі', labelRu: 'Все' },
+  { id: 'installation', labelUk: 'Монтаж', labelRu: 'Монтаж' },
+  { id: 'maintenance', labelUk: 'Обслуговування', labelRu: 'Обслуживание' },
+  { id: 'ordering', labelUk: 'Замовлення', labelRu: 'Заказ' },
+];
 
 export const SOLAR_MAINTENANCE_FAQ: InfoFaqItem[] = [
   {
@@ -71,26 +85,70 @@ export const SOLAR_MAINTENANCE_FAQ: InfoFaqItem[] = [
     answerUk: 'Через мобільний застосунок моніторингу (Solarman, SolaX Cloud, SolisCloud) ви бачите генерацію, заряд АКБ та можливі коди попереджень у реальному часі. Оновлення прошивки та будь-які зміни в електросхемі має виконувати авторизований інженер; дотримання правил підключення, робочих температур і наявність сертифікованого захисту зберігають офіційну гарантію виробника 5–12 років на інвертори та до 10 років на АКБ.',
     answerRu: 'Через мобильное приложение мониторинга (Solarman, SolaX Cloud, SolisCloud) вы видите генерацию, заряд АКБ и возможные коды предупреждений в реальном времени. Обновление прошивки и любые изменения в электросхеме должен выполнять авторизованный инженер; соблюдение правил подключения, рабочих температур и наличие сертифицированной защиты сохраняют официальную гарантию производителя 5–12 лет на инверторы и до 10 лет на АКБ.',
   },
+  {
+    id: 'ordering-confirmation',
+    topic: 'ordering',
+    questionUk: 'Як відбувається підтвердження замовлення та фіксація ціни у гривнях?',
+    questionRu: 'Как происходит подтверждение заказа и фиксация цены в гривнах?',
+    answerUk: 'Після оформлення кошика або заявки менеджер зв’язується з вами, перевіряє наявність позицій на складі в Одесі та розраховує фінальну суму в гривнях за актуальним комерційним курсом компанії на день підтвердження. Оплата здійснюється лише після узгодження складу замовлення та рахунку чи способу оплати.',
+    answerRu: 'После оформления корзины или заявки менеджер связывается с вами, проверяет наличие позиций на складе в Одессе и рассчитывает итоговую сумму в гривнах по актуальному коммерческому курсу компании на день подтверждения. Оплата производится только после согласования состава заказа и счёта или способа оплаты.',
+  },
+  {
+    id: 'ordering-delivery-packaging',
+    topic: 'ordering',
+    questionUk: 'Як доставляються сонячні панелі та важкі LiFePO4 акумулятори по Україні?',
+    questionRu: 'Как доставляются солнечные панели и тяжёлые LiFePO4 аккумуляторы по Украине?',
+    answerUk: 'Обладнання можна забрати самовивозом зі складу в Одесі або замовити відправлення перевізником по Україні в посиленому пакуванні / на палеті зі страхуванням повної вартості. Перед підтвердженням відправлення менеджер узгоджує орієнтовну дату доставки й тариф перевізника.',
+    answerRu: 'Оборудование можно забрать самовывозом со склада в Одессе или заказать отправку перевозчиком по Украине в усиленной упаковке / на паллете со страхованием полной стоимости. Перед подтверждением отправки менеджер согласует ориентировочную дату доставки и тариф перевозчика.',
+  },
+  {
+    id: 'ordering-compatibility',
+    topic: 'ordering',
+    questionUk: 'Чи перевіряєте ви сумісність інвертора, АКБ та захисної автоматики перед відправкою?',
+    questionRu: 'Проверяете ли вы совместимость инвертора, АКБ и защитной автоматики перед отправкой?',
+    answerUk: 'Так, перед відвантаженням інженер звіряє напругу АКБ (48 В або високовольтні HV-блоки), протокол зв’язку BMS, пускові струми та переріз кабелю й номінали DC/AC автоматів під обраний інвертор, щоб комплект безпроблемно запустився на об’єкті.',
+    answerRu: 'Да, перед отгрузкой инженер сверяет напряжение АКБ (48 В или высоковольтные HV-блоки), протокол связи BMS, пусковые токи, сечение кабеля и номиналы DC/AC автоматов под выбранный инвертор, чтобы комплект беспроблемно запустился на объекте.',
+  },
 ];
+
+export function filterFaqByTopic(items: InfoFaqItem[], topic: FaqTopic): InfoFaqItem[] {
+  if (topic === 'all') return items;
+  return items.filter((item) => item.topic === topic);
+}
 
 const cardClass = 'ec-glass-card rounded-2xl p-4 sm:p-6 lg:p-7 text-[#07213e]';
 
-export function FAQ() {
-  const [topicFilter, setTopicFilter] = useState<FaqTopic>('all');
-  const [openId, setOpenId] = useState<string | null>(SOLAR_MAINTENANCE_FAQ[0].id);
+export function FAQ({ initialTopic = 'all' }: { initialTopic?: FaqTopic } = {}) {
+  const [topicFilter, setTopicFilter] = useState<FaqTopic>(initialTopic);
+  const initialVisible = filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, initialTopic);
+  const [openId, setOpenId] = useState<string | null>(initialVisible[0]?.id ?? null);
 
-  const visibleItems = topicFilter === 'all'
-    ? SOLAR_MAINTENANCE_FAQ
-    : SOLAR_MAINTENANCE_FAQ.filter((item) => item.topic === topicFilter);
+  const visibleItems = filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, topicFilter);
 
   const handleTopicChange = (nextTopic: FaqTopic) => {
     setTopicFilter(nextTopic);
-    const nextVisible = nextTopic === 'all'
-      ? SOLAR_MAINTENANCE_FAQ
-      : SOLAR_MAINTENANCE_FAQ.filter((item) => item.topic === nextTopic);
+    const nextVisible = filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, nextTopic);
     if (!nextVisible.some((item) => item.id === openId)) {
       setOpenId(nextVisible[0]?.id ?? null);
     }
+  };
+
+  const topicBadgeMeta: Record<FaqItemTopic, { labelUk: string; labelRu: string; badgeClass: string }> = {
+    installation: {
+      labelUk: 'Монтаж',
+      labelRu: 'Монтаж',
+      badgeClass: 'bg-sky-100/90 text-[#0b66b2]',
+    },
+    maintenance: {
+      labelUk: 'Сервіс',
+      labelRu: 'Сервис',
+      badgeClass: 'bg-emerald-100/90 text-[#0f766e]',
+    },
+    ordering: {
+      labelUk: 'Замовлення',
+      labelRu: 'Заказ',
+      badgeClass: 'bg-amber-100/90 text-amber-800',
+    },
   };
 
   return (
@@ -103,45 +161,47 @@ export function FAQ() {
         <div>
           <div className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-extrabold text-[#0b66b2]">
             <Wrench className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>{tr('Монтаж та сервіс · FAQ', 'Монтаж и сервис · FAQ')}</span>
+            <span>{tr('Монтаж, сервіс та замовлення · FAQ', 'Монтаж, сервис и заказ · FAQ')}</span>
           </div>
           <h2 id="info-faq-heading" className="text-lg sm:text-xl font-extrabold text-[#07213e]">
-            {tr('Часті питання про монтаж і обслуговування СЕС', 'Частые вопросы о монтаже и обслуживании СЭС')}
+            {tr('Часті питання про монтаж, обслуговування та замовлення', 'Частые вопросы о монтаже, обслуживании и заказе')}
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-[#1c3d5e]">
             {tr(
-              'Практичні відповіді щодо підготовки об’єкта, безпеки LiFePO4, миття панелей та щорічного техогляду.',
-              'Практические ответы по подготовке объекта, безопасности LiFePO4, мойке панелей и ежегодному техосмотру.',
+              'Оберіть тему для швидкого пошуку відповіді щодо підготовки до монтажу, догляду за СЕС або оформлення та доставки.',
+              'Выберите тему для быстрого поиска ответа о подготовке к монтажу, уходе за СЭС или оформлении и доставке.',
             )}
           </p>
         </div>
 
         <div
           role="group"
-          aria-label={tr('Фільтр питань FAQ', 'Фильтр вопросов FAQ')}
+          aria-label={tr('Фільтр питань FAQ за темою', 'Фильтр вопросов FAQ по теме')}
           className="inline-flex flex-wrap gap-1.5 rounded-xl bg-sky-50/90 p-1 border border-sky-200/80 self-start sm:self-auto"
         >
-          {(
-            [
-              { id: 'all', label: tr('Усі', 'Все') },
-              { id: 'installation', label: tr('Монтаж', 'Монтаж') },
-              { id: 'maintenance', label: tr('Обслуговування', 'Обслуживание') },
-            ] as const
-          ).map((tab) => {
+          {FAQ_CATEGORIES.map((tab) => {
             const active = topicFilter === tab.id;
+            const count = filterFaqByTopic(SOLAR_MAINTENANCE_FAQ, tab.id).length;
             return (
               <button
                 key={tab.id}
                 type="button"
                 aria-pressed={active}
                 onClick={() => handleTopicChange(tab.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0b66b2] ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0b66b2] ${
                   active
                     ? 'bg-[#0b66b2] text-white shadow-xs'
                     : 'text-[#1c3d5e] hover:bg-white/80 hover:text-[#07213e]'
                 }`}
               >
-                {tab.label}
+                <span>{tr(tab.labelUk, tab.labelRu)}</span>
+                <span
+                  className={`rounded px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums ${
+                    active ? 'bg-white/20 text-white' : 'bg-sky-100 text-[#07213e]'
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -153,9 +213,7 @@ export function FAQ() {
           const isOpen = openId === item.id;
           const triggerId = `info-faq-trigger-${item.id}`;
           const panelId = `info-faq-panel-${item.id}`;
-          const topicBadge = item.topic === 'installation'
-            ? tr('Монтаж', 'Монтаж')
-            : tr('Сервіс', 'Сервис');
+          const badge = topicBadgeMeta[item.topic];
 
           return (
             <div
@@ -182,8 +240,8 @@ export function FAQ() {
                       {String(idx + 1).padStart(2, '0')}
                     </span>
                     <span className="min-w-0">
-                      <span className="mr-2 inline-block rounded bg-sky-100/90 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0b66b2] align-middle">
-                        {topicBadge}
+                      <span className={`mr-2 inline-block rounded px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide align-middle ${badge.badgeClass}`}>
+                        {tr(badge.labelUk, badge.labelRu)}
                       </span>
                       <span className="text-sm sm:text-[15px] font-bold text-[#07213e] leading-snug align-middle">
                         {tr(item.questionUk, item.questionRu)}
