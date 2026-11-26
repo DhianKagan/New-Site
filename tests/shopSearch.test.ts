@@ -7,6 +7,7 @@ import {
   computePriceBounds,
   EQUIPMENT_TYPE_FILTERS,
   extractInverterPowerKw,
+  extractSkuSearchTerm,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
   getPriceBudgetPresets,
@@ -17,6 +18,7 @@ import {
   matchesEquipmentTypes,
   matchesInverterPowerRanges,
   matchesPriceRange,
+  matchesSkuFilter,
   normalizePriceBounds,
 } from '../src/lib/shopSearch.ts';
 import type { Product } from '../src/types.ts';
@@ -381,4 +383,71 @@ test('ShopView applies Tailwind fade-in and slide-up entrance classes on mount a
   assert.match(shopViewSource, /opacity-100 translate-y-0/);
   assert.match(shopViewSource, /\}, \[cat\]\);/);
 });
+
+test('matchesSkuFilter and extractSkuSearchTerm filter products by exact, compact, prefixed, and comma-separated SKUs', () => {
+  assert.deepEqual(extractSkuSearchTerm('SKU: 10018'), { isExplicitSku: true, term: '10018' });
+  assert.deepEqual(extractSkuSearchTerm('арт. slx-6000'), { isExplicitSku: true, term: 'slx-6000' });
+  assert.deepEqual(extractSkuSearchTerm('#TRN-615'), { isExplicitSku: true, term: 'trn-615' });
+  assert.deepEqual(extractSkuSearchTerm('Deye 8kW'), { isExplicitSku: false, term: 'deye 8kw' });
+
+  assert.equal(SAMPLE_PRODUCTS.filter((p) => matchesSkuFilter(p, '')).length, 3);
+  assert.deepEqual(
+    SAMPLE_PRODUCTS.filter((p) => matchesSkuFilter(p, '10018')).map((p) => p.id),
+    ['deye-8k'],
+  );
+  assert.deepEqual(
+    SAMPLE_PRODUCTS.filter((p) => matchesSkuFilter(p, 'slx6000')).map((p) => p.id),
+    ['solax-6k'],
+  );
+  assert.deepEqual(
+    SAMPLE_PRODUCTS.filter((p) => matchesSkuFilter(p, 'SKU: TRN615')).map((p) => p.id),
+    ['trina-615'],
+  );
+  assert.deepEqual(
+    SAMPLE_PRODUCTS.filter((p) => matchesSkuFilter(p, '10018, trn615')).map((p) => p.id),
+    ['deye-8k', 'trina-615'],
+  );
+
+  // Explicit SKU prefix in main search matches strictly by SKU
+  const prefixed = filterAndRankProductsBySearch(SAMPLE_PRODUCTS, 'SKU: 10018');
+  assert.deepEqual(
+    prefixed.map((p) => p.id),
+    ['deye-8k'],
+  );
+  assert.deepEqual(filterAndRankProductsBySearch(SAMPLE_PRODUCTS, 'арт. 48V'), []);
+
+  // Facet counters respect skuQuery
+  assert.deepEqual(computeFeaturedBrandCounts(SAMPLE_PRODUCTS, { skuQuery: 'SLX-6000' }), {
+    Deye: 0,
+    SolaX: 1,
+    Solis: 0,
+    Dyness: 0,
+    Trina: 0,
+  });
+  assert.deepEqual(computeEquipmentTypeCounts(SAMPLE_PRODUCTS, { skuQuery: 'TRN-615' }), {
+    inverters: 0,
+    batteries: 0,
+    panels: 1,
+    kits: 0,
+  });
+});
+
+test('ShopView renders dedicated SKU filter input wired to matchesSkuFilter and ShopEmptyState', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const shopViewSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopView.tsx'),
+    'utf-8',
+  );
+  const emptyStateSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopEmptyState.tsx'),
+    'utf-8',
+  );
+
+  assert.match(shopViewSource, /id="shop-sku-filter"/);
+  assert.match(shopViewSource, /matchesSkuFilter/);
+  assert.match(shopViewSource, /activeSkuLabel=/);
+  assert.match(emptyStateSource, /activeSkuLabel/);
+});
+
 

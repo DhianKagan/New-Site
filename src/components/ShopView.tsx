@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale, Banknote, Calculator } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale, Banknote, Calculator, Hash } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { ShopEmptyState } from './ShopEmptyState.tsx';
@@ -23,6 +23,7 @@ import {
   matchesEquipmentTypes,
   matchesInverterPowerRanges,
   matchesPriceRange,
+  matchesSkuFilter,
   normalizePriceBounds,
   type EquipmentTypeFilterId,
   type InverterPowerRangeId,
@@ -82,6 +83,7 @@ export function ShopView({
 }: ShopViewProps) {
   const [cat, setCat] = useState<ProductCategory | 'all'>(initialCategory);
   const [query, setQuery] = useState(initialQuery);
+  const [skuFilter, setSkuFilter] = useState('');
   const [brand, setBrand] = useState('all');
   const [selectedEquipmentTypes, setSelectedEquipmentTypes] = useState<EquipmentTypeFilterId[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -186,11 +188,12 @@ export function ShopView({
         powerRanges: selectedPowerRanges,
         inStockOnly,
         query,
+        skuQuery: skuFilter,
         minPrice: activeMinPrice,
         maxPrice: activeMaxPrice,
         usdUahRate,
       }),
-    [products, selectedBrands, brand, selectedPowerRanges, inStockOnly, query, activeMinPrice, activeMaxPrice, usdUahRate],
+    [products, selectedBrands, brand, selectedPowerRanges, inStockOnly, query, skuFilter, activeMinPrice, activeMaxPrice, usdUahRate],
   );
 
   const featuredBrandCounts = useMemo(
@@ -200,12 +203,13 @@ export function ShopView({
         equipmentTypes: selectedEquipmentTypes,
         inStockOnly,
         query,
+        skuQuery: skuFilter,
         powerRanges: selectedPowerRanges,
         minPrice: activeMinPrice,
         maxPrice: activeMaxPrice,
         usdUahRate,
       }),
-    [products, cat, selectedEquipmentTypes, inStockOnly, query, selectedPowerRanges, activeMinPrice, activeMaxPrice, usdUahRate],
+    [products, cat, selectedEquipmentTypes, inStockOnly, query, skuFilter, selectedPowerRanges, activeMinPrice, activeMaxPrice, usdUahRate],
   );
 
   const inverterPowerCounts = useMemo(
@@ -217,11 +221,12 @@ export function ShopView({
         dropdownBrand: brand,
         inStockOnly,
         query,
+        skuQuery: skuFilter,
         minPrice: activeMinPrice,
         maxPrice: activeMaxPrice,
         usdUahRate,
       }),
-    [products, cat, selectedEquipmentTypes, selectedBrands, brand, inStockOnly, query, activeMinPrice, activeMaxPrice, usdUahRate],
+    [products, cat, selectedEquipmentTypes, selectedBrands, brand, inStockOnly, query, skuFilter, activeMinPrice, activeMaxPrice, usdUahRate],
   );
 
   const filtered = useMemo(() => {
@@ -231,6 +236,7 @@ export function ShopView({
       if (!matchesBrandFilters(p, selectedBrands, brand)) return false;
       if (!matchesInverterPowerRanges(p, selectedPowerRanges)) return false;
       if (!matchesPriceRange(p, activeMinPrice, activeMaxPrice, usdUahRate)) return false;
+      if (!matchesSkuFilter(p, skuFilter)) return false;
       if (inStockOnly && !p.inStock) return false;
       return true;
     });
@@ -244,11 +250,16 @@ export function ShopView({
       return [...searched].sort((a, b) => b.price - a.price);
     }
     return searched;
-  }, [products, cat, selectedEquipmentTypes, brand, selectedBrands, selectedPowerRanges, activeMinPrice, activeMaxPrice, usdUahRate, inStockOnly, query, sort]);
+  }, [products, cat, selectedEquipmentTypes, brand, selectedBrands, selectedPowerRanges, activeMinPrice, activeMaxPrice, usdUahRate, skuFilter, inStockOnly, query, sort]);
+
+  const suggestionPool = useMemo(
+    () => (skuFilter.trim() ? products.filter((p) => matchesSkuFilter(p, skuFilter)) : products),
+    [products, skuFilter],
+  );
 
   const { suggestions, totalMatches: totalSuggestionMatches } = useMemo(
-    () => getProductSearchSuggestions(products, query, 6),
-    [products, query],
+    () => getProductSearchSuggestions(suggestionPool, query, 6),
+    [suggestionPool, query],
   );
   const showSuggestionsDropdown = isSuggestionsOpen && query.trim().length > 0;
 
@@ -400,6 +411,7 @@ export function ShopView({
     setSelectedPowerRanges([]);
     setPriceMinInput('');
     setPriceMaxInput('');
+    setSkuFilter('');
     setSort('default');
     setQuery('');
     onQueryChange?.('');
@@ -415,6 +427,7 @@ export function ShopView({
     setSelectedPowerRanges([]);
     setPriceMinInput('');
     setPriceMaxInput('');
+    setSkuFilter('');
     setInStockOnly(false);
     setQuery(term);
     onQueryChange?.(term);
@@ -508,9 +521,9 @@ export function ShopView({
             ))}
           </div>
 
-          {/* Search, Brand, Stock, Sort */}
+          {/* Search, SKU, Brand, Stock, Sort */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 mb-7">
-            <div ref={searchContainerRef} className="lg:col-span-5 relative z-30">
+            <div ref={searchContainerRef} className="sm:col-span-2 lg:col-span-4 relative z-30">
               <label htmlFor="shop-equipment-search" className="sr-only">
                 {tr('Пошук обладнання за назвою або SKU', 'Поиск оборудования по названию или SKU')}
               </label>
@@ -729,7 +742,46 @@ export function ShopView({
               )}
             </div>
 
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-2 relative">
+              <label htmlFor="shop-sku-filter" className="sr-only">
+                {tr('Фільтр за SKU (артикулом)', 'Фильтр по SKU (артикулу)')}
+              </label>
+              <Hash className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                id="shop-sku-filter"
+                type="search"
+                autoComplete="off"
+                value={skuFilter}
+                onChange={(e) => {
+                  setSkuFilter(e.target.value);
+                  setPage(1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' && skuFilter) {
+                    e.preventDefault();
+                    setSkuFilter('');
+                    setPage(1);
+                  }
+                }}
+                placeholder={tr('SKU (напр. 10018)', 'SKU (напр. 10018)')}
+                className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-white/75 bg-white/85 backdrop-blur-md text-[#07213e] placeholder:text-[#1c3d5e]/60 font-mono text-xs sm:text-sm font-medium shadow-sm focus:outline-none focus:border-[#0b66b2]"
+              />
+              {skuFilter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSkuFilter('');
+                    setPage(1);
+                  }}
+                  aria-label={tr('Очистити фільтр SKU', 'Очистить фильтр SKU')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[#1c3d5e] hover:text-[#07213e] hover:bg-sky-50 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="lg:col-span-2">
               <select
                 aria-label={tr('Фільтр за брендом', 'Фильтр по бренду')}
                 value={selectedBrands.length > 0 ? 'all' : brand}
@@ -1122,6 +1174,22 @@ export function ShopView({
                       </button>
                     </span>
                   )}
+                  {skuFilter.trim() && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#0b66b2] font-bold">
+                      <span>SKU: {skuFilter.trim()}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSkuFilter('');
+                          setPage(1);
+                        }}
+                        aria-label={tr('Очистити фільтр SKU', 'Очистить фильтр SKU')}
+                        className="p-0.5 rounded hover:bg-sky-100 text-[#0b66b2] cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
                   {query.trim() && (
                     <span className="text-[11px] text-[#0b66b2] font-bold">
                       {tr('Пошук:', 'Поиск:')} «{query.trim()}»
@@ -1157,6 +1225,7 @@ export function ShopView({
                   activeBrandLabel={activeBrandLabel}
                   activePowerLabel={activePowerLabel}
                   activePriceLabel={activePriceLabel}
+                  activeSkuLabel={skuFilter.trim()}
                   inStockOnly={inStockOnly}
                   onResetFilters={handleResetAllFilters}
                   onClearSearch={() => {
@@ -1172,9 +1241,12 @@ export function ShopView({
                           onOpenCustomRequest(
                             query.trim()
                               ? `Підбір за запитом: ${query.trim()}`
-                              : `Інженерний підбір (${CATEGORY_TITLES[cat] || cat})`,
+                              : skuFilter.trim()
+                                ? `Підбір за SKU: ${skuFilter.trim()}`
+                                : `Інженерний підбір (${CATEGORY_TITLES[cat] || cat})`,
                             [
                               query.trim() ? `Пошуковий запит: ${query.trim()}` : '',
+                              skuFilter.trim() ? `SKU: ${skuFilter.trim()}` : '',
                               activeEquipmentTypeLabel ? `Тип обладнання: ${activeEquipmentTypeLabel}` : '',
                               activeBrandLabel ? `Бренд: ${activeBrandLabel}` : '',
                               activePowerLabel ? `Потужність інвертора: ${activePowerLabel}` : '',

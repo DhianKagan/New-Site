@@ -8,6 +8,7 @@ interface ShopEmptyStateProps {
   activeBrandLabel?: string;
   activePowerLabel?: string;
   activePriceLabel?: string;
+  activeSkuLabel?: string;
   inStockOnly?: boolean;
   onResetFilters: () => void;
   onClearSearch?: () => void;
@@ -24,6 +25,7 @@ export function ShopEmptyState({
   activeBrandLabel,
   activePowerLabel,
   activePriceLabel,
+  activeSkuLabel,
   inStockOnly = false,
   onResetFilters,
   onClearSearch,
@@ -63,6 +65,12 @@ export function ShopEmptyState({
       value: activePriceLabel,
     });
   }
+  if (activeSkuLabel) {
+    activeFilters.push({
+      label: 'SKU',
+      value: activeSkuLabel,
+    });
+  }
   if (inStockOnly) {
     activeFilters.push({
       label: tr('Наявність', 'Наличие'),
@@ -92,8 +100,8 @@ export function ShopEmptyState({
 
       <p className="text-xs sm:text-sm text-[#1c3d5e] font-medium leading-relaxed max-w-lg mx-auto mb-5">
         {tr(
-          'Спробуйте скинути активні фільтри або ввести інший пошуковий запит — наприклад, модель інвертора, потужність у кВт чи назву бренду.',
-          'Попробуйте сбросить активные фильтры или ввести другой поисковый запрос — например, модель инвертора, мощность в кВт или название бренда.',
+          'Спробуйте скинути активні фільтри або ввести інший пошуковий запит — наприклад, модель інвертора, SKU (артикул), потужність у кВт чи назву бренду.',
+          'Попробуйте сбросить активные фильтры или ввести другой поисковый запрос — например, модель инвертора, SKU (артикул), мощность в кВт или название бренда.',
         )}
       </p>
 

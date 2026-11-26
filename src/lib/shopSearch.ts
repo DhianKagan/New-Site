@@ -4,18 +4,80 @@ function normalizeCompact(value: string): string {
   return value.toLowerCase().replace(/[\s\-_/.]+/g, '');
 }
 
+const EXPLICIT_SKU_PREFIX_RE = /^(?:sku|арт(?:икул)?)\s*[:.#\-]?\s*|^#\s*/i;
+
+export function extractSkuSearchTerm(rawQuery: string): { isExplicitSku: boolean; term: string } {
+  const trimmed = rawQuery.trim().toLowerCase();
+  if (!trimmed) {
+    return { isExplicitSku: false, term: '' };
+  }
+  const match = trimmed.match(EXPLICIT_SKU_PREFIX_RE);
+  if (match) {
+    return {
+      isExplicitSku: true,
+      term: trimmed.slice(match[0].length).trim(),
+    };
+  }
+  return { isExplicitSku: false, term: trimmed };
+}
+
+export function matchesSkuFilter(product: Product, rawSkuQuery: string): boolean {
+  const trimmed = rawSkuQuery.trim();
+  if (!trimmed) return true;
+
+  const skuLower = product.sku.toLowerCase();
+  const compactSku = normalizeCompact(product.sku);
+  if (!skuLower && !compactSku) return false;
+
+  const parts = trimmed
+    .split(/[,;]+/)
+    .map((part) => extractSkuSearchTerm(part).term)
+    .filter(Boolean);
+
+  if (parts.length === 0) return true;
+
+  return parts.some((token) => {
+    const compactToken = normalizeCompact(token);
+    if (skuLower.includes(token)) return true;
+    return compactToken.length > 0 && compactSku.includes(compactToken);
+  });
+}
+
 export function scoreProductSearchMatch(product: Product, rawQuery: string): number {
   const trimmed = rawQuery.trim().toLowerCase();
   if (!trimmed) return 1;
 
+  const { isExplicitSku, term: skuCandidate } = extractSkuSearchTerm(trimmed);
   const titleLower = product.title.toLowerCase();
   const skuLower = product.sku.toLowerCase();
   const brandLower = product.brand.toLowerCase();
   const descLower = product.description.toLowerCase();
 
   const compactQuery = normalizeCompact(trimmed);
+  const compactSkuCandidate = normalizeCompact(skuCandidate);
   const compactSku = normalizeCompact(product.sku);
   const compactTitle = normalizeCompact(product.title);
+
+  // Explicit SKU query (e.g. "SKU: 10018", "арт. 10018", "#10018")
+  if (isExplicitSku) {
+    if (!skuCandidate) return 1;
+    if (skuLower === skuCandidate || (compactSkuCandidate.length > 0 && compactSku === compactSkuCandidate)) {
+      return 100;
+    }
+    if (
+      skuLower.startsWith(skuCandidate) ||
+      (compactSkuCandidate.length > 1 && compactSku.startsWith(compactSkuCandidate))
+    ) {
+      return 90;
+    }
+    if (
+      skuLower.includes(skuCandidate) ||
+      (compactSkuCandidate.length > 1 && compactSku.includes(compactSkuCandidate))
+    ) {
+      return 80;
+    }
+    return 0;
+  }
 
   // Exact SKU match gets highest priority
   if (skuLower === trimmed || (compactQuery.length > 0 && compactSku === compactQuery)) {
@@ -320,6 +382,7 @@ export function computeEquipmentTypeCounts(
     powerRanges?: InverterPowerRangeId[];
     inStockOnly?: boolean;
     query?: string;
+    skuQuery?: string;
     minPrice?: number | null;
     maxPrice?: number | null;
     usdUahRate?: number | null;
@@ -331,6 +394,7 @@ export function computeEquipmentTypeCounts(
     powerRanges = [],
     inStockOnly = false,
     query = '',
+    skuQuery = '',
     minPrice = null,
     maxPrice = null,
     usdUahRate = null,
@@ -340,6 +404,7 @@ export function computeEquipmentTypeCounts(
     if (!matchesBrandFilters(p, selectedBrands, dropdownBrand)) return false;
     if (!matchesInverterPowerRanges(p, powerRanges)) return false;
     if (!matchesPriceRange(p, minPrice, maxPrice, usdUahRate)) return false;
+    if (!matchesSkuFilter(p, skuQuery)) return false;
     if (inStockOnly && !p.inStock) return false;
     return true;
   });
@@ -371,6 +436,7 @@ export function computeFeaturedBrandCounts(
     equipmentTypes?: EquipmentTypeFilterId[];
     inStockOnly?: boolean;
     query?: string;
+    skuQuery?: string;
     powerRanges?: InverterPowerRangeId[];
     minPrice?: number | null;
     maxPrice?: number | null;
@@ -382,6 +448,7 @@ export function computeFeaturedBrandCounts(
     equipmentTypes = [],
     inStockOnly = false,
     query = '',
+    skuQuery = '',
     powerRanges = [],
     minPrice = null,
     maxPrice = null,
@@ -394,6 +461,7 @@ export function computeFeaturedBrandCounts(
     if (inStockOnly && !p.inStock) return false;
     if (!matchesInverterPowerRanges(p, powerRanges)) return false;
     if (!matchesPriceRange(p, minPrice, maxPrice, usdUahRate)) return false;
+    if (!matchesSkuFilter(p, skuQuery)) return false;
     return true;
   });
 
@@ -422,6 +490,7 @@ export function computeInverterPowerCounts(
     dropdownBrand?: string;
     inStockOnly?: boolean;
     query?: string;
+    skuQuery?: string;
     minPrice?: number | null;
     maxPrice?: number | null;
     usdUahRate?: number | null;
@@ -434,6 +503,7 @@ export function computeInverterPowerCounts(
     dropdownBrand = 'all',
     inStockOnly = false,
     query = '',
+    skuQuery = '',
     minPrice = null,
     maxPrice = null,
     usdUahRate = null,
@@ -444,6 +514,7 @@ export function computeInverterPowerCounts(
     if (!matchesEquipmentTypes(p, equipmentTypes)) return false;
     if (!matchesBrandFilters(p, selectedBrands, dropdownBrand)) return false;
     if (!matchesPriceRange(p, minPrice, maxPrice, usdUahRate)) return false;
+    if (!matchesSkuFilter(p, skuQuery)) return false;
     if (inStockOnly && !p.inStock) return false;
     return p.cat === 'inverters';
   });
