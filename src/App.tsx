@@ -1504,20 +1504,28 @@ function AppContent() {
       <header className="sticky top-0 z-40 w-full max-w-full overflow-x-clip bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
         <HeaderScrollProgress routeKey={`${view}|${shopInitialCat}|${selectedProduct?.id ?? ''}|${loadingCatalog}`} />
         <div className="ec-container h-14 sm:h-16 lg:h-[68px] grid grid-cols-[minmax(0,1fr)_auto] lg:flex items-center justify-between gap-1.5 sm:gap-4 min-w-0">
-          {/* Zone 1: Single-line Brand Wordmark */}
+          {/* Zone 1: Crisp Solar Brand Emblem & Wordmark */}
           <a
             href="/"
             onClick={(e) => handleNavAnchor(e, 'home')}
-            className="flex items-center gap-1.5 sm:gap-2 min-w-0 max-w-full justify-self-start lg:shrink-0 text-left overflow-hidden"
+            className="flex items-center gap-2 sm:gap-3 min-w-0 max-w-full justify-self-start lg:shrink-0 text-left overflow-hidden group"
           >
             <SmartImage
-              src="/assets/energocomfort/logo_mark.webp"
+              src="/assets/energocomfort/logo_mark.svg"
               alt="Energo Comfort"
               priority
-              className="h-6 w-6 sm:h-8 sm:w-8 object-contain rounded-lg bg-white/95 p-0.5 shadow-sm shrink-0"
+              className="h-9 w-9 sm:h-11 sm:w-11 lg:h-12 lg:w-12 rounded-xl shadow-[0_4px_14px_rgba(14,165,233,0.32)] shrink-0 transition-transform duration-200 group-hover:scale-[1.03]"
             />
-            <span className="text-[12.5px] min-[390px]:text-[13.5px] sm:text-base lg:text-lg font-extrabold tracking-tight text-white whitespace-nowrap truncate min-w-0">
-              Energo Comfort
+            <span className="flex flex-col min-w-0 leading-none">
+              <span className="text-[13.5px] min-[390px]:text-[15px] sm:text-lg lg:text-[20px] font-extrabold tracking-tight text-white whitespace-nowrap truncate">
+                Energo Comfort
+              </span>
+              <span className="hidden min-[380px]:block sm:hidden mt-0.5 text-[9.5px] font-semibold tracking-wide text-sky-200/90 whitespace-nowrap truncate">
+                {tr('СЕС · АКБ', 'СЭС · АКБ')}
+              </span>
+              <span className="hidden sm:block mt-0.5 text-[10.5px] lg:text-[11px] font-semibold tracking-wide text-sky-200/90 whitespace-nowrap truncate">
+                {tr('СЕС та резервне живлення', 'СЭС и резервное питание')}
+              </span>
             </span>
           </a>
 
@@ -1889,12 +1897,26 @@ function AppContent() {
           <div className="ec-container">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="min-w-0 break-words hyphens-none">
-                <SmartImage
-                  src="/assets/energocomfort/logo_full.png"
-                  alt="Energo Comfort — сонячні станції та резервне живлення"
-                  loading="lazy"
-                  className="h-12 w-auto bg-white rounded-xl p-1.5 mb-3"
-                />
+                <a
+                  href="/"
+                  onClick={(e) => handleNavAnchor(e, 'home')}
+                  className="inline-flex items-center gap-3 mb-3.5 text-left group"
+                >
+                  <SmartImage
+                    src="/assets/energocomfort/logo_mark.svg"
+                    alt="Energo Comfort — сонячні станції та резервне живлення"
+                    loading="lazy"
+                    className="h-14 w-14 rounded-2xl shadow-[0_6px_20px_rgba(14,165,233,0.28)] shrink-0 transition-transform duration-200 group-hover:scale-[1.03]"
+                  />
+                  <span className="flex flex-col min-w-0">
+                    <span className="text-xl font-extrabold tracking-tight text-white leading-tight group-hover:text-sky-200 transition-colors">
+                      Energo Comfort
+                    </span>
+                    <span className="text-xs font-semibold text-sky-200/90 leading-snug">
+                      {tr('Сонячні станції · Резервне живлення', 'Солнечные станции · Резервное питание')}
+                    </span>
+                  </span>
+                </a>
                 <p className="text-xs text-sky-100/75 leading-relaxed mb-3.5">
                   {tr('Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.', 'Системы резервного питания и солнечные электростанции под ключ в Одессе и области.')}
                 </p>

@@ -85,6 +85,22 @@ export function filterAndRankProductsBySearch(
   return scored.map((entry) => entry.product);
 }
 
+export function getProductSearchSuggestions(
+  products: Product[],
+  rawQuery: string,
+  limit = 6,
+): { suggestions: Product[]; totalMatches: number } {
+  const trimmed = rawQuery.trim();
+  if (!trimmed || limit <= 0) {
+    return { suggestions: [], totalMatches: 0 };
+  }
+  const ranked = filterAndRankProductsBySearch(products, trimmed, true);
+  return {
+    suggestions: ranked.slice(0, limit),
+    totalMatches: ranked.length,
+  };
+}
+
 export interface FeaturedBrandFilter {
   id: 'Deye' | 'SolaX' | 'Solis' | 'Dyness' | 'Trina';
   label: string;

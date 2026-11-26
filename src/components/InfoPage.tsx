@@ -1,4 +1,5 @@
-import { ArrowLeft, Banknote, FileText, PackageCheck, Truck } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Banknote, ChevronDown, FileText, HelpCircle, PackageCheck, Phone, ShieldCheck, Truck, Wrench } from 'lucide-react';
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { tr } from '../lib/i18n.ts';
@@ -10,7 +11,239 @@ interface InfoPageProps {
   onBackHome: () => void;
 }
 
+type FaqTopic = 'all' | 'installation' | 'maintenance';
+
+export interface InfoFaqItem {
+  id: string;
+  topic: Exclude<FaqTopic, 'all'>;
+  questionUk: string;
+  questionRu: string;
+  answerUk: string;
+  answerRu: string;
+}
+
+export const SOLAR_MAINTENANCE_FAQ: InfoFaqItem[] = [
+  {
+    id: 'install-timeline',
+    topic: 'installation',
+    questionUk: 'Скільки триває монтаж СЕС або системи резервного живлення та як підготувати об’єкт?',
+    questionRu: 'Сколько длится монтаж СЭС или системы резервного питания и как подготовить объект?',
+    answerUk: 'Підключення гібридного інвертора з акумулятором LiFePO4 займає 1–2 робочі дні, а повноцінної сонячної електростанції з покрівельним кріпленням — 2–5 днів. Перед приїздом бригади достатньо забезпечити доступ до головного електрощита, вільне сухе місце для інвертора/АКБ та вільний прохід на дах або фасад.',
+    answerRu: 'Подключение гибридного инвертора с аккумулятором LiFePO4 занимает 1–2 рабочих дня, а полноценной солнечной электростанции с кровельным креплением — 2–5 дней. Перед приездом бригады достаточно обеспечить доступ к главному электрощиту, свободное сухое место для инвертора/АКБ и свободный проход на крышу или фасад.',
+  },
+  {
+    id: 'install-requirements',
+    topic: 'installation',
+    questionUk: 'Де безпечно встановлювати інвертор та LiFePO4 акумулятори в будинку чи квартирі?',
+    questionRu: 'Где безопасно устанавливать инвертор и LiFePO4 аккумуляторы в доме или квартире?',
+    answerUk: 'Обирайте сухе вентильоване приміщення без прямих сонячних променів і вологи (коридор, комора, гараж або техкімната) з оптимальною температурою +5…+35 °C. Між інвертором, стінами та стелею залишають технологічні зазори від 20–30 см для охолодження, а поруч обов’язково монтують щит захисту DC/AC і контур заземлення.',
+    answerRu: 'Выбирайте сухое вентилируемое помещение без прямых солнечных лучей и влаги (коридор, кладовая, гараж или техкомната) с оптимальной температурой +5…+35 °C. Между инвертором, стенами и потолком оставляют технологические зазоры от 20–30 см для охлаждения, а рядом обязательно монтируют щит защиты DC/AC и контур заземления.',
+  },
+  {
+    id: 'install-outage-safety',
+    topic: 'installation',
+    questionUk: 'Як система працює під час відключень світла та чи захищена від грози й перепадів напруги?',
+    questionRu: 'Как система работает при отключениях электричества и защищена ли от грозы и перепадов напряжения?',
+    answerUk: 'При зникненні міської мережі гібридний інвертор автоматично переводить критичні лінії на АКБ менш ніж за 10 мс і блокує подачу напруги у зовнішню лінію (Anti-Islanding). Для захисту обладнання під час монтажу встановлюються обмежувачі імпульсних перенапруг (ОПН / УЗІП) по стороні сонячних стрінгів DC та мережі AC.',
+    answerRu: 'При пропадании городской сети гибридный инвертор автоматически переводит критические линии на АКБ менее чем за 10 мс и блокирует подачу напряжения во внешнюю линию (Anti-Islanding). Для защиты оборудования при монтаже устанавливаются ограничители импульсных перенапряжений (УЗИП) по стороне солнечных стрингов DC и сети AC.',
+  },
+  {
+    id: 'maintenance-panels',
+    topic: 'maintenance',
+    questionUk: 'Як часто потрібно мити сонячні панелі та що робити зі снігом узимку?',
+    questionRu: 'Как часто нужно мыть солнечные панели и что делать со снегом зимой?',
+    answerUk: 'При куті нахилу від 15° основний пил змивається дощем, але за наявності пилу, пилку чи пташиного посліду рекомендується мити модулі 1–2 рази на рік (навесні та наприкінці літа) м’якою водою вранці або ввечері без абразивних щіток і мийок високого тиску. Сніг зазвичай сходить самостійно під час прогріву скла; збивати кригу жорсткими скребками заборонено, щоб не пошкодити антивідблискове покриття.',
+    answerRu: 'При угле наклона от 15° основная пыль смывается дождём, но при скоплении пыли, пыльцы или птичьего помёта рекомендуется мыть модули 1–2 раза в год (весной и в конце лета) мягкой водой утром или вечером без абразивных щёток и моек высокого давления. Снег обычно сходит самостоятельно при прогреве стекла; сбивать наледь жёсткими скребками запрещено во избежание повреждения антибликового покрытия.',
+  },
+  {
+    id: 'maintenance-service',
+    topic: 'maintenance',
+    questionUk: 'Яке регламентне обслуговування потрібне інвертору, кабелям і батареям?',
+    questionRu: 'Какое регламентное обслуживание требуется инвертору, кабелям и батареям?',
+    answerUk: 'LiFePO4 акумулятори не потребують доливання чи ручного балансування, проте раз на 6 місяців варто очищувати вентиляційні решітки та радіатор інвертора від пилу. Щороку перед піковим сезоном інженери перевіряють затяжку клем DC/AC, стан конекторів MC4, опір ізоляції, спрацювання захисних автоматів та проводять тепловізійний контроль контактів.',
+    answerRu: 'LiFePO4 аккумуляторы не требуют доливки или ручной балансировки, однако раз в 6 месяцев стоит очищать вентиляционные решётки и радиатор инвертора от пыли. Ежегодно перед пиковым сезоном инженеры проверяют затяжку клемм DC/AC, состояние коннекторов MC4, сопротивление изоляции, срабатывание защитных автоматов и проводят тепловизионный контроль контактов.',
+  },
+  {
+    id: 'maintenance-monitoring-warranty',
+    topic: 'maintenance',
+    questionUk: 'Чи потрібно оновлювати прошивку інвертора та що впливає на збереження гарантії?',
+    questionRu: 'Нужно ли обновлять прошивку инвертора и что влияет на сохранение гарантии?',
+    answerUk: 'Через мобільний застосунок моніторингу (Solarman, SolaX Cloud, SolisCloud) ви бачите генерацію, заряд АКБ та можливі коди попереджень у реальному часі. Оновлення прошивки та будь-які зміни в електросхемі має виконувати авторизований інженер; дотримання правил підключення, робочих температур і наявність сертифікованого захисту зберігають офіційну гарантію виробника 5–12 років на інвертори та до 10 років на АКБ.',
+    answerRu: 'Через мобильное приложение мониторинга (Solarman, SolaX Cloud, SolisCloud) вы видите генерацию, заряд АКБ и возможные коды предупреждений в реальном времени. Обновление прошивки и любые изменения в электросхеме должен выполнять авторизованный инженер; соблюдение правил подключения, рабочих температур и наличие сертифицированной защиты сохраняют официальную гарантию производителя 5–12 лет на инверторы и до 10 лет на АКБ.',
+  },
+];
+
 const cardClass = 'ec-glass-card rounded-2xl p-4 sm:p-6 lg:p-7 text-[#07213e]';
+
+export function FAQ() {
+  const [topicFilter, setTopicFilter] = useState<FaqTopic>('all');
+  const [openId, setOpenId] = useState<string | null>(SOLAR_MAINTENANCE_FAQ[0].id);
+
+  const visibleItems = topicFilter === 'all'
+    ? SOLAR_MAINTENANCE_FAQ
+    : SOLAR_MAINTENANCE_FAQ.filter((item) => item.topic === topicFilter);
+
+  const handleTopicChange = (nextTopic: FaqTopic) => {
+    setTopicFilter(nextTopic);
+    const nextVisible = nextTopic === 'all'
+      ? SOLAR_MAINTENANCE_FAQ
+      : SOLAR_MAINTENANCE_FAQ.filter((item) => item.topic === nextTopic);
+    if (!nextVisible.some((item) => item.id === openId)) {
+      setOpenId(nextVisible[0]?.id ?? null);
+    }
+  };
+
+  return (
+    <section
+      id="info-faq"
+      aria-labelledby="info-faq-heading"
+      className={cardClass}
+    >
+      <div className="flex flex-col gap-4 border-b border-sky-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-extrabold text-[#0b66b2]">
+            <Wrench className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{tr('Монтаж та сервіс · FAQ', 'Монтаж и сервис · FAQ')}</span>
+          </div>
+          <h2 id="info-faq-heading" className="text-lg sm:text-xl font-extrabold text-[#07213e]">
+            {tr('Часті питання про монтаж і обслуговування СЕС', 'Частые вопросы о монтаже и обслуживании СЭС')}
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-[#1c3d5e]">
+            {tr(
+              'Практичні відповіді щодо підготовки об’єкта, безпеки LiFePO4, миття панелей та щорічного техогляду.',
+              'Практические ответы по подготовке объекта, безопасности LiFePO4, мойке панелей и ежегодному техосмотру.',
+            )}
+          </p>
+        </div>
+
+        <div
+          role="group"
+          aria-label={tr('Фільтр питань FAQ', 'Фильтр вопросов FAQ')}
+          className="inline-flex flex-wrap gap-1.5 rounded-xl bg-sky-50/90 p-1 border border-sky-200/80 self-start sm:self-auto"
+        >
+          {(
+            [
+              { id: 'all', label: tr('Усі', 'Все') },
+              { id: 'installation', label: tr('Монтаж', 'Монтаж') },
+              { id: 'maintenance', label: tr('Обслуговування', 'Обслуживание') },
+            ] as const
+          ).map((tab) => {
+            const active = topicFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => handleTopicChange(tab.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0b66b2] ${
+                  active
+                    ? 'bg-[#0b66b2] text-white shadow-xs'
+                    : 'text-[#1c3d5e] hover:bg-white/80 hover:text-[#07213e]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-4 divide-y divide-sky-200/75 rounded-xl border border-sky-200/75 bg-white/60 overflow-hidden">
+        {visibleItems.map((item, idx) => {
+          const isOpen = openId === item.id;
+          const triggerId = `info-faq-trigger-${item.id}`;
+          const panelId = `info-faq-panel-${item.id}`;
+          const topicBadge = item.topic === 'installation'
+            ? tr('Монтаж', 'Монтаж')
+            : tr('Сервіс', 'Сервис');
+
+          return (
+            <div
+              key={item.id}
+              className={isOpen ? 'bg-gradient-to-r from-[#e6f3ff]/80 to-[#fff9ec]/70' : 'bg-transparent'}
+            >
+              <h3 className="m-0">
+                <button
+                  id={triggerId}
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  onClick={() => setOpenId(isOpen ? null : item.id)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3.5 sm:px-5 sm:py-4 text-left hover:bg-white/75 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#0b66b2]"
+                >
+                  <span className="flex items-start sm:items-center gap-3 min-w-0">
+                    <span
+                      className={`mt-0.5 sm:mt-0 shrink-0 rounded-md px-2 py-0.5 font-mono text-[11px] font-extrabold ${
+                        isOpen
+                          ? 'bg-[#0b66b2] text-white'
+                          : 'bg-sky-100 text-[#07213e]'
+                      }`}
+                    >
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="mr-2 inline-block rounded bg-sky-100/90 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0b66b2] align-middle">
+                        {topicBadge}
+                      </span>
+                      <span className="text-sm sm:text-[15px] font-bold text-[#07213e] leading-snug align-middle">
+                        {tr(item.questionUk, item.questionRu)}
+                      </span>
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+                      isOpen ? 'rotate-180 text-[#0b66b2]' : 'text-[#1c3d5e]'
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </h3>
+
+              {isOpen && (
+                <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={triggerId}
+                  className="px-4 pb-4 sm:px-5 sm:pb-4 pl-12 sm:pl-14 text-sm leading-6 text-[#1c3d5e]"
+                >
+                  {tr(item.answerUk, item.answerRu)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-sky-200/80 bg-sky-50/75 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#1c3d5e]">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#0d9488]" aria-hidden="true" />
+          <span>
+            {tr(
+              'Потрібен виїзд інженера на об’єкт або сервісна діагностика? Звертайтесь на нашу лінію підтримки.',
+              'Нужен выезд инженера на объект или сервисная диагностика? Обращайтесь на нашу линию поддержки.',
+            )}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <a
+            href={`tel:${COMPANY_INFO.phone1.replace(/[^+\d]/g, '')}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0b66b2] px-3 py-2 text-xs font-bold text-white hover:bg-[#08508e] transition-colors"
+          >
+            <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{COMPANY_INFO.phone1}</span>
+          </a>
+          <a
+            href={`mailto:${COMPANY_INFO.email}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-[#07213e] hover:bg-sky-50 transition-colors"
+          >
+            <HelpCircle className="h-3.5 w-3.5 text-[#0b66b2]" aria-hidden="true" />
+            <span>{tr('Написати інженеру', 'Написать инженеру')}</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
   const isOffer = type === 'offer';
@@ -203,6 +436,7 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
                 <div className="mb-3 flex items-center gap-2 text-[#0b66b2]"><PackageCheck className="h-5 w-5" /><h2 className="text-lg font-bold text-[#07213e]">{tr('Підтвердження замовлення', 'Подтверждение заказа')}</h2></div>
                 <p className="text-sm leading-7 text-[#1c3d5e]">{tr(`Після відправлення заявки менеджер зв’яжеться з вами за вказаним телефоном і підтвердить склад, наявність, суму, оплату та доставку. Запитання: ${COMPANY_INFO.phone1}, ${COMPANY_INFO.phone2}, ${COMPANY_INFO.email}.`, `После отправки заявки менеджер свяжется с вами по указанному телефону и подтвердит состав, наличие, сумму, оплату и доставку. Вопросы: ${COMPANY_INFO.phone1}, ${COMPANY_INFO.phone2}, ${COMPANY_INFO.email}.`)}</p>
               </article>
+              <FAQ />
               <a href="/public-offer" className="ec-glass-plate inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-[#0b66b2] hover:bg-white/90 hover:text-[#07213e] transition-colors"><FileText className="h-4 w-4" />{tr('Переглянути проєкт публічної оферти', 'Посмотреть проект публичной оферты')}</a>
             </>
           )}

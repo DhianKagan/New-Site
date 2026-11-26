@@ -3,7 +3,9 @@ import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizon
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { ShopEmptyState } from './ShopEmptyState.tsx';
+import { SmartImage } from './SmartImage.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
+import { formatUahFromUsd } from '../lib/currency.ts';
 import { tr } from '../lib/i18n.ts';
 import {
   computeEquipmentTypeCounts,
@@ -12,6 +14,7 @@ import {
   EQUIPMENT_TYPE_FILTERS,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  getProductSearchSuggestions,
   INVERTER_POWER_FILTERS,
   matchesBrandFilters,
   matchesEquipmentTypes,
@@ -81,6 +84,9 @@ export function ShopView({
   const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const lastTrackedListKeyRef = useRef('');
   const lastTrackedSearchRef = useRef('');
 
@@ -94,6 +100,22 @@ export function ShopView({
     setQuery(initialQuery);
     setPage(1);
   }, [initialQuery]);
+
+  useEffect(() => {
+    const handleOutsidePointer = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (target && searchContainerRef.current && !searchContainerRef.current.contains(target)) {
+        setIsSuggestionsOpen(false);
+        setActiveSuggestionIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsidePointer);
+    document.addEventListener('touchstart', handleOutsidePointer, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleOutsidePointer);
+      document.removeEventListener('touchstart', handleOutsidePointer);
+    };
+  }, []);
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: products.length, kits: 0, inverters: 0, batteries: 0, panels: 0, parts: 0 };
@@ -168,6 +190,12 @@ export function ShopView({
     }
     return searched;
   }, [products, cat, selectedEquipmentTypes, brand, selectedBrands, selectedPowerRanges, inStockOnly, query, sort]);
+
+  const { suggestions, totalMatches: totalSuggestionMatches } = useMemo(
+    () => getProductSearchSuggestions(products, query, 6),
+    [products, query],
+  );
+  const showSuggestionsDropdown = isSuggestionsOpen && query.trim().length > 0;
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -345,7 +373,7 @@ export function ShopView({
 
           {/* Search, Brand, Stock, Sort */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 mb-7">
-            <div className="lg:col-span-5 relative">
+            <div ref={searchContainerRef} className="lg:col-span-5 relative z-30">
               <label htmlFor="shop-equipment-search" className="sr-only">
                 {tr('Пошук обладнання за назвою або SKU', 'Поиск оборудования по названию или SKU')}
               </label>
@@ -353,22 +381,77 @@ export function ShopView({
               <input
                 id="shop-equipment-search"
                 type="search"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSuggestionsDropdown}
+                aria-controls="shop-search-suggestions"
+                aria-activedescendant={
+                  showSuggestionsDropdown &&
+                  activeSuggestionIndex >= 0 &&
+                  suggestions[activeSuggestionIndex]
+                    ? `shop-search-option-${suggestions[activeSuggestionIndex].id}`
+                    : undefined
+                }
+                autoComplete="off"
                 value={query}
+                onFocus={() => {
+                  if (query.trim().length > 0) {
+                    setIsSuggestionsOpen(true);
+                  }
+                }}
                 onChange={(e) => {
                   const nextQuery = e.target.value;
                   setQuery(nextQuery);
                   onQueryChange?.(nextQuery);
                   setPage(1);
+                  setIsSuggestionsOpen(nextQuery.trim().length > 0);
+                  setActiveSuggestionIndex(-1);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Escape' && query) {
-                    setQuery('');
-                    onQueryChange?.('');
-                    setPage(1);
+                  if (e.key === 'ArrowDown' && query.trim().length > 0) {
+                    e.preventDefault();
+                    setIsSuggestionsOpen(true);
+                    if (suggestions.length > 0) {
+                      setActiveSuggestionIndex((prev) => (prev + 1) % suggestions.length);
+                    }
+                    return;
+                  }
+                  if (e.key === 'ArrowUp' && showSuggestionsDropdown && suggestions.length > 0) {
+                    e.preventDefault();
+                    setActiveSuggestionIndex((prev) =>
+                      prev <= 0 ? suggestions.length - 1 : prev - 1,
+                    );
+                    return;
+                  }
+                  if (e.key === 'Enter' && showSuggestionsDropdown) {
+                    const selectedSuggestion =
+                      activeSuggestionIndex >= 0 ? suggestions[activeSuggestionIndex] : undefined;
+                    if (selectedSuggestion) {
+                      e.preventDefault();
+                      setIsSuggestionsOpen(false);
+                      setActiveSuggestionIndex(-1);
+                      onSelectProduct(selectedSuggestion);
+                    } else {
+                      setIsSuggestionsOpen(false);
+                    }
+                    return;
+                  }
+                  if (e.key === 'Escape') {
+                    if (isSuggestionsOpen) {
+                      e.preventDefault();
+                      setIsSuggestionsOpen(false);
+                      setActiveSuggestionIndex(-1);
+                      return;
+                    }
+                    if (query) {
+                      setQuery('');
+                      onQueryChange?.('');
+                      setPage(1);
+                    }
                   }
                 }}
                 placeholder={tr('Пошук за назвою або SKU (напр. Deye 8kW, 10018)...', 'Поиск по названию или SKU (напр. Deye 8kW, 10018)…')}
-                className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-white/75 bg-white/80 backdrop-blur-md text-[#07213e] placeholder:text-[#1c3d5e]/60 text-xs sm:text-sm font-medium shadow-sm focus:outline-none focus:border-[#0b66b2]"
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-white/75 bg-white/85 backdrop-blur-md text-[#07213e] placeholder:text-[#1c3d5e]/60 text-xs sm:text-sm font-medium shadow-sm focus:outline-none focus:border-[#0b66b2]"
               />
               {query && (
                 <button
@@ -376,6 +459,8 @@ export function ShopView({
                   onClick={() => {
                     setQuery('');
                     onQueryChange?.('');
+                    setIsSuggestionsOpen(false);
+                    setActiveSuggestionIndex(-1);
                     setPage(1);
                   }}
                   aria-label={tr('Очистити пошук', 'Очистить поиск')}
@@ -383,6 +468,125 @@ export function ShopView({
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
+              )}
+
+              {showSuggestionsDropdown && (
+                <div
+                  id="shop-search-suggestions"
+                  role="listbox"
+                  aria-label={tr('Підказки пошуку товарів', 'Подсказки поиска товаров')}
+                  className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl border border-sky-200/90 bg-white/95 backdrop-blur-xl shadow-[0_18px_42px_rgba(7,33,62,0.22)] overflow-hidden"
+                >
+                  {suggestions.length > 0 ? (
+                    <>
+                      <div className="max-h-[340px] overflow-y-auto divide-y divide-sky-100">
+                        {suggestions.map((item, idx) => {
+                          const isActive = idx === activeSuggestionIndex;
+                          const displayPrice =
+                            item.price > 0
+                              ? formatUahFromUsd(item.price, usdUahRate)
+                              : tr('За запитом', 'По запросу');
+
+                          return (
+                            <button
+                              key={item.id}
+                              id={`shop-search-option-${item.id}`}
+                              type="button"
+                              role="option"
+                              aria-selected={isActive}
+                              onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                              onClick={() => {
+                                setIsSuggestionsOpen(false);
+                                setActiveSuggestionIndex(-1);
+                                onSelectProduct(item);
+                              }}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                                isActive ? 'bg-sky-50/95' : 'hover:bg-sky-50/75'
+                              }`}
+                            >
+                              <SmartImage
+                                src={item.img}
+                                alt={item.title}
+                                className="w-10 h-10 rounded-lg object-contain bg-white border border-sky-100 p-0.5 shrink-0"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs sm:text-[13px] font-bold text-[#07213e] truncate">
+                                  {item.title}
+                                </div>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[#1c3d5e]">
+                                  {item.brand && <span className="font-semibold">{item.brand}</span>}
+                                  {item.sku && (
+                                    <span className="font-mono text-[#0b66b2]">SKU: {item.sku}</span>
+                                  )}
+                                  <span
+                                    className={`font-semibold ${
+                                      item.inStock ? 'text-[#0d9488]' : 'text-amber-700'
+                                    }`}
+                                  >
+                                    {item.inStock
+                                      ? tr('В наявності', 'В наличии')
+                                      : tr('Під замовлення', 'Под заказ')}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <div className="text-xs font-extrabold text-[#07213e] tabular-nums whitespace-nowrap">
+                                  {displayPrice}
+                                </div>
+                                {item.price > 0 && (
+                                  <div className="font-mono text-[10px] text-[#1c3d5e]/75 tabular-nums whitespace-nowrap">
+                                    ${item.price.toLocaleString('uk-UA')}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {totalSuggestionMatches > suggestions.length && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleCategoryChange('all');
+                            setSelectedEquipmentTypes([]);
+                            setBrand('all');
+                            setSelectedBrands([]);
+                            setSelectedPowerRanges([]);
+                            setInStockOnly(false);
+                            setIsSuggestionsOpen(false);
+                            setActiveSuggestionIndex(-1);
+                          }}
+                          className="w-full px-3.5 py-2 border-t border-sky-100 bg-sky-50/80 hover:bg-sky-100/80 text-xs font-bold text-[#0b66b2] text-center transition-colors cursor-pointer"
+                        >
+                          {tr(
+                            `Показати всі знайдені товари (${totalSuggestionMatches})`,
+                            `Показать все найденные товары (${totalSuggestionMatches})`,
+                          )}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="px-4 py-3 text-xs text-[#1c3d5e] flex items-center justify-between gap-2">
+                      <span className="truncate">
+                        {tr('Нічого не знайдено за запитом', 'Ничего не найдено по запросу')} «{query.trim()}»
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuery('');
+                          onQueryChange?.('');
+                          setIsSuggestionsOpen(false);
+                          setActiveSuggestionIndex(-1);
+                          setPage(1);
+                        }}
+                        className="shrink-0 font-bold text-[#0b66b2] hover:underline cursor-pointer"
+                      >
+                        {tr('Скинути', 'Сбросить')}
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

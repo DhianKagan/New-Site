@@ -8,6 +8,7 @@ import {
   extractInverterPowerKw,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  getProductSearchSuggestions,
   INVERTER_POWER_FILTERS,
   matchesBrandFilters,
   matchesEquipmentTypes,
@@ -276,4 +277,36 @@ test('ShopView renders ShopEmptyState with reset-all-filters button and search s
   assert.match(shopViewSource, /<ShopEmptyState/);
   assert.match(shopViewSource, /onResetFilters=\{handleResetAllFilters\}/);
 });
+
+test('getProductSearchSuggestions returns ranked, capped product suggestions and total match count', () => {
+  assert.deepEqual(getProductSearchSuggestions(SAMPLE_PRODUCTS, '   '), {
+    suggestions: [],
+    totalMatches: 0,
+  });
+
+  const skuMatch = getProductSearchSuggestions(SAMPLE_PRODUCTS, '10018', 5);
+  assert.equal(skuMatch.totalMatches, 1);
+  assert.equal(skuMatch.suggestions[0].id, 'deye-8k');
+
+  const deyeCapped = getProductSearchSuggestions(SAMPLE_PRODUCTS, 'deye', 1);
+  assert.equal(deyeCapped.totalMatches, 2);
+  assert.equal(deyeCapped.suggestions.length, 1);
+  assert.equal(deyeCapped.suggestions[0].id, 'deye-8k');
+});
+
+test('ShopView renders accessible combobox search suggestion dropdown wired to getProductSearchSuggestions', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const shopViewSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopView.tsx'),
+    'utf-8',
+  );
+
+  assert.match(shopViewSource, /getProductSearchSuggestions/);
+  assert.match(shopViewSource, /role="combobox"/);
+  assert.match(shopViewSource, /id="shop-search-suggestions"/);
+  assert.match(shopViewSource, /role="listbox"/);
+  assert.match(shopViewSource, /role="option"/);
+});
+
 

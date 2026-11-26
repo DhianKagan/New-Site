@@ -58,11 +58,11 @@ test('Only critical above-the-fold SmartImage instances use priority; all other 
 
   // Only App.tsx header brand mark and HomeView.tsx hero case showcase should opt into eager priority loading.
   assert.equal(prioritySites.length, 2);
-  assert.ok(prioritySites.some((s) => s.startsWith('src/App.tsx:') && s.includes('logo_mark.webp')));
+  assert.ok(prioritySites.some((s) => s.startsWith('src/App.tsx:') && s.includes('logo_mark.svg')));
   assert.ok(prioritySites.some((s) => s.startsWith('src/components/HomeView.tsx:') && s.includes('activeHeroCase.img')));
 
   const appSource = fs.readFileSync(path.join(srcDir, 'App.tsx'), 'utf-8');
-  assert.match(appSource, /<SmartImage[\s\S]*?logo_full\.png[\s\S]*?loading="lazy"/);
+  assert.match(appSource, /<SmartImage[\s\S]*?logo_mark\.svg[\s\S]*?loading="lazy"/);
 
   const videoBgSource = fs.readFileSync(path.join(srcDir, 'components', 'VideoBackground.tsx'), 'utf-8');
   assert.match(videoBgSource, /loading=\{lazy \? 'lazy' : 'eager'\}/);
