@@ -63,11 +63,11 @@ type ShowcaseTab = 'backup-kits' | 'solar-kits' | 'hardware';
 const HOME_VIDEO_SEGMENTS = {
   hero: { start: 0, end: 6, tint: 'sky' },
   brands: { start: 6, end: 11, tint: 'daylight' },
-  calculator: { start: 17, end: 23, tint: 'emerald' },
-  showcase: { start: 23, end: 29, tint: 'amber' },
+  calculator: { start: 17, end: 23, tint: 'azure' },
+  showcase: { start: 23, end: 29, tint: 'cobalt' },
   audit: { start: 29, end: 35, tint: 'indigo' },
-  projects: { start: 35, end: 41, tint: 'teal' },
-  process: { start: 41, end: 47, tint: 'warm' },
+  projects: { start: 35, end: 41, tint: 'sapphire' },
+  process: { start: 41, end: 47, tint: 'ocean' },
   brief: { start: 53, end: 59, tint: 'sky' },
 } as const;
 

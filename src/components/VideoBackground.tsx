@@ -11,12 +11,12 @@ export interface VideoTimeSegment {
 export type VideoBackgroundTint =
   | 'daylight'
   | 'sky'
+  | 'azure'
   | 'cyan'
-  | 'emerald'
-  | 'amber'
+  | 'cobalt'
+  | 'sapphire'
   | 'indigo'
-  | 'teal'
-  | 'warm'
+  | 'ocean'
   | 'slate';
 
 export const VIDEO_TINT_PRESETS: Record<
@@ -31,74 +31,74 @@ export const VIDEO_TINT_PRESETS: Record<
   daylight: {
     bgClass: 'bg-[#0b2a4f]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(7, 30, 62, 0.56) 0%, rgba(11, 56, 106, 0.42) 52%, rgba(5, 22, 46, 0.62) 100%)',
+      'linear-gradient(180deg, rgba(8, 36, 74, 0.40) 0%, rgba(13, 68, 128, 0.26) 52%, rgba(6, 26, 56, 0.46) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(6, 24, 52, 0.64) 0%, rgba(10, 44, 88, 0.52) 55%, rgba(4, 18, 40, 0.70) 100%)',
-    edgeGlow: 'rgba(125, 211, 252, 0.28)',
+      'linear-gradient(180deg, rgba(6, 24, 52, 0.56) 0%, rgba(10, 44, 88, 0.42) 55%, rgba(4, 18, 40, 0.62) 100%)',
+    edgeGlow: 'rgba(125, 211, 252, 0.30)',
   },
   sky: {
-    bgClass: 'bg-[#0a2f5c]',
+    bgClass: 'bg-[#0b3668]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(6, 36, 74, 0.54) 0%, rgba(12, 72, 130, 0.40) 50%, rgba(5, 25, 54, 0.60) 100%)',
+      'linear-gradient(180deg, rgba(10, 48, 98, 0.36) 0%, rgba(18, 92, 166, 0.22) 50%, rgba(7, 34, 72, 0.42) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(6, 28, 62, 0.62) 0%, rgba(11, 56, 108, 0.50) 52%, rgba(4, 20, 46, 0.68) 100%)',
-    edgeGlow: 'rgba(125, 211, 252, 0.32)',
+      'linear-gradient(180deg, rgba(6, 30, 66, 0.54) 0%, rgba(12, 62, 118, 0.40) 52%, rgba(4, 22, 48, 0.60) 100%)',
+    edgeGlow: 'rgba(125, 211, 252, 0.34)',
+  },
+  azure: {
+    bgClass: 'bg-[#0c3b73]',
+    lightOverlay:
+      'linear-gradient(180deg, rgba(9, 46, 94, 0.38) 0%, rgba(20, 102, 178, 0.24) 52%, rgba(7, 32, 68, 0.44) 100%)',
+    darkOverlay:
+      'linear-gradient(180deg, rgba(7, 34, 74, 0.54) 0%, rgba(14, 72, 132, 0.40) 52%, rgba(5, 24, 52, 0.60) 100%)',
+    edgeGlow: 'rgba(96, 165, 250, 0.32)',
   },
   cyan: {
-    bgClass: 'bg-[#09354a]',
+    bgClass: 'bg-[#0a3b66]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(5, 38, 56, 0.54) 0%, rgba(10, 82, 108, 0.40) 50%, rgba(4, 28, 44, 0.60) 100%)',
+      'linear-gradient(180deg, rgba(8, 46, 84, 0.36) 0%, rgba(16, 96, 158, 0.22) 50%, rgba(6, 32, 64, 0.42) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(5, 32, 48, 0.62) 0%, rgba(9, 64, 88, 0.50) 52%, rgba(4, 22, 36, 0.68) 100%)',
-    edgeGlow: 'rgba(103, 232, 249, 0.30)',
+      'linear-gradient(180deg, rgba(6, 34, 68, 0.54) 0%, rgba(12, 68, 122, 0.40) 52%, rgba(4, 24, 48, 0.60) 100%)',
+    edgeGlow: 'rgba(147, 197, 253, 0.32)',
   },
-  emerald: {
-    bgClass: 'bg-[#083630]',
+  cobalt: {
+    bgClass: 'bg-[#0d2d6b]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(5, 38, 34, 0.56) 0%, rgba(11, 76, 64, 0.42) 50%, rgba(4, 26, 24, 0.62) 100%)',
+      'linear-gradient(180deg, rgba(10, 38, 92, 0.40) 0%, rgba(24, 76, 164, 0.24) 52%, rgba(7, 26, 66, 0.46) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(5, 30, 28, 0.64) 0%, rgba(10, 62, 52, 0.52) 52%, rgba(4, 22, 20, 0.70) 100%)',
-    edgeGlow: 'rgba(110, 231, 183, 0.28)',
+      'linear-gradient(180deg, rgba(8, 28, 74, 0.56) 0%, rgba(16, 56, 128, 0.42) 52%, rgba(5, 20, 52, 0.62) 100%)',
+    edgeGlow: 'rgba(96, 165, 250, 0.30)',
   },
-  amber: {
-    bgClass: 'bg-[#292014]',
+  sapphire: {
+    bgClass: 'bg-[#082854]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(28, 22, 16, 0.54) 0%, rgba(88, 56, 16, 0.40) 50%, rgba(14, 24, 44, 0.60) 100%)',
+      'linear-gradient(180deg, rgba(7, 32, 70, 0.42) 0%, rgba(12, 62, 126, 0.26) 52%, rgba(5, 22, 50, 0.46) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(24, 18, 12, 0.62) 0%, rgba(68, 42, 14, 0.50) 52%, rgba(12, 20, 38, 0.68) 100%)',
-    edgeGlow: 'rgba(252, 211, 77, 0.30)',
+      'linear-gradient(180deg, rgba(5, 24, 56, 0.56) 0%, rgba(10, 48, 98, 0.42) 52%, rgba(4, 18, 40, 0.62) 100%)',
+    edgeGlow: 'rgba(125, 211, 252, 0.28)',
   },
   indigo: {
-    bgClass: 'bg-[#141f52]',
+    bgClass: 'bg-[#10245e]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(14, 22, 58, 0.56) 0%, rgba(38, 56, 122, 0.42) 50%, rgba(10, 18, 46, 0.62) 100%)',
+      'linear-gradient(180deg, rgba(12, 30, 82, 0.40) 0%, rgba(30, 62, 148, 0.24) 50%, rgba(8, 22, 62, 0.46) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(12, 18, 48, 0.64) 0%, rgba(30, 44, 98, 0.52) 52%, rgba(8, 14, 38, 0.70) 100%)',
-    edgeGlow: 'rgba(165, 180, 252, 0.30)',
+      'linear-gradient(180deg, rgba(9, 24, 68, 0.56) 0%, rgba(22, 48, 118, 0.42) 52%, rgba(6, 18, 48, 0.62) 100%)',
+    edgeGlow: 'rgba(147, 197, 253, 0.30)',
   },
-  teal: {
-    bgClass: 'bg-[#083540]',
+  ocean: {
+    bgClass: 'bg-[#0a3463]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(6, 38, 46, 0.56) 0%, rgba(11, 76, 86, 0.42) 50%, rgba(5, 26, 34, 0.62) 100%)',
+      'linear-gradient(180deg, rgba(8, 40, 80, 0.38) 0%, rgba(15, 78, 144, 0.24) 52%, rgba(6, 28, 60, 0.44) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(5, 30, 38, 0.64) 0%, rgba(9, 60, 68, 0.52) 52%, rgba(4, 20, 28, 0.70) 100%)',
-    edgeGlow: 'rgba(94, 234, 212, 0.30)',
-  },
-  warm: {
-    bgClass: 'bg-[#2c1c1e]',
-    lightOverlay:
-      'linear-gradient(180deg, rgba(38, 20, 22, 0.54) 0%, rgba(92, 44, 24, 0.40) 50%, rgba(14, 24, 48, 0.60) 100%)',
-    darkOverlay:
-      'linear-gradient(180deg, rgba(30, 16, 18, 0.62) 0%, rgba(72, 34, 18, 0.50) 52%, rgba(12, 20, 40, 0.68) 100%)',
-    edgeGlow: 'rgba(253, 186, 116, 0.30)',
+      'linear-gradient(180deg, rgba(6, 30, 64, 0.54) 0%, rgba(12, 58, 114, 0.40) 52%, rgba(4, 22, 48, 0.60) 100%)',
+    edgeGlow: 'rgba(125, 211, 252, 0.30)',
   },
   slate: {
-    bgClass: 'bg-[#10294d]',
+    bgClass: 'bg-[#122c52]',
     lightOverlay:
-      'linear-gradient(180deg, rgba(12, 32, 68, 0.56) 0%, rgba(28, 66, 124, 0.42) 50%, rgba(8, 24, 52, 0.62) 100%)',
+      'linear-gradient(180deg, rgba(14, 36, 72, 0.40) 0%, rgba(26, 64, 118, 0.26) 50%, rgba(9, 25, 54, 0.45) 100%)',
     darkOverlay:
-      'linear-gradient(180deg, rgba(10, 26, 56, 0.64) 0%, rgba(22, 52, 102, 0.52) 52%, rgba(7, 18, 42, 0.70) 100%)',
-    edgeGlow: 'rgba(147, 197, 253, 0.30)',
+      'linear-gradient(180deg, rgba(10, 28, 58, 0.56) 0%, rgba(20, 50, 96, 0.42) 52%, rgba(7, 18, 42, 0.62) 100%)',
+    edgeGlow: 'rgba(147, 197, 253, 0.28)',
   },
 };
 
@@ -325,7 +325,7 @@ export function VideoBackground({
         rafId = window.requestAnimationFrame(() => {
           setShouldRenderMedia(true);
         });
-      }, 1200);
+      }, 250);
       return () => {
         window.clearTimeout(timerId);
         if (rafId) {
@@ -490,7 +490,10 @@ export function VideoBackground({
   }, [youtubeEmbedUrl, shouldRenderMedia, autoPlay, muted, playsInline]);
 
   const resolvedBrightness = brightness ?? (tone === 'light' ? 0.86 : 0.68);
-  const clampedBrightness = Math.max(0.1, Math.min(1.6, resolvedBrightness));
+  const effectiveBrightness = !allowYouTubeIframe
+    ? Math.max(0.9, Math.min(1.06, resolvedBrightness + 0.38))
+    : resolvedBrightness;
+  const clampedBrightness = Math.max(0.1, Math.min(1.6, effectiveBrightness));
   const isLightTone = tone === 'light';
   const tintPreset = VIDEO_TINT_PRESETS[tint] ?? VIDEO_TINT_PRESETS.daylight;
   const positionClass = position === 'absolute' ? 'absolute inset-0' : 'fixed inset-0';
@@ -505,7 +508,7 @@ export function VideoBackground({
       data-start={effectiveStart !== undefined ? String(effectiveStart) : undefined}
       data-end={effectiveEnd !== undefined ? String(effectiveEnd) : undefined}
       className={`${positionClass} overflow-hidden pointer-events-none select-none ${
-        isLightTone ? tintPreset.bgClass : 'bg-[#12263d]'
+        !allowYouTubeIframe ? 'bg-transparent' : isLightTone ? tintPreset.bgClass : 'bg-[#12263d]'
       } ${className}`}
       style={{ zIndex: -1 }}
     >
@@ -515,16 +518,18 @@ export function VideoBackground({
         style={{ containerType: 'size' }}
       >
         {/* Poster fallback layer ensures instant visual coverage while video initializes */}
-        <img
-          src={poster}
-          alt=""
-          aria-hidden="true"
-          loading={lazy ? 'lazy' : 'eager'}
-          decoding={lazy ? 'async' : 'sync'}
-          className={`absolute inset-0 w-full h-full object-cover scale-105 ${
-            !allowYouTubeIframe ? 'opacity-20 ' : ''
-          }${isLightTone ? 'brightness-95 saturate-105' : 'brightness-90'}`}
-        />
+        {allowYouTubeIframe && (
+          <img
+            src={poster}
+            alt=""
+            aria-hidden="true"
+            loading={lazy ? 'lazy' : 'eager'}
+            decoding={lazy ? 'async' : 'sync'}
+            className={`absolute inset-0 w-full h-full object-cover video-bg-poster-motion ${
+              isLightTone ? 'brightness-95 saturate-105' : 'brightness-90'
+            }`}
+          />
+        )}
 
         {shouldRenderMedia && allowYouTubeIframe &&
           (youtubeEmbedUrl ? (
@@ -533,7 +538,7 @@ export function VideoBackground({
               key={youtubeEmbedUrl}
               src={youtubeEmbedUrl}
               title="Energo Comfort solar station background video"
-              loading="lazy"
+              loading={lazy ? 'lazy' : 'eager'}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               referrerPolicy="strict-origin-when-cross-origin"
               tabIndex={-1}
@@ -554,7 +559,7 @@ export function VideoBackground({
                 revealTimeoutRef.current = window.setTimeout(() => {
                   revealTimeoutRef.current = null;
                   setMediaVisible(true);
-                }, 450);
+                }, 200);
               }}
               className={`absolute top-1/2 left-1/2 border-0 pointer-events-none transition-opacity duration-1000 ease-out ${
                 mediaVisible ? 'opacity-100' : 'opacity-0'

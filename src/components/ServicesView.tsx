@@ -31,7 +31,7 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
       </section>
 
       <section className="relative overflow-hidden isolate ec-section">
-        <VideoBackground position="absolute" tone="light" tint="teal" start={20} end={32} brightness={0.56} />
+        <VideoBackground position="absolute" tone="light" tint="ocean" start={20} end={32} brightness={0.56} />
         <div className="relative ec-container space-y-12 break-words hyphens-auto">
           <div>
             <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-7">

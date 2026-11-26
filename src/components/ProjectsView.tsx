@@ -29,7 +29,7 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
       </section>
 
       <section className="relative overflow-hidden isolate ec-section">
-        <VideoBackground position="absolute" tone="light" tint="emerald" start={32} end={44} brightness={0.56} />
+        <VideoBackground position="absolute" tone="light" tint="cobalt" start={32} end={44} brightness={0.56} />
         <div className="relative ec-container break-words hyphens-auto">
           <h2 className="sr-only">{tr('Кейси встановлених сонячних електростанцій та систем резервного живлення', 'Примеры установленных солнечных электростанций и систем резервного питания')}</h2>
           <div className="inline-flex flex-wrap gap-1.5 p-1.5 ec-glass-plate rounded-2xl mb-6">

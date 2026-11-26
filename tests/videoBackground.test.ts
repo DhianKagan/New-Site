@@ -85,11 +85,17 @@ test('VideoBackground component uses z-index -1, light-tinted backdrop-filters, 
   assert.ok(source.includes('muted={muted}'));
   assert.ok(source.includes('playsInline={playsInline}'));
   assert.ok(source.includes('video-bg-fade-in'));
+  assert.ok(source.includes('video-bg-poster-motion'));
+  assert.ok(source.includes("!allowYouTubeIframe ? 'bg-transparent'"));
   assert.ok(source.includes('effectiveStartRef.current'));
   assert.ok(source.includes('effectiveEndRef.current'));
+  for (const forbiddenTint of ['emerald', 'amber', 'teal', 'warm']) {
+    assert.ok(!source.includes(`${forbiddenTint}:`), `Expected no non-blue tint preset: ${forbiddenTint}`);
+  }
 
   const cssSource = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
   assert.ok(cssSource.includes('@keyframes videoBackgroundFadeIn'));
+  assert.ok(cssSource.includes('@keyframes videoBackgroundPosterMotion'));
   assert.ok(cssSource.includes('.video-bg-fade-in'));
   assert.ok(cssSource.includes('.text-on-video'));
 

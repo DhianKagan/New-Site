@@ -27,7 +27,7 @@ export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps
       </section>
 
       <section className="relative overflow-hidden isolate ec-section">
-        <VideoBackground position="absolute" tone="light" tint="cyan" start={14} end={26} brightness={0.56} />
+        <VideoBackground position="absolute" tone="light" tint="azure" start={14} end={26} brightness={0.56} />
         <div className="relative ec-container grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch break-words hyphens-auto">
           <div className="lg:col-span-5 ec-glass-card rounded-2xl p-6 sm:p-7 h-full flex flex-col justify-between">
             <div>
@@ -96,7 +96,7 @@ export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps
       </section>
 
       <section className="relative overflow-hidden isolate border-t border-white/25 ec-section">
-        <VideoBackground position="absolute" tone="light" tint="warm" start={44} end={56} brightness={0.56} />
+        <VideoBackground position="absolute" tone="light" tint="sapphire" start={44} end={56} brightness={0.56} />
         <div className="relative ec-container">
           <div className="ec-glass-card rounded-2xl p-6 sm:p-7">
               <div className="text-xs font-extrabold text-[#0b66b2] mb-1">{tr('Про компанію та умови')}</div>
