@@ -17,6 +17,7 @@ import { ProductCard } from './ProductCard.tsx';
 import { BatterySizingCalculator } from './BatterySizingCalculator.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { HowItWorks } from './HowItWorks.tsx';
+import { OurTeamSection } from './OurTeamSection.tsx';
 import { FaqSection } from './FaqSection.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
 import { getAttributionSummary, resolveAnalyticsMoney, track, trackEvent, type Property, type Scenario } from '../lib/analytics.ts';
@@ -1277,6 +1278,12 @@ export function HomeView({
           </div>
         </div>
       </section>
+
+      {/* Engineering Team & Certifications */}
+      <OurTeamSection
+        onOpenLeadModal={onOpenLeadModal}
+        onNavigateProjects={onNavigateProjects}
+      />
 
       {/* Dedicated FAQ Accordion Section */}
       <FaqSection onOpenLeadModal={onOpenLeadModal} />
