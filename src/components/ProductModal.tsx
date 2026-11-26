@@ -85,12 +85,10 @@ export function ProductModal({
   const [reviewsLoadError, setReviewsLoadError] = useState('');
   const [reviewsReloadNonce, setReviewsReloadNonce] = useState(0);
   const [composeNonce, setComposeNonce] = useState(0);
-  const [loginPromptNonce, setLoginPromptNonce] = useState(0);
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'failed'>('idle');
   const shareResetTimerRef = useRef<number | null>(null);
   const reviewsSectionRef = useRef<HTMLDivElement | null>(null);
 
-  const isAuthenticated = Boolean(clientToken || adminToken || authUser);
   const preferredSessionToken = adminToken || clientToken || null;
 
   useEffect(() => {
@@ -103,7 +101,6 @@ export function ProductModal({
 
   useEffect(() => {
     setComposeNonce(0);
-    setLoginPromptNonce(0);
     setShareStatus('idle');
     if (shareResetTimerRef.current !== null) {
       window.clearTimeout(shareResetTimerRef.current);
@@ -186,11 +183,7 @@ export function ProductModal({
   }
 
   function handleAddReviewClick() {
-    if (isAuthenticated) {
-      setComposeNonce((n) => n + 1);
-    } else {
-      setLoginPromptNonce((n) => n + 1);
-    }
+    setComposeNonce((n) => n + 1);
     reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -496,8 +489,6 @@ export function ProductModal({
             viewerUid={viewerUid}
             isModerator={isModerator}
             composeNonce={composeNonce}
-            loginPromptNonce={loginPromptNonce}
-            onAddReviewClick={handleAddReviewClick}
             onRequireLogin={onRequireLogin}
             onRetryLoad={() => setReviewsReloadNonce((n) => n + 1)}
             onReviewCreated={(created) => {

@@ -291,6 +291,10 @@ test('ProductReviews exposes star rating & text review form and is integrated in
   assert.match(reviewsSource, /export function ProductReviews/);
   assert.match(reviewsSource, /role="radiogroup"/);
   assert.match(reviewsSource, /id="review-comment"/);
+  assert.match(reviewsSource, /id="product-review-composer"/);
+  assert.match(reviewsSource, /handleToggleComposer/);
+  assert.doesNotMatch(reviewsSource, /Поділіться враженням про товар/);
+  assert.doesNotMatch(reviewsSource, /loginPromptNonce/);
   assert.match(reviewsSource, /ArrowRight/);
   assert.match(reviewsSource, /createProductReview/);
 

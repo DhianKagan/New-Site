@@ -48,8 +48,6 @@ interface ProductReviewsProps {
   viewerUid: string | null;
   isModerator: boolean;
   composeNonce: number;
-  loginPromptNonce: number;
-  onAddReviewClick: () => void;
   onRequireLogin?: () => void;
   onRetryLoad: () => void;
   onReviewCreated: (review: ProductReview) => void;
@@ -122,8 +120,6 @@ export function ProductReviews({
   viewerUid,
   isModerator,
   composeNonce,
-  loginPromptNonce,
-  onAddReviewClick,
   onRequireLogin,
   onRetryLoad,
   onReviewCreated,
@@ -136,7 +132,6 @@ export function ProductReviews({
 
   const [signingIn, setSigningIn] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [loginPromptHighlighted, setLoginPromptHighlighted] = useState(false);
 
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
@@ -164,31 +159,17 @@ export function ProductReviews({
   }, [clientCustomerName, authUser?.displayName, adminToken]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      setLoginPromptHighlighted(false);
-    } else {
-      setComposerOpen(false);
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (composeNonce > 0 && isAuthenticated) {
+    if (composeNonce > 0) {
       setComposerOpen(true);
-      setLoginPromptHighlighted(false);
       setFormError('');
-      const target = authorName.trim() ? commentInputRef.current : authorInputRef.current;
-      window.setTimeout(() => {
-        target?.focus();
-      }, 60);
+      if (isAuthenticated) {
+        const target = authorName.trim() ? commentInputRef.current : authorInputRef.current;
+        window.setTimeout(() => {
+          target?.focus();
+        }, 60);
+      }
     }
   }, [composeNonce, isAuthenticated]);
-
-  useEffect(() => {
-    if (loginPromptNonce > 0 && !isAuthenticated) {
-      setLoginPromptHighlighted(true);
-      setFormError('');
-    }
-  }, [loginPromptNonce, isAuthenticated]);
 
   useEffect(() => {
     setFormError('');
@@ -196,7 +177,6 @@ export function ProductReviews({
     setEditingReviewId(null);
     setConfirmDeleteId(null);
     setComposerOpen(false);
-    setLoginPromptHighlighted(false);
     setSortOrder('newest');
     setRatingFilter('all');
   }, [product.id]);
@@ -222,7 +202,6 @@ export function ProductReviews({
       if (result.displayName) {
         setAuthorName((prev) => (prev.trim() ? prev : result.displayName));
       }
-      setLoginPromptHighlighted(false);
       setComposerOpen(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -270,13 +249,33 @@ export function ProductReviews({
     setFormError('');
   }
 
+  function handleToggleComposer() {
+    setFormError('');
+    setFormSuccess('');
+    if (editingReviewId) {
+      handleCancelEdit();
+      setComposerOpen(false);
+      return;
+    }
+    setComposerOpen((prev) => {
+      const next = !prev;
+      if (next && isAuthenticated) {
+        const target = authorName.trim() ? commentInputRef.current : authorInputRef.current;
+        window.setTimeout(() => {
+          target?.focus();
+        }, 60);
+      }
+      return next;
+    });
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFormError('');
     setFormSuccess('');
 
     if (!isAuthenticated) {
-      setLoginPromptHighlighted(true);
+      setComposerOpen(true);
       setFormError(
         tr(
           'Щоб опублікувати відгук, спочатку увійдіть у свій акаунт.',
@@ -362,6 +361,7 @@ export function ProductReviews({
 
   const displayedStarValue = hoverRating ?? rating;
   const averageLabel = formatAverageRatingLabel(stats);
+  const isComposerVisible = composerOpen || Boolean(editingReviewId);
 
   return (
     <section id="product-reviews" aria-labelledby="product-reviews-heading" className="space-y-5">
@@ -406,11 +406,19 @@ export function ProductReviews({
 
           <button
             type="button"
-            onClick={onAddReviewClick}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+            aria-expanded={isComposerVisible}
+            aria-controls="product-review-composer"
+            onClick={handleToggleComposer}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+              isComposerVisible
+                ? 'border border-slate-300 bg-white hover:bg-slate-100 text-[#0d1f33]'
+                : 'bg-[#1769aa] hover:bg-[#12568c] text-white'
+            }`}
           >
             <MessageSquarePlus className="w-4 h-4" />
-            {tr('Додати відгук', 'Добавить отзыв')}
+            {isComposerVisible
+              ? tr('Закрити форму', 'Закрыть форму')
+              : tr('Додати відгук', 'Добавить отзыв')}
           </button>
         </div>
       </div>
@@ -450,42 +458,24 @@ export function ProductReviews({
         </div>
       )}
 
-      {/* Review Submission / Login Prompt */}
-      <div
-        className={`rounded-xl border bg-white p-4 transition-colors ${
-          loginPromptHighlighted && !isAuthenticated
-            ? 'border-amber-400 ring-2 ring-amber-200/70'
-            : 'border-slate-200'
-        }`}
-      >
-        {!isAuthenticated ? (
-          <div className="space-y-3">
-            {loginPromptHighlighted && (
-              <div
-                role="status"
-                className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 font-semibold flex items-center gap-2"
-              >
-                <LogIn className="w-4 h-4 shrink-0 text-amber-600" />
-                <span>
-                  {tr(
-                    'Щоб залишити відгук, потрібно увійти в систему (особистий кабінет, CRM або через Google).',
-                    'Чтобы оставить отзыв, нужно войти в систему (личный кабинет, CRM или через Google).',
-                  )}
-                </span>
-              </div>
-            )}
-
+      {/* Single Unified Review Composer (Auth Gate or Review Form) */}
+      {isComposerVisible && (
+        <div
+          id="product-review-composer"
+          className="rounded-xl border border-sky-200 bg-white p-4 shadow-xs"
+        >
+          {!isAuthenticated ? (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start gap-2.5">
-                <MessageSquarePlus className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
+                <LogIn className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
                 <div>
                   <div className="text-xs font-bold text-[#0d1f33]">
-                    {tr('Залишити відгук про товар', 'Оставить отзыв о товаре')}
+                    {tr('Увійдіть, щоб залишити відгук', 'Войдите, чтобы оставить отзыв')}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     {tr(
-                      'Увійдіть в акаунт клієнта або авторизуйтесь через Google, щоб поставити оцінку.',
-                      'Войдите в аккаунт клиента или авторизуйтесь через Google, чтобы поставить оценку.',
+                      'Авторизуйтесь в акаунт клієнта або через Google — одразу відкриється форма оцінки та відгуку.',
+                      'Авторизуйтесь в аккаунт клиента или через Google — сразу откроется форма оценки и отзыва.',
                     )}
                   </p>
                 </div>
@@ -535,180 +525,154 @@ export function ProductReviews({
                 </button>
               </div>
             </div>
-          </div>
-        ) : !composerOpen && !editingReviewId ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-2.5">
-              <MessageSquarePlus className="w-4 h-4 text-[#169374] shrink-0 mt-0.5" />
-              <div>
-                <div className="text-xs font-bold text-[#0d1f33]">
-                  {tr('Поділіться враженням про товар', 'Поделитесь впечатлением о товаре')}
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-xs font-extrabold text-[#0d1f33]">
+                  {editingReviewId
+                    ? tr('Редагування вашого відгуку', 'Редактирование вашего отзыва')
+                    : tr('Написати відгук', 'Написать отзыв')}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {tr(
-                    'Ви авторизовані та можете поставити оцінку від 1 до 5 зірок і написати відгук.',
-                    'Вы авторизованы и можете поставить оценку от 1 до 5 звёзд и написать отзыв.',
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={onAddReviewClick}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold transition-colors whitespace-nowrap cursor-pointer shrink-0"
-            >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
-              {tr('Додати відгук', 'Добавить отзыв')}
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs font-extrabold text-[#0d1f33]">
-                {editingReviewId
-                  ? tr('Редагування вашого відгуку', 'Редактирование вашего отзыва')
-                  : tr('Написати відгук', 'Написать отзыв')}
-              </div>
-              <div
-                role="radiogroup"
-                aria-label={tr('Оцінка товару від 1 до 5 зірок', 'Оценка товара от 1 до 5 звёзд')}
-                className="inline-flex items-center gap-1"
-                onMouseLeave={() => setHoverRating(null)}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setRating((prev) => Math.min(5, prev + 1));
-                  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setRating((prev) => Math.max(1, prev - 1));
-                  }
-                }}
-              >
-                {[1, 2, 3, 4, 5].map((starValue) => {
-                  const active = starValue <= displayedStarValue;
-                  return (
-                    <button
-                      key={starValue}
-                      type="button"
-                      role="radio"
-                      aria-checked={rating === starValue}
-                      aria-label={`${starValue} / 5`}
-                      onMouseEnter={() => setHoverRating(starValue)}
-                      onClick={() => setRating(starValue)}
-                      className="p-0.5 rounded hover:scale-110 transition-transform cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1769aa]"
-                    >
-                      <Star
-                        className={`w-5 h-5 ${
-                          active ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-slate-300'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-                <span className="ml-1.5 font-mono text-xs font-bold text-[#0d1f33] tabular-nums">
-                  {rating}/5
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-1">
-                <label htmlFor="review-author-name" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
-                  {tr('Ваше ім’я', 'Ваше имя')} *
-                </label>
-                <input
-                  ref={authorInputRef}
-                  id="review-author-name"
-                  type="text"
-                  required
-                  minLength={REVIEW_LIMITS.minAuthorName}
-                  maxLength={REVIEW_LIMITS.maxAuthorName}
-                  disabled={submitting}
-                  value={authorName}
-                  onChange={(e) => setAuthorName(e.target.value)}
-                  placeholder={tr('Олександр К.', 'Александр К.')}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="review-comment" className="block text-[11px] font-bold text-[#0d1f33]">
-                    {tr('Ваш відгук', 'Ваш отзыв')} *
-                  </label>
-                  <span className="font-mono text-[10px] text-slate-400 tabular-nums">
-                    {comment.trim().length}/{REVIEW_LIMITS.maxComment}
+                <div
+                  role="radiogroup"
+                  aria-label={tr('Оцінка товару від 1 до 5 зірок', 'Оценка товара от 1 до 5 звёзд')}
+                  className="inline-flex items-center gap-1"
+                  onMouseLeave={() => setHoverRating(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setRating((prev) => Math.min(5, prev + 1));
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setRating((prev) => Math.max(1, prev - 1));
+                    }
+                  }}
+                >
+                  {[1, 2, 3, 4, 5].map((starValue) => {
+                    const active = starValue <= displayedStarValue;
+                    return (
+                      <button
+                        key={starValue}
+                        type="button"
+                        role="radio"
+                        aria-checked={rating === starValue}
+                        aria-label={`${starValue} / 5`}
+                        onMouseEnter={() => setHoverRating(starValue)}
+                        onClick={() => setRating(starValue)}
+                        className="p-0.5 rounded hover:scale-110 transition-transform cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1769aa]"
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            active ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-slate-300'
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                  <span className="ml-1.5 font-mono text-xs font-bold text-[#0d1f33] tabular-nums">
+                    {rating}/5
                   </span>
                 </div>
-                <textarea
-                  ref={commentInputRef}
-                  id="review-comment"
-                  rows={2}
-                  required
-                  minLength={REVIEW_LIMITS.minComment}
-                  maxLength={REVIEW_LIMITS.maxComment}
-                  disabled={submitting}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder={tr(
-                    'Розкажіть про досвід встановлення, роботи або комплектації...',
-                    'Расскажите об опыте установки, работы или комплектации...',
-                  )}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs leading-relaxed focus:outline-none focus:border-[#1769aa]"
-                />
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => {
-                  if (editingReviewId) {
-                    handleCancelEdit();
-                  }
-                  setComposerOpen(false);
-                  setFormError('');
-                }}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 cursor-pointer"
-              >
-                {tr('Скасувати', 'Отмена')}
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold transition-colors cursor-pointer"
-              >
-                {submitting
-                  ? tr('Збереження...', 'Сохранение...')
-                  : editingReviewId
-                    ? tr('Зберегти зміни', 'Сохранить изменения')
-                    : tr('Опублікувати відгук', 'Опубликовать отзыв')}
-              </button>
-            </div>
-          </form>
-        )}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-1">
+                  <label htmlFor="review-author-name" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                    {tr('Ваше ім’я', 'Ваше имя')} *
+                  </label>
+                  <input
+                    ref={authorInputRef}
+                    id="review-author-name"
+                    type="text"
+                    required
+                    minLength={REVIEW_LIMITS.minAuthorName}
+                    maxLength={REVIEW_LIMITS.maxAuthorName}
+                    disabled={submitting}
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder={tr('Олександр К.', 'Александр К.')}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:border-[#1769aa]"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="review-comment" className="block text-[11px] font-bold text-[#0d1f33]">
+                      {tr('Ваш відгук', 'Ваш отзыв')} *
+                    </label>
+                    <span className="font-mono text-[10px] text-slate-400 tabular-nums">
+                      {comment.trim().length}/{REVIEW_LIMITS.maxComment}
+                    </span>
+                  </div>
+                  <textarea
+                    ref={commentInputRef}
+                    id="review-comment"
+                    rows={2}
+                    required
+                    minLength={REVIEW_LIMITS.minComment}
+                    maxLength={REVIEW_LIMITS.maxComment}
+                    disabled={submitting}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder={tr(
+                      'Розкажіть про досвід встановлення, роботи або комплектації...',
+                      'Расскажите об опыте установки, работы или комплектации...',
+                    )}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs leading-relaxed focus:outline-none focus:border-[#1769aa]"
+                  />
+                </div>
+              </div>
 
-        {formError && (
-          <div
-            role="alert"
-            className="mt-3 p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-semibold flex items-start gap-2"
-          >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{formError}</span>
-          </div>
-        )}
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => {
+                    if (editingReviewId) {
+                      handleCancelEdit();
+                    }
+                    setComposerOpen(false);
+                    setFormError('');
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 cursor-pointer"
+                >
+                  {tr('Скасувати', 'Отмена')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  {submitting
+                    ? tr('Збереження...', 'Сохранение...')
+                    : editingReviewId
+                      ? tr('Зберегти зміни', 'Сохранить изменения')
+                      : tr('Опублікувати відгук', 'Опубликовать отзыв')}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
 
-        {formSuccess && (
-          <div
-            role="status"
-            className="mt-3 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{formSuccess}</span>
-          </div>
-        )}
-      </div>
+      {formError && (
+        <div
+          role="alert"
+          className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-semibold flex items-start gap-2"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{formError}</span>
+        </div>
+      )}
+
+      {formSuccess && (
+        <div
+          role="status"
+          className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center gap-2"
+        >
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{formSuccess}</span>
+        </div>
+      )}
 
       {/* Reviews Filter & Sort Bar */}
       {!loading && !loadError && reviews.length > 0 && (
