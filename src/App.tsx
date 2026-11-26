@@ -1483,7 +1483,7 @@ function AppContent() {
       </div>
 
       {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
-      <header className="sticky top-0 z-40 bg-white/82 backdrop-blur-xl border-b border-sky-200/70 shadow-[0_4px_20px_rgba(7,33,62,0.06)]">
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
         <div className="ec-container h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
           {/* Zone 1: Single-line Brand Wordmark */}
           <a
@@ -1495,20 +1495,20 @@ function AppContent() {
               src="/assets/energocomfort/logo_mark.webp"
               alt="Energo Comfort"
               priority
-              className="h-7 w-7 sm:h-8 sm:w-8 object-contain rounded shrink-0"
+              className="h-7 w-7 sm:h-8 sm:w-8 object-contain rounded-lg bg-white/95 p-0.5 shadow-sm shrink-0"
             />
-            <span className="text-sm sm:text-base lg:text-lg font-extrabold tracking-tight text-[#0d1f33]">
+            <span className="text-sm sm:text-base lg:text-lg font-extrabold tracking-tight text-white">
               Energo Comfort
             </span>
           </a>
 
           {/* Zone 2: 5 concise single-line nav links (desktop lg+) */}
-          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-semibold text-slate-600 min-w-0 overflow-hidden">
+          <nav aria-label={tr('Головна навігація')} className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-semibold text-sky-100/85 min-w-0 overflow-hidden">
             <a
               href="/"
               onClick={(e) => handleNavAnchor(e, 'home')}
-              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
-                view === 'home' ? 'text-[#1769aa] font-bold' : ''
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-white transition-colors ${
+                view === 'home' ? 'text-white font-bold underline decoration-sky-300/90 decoration-2 underline-offset-[6px]' : ''
               }`}
             >
               {tr('Головна')}
@@ -1516,8 +1516,8 @@ function AppContent() {
             <a
               href="/shop"
               onClick={(e) => handleNavAnchor(e, 'shop', 'all')}
-              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
-                view === 'shop' ? 'text-[#1769aa] font-bold' : ''
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-white transition-colors ${
+                view === 'shop' ? 'text-white font-bold underline decoration-sky-300/90 decoration-2 underline-offset-[6px]' : ''
               }`}
             >
               {tr('Обладнання')}
@@ -1525,8 +1525,8 @@ function AppContent() {
             <a
               href="/services"
               onClick={(e) => handleNavAnchor(e, 'services')}
-              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
-                view === 'services' ? 'text-[#1769aa] font-bold' : ''
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-white transition-colors ${
+                view === 'services' ? 'text-white font-bold underline decoration-sky-300/90 decoration-2 underline-offset-[6px]' : ''
               }`}
             >
               {tr('Послуги')}
@@ -1534,8 +1534,8 @@ function AppContent() {
             <a
               href="/projects"
               onClick={(e) => handleNavAnchor(e, 'projects')}
-              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
-                view === 'projects' ? 'text-[#1769aa] font-bold' : ''
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-white transition-colors ${
+                view === 'projects' ? 'text-white font-bold underline decoration-sky-300/90 decoration-2 underline-offset-[6px]' : ''
               }`}
             >
               {tr('Проєкти')}
@@ -1543,8 +1543,8 @@ function AppContent() {
             <a
               href="/contacts"
               onClick={(e) => handleNavAnchor(e, 'contacts')}
-              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-[#0d1f33] transition-colors ${
-                view === 'contacts' ? 'text-[#1769aa] font-bold' : ''
+              className={`whitespace-nowrap overflow-hidden text-ellipsis max-w-full hover:text-white transition-colors ${
+                view === 'contacts' ? 'text-white font-bold underline decoration-sky-300/90 decoration-2 underline-offset-[6px]' : ''
               }`}
             >
               {tr('Контакти')}
@@ -1556,7 +1556,7 @@ function AppContent() {
             <button
               type="button"
               onClick={() => openLeadModal('Підбір рішення з шапки сайту')}
-              className="inline-flex items-center justify-center h-9 px-2.5 sm:px-3.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center justify-center h-9 px-2.5 sm:px-3.5 rounded-lg bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] hover:from-[#38bdf8] hover:to-[#0284c7] border border-sky-300/35 text-white text-[11px] sm:text-xs font-bold shadow-[0_4px_14px_rgba(14,165,233,0.3)] transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
               <span className="min-[440px]:hidden">{tr('Підібрати')}</span>
               <span className="hidden min-[440px]:inline">{tr('Підібрати рішення')}</span>
@@ -1567,10 +1567,10 @@ function AppContent() {
               onClick={handleOpenWishlist}
               aria-label={`${tr('Список бажань', 'Список желаний')} (${wishlistIds.length})`}
               title={tr('Список бажань', 'Список желаний')}
-              className="inline-flex items-center justify-center gap-1 h-9 px-2 sm:px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 text-[#0d1f33] text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 h-9 px-2 sm:px-2.5 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 hover:border-sky-200/50 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Heart className={`w-4 h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-600'}`} />
-              <span className="font-mono text-[11px] text-slate-700 tabular-nums leading-none">
+              <Heart className={`w-4 h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-100'}`} />
+              <span className="font-mono text-[11px] text-sky-100 tabular-nums leading-none">
                 {wishlistIds.length}
               </span>
             </button>
@@ -1580,9 +1580,9 @@ function AppContent() {
               onClick={handleOpenCart}
               aria-label={`${tr('Кошик')} (${cartTotalCount})`}
               title={tr('Кошик обладнання', 'Корзина оборудования')}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-2.5 xl:px-3.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-2.5 xl:px-3.5 rounded-lg border border-sky-200/30 bg-[#051a36]/85 hover:bg-[#07264d] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <ShoppingBag className="w-4 h-4 text-[#f59e0b] shrink-0" />
+              <ShoppingBag className="w-4 h-4 text-[#fbbf24] shrink-0" />
               <span className="hidden xl:inline">{tr('Кошик')}</span>
               <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
                 {cartTotalCount}
@@ -1594,7 +1594,7 @@ function AppContent() {
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={tr('Меню', 'Меню')}
               aria-expanded={mobileMenuOpen}
-              className="lg:hidden w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-[#0d1f33] cursor-pointer shrink-0"
+              className="lg:hidden w-9 h-9 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 flex items-center justify-center text-white cursor-pointer shrink-0"
             >
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
@@ -1603,7 +1603,7 @@ function AppContent() {
 
         {/* Mobile / Tablet Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-2">
+          <div className="lg:hidden border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/95 to-[#051c3b]/95 backdrop-blur-xl px-4 py-4 space-y-2">
             {(
               [
                 ['home', '/', tr('Головна')],
@@ -1624,7 +1624,7 @@ function AppContent() {
                 key={v}
                 href={href}
                 onClick={(e) => handleNavAnchor(e, v)}
-                className="block w-full text-left px-3 py-2.5 rounded-lg bg-slate-50 text-sm font-bold text-[#0d1f33] overflow-hidden text-ellipsis whitespace-nowrap"
+                className="block w-full text-left px-3 py-2.5 rounded-lg bg-white/10 hover:bg-white/16 border border-sky-200/15 text-sm font-bold text-white overflow-hidden text-ellipsis whitespace-nowrap transition-colors"
               >
                 {label}
               </a>
@@ -1635,13 +1635,13 @@ function AppContent() {
                 setMobileMenuOpen(false);
                 openLeadModal('Підбір рішення з мобільного меню');
               }}
-              className="block w-full text-center px-3 py-2.5 rounded-lg bg-[#1769aa] text-white text-sm font-bold"
+              className="block w-full text-center px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] text-white text-sm font-bold"
             >
               {tr('Підібрати рішення')}
             </button>
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-500">{tr('Ми в соцмережах:', 'Мы в соцсетях:')}</span>
-              <SocialIcons links={socialLinks} variant="light" />
+            <div className="pt-2 border-t border-sky-200/15 flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-sky-200/80">{tr('Ми в соцмережах:', 'Мы в соцсетях:')}</span>
+              <SocialIcons links={socialLinks} variant="footer" />
             </div>
           </div>
         )}
@@ -1651,18 +1651,20 @@ function AppContent() {
       <main className="flex-1">
         <Breadcrumbs items={breadcrumbItems} onNavigate={handleBreadcrumbNavigate} />
         {loadingCatalog && view !== 'crm' ? (
-          <div className="ec-container py-14">
-            <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
-              <div className="h-8 w-64 bg-sky-100 rounded animate-pulse" />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="h-72 bg-sky-50/80 rounded-2xl animate-pulse" />
-                ))}
+          <div className="ec-main-radial-bg">
+            <div className="ec-container py-14">
+              <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
+                <div className="h-8 w-64 bg-sky-100 rounded animate-pulse" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} className="h-72 bg-sky-50/80 rounded-2xl animate-pulse" />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="break-words hyphens-auto">
+          <div className="ec-main-radial-bg break-words hyphens-auto">
             {view === 'home' && (
               <HomeView
                 usdUahRate={usdUahRate}
@@ -1690,10 +1692,12 @@ function AppContent() {
 
             <Suspense
               fallback={
-                <div className="ec-container py-14">
-                  <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
-                    <div className="h-8 w-56 bg-sky-100 rounded animate-pulse" />
-                    <div className="h-56 bg-sky-50/80 rounded-2xl animate-pulse" />
+                <div className="ec-main-radial-bg">
+                  <div className="ec-container py-14">
+                    <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
+                      <div className="h-8 w-56 bg-sky-100 rounded animate-pulse" />
+                      <div className="h-56 bg-sky-50/80 rounded-2xl animate-pulse" />
+                    </div>
                   </div>
                 </div>
               }

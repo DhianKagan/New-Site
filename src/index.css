@@ -107,8 +107,23 @@
   }
 }
 
+.ec-main-radial-bg {
+  background-image: radial-gradient(
+    ellipse 90% 55% at 50% 0%,
+    rgba(56, 189, 248, 0.14) 0%,
+    rgba(14, 108, 196, 0.10) 48%,
+    rgba(7, 35, 72, 0.22) 100%
+  );
+}
+
 .ec-section {
   padding-block: 3rem;
+  background-image: radial-gradient(
+    ellipse 85% 55% at 50% 0%,
+    rgba(96, 165, 250, 0.12) 0%,
+    rgba(14, 78, 148, 0.06) 55%,
+    rgba(6, 26, 56, 0.16) 100%
+  );
 }
 
 @media (min-width: 640px) {
@@ -118,11 +133,11 @@
 }
 
 .ec-banner {
-  background: linear-gradient(
-    125deg,
-    rgba(235, 246, 255, 0.94) 0%,
-    rgba(255, 250, 240, 0.92) 48%,
-    rgba(219, 240, 255, 0.94) 100%
+  background: radial-gradient(
+    ellipse 95% 110% at 15% 0%,
+    rgba(186, 230, 253, 0.94) 0%,
+    rgba(224, 242, 254, 0.92) 52%,
+    rgba(206, 234, 255, 0.95) 100%
   );
   backdrop-filter: blur(20px) saturate(1.5);
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
