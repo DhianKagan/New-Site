@@ -78,6 +78,7 @@ import {
 import { CompareBar } from './components/CompareBar.tsx';
 import { HeaderScrollProgress } from './components/HeaderScrollProgress.tsx';
 import { ScrollToTopButton } from './components/ScrollToTopButton.tsx';
+import { VerifiedWarrantyBadge } from './components/VerifiedWarrantyBadge.tsx';
 
 const ShopView = lazyWithRetry(() => import('./components/ShopView.tsx').then((m) => ({ default: m.ShopView })));
 const ServicesView = lazyWithRetry(() => import('./components/ServicesView.tsx').then((m) => ({ default: m.ServicesView })));
@@ -2141,6 +2142,12 @@ function AppContent() {
                   {tr('Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.', 'Системы резервного питания и солнечные электростанции под ключ в Одессе и области.')}
                 </p>
                 <SocialIcons links={socialLinks} variant="footer" />
+                <VerifiedWarrantyBadge
+                  variant="footer"
+                  warrantyHref="/payment-delivery"
+                  onWarrantyClick={(e) => handleNavAnchor(e, 'payment-delivery')}
+                  className="mt-4"
+                />
               </div>
 
               <div className="min-w-0 break-words hyphens-none">

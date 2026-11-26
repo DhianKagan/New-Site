@@ -33,6 +33,7 @@ import {
   ProductReviews,
   StarRow,
 } from './ProductReviews.tsx';
+import { VerifiedWarrantyBadge } from './VerifiedWarrantyBadge.tsx';
 
 const CAT_LABELS: Record<string, string> = {
   kits: 'Готове рішення під ключ',
@@ -418,6 +419,12 @@ export function ProductModal({
                   <span>{tr('Безкоштовна перевірка сумісності інвертора/АКБ · Оплата: готівка, ФОП, ТОВ з ПДВ', 'Бесплатная проверка совместимости инвертора/АКБ · Оплата: наличные, ФЛП, ООО с НДС')}</span>
                 </div>
               </div>
+
+              <VerifiedWarrantyBadge
+                variant="product"
+                brand={product.brand}
+                className="mt-2.5"
+              />
             </div>
 
             <div className="space-y-2 pt-3 border-t border-slate-200">
