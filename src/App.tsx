@@ -54,6 +54,7 @@ import {
 } from './lib/compare.ts';
 import { CompareBar } from './components/CompareBar.tsx';
 import { HeaderScrollProgress } from './components/HeaderScrollProgress.tsx';
+import { ScrollToTopButton } from './components/ScrollToTopButton.tsx';
 
 const ShopView = lazy(() => import('./components/ShopView.tsx').then((m) => ({ default: m.ShopView })));
 const ServicesView = lazy(() => import('./components/ServicesView.tsx').then((m) => ({ default: m.ServicesView })));
@@ -2128,6 +2129,24 @@ function AppContent() {
           )}
         </div>
       )}
+
+      {/* Floating Scroll-to-Top Button (appears after scrolling past the first section) */}
+      <ScrollToTopButton
+        routeKey={`${view}|${shopInitialCat}|${selectedProduct?.id ?? ''}|${loadingCatalog}`}
+        hidden={
+          view === 'crm' ||
+          mobileMenuOpen ||
+          compareModalOpen ||
+          cartOpen ||
+          leadModalOpen ||
+          Boolean(selectedProduct) ||
+          Boolean(quickViewProduct) ||
+          Boolean(paybackProduct) ||
+          Boolean(selectedCase)
+        }
+        hasCompareBar={compareProducts.length > 0}
+        hasMobileStickyBar={stickyCtaVisible && compareProducts.length === 0}
+      />
 
       {/* Modals & Cart Drawer (lazy loaded on interaction) */}
       <Suspense fallback={null}>

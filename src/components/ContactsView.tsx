@@ -1,4 +1,4 @@
-import { Clock, Mail, MapPin, Phone, ShieldCheck } from 'lucide-react';
+import { Building2, Clock, FileText, Mail, MapPin, Phone, RotateCcw, ShieldCheck, Truck, Wrench, Zap } from 'lucide-react';
 import { COMPANY_INFO } from '../data/siteContent.ts';
 import { tr } from '../lib/i18n.ts';
 import { track, trackEvent } from '../lib/analytics.ts';
@@ -98,29 +98,158 @@ export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps
       <section className="relative overflow-hidden isolate border-t border-white/25 ec-section">
         <VideoBackground position="absolute" tone="light" tint="sapphire" start={44} end={56} brightness={0.56} />
         <div className="relative ec-container">
-          <div className="ec-glass-card rounded-2xl p-6 sm:p-7">
-              <div className="text-xs font-extrabold text-[#0b66b2] mb-1">{tr('Про компанію та умови')}</div>
-              <h2 className="text-xl font-extrabold text-[#061c36] mb-4">{tr('Гарантія, повернення та оферта')}</h2>
-              <div className="space-y-3.5 text-sm text-[#133659] font-medium leading-[1.65] max-w-[75ch]">
-                <div className="flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-[#0d9488] shrink-0 mt-1" />
-                  <p>
-                    <strong className="text-[#061c36]">{tr('Офіційне постачання:', 'Официальные поставки:')}</strong> {tr('прямі поставки інверторів Deye, SolaX Power, Solis, Huawei та LiFePO4 АКБ з офіційною гарантією виробника.', 'прямые поставки инверторов Deye, SolaX Power, Solis, Huawei и LiFePO4 аккумуляторов с официальной гарантией производителя.')}
-                  </p>
+          <div className="ec-glass-card rounded-2xl p-6 sm:p-8 break-words hyphens-none">
+            <div className="pb-5 border-b border-sky-200/75 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+              <div>
+                <div className="text-xs font-extrabold text-[#0b66b2] mb-1">
+                  {tr('Про компанію та умови')}
                 </div>
-                <div className="flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-[#0d9488] shrink-0 mt-1" />
-                  <p>
-                    <strong className="text-[#061c36]">{tr('Повернення та обмін (14 днів):', 'Возврат и обмен (14 дней):')}</strong> {tr('згідно із Законом України «Про захист прав споживачів» за збереження пломб, товарного вигляду та повної комплектації.', 'в соответствии с Законом Украины «О защите прав потребителей» при сохранении пломб, товарного вида и полной комплектации.')}
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-[#0d9488] shrink-0 mt-1" />
-                  <p>
-                    <strong className="text-[#061c36]">{tr('Конфіденційність та публічна оферта:', 'Конфиденциальность и публичная оферта:')}</strong> {tr('персональні дані використовуються виключно для інженерного розрахунку, оформлення замовлень і гарантійного супроводу.', 'персональные данные используются только для инженерного расчёта, оформления заказов и гарантійного обслуговування.')}
-                  </p>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-[#061c36]">
+                  {tr('Energo Comfort — сонячна енергетика, гарантія та сервіс', 'Energo Comfort — солнечная энергетика, гарантия и сервис')}
+                </h2>
+                <p className="mt-2 text-sm text-[#133659] font-medium leading-[1.65] max-w-3xl">
+                  {tr(
+                    'Спеціалізований інтернет-магазин та інженерна компанія в Одесі (energocomfort.shop). Забезпечуємо приватні будинки, квартири та комерційні об’єкти сонячними електростанціями, системами резервного живлення й накопичення енергії під ключ — від аудиту та підбору обладнання до монтажу, оформлення «зеленого тарифу» та сервісного супроводу.',
+                    'Специализированный интернет-магазин и инженерная компания в Одессе (energocomfort.shop). Обеспечиваем частные дома, квартиры и коммерческие объекты солнечными электростанциями, системами резервного питания и накопления энергии под ключ — от аудита и подбора оборудования до монтажа, оформления «зелёного тарифа» и сервисного сопровождения.',
+                  )}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <a
+                  href="/payment-delivery"
+                  className="inline-flex min-h-9 items-center justify-center rounded-lg border border-sky-200 bg-white/85 px-3.5 text-xs font-bold text-[#061c36] hover:bg-white transition-colors"
+                >
+                  {tr('Оплата і доставка')}
+                </a>
+                <a
+                  href="/public-offer"
+                  className="inline-flex min-h-9 items-center justify-center rounded-lg border border-sky-200 bg-white/85 px-3.5 text-xs font-bold text-[#061c36] hover:bg-white transition-colors"
+                >
+                  {tr('Публічна оферта')}
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              <div className="space-y-4">
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-[#0b66b2]">
+                  {tr('Про компанію та інженерний підхід', 'О компании и инженерном подходе')}
+                </h3>
+                <div className="space-y-3.5 text-sm text-[#133659] font-medium leading-[1.65]">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e6f3ff] text-[#0b66b2] mt-0.5">
+                      <Building2 className="w-4 h-4" />
+                    </span>
+                    <p>
+                      <strong className="text-[#061c36]">
+                        {tr('Досвід і команда в Одесі:', 'Опыт и команда в Одессе:')}
+                      </strong>{' '}
+                      {tr(
+                        'сертифіковані інженери та монтажні бригади реалізують проєкти B2C (квартири, котеджі, дачі) і B2B (СТО, заводи, готелі, навчальні заклади, офісні центри) в Одесі та Одеській області.',
+                        'сертифицированные инженеры и монтажные бригады реализуют проекты B2C (квартиры, коттеджи, дачи) и B2B (СТО, заводы, отели, учебные заведения, офисные центры) в Одессе и Одесской области.',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e6f3ff] text-[#0b66b2] mt-0.5">
+                      <Zap className="w-4 h-4" />
+                    </span>
+                    <p>
+                      <strong className="text-[#061c36]">
+                        {tr('Повний цикл робіт «під ключ»:', 'Полный цикл работ «под ключ»:')}
+                      </strong>{' '}
+                      {tr(
+                        'інструментальний аудит споживання й пускових струмів, розрахунок окупності, 3D-проєктування на скатних/плоских покрівлях і наземних конструкціях, монтаж захисту AC/DC та грозозахисту (резервне живлення за 1–2 дні, СЕС за 2–5 днів).',
+                        'инструментальный аудит потребления и пусковых токов, расчёт окупаемости, 3D-проектирование на скатных/плоских кровлях и наземных конструкциях, монтаж защиты AC/DC и грозозащиты (резервное питание за 1–2 дня, СЭС за 2–5 дней).',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e6f3ff] text-[#0b66b2] mt-0.5">
+                      <Wrench className="w-4 h-4" />
+                    </span>
+                    <p>
+                      <strong className="text-[#061c36]">
+                        {tr('Сертифіковане обладнання та сервіс:', 'Сертифицированное оборудование и сервис:')}
+                      </strong>{' '}
+                      {tr(
+                        'прямі поставки інверторів Deye, SolaX Power, Solis, Huawei, MUST, сонячних панелей Jinko Solar, JA Solar, TW Solar і безпечних LiFePO4 АКБ Deye, Dyness, BYD, Pylontech. Допомога в оформленні «зеленого тарифу» чи статусу «активного споживача», підключення хмарного моніторингу та планове ТО.',
+                        'прямые поставки инверторов Deye, SolaX Power, Solis, Huawei, MUST, солнечных панелей Jinko Solar, JA Solar, TW Solar и безопасных LiFePO4 АКБ Deye, Dyness, BYD, Pylontech. Помощь в оформлении «зелёного тарифа» или статуса «активного потребителя», подключение облачного мониторинга и плановое ТО.',
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-[#0b66b2]">
+                  {tr('Гарантія, повернення та оферта')}
+                </h3>
+                <div className="space-y-3.5 text-sm text-[#133659] font-medium leading-[1.65]">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[#0d9488] mt-0.5">
+                      <ShieldCheck className="w-4 h-4" />
+                    </span>
+                    <p>
+                      <strong className="text-[#061c36]">
+                        {tr('Офіційна гарантія на техніку і монтаж:', 'Официальная гарантия на технику и монтаж:')}
+                      </strong>{' '}
+                      {tr(
+                        'заводська гарантія на інвертори та СНЕ (5–12 років), LiFePO4 акумулятори (до 10 років, ресурс понад 6 000 циклів), генерацію сонячних панелей (до 25 років) та гарантія на монтажні роботи від 2 років.',
+                        'заводская гарантия на инверторы и СНЭ (5–12 лет), LiFePO4 аккумуляторы (до 10 лет, ресурс свыше 6 000 циклов), генерацию солнечных панелей (до 25 лет) и гарантия на монтажные работы от 2 лет.',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[#0d9488] mt-0.5">
+                      <Truck className="w-4 h-4" />
+                    </span>
+                    <p>
+                      <strong className="text-[#061c36]">
+                        {tr('Оплата та доставка по Україні:', 'Оплата и доставка по Украине:')}
+                      </strong>{' '}
+                      {tr(
+                        'самовивіз зі складу в Одесі (вул. Європейська, 93) або доставка «Новою Поштою» на відділення чи адресно у посиленому пакуванні / на палеті зі страхуванням повної вартості. Доступний розрахунок за реквізитами (ФОП/ТОВ з ПДВ), переказом або післяплатою після перевірки сумісності інженером.',
+                        'самовывоз со склада в Одессе (ул. Европейская, 93) или доставка «Новой Почтой» в отделение либо адресно в усиленной упаковке / на паллете со страхованием полной стоимости. Доступна оплата по реквизитам (ФЛП/ООО с НДС), переводом или наложенным платежом после проверки совместимости инженером.',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[#0d9488] mt-0.5">
+                      <RotateCcw className="w-4 h-4" />
+                    </span>
+                    <p>
+                      <strong className="text-[#061c36]">
+                        {tr('Повернення та обмін (14 днів):', 'Возврат и обмен (14 дней):')}
+                      </strong>{' '}
+                      {tr(
+                        'згідно із Законом України «Про захист прав споживачів» за збереження пломб, заводської упаковки, товарного вигляду та повної комплектації. У разі виявлення виробничого браку витрати на логістику компенсує компанія.',
+                        'в соответствии с Законом Украины «О защите прав потребителей» при сохранении пломб, заводской упаковки, товарного вида и полной комплектации. При выявлении производственного брака расходы на логистику компенсирует компания.',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[#0d9488] mt-0.5">
+                      <FileText className="w-4 h-4" />
+                    </span>
+                    <p>
+                      <strong className="text-[#061c36]">
+                        {tr('Конфіденційність та публічна оферта:', 'Конфиденциальность и публичная оферта:')}
+                      </strong>{' '}
+                      {tr(
+                        'продаж і сервіс регулюються публічною офертою; персональні дані використовуються виключно для інженерного розрахунку, оформлення замовлень, доставки та гарантійного супроводу.',
+                        'продажа и сервис регулируются публичной офертой; персональные данные используются исключительно для инженерного расчёта, оформления заказов, доставки и гарантийного сопровождения.',
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
