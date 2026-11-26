@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
 import { BRAND_PARTNERS, COMPANY_INFO } from '../data/siteContent.ts';
+import { PerformanceProfiler } from './PerformanceProfiler.tsx';
 import { ProductCard } from './ProductCard.tsx';
 import { BatterySizingCalculator } from './BatterySizingCalculator.tsx';
 import { SmartImage } from './SmartImage.tsx';
@@ -187,6 +188,9 @@ export function HomeView({
           ? solarKits
           : fallbackKits
         : popularHardware;
+
+  const wishlistSet = useMemo(() => new Set(wishlistIds), [wishlistIds]);
+  const compareSet = useMemo(() => new Set(compareIds), [compareIds]);
 
   const showcaseGridClass =
     activeShowcase.length === 1
@@ -858,31 +862,33 @@ export function HomeView({
                   {tr('Переглянути всі рішення →', 'Посмотреть все решения →')}
                 </button>
               </div>
-              <div className={calcGridClass}>
-                {matchedCalculatorProducts.map((prod) => (
-                  <ProductCard
-                    usdUahRate={usdUahRate}
-                    key={`calc-${prod.id}`}
-                    product={prod}
-                    onSelect={onSelectProduct}
-                    onQuickView={onQuickViewProduct}
-                    isWishlisted={wishlistIds.includes(prod.id)}
-                    onToggleWishlist={onToggleWishlist}
-                    isCompared={compareIds.includes(prod.id)}
-                    onToggleCompare={onToggleCompare}
-                    onAddToCart={onAddToCart}
-                    onCalculatePayback={onCalculatePayback}
-                    onRequestQuote={(p) =>
-                      onOpenLeadModal(
-                        `Розрахунок (${recommendedKw} кВт): ${p.title}`,
-                        p.price,
-                        'section',
-                        `${tr('Споживання', 'Потребление')}: ${safeMonthlyKwh} ${tr('кВт·год/міс', 'кВт·ч/мес')} · ${tr('Тариф', 'Тариф')}: ${safeTariffUah} грн`,
-                      )
-                    }
-                  />
-                ))}
-              </div>
+              <PerformanceProfiler id="HomeView.CalculatorProducts" itemCount={matchedCalculatorProducts.length}>
+                <div className={calcGridClass}>
+                  {matchedCalculatorProducts.map((prod) => (
+                    <ProductCard
+                      usdUahRate={usdUahRate}
+                      key={`calc-${prod.id}`}
+                      product={prod}
+                      onSelect={onSelectProduct}
+                      onQuickView={onQuickViewProduct}
+                      isWishlisted={wishlistSet.has(prod.id)}
+                      onToggleWishlist={onToggleWishlist}
+                      isCompared={compareSet.has(prod.id)}
+                      onToggleCompare={onToggleCompare}
+                      onAddToCart={onAddToCart}
+                      onCalculatePayback={onCalculatePayback}
+                      onRequestQuote={(p) =>
+                        onOpenLeadModal(
+                          `Розрахунок (${recommendedKw} кВт): ${p.title}`,
+                          p.price,
+                          'section',
+                          `${tr('Споживання', 'Потребление')}: ${safeMonthlyKwh} ${tr('кВт·год/міс', 'кВт·ч/мес')} · ${tr('Тариф', 'Тариф')}: ${safeTariffUah} грн`,
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </PerformanceProfiler>
             </div>
           )}
 
@@ -964,24 +970,26 @@ export function HomeView({
             </div>
           </div>
 
-          <div className={showcaseGridClass}>
-            {activeShowcase.map((prod) => (
-              <ProductCard
-                usdUahRate={usdUahRate}
-                key={prod.id}
-                product={prod}
-                onSelect={onSelectProduct}
-                onQuickView={onQuickViewProduct}
-                isWishlisted={wishlistIds.includes(prod.id)}
-                onToggleWishlist={onToggleWishlist}
-                isCompared={compareIds.includes(prod.id)}
-                onToggleCompare={onToggleCompare}
-                onAddToCart={onAddToCart}
-                onCalculatePayback={onCalculatePayback}
-                onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
-              />
-            ))}
-          </div>
+          <PerformanceProfiler id="HomeView.ProductShowcase" itemCount={activeShowcase.length}>
+            <div className={showcaseGridClass}>
+              {activeShowcase.map((prod) => (
+                <ProductCard
+                  usdUahRate={usdUahRate}
+                  key={prod.id}
+                  product={prod}
+                  onSelect={onSelectProduct}
+                  onQuickView={onQuickViewProduct}
+                  isWishlisted={wishlistSet.has(prod.id)}
+                  onToggleWishlist={onToggleWishlist}
+                  isCompared={compareSet.has(prod.id)}
+                  onToggleCompare={onToggleCompare}
+                  onAddToCart={onAddToCart}
+                  onCalculatePayback={onCalculatePayback}
+                  onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
+                />
+              ))}
+            </div>
+          </PerformanceProfiler>
 
           <div className="mt-7 text-center">
             <a

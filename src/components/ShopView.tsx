@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale, Banknote, Calculator, Hash } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
+import { PerformanceProfiler } from './PerformanceProfiler.tsx';
 import { ProductCard } from './ProductCard.tsx';
 import { ShopEmptyState } from './ShopEmptyState.tsx';
 import { SmartImage } from './SmartImage.tsx';
@@ -269,6 +270,8 @@ export function ShopView({
     () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
     [filtered, safePage],
   );
+  const wishlistSet = useMemo(() => new Set(wishlistIds), [wishlistIds]);
+  const compareSet = useMemo(() => new Set(compareIds), [compareIds]);
 
   useEffect(() => {
     if (paginated.length === 0) return;
@@ -628,7 +631,7 @@ export function ShopView({
                   className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl border border-sky-200/90 bg-white/95 backdrop-blur-xl shadow-[0_18px_42px_rgba(7,33,62,0.22)] overflow-hidden"
                 >
                   {suggestions.length > 0 ? (
-                    <>
+                    <PerformanceProfiler id="ShopView.SearchSuggestions" itemCount={suggestions.length}>
                       <div className="max-h-[340px] overflow-y-auto divide-y divide-sky-100">
                         {suggestions.map((item, idx) => {
                           const isActive = idx === activeSuggestionIndex;
@@ -717,7 +720,7 @@ export function ShopView({
                           )}
                         </button>
                       )}
-                    </>
+                    </PerformanceProfiler>
                   ) : (
                     <div className="px-4 py-3 text-xs text-[#1c3d5e] flex items-center justify-between gap-2">
                       <span className="truncate">
@@ -1261,34 +1264,36 @@ export function ShopView({
                   }
                 />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 items-stretch">
-                  {paginated.map((p, index) => (
-                    <ProductCard
-                      key={`${cat}-${p.id}`}
-                      product={p}
-                      onSelect={onSelectProduct}
-                      onQuickView={onQuickViewProduct}
-                      isWishlisted={wishlistIds.includes(p.id)}
-                      onToggleWishlist={onToggleWishlist}
-                      isCompared={compareIds.includes(p.id)}
-                      onToggleCompare={onToggleCompare}
-                      onAddToCart={onAddToCart}
-                      onRequestQuote={(prod) => onRequestQuote(prod)}
-                      onCalculatePayback={onCalculatePayback}
-                      usdUahRate={usdUahRate}
-                      className={
-                        isEntering
-                          ? `motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out motion-safe:hover:scale-[1.015] ${
-                              cardsVisible
-                                ? 'opacity-100 translate-y-0'
-                                : 'motion-safe:opacity-0 motion-safe:translate-y-4'
-                            }`
-                          : 'opacity-100 translate-y-0 duration-200 ease-out motion-safe:hover:scale-[1.015]'
-                      }
-                      style={isEntering ? { transitionDelay: `${Math.min(index, 11) * 30}ms` } : undefined}
-                    />
-                  ))}
-                </div>
+                <PerformanceProfiler id="ShopView.ProductList" itemCount={paginated.length}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+                    {paginated.map((p, index) => (
+                      <ProductCard
+                        key={`${cat}-${p.id}`}
+                        product={p}
+                        onSelect={onSelectProduct}
+                        onQuickView={onQuickViewProduct}
+                        isWishlisted={wishlistSet.has(p.id)}
+                        onToggleWishlist={onToggleWishlist}
+                        isCompared={compareSet.has(p.id)}
+                        onToggleCompare={onToggleCompare}
+                        onAddToCart={onAddToCart}
+                        onRequestQuote={onRequestQuote}
+                        onCalculatePayback={onCalculatePayback}
+                        usdUahRate={usdUahRate}
+                        className={
+                          isEntering
+                            ? `motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out motion-safe:hover:scale-[1.015] ${
+                                cardsVisible
+                                  ? 'opacity-100 translate-y-0'
+                                  : 'motion-safe:opacity-0 motion-safe:translate-y-4'
+                              }`
+                            : 'opacity-100 translate-y-0 duration-200 ease-out motion-safe:hover:scale-[1.015]'
+                        }
+                        style={isEntering ? { transitionDelay: `${Math.min(index, 11) * 30}ms` } : undefined}
+                      />
+                    ))}
+                  </div>
+                </PerformanceProfiler>
               )}
             </div>
           </div>

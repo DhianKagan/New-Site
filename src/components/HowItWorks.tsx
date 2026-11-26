@@ -8,10 +8,12 @@ import {
 } from '../lib/howItWorksNodes.ts';
 import { lazyWithRetry } from '../lib/lazyWithRetry.ts';
 import { tr } from '../lib/i18n.ts';
+import { PerformanceProfiler } from './PerformanceProfiler.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
 
-const LazyHowItWorks3DCanvas = lazyWithRetry(() =>
-  import('./HowItWorks3DCanvas.tsx').then((m) => ({ default: m.HowItWorks3DCanvas })),
+const LazyHowItWorks3DCanvas = lazyWithRetry(
+  () => import('./HowItWorks3DCanvas.tsx').then((m) => ({ default: m.HowItWorks3DCanvas })),
+  { componentName: 'HowItWorks3DCanvas' },
 );
 
 interface Scene3DErrorBoundaryProps {
@@ -232,12 +234,14 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
                 </div>
               }
             >
-              <LazyHowItWorks3DCanvas
-                selectedNodeId={selectedNodeId}
-                activeMode={activeMode}
-                onSelectNode={setSelectedNodeId}
-                onSelectMode={setActiveMode}
-              />
+              <PerformanceProfiler id="HowItWorks3DCanvas" trackLoad>
+                <LazyHowItWorks3DCanvas
+                  selectedNodeId={selectedNodeId}
+                  activeMode={activeMode}
+                  onSelectNode={setSelectedNodeId}
+                  onSelectMode={setActiveMode}
+                />
+              </PerformanceProfiler>
             </Suspense>
           </Scene3DErrorBoundary>
         ) : (

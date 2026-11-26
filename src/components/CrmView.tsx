@@ -61,6 +61,8 @@ import { ExchangeRateTab } from './crm/ExchangeRateTab.tsx';
 import { ClientsUnifiedTab } from './crm/ClientsUnifiedTab.tsx';
 import { TasksTab } from './crm/TasksTab.tsx';
 import { StaffTab } from './crm/StaffTab.tsx';
+import { PerformanceDiagnosticsPanel } from './crm/PerformanceDiagnosticsPanel.tsx';
+import { PerformanceProfiler } from './PerformanceProfiler.tsx';
 import { tr } from '../lib/i18n.ts';
 import {
   SOCIAL_CHANNELS,
@@ -1578,8 +1580,9 @@ export function CrmView({
               </div>
             )}
 
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
+            <PerformanceProfiler id="CrmView.CatalogProductList" itemCount={filteredProducts.length}>
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500">
@@ -1781,7 +1784,8 @@ export function CrmView({
                   </button>
                 </div>
               )}
-            </div>
+              </div>
+            </PerformanceProfiler>
 
             {/* Storage & Change Persistence Info Bar */}
             {storageInfo && (
@@ -2665,6 +2669,8 @@ export function CrmView({
               )}
             </div>
             )}
+
+            {isAdmin && <PerformanceDiagnosticsPanel />}
           </div>
         )}
           </div>

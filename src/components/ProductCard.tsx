@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { memo, type CSSProperties } from 'react';
 import { ShoppingBag, ArrowUpRight, Eye, Heart, Calculator, Scale } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
@@ -41,7 +41,7 @@ interface ProductCardProps {
   style?: CSSProperties;
 }
 
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   onSelect,
   onQuickView,
@@ -268,4 +268,4 @@ export function ProductCard({
       </div>
     </article>
   );
-}
+});

@@ -26,6 +26,7 @@ import { resolveWishlistProducts } from '../lib/wishlist.ts';
 import { SolarConstructorTab } from './cabinet/SolarConstructorTab.tsx';
 import { SystemSchemesTab } from './cabinet/SystemSchemesTab.tsx';
 import { TechGuideTab } from './cabinet/TechGuideTab.tsx';
+import { PerformanceProfiler } from './PerformanceProfiler.tsx';
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
@@ -404,30 +405,32 @@ export function ClientCabinetView({
                 </div>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {wishlistProducts.map((product) => (
-                  <ProductCard
-                    key={`wishlist-${product.id}`}
-                    product={product}
-                    usdUahRate={usdUahRate}
-                    isWishlisted={true}
-                    onToggleWishlist={onToggleWishlist}
-                    onSelect={(p) => {
-                      if (onSelectProduct) {
-                        onSelectProduct(p);
-                      } else {
-                        onNavigateShop();
+              <PerformanceProfiler id="ClientCabinetView.WishlistProducts" itemCount={wishlistProducts.length}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {wishlistProducts.map((product) => (
+                    <ProductCard
+                      key={`wishlist-${product.id}`}
+                      product={product}
+                      usdUahRate={usdUahRate}
+                      isWishlisted={true}
+                      onToggleWishlist={onToggleWishlist}
+                      onSelect={(p) => {
+                        if (onSelectProduct) {
+                          onSelectProduct(p);
+                        } else {
+                          onNavigateShop();
+                        }
+                      }}
+                      onQuickView={onQuickViewProduct}
+                      onAddToCart={onAddToCart}
+                      onCalculatePayback={onCalculatePayback}
+                      onRequestQuote={(p) =>
+                        onOpenLeadModal(`Розрахунок (зі списку бажань): ${p.title}`, p.price)
                       }
-                    }}
-                    onQuickView={onQuickViewProduct}
-                    onAddToCart={onAddToCart}
-                    onCalculatePayback={onCalculatePayback}
-                    onRequestQuote={(p) =>
-                      onOpenLeadModal(`Розрахунок (зі списку бажань): ${p.title}`, p.price)
-                    }
-                  />
-                ))}
-              </div>
+                    />
+                  ))}
+                </div>
+              </PerformanceProfiler>
             )}
           </div>
         )}
