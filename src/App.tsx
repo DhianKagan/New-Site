@@ -1576,7 +1576,7 @@ function AppContent() {
         {mobileMenuOpen && (
           <nav
             aria-label={tr('Мобільна навігація', 'Мобильная навигация')}
-            className="lg:hidden w-full max-w-full max-h-[calc(100dvh-3.75rem)] overflow-y-auto overscroll-contain border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/97 via-[#062145]/97 to-[#041731]/98 backdrop-blur-xl px-4 pt-3.5 pb-5 space-y-4"
+            className="lg:hidden w-full max-w-full max-h-[calc(100dvh-3.75rem)] overflow-y-auto ec-dark-scroll overscroll-contain border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/97 via-[#062145]/97 to-[#041731]/98 backdrop-blur-xl px-4 pt-3.5 pb-5 space-y-4"
           >
             {/* Quick Commerce Bar (mobile < sm) */}
             <div className="sm:hidden grid grid-cols-2 gap-2.5">
@@ -2036,12 +2036,6 @@ function AppContent() {
                   {tr('Системи резервного живлення та сонячні електростанції під ключ в Одесі та області.', 'Системы резервного питания и солнечные электростанции под ключ в Одессе и области.')}
                 </p>
                 <SocialIcons links={socialLinks} variant="footer" />
-                <VerifiedWarrantyBadge
-                  variant="footer"
-                  warrantyHref="/payment-delivery"
-                  onWarrantyClick={(e) => handleNavAnchor(e, 'payment-delivery')}
-                  className="mt-4"
-                />
               </div>
 
               <div className="min-w-0 break-words hyphens-none">
@@ -2161,7 +2155,14 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap items-center justify-between gap-3 break-words hyphens-none">
+            <VerifiedWarrantyBadge
+              variant="footer"
+              warrantyHref="/payment-delivery"
+              onWarrantyClick={(e) => handleNavAnchor(e, 'payment-delivery')}
+              className="mt-7"
+            />
+
+            <div className="mt-5 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap items-center justify-between gap-3 break-words hyphens-none">
               <span>© 2026 Energo Comfort · energocomfort.shop</span>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <a
