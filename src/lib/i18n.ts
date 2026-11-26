@@ -412,18 +412,27 @@ const CATALOG_TERMS_RU: Array<[string, string]> = [
   ['кВт год', 'кВт·ч'],
 ];
 
+const COMPILED_CATALOG_TERMS_RU: Array<{ pattern: RegExp; ru: string; ruUpper: string; ruCap: string }> =
+  CATALOG_TERMS_RU.map(([uk, ru]) => {
+    const escaped = uk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return {
+      pattern: new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'giu'),
+      ru,
+      ruUpper: ru.toUpperCase(),
+      ruCap: ru[0].toUpperCase() + ru.slice(1),
+    };
+  });
+
 /** Applies a restrained Ukrainian-to-Russian glossary to catalog content,
  * while leaving manufacturer names, model codes, and electrical units intact. */
 export function localizeCatalogText(value: string, locale: Locale = activeLocale): string {
-  if (locale !== 'ru') return value;
+  if (locale !== 'ru' || !value) return value;
   let text = value;
-  for (const [uk, ru] of CATALOG_TERMS_RU) {
-    const escaped = uk.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(`(?<!\\p{L})${escaped}(?!\\p{L})`, 'giu');
-    text = text.replace(pattern, (matched) => {
-      if (matched === matched.toUpperCase()) return ru.toUpperCase();
-      if (matched[0] === matched[0].toUpperCase()) return ru[0].toUpperCase() + ru.slice(1);
-      return ru;
+  for (const term of COMPILED_CATALOG_TERMS_RU) {
+    text = text.replace(term.pattern, (matched) => {
+      if (matched === matched.toUpperCase()) return term.ruUpper;
+      if (matched[0] === matched[0].toUpperCase()) return term.ruCap;
+      return term.ru;
     });
   }
   return text;

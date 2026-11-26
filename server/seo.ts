@@ -169,60 +169,60 @@ export function renderRouteSeoHtml(input: RouteSeoInput): string {
   });
 
   let html = input.template
-    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeXml(title)}</title>`)
+    .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${escapeXml(title)}</title>`)
     .replace(
       /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="description" content="${escapeXml(description)}" />`,
+      () => `<meta name="description" content="${escapeXml(description)}" />`,
     )
     .replace(
       /<meta\s+name="robots"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="robots" content="${escapeXml(robots)}" />`,
+      () => `<meta name="robots" content="${escapeXml(robots)}" />`,
     )
     .replace(
       /<meta\s+property="og:type"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:type" content="${escapeXml(ogType)}" />${extraProductMeta}`,
+      () => `<meta property="og:type" content="${escapeXml(ogType)}" />${extraProductMeta}`,
     )
     .replace(
       /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:title" content="${escapeXml(title)}" />`,
+      () => `<meta property="og:title" content="${escapeXml(title)}" />`,
     )
     .replace(
       /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:description" content="${escapeXml(description)}" />`,
+      () => `<meta property="og:description" content="${escapeXml(description)}" />`,
     )
     .replace(
       /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:url" content="${escapeXml(canonicalUrl)}" />`,
+      () => `<meta property="og:url" content="${escapeXml(canonicalUrl)}" />`,
     )
     .replace(
       /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/i,
-      `<meta property="og:image" content="${escapeXml(ogImage)}" />`,
+      () => `<meta property="og:image" content="${escapeXml(ogImage)}" />`,
     )
     .replace(
       /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="twitter:title" content="${escapeXml(title)}" />`,
+      () => `<meta name="twitter:title" content="${escapeXml(title)}" />`,
     )
     .replace(
       /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="twitter:description" content="${escapeXml(description)}" />`,
+      () => `<meta name="twitter:description" content="${escapeXml(description)}" />`,
     )
     .replace(
       /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/i,
-      `<meta name="twitter:image" content="${escapeXml(ogImage)}" />`,
+      () => `<meta name="twitter:image" content="${escapeXml(ogImage)}" />`,
     )
     .replace(
       /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i,
-      `<link rel="canonical" href="${escapeXml(canonicalUrl)}" />`,
+      () => `<link rel="canonical" href="${escapeXml(canonicalUrl)}" />`,
     );
 
   if (jsonLdDoc) {
     const jsonLdPayload = safeJsonLdString(jsonLdDoc);
     html = html.replace(
       /<script\s+type="application\/ld\+json"\s+id="ec-jsonld">[\s\S]*?<\/script>/i,
-      `<script type="application/ld+json" id="ec-jsonld">${jsonLdPayload}</script>`,
+      () => `<script type="application/ld+json" id="ec-jsonld">${jsonLdPayload}</script>`,
     );
   } else {
-    html = html.replace(/<script\s+type="application\/ld\+json"\s+id="ec-jsonld">[\s\S]*?<\/script>/i, '');
+    html = html.replace(/<script\s+type="application\/ld\+json"\s+id="ec-jsonld">[\s\S]*?<\/script>/i, () => '');
   }
 
   return html;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Calculator,
   ChevronLeft,
@@ -70,6 +70,12 @@ const HOME_VIDEO_SEGMENTS = {
   process: { start: 41, end: 47, tint: 'warm' },
   brief: { start: 53, end: 59, tint: 'sky' },
 } as const;
+
+const isKitProduct = (p: Product) => p.isKit || p.cat === 'kits';
+const isSolarKitProduct = (p: Product) => {
+  const titleLower = p.title.toLowerCase();
+  return titleLower.includes('сес') || titleLower.includes('соняч');
+};
 
 export function HomeView({
   products,
@@ -143,43 +149,41 @@ export function HomeView({
     return 'apartment';
   }
 
-  const isKitProduct = (p: Product) => p.isKit || p.cat === 'kits';
-  const isSolarKitProduct = (p: Product) => {
-    const titleLower = p.title.toLowerCase();
-    return titleLower.includes('сес') || titleLower.includes('соняч');
-  };
-
-  const backupCandidates = products.filter((p) => isKitProduct(p) && !isSolarKitProduct(p));
-  const backupKits = [
-    ...backupCandidates.filter((p) => p.price > 0),
-    ...backupCandidates.filter((p) => p.price <= 0),
-  ].slice(0, 3);
-
-  const solarCandidates = products.filter((p) => isKitProduct(p) && isSolarKitProduct(p));
-  const solarKits = [
-    ...solarCandidates.filter((p) => p.price > 0),
-    ...solarCandidates.filter((p) => p.price <= 0),
-  ].slice(0, 3);
-
-  const popularHardware = products
-    .filter(
-      (p) =>
-        !p.isKit &&
-        p.price > 0 &&
-        (p.cat === 'inverters' || p.cat === 'batteries') &&
-        (p.brand === 'Deye' || p.brand === 'SolaX'),
-    )
-    .slice(0, 3);
+  const { backupKits, solarKits, popularHardware, fallbackKits } = useMemo(() => {
+    const allKits = products.filter(isKitProduct);
+    const backupCandidates = allKits.filter((p) => !isSolarKitProduct(p));
+    const solarCandidates = allKits.filter(isSolarKitProduct);
+    return {
+      backupKits: [
+        ...backupCandidates.filter((p) => p.price > 0),
+        ...backupCandidates.filter((p) => p.price <= 0),
+      ].slice(0, 3),
+      solarKits: [
+        ...solarCandidates.filter((p) => p.price > 0),
+        ...solarCandidates.filter((p) => p.price <= 0),
+      ].slice(0, 3),
+      popularHardware: products
+        .filter(
+          (p) =>
+            !p.isKit &&
+            p.price > 0 &&
+            (p.cat === 'inverters' || p.cat === 'batteries') &&
+            (p.brand === 'Deye' || p.brand === 'SolaX'),
+        )
+        .slice(0, 3),
+      fallbackKits: allKits.slice(0, 3),
+    };
+  }, [products]);
 
   const activeShowcase =
     showcaseTab === 'backup-kits'
       ? backupKits.length
         ? backupKits
-        : products.filter(isKitProduct).slice(0, 3)
+        : fallbackKits
       : showcaseTab === 'solar-kits'
         ? solarKits.length
           ? solarKits
-          : products.filter(isKitProduct).slice(0, 3)
+          : fallbackKits
         : popularHardware;
 
   const showcaseGridClass =
@@ -189,17 +193,24 @@ export function HomeView({
         ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
         : 'grid grid-cols-1 md:grid-cols-3 gap-6';
 
-  const visibleCases = projects.filter((p) => caseSeg === 'all' || p.seg === caseSeg).slice(0, 6);
+  const visibleCases = useMemo(
+    () => projects.filter((p) => caseSeg === 'all' || p.seg === caseSeg).slice(0, 6),
+    [projects, caseSeg],
+  );
 
   // Payback Calculator math (PVGIS Odesa ~1230 kWh/year per 1 kW PV + self-consumption & Net Billing)
-  const payback = calculateSolarPayback({
-    monthlyKwh,
-    tariffType: calcTariffType,
-    systemMode: calcSystemMode,
-    tariffUah,
-    usdUahRate,
-    products,
-  });
+  const payback = useMemo(
+    () =>
+      calculateSolarPayback({
+        monthlyKwh,
+        tariffType: calcTariffType,
+        systemMode: calcSystemMode,
+        tariffUah,
+        usdUahRate,
+        products,
+      }),
+    [monthlyKwh, calcTariffType, calcSystemMode, tariffUah, usdUahRate, products],
+  );
   const {
     safeMonthlyKwh,
     safeTariffUah,

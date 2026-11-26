@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sun } from 'lucide-react';
 
 interface SmartImageProps {
@@ -10,6 +10,10 @@ interface SmartImageProps {
 
 export function SmartImage({ src, alt, className = '', priority = false }: SmartImageProps) {
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
 
   if (!src || failed) {
     return (

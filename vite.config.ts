@@ -68,7 +68,15 @@ export default defineConfig(() => {
             'assets/energocomfort/logo_mark.webp',
             'assets/energocomfort/sto_110kw.jpg',
           ],
-          globIgnores: ['assets/aistudio/**', 'assets/products/**'],
+          globIgnores: [
+            'assets/aistudio/**',
+            'assets/products/**',
+            '**/*three-vendor*',
+            '**/*CrmView*',
+            '**/*ClientCabinetView*',
+            '**/*table-vendor*',
+            '**/*firebase-vendor*',
+          ],
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [
             /^\/api\//,
@@ -79,6 +87,20 @@ export default defineConfig(() => {
             /^\/products\.xml$/,
           ],
           runtimeCaching: [
+            {
+              urlPattern: /^\/assets\/.*\.js$/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'lazy-js-chunks-cache',
+                expiration: {
+                  maxEntries: 60,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             {
               urlPattern: /^\/api\/(?:catalog|projects|public\/exchange-rate|public\/config)(?:\/.*|\?.*)?$/i,
               handler: 'NetworkFirst',

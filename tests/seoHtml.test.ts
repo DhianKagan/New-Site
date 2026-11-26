@@ -129,3 +129,24 @@ test('renderRouteSeoHtml generates dynamic BreadcrumbList JSON-LD for all catego
   assert.match(missingProdHtml, /"@type":"BreadcrumbList"/);
   assert.doesNotMatch(missingProdHtml, /"@type":"FAQPage"/);
 });
+
+test('renderRouteSeoHtml preserves literal $& and $1 replacement tokens in product metadata', () => {
+  const dollarProduct: Product = {
+    ...sampleProduct,
+    id: 'test-dollar-product',
+    title: 'Комплект $& $1 $2 Deye',
+    description: "Ціна за 1 кВт·год $' стабільна при навантаженні $1",
+  };
+  const html = renderRouteSeoHtml({
+    template,
+    baseUrl: 'https://energocomfort.shop',
+    rawPath: '/shop/test-dollar-product',
+    product: dollarProduct,
+    usdUahRate: 42,
+  });
+
+  assert.ok(html.includes('Комплект $&amp; $1 $2 Deye — Energo Comfort'));
+  assert.ok(html.includes('"name":"Комплект $& $1 $2 Deye"'));
+  assert.doesNotMatch(html, /<\/head>.*<\/head>/s);
+});
+

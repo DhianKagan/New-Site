@@ -97,8 +97,6 @@ import {
   crmDealCreateSchema,
   dealPatchSchema,
   firebaseDomainsPutSchema,
-  isSafeExternalUrl,
-  isSafeImageUrl,
   leadCreateSchema,
   normalizePhoneInput,
   noteCreateSchema,
@@ -169,7 +167,6 @@ import {
   shouldEnforceFrameProtection,
   verifyTelegramWebhookSecret,
 } from './server/security.ts';
-import type { DealStage, ProductCategory, SocialLinksConfig } from './src/types.ts';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT) || 3000;
@@ -339,8 +336,6 @@ function createRateLimiter(options: { windowMs: number; max: number; message: st
     next();
   };
 }
-
-const ALLOWED_PRODUCT_CATS: ProductCategory[] = ['kits', 'inverters', 'batteries', 'panels', 'parts'];
 
 function sanitizeProductSpecs(raw: unknown): [string, string][] {
   if (!Array.isArray(raw)) return [];

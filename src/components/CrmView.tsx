@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   Search,
-  Download,
   Plus,
   Trash2,
   Send,

@@ -49,7 +49,12 @@ export function CartDrawer({
   const checkoutStarted = useRef(false);
 
   useEffect(() => {
-    if (open && clientCustomer) {
+    if (!open) {
+      setConfirmedDeal(null);
+      setError('');
+      return;
+    }
+    if (clientCustomer) {
       if (!customerName && clientCustomer.name) setCustomerName(clientCustomer.name);
       if (!phone && clientCustomer.phone) setPhone(formatUaPhone(clientCustomer.phone));
       if (clientCustomer.city && city === 'Одеса (самовивіз / доставка)') {

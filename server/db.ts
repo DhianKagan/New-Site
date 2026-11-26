@@ -62,6 +62,34 @@ function writeJsonFileAtomic(filePath: string, data: unknown): void {
   }
 }
 
+let cachedCatalogAll: Product[] | null = null;
+let cachedCatalogById: Map<string, Product> | null = null;
+let cachedCatalogFacets: {
+  total: number;
+  byCategory: Record<string, number>;
+  brands: Array<{ brand: string; count: number }>;
+} | null = null;
+let cachedSitemapProducts: Array<{ id: string; title: string; img: string; updatedAt: string }> | null = null;
+let cachedSitemapCategories: Array<{ cat: string; updatedAt: string; itemCount: number }> | null = null;
+let cachedProjectsList: ProjectCase[] | null = null;
+let cachedLatestCatalogOrProjectUpdatedAt: string | null = null;
+let analyticsInsertCounter = 0;
+let errorLogInsertCounter = 0;
+
+function invalidateCatalogCache(): void {
+  cachedCatalogAll = null;
+  cachedCatalogById = null;
+  cachedCatalogFacets = null;
+  cachedSitemapProducts = null;
+  cachedSitemapCategories = null;
+  cachedLatestCatalogOrProjectUpdatedAt = null;
+}
+
+function invalidateProjectsCache(): void {
+  cachedProjectsList = null;
+  cachedLatestCatalogOrProjectUpdatedAt = null;
+}
+
 function syncCatalogSeedFile(db: DatabaseSync): void {
   const rows = db.prepare('SELECT * FROM products ORDER BY is_kit DESC, price DESC, title ASC').all();
   writeJsonFileAtomic(SEED_CATALOG_PATH, rows.map(rowToProduct));
@@ -713,6 +741,24 @@ function rowToDeal(r: Record<string, unknown>): Deal {
   };
 }
 
+function ensureCatalogCache(): Product[] {
+  if (cachedCatalogAll && cachedCatalogById) {
+    return cachedCatalogAll;
+  }
+  const db = getDb();
+  const rows = db
+    .prepare('SELECT * FROM products ORDER BY CASE WHEN price > 0 THEN 0 ELSE 1 END, is_kit DESC, in_stock DESC, id ASC')
+    .all();
+  const items = rows.map(rowToProduct);
+  const byId = new Map<string, Product>();
+  for (const item of items) {
+    byId.set(item.id, item);
+  }
+  cachedCatalogAll = items;
+  cachedCatalogById = byId;
+  return items;
+}
+
 export function listProducts(filters?: {
   cat?: string;
   brand?: string;
@@ -720,39 +766,52 @@ export function listProducts(filters?: {
   inStockOnly?: boolean;
   sort?: string;
 }): Product[] {
-  const db = getDb();
-  const where: string[] = [];
-  const params: Array<string | number | null> = [];
+  const hasCat = Boolean(filters?.cat && filters.cat !== 'all');
+  const hasBrand = Boolean(filters?.brand && filters.brand !== 'all');
+  const hasStock = Boolean(filters?.inStockOnly);
+  const hasQuery = Boolean(filters?.q && filters.q.trim());
+  const sort = filters?.sort;
 
-  if (filters?.cat && filters.cat !== 'all') {
-    where.push('cat = ?');
-    params.push(filters.cat);
-  }
-  if (filters?.brand && filters.brand !== 'all') {
-    where.push('brand = ?');
-    params.push(filters.brand);
-  }
-  if (filters?.inStockOnly) {
-    where.push('in_stock = 1');
-  }
-  if (filters?.q && filters.q.trim()) {
-    const like = `%${filters.q.trim().toLowerCase()}%`;
-    where.push('(LOWER(title) LIKE ? OR LOWER(sku) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(description) LIKE ?)');
-    params.push(like, like, like, like);
+  if (!hasCat && !hasBrand && !hasStock && !hasQuery && !sort) {
+    return ensureCatalogCache().slice();
   }
 
-  let orderBy = 'ORDER BY CASE WHEN price > 0 THEN 0 ELSE 1 END, is_kit DESC, in_stock DESC, id ASC';
-  if (filters?.sort === 'asc') {
-    orderBy = 'ORDER BY CASE WHEN price > 0 THEN 0 ELSE 1 END, price ASC';
-  } else if (filters?.sort === 'desc') {
-    orderBy = 'ORDER BY price DESC';
-  } else if (filters?.sort === 'featured') {
-    orderBy = 'ORDER BY CASE WHEN price > 0 THEN 0 ELSE 1 END, in_stock DESC, price DESC';
+  let items = ensureCatalogCache();
+  if (hasCat) {
+    items = items.filter((p) => p.cat === filters!.cat);
+  }
+  if (hasBrand) {
+    items = items.filter((p) => p.brand === filters!.brand);
+  }
+  if (hasStock) {
+    items = items.filter((p) => p.inStock);
+  }
+  if (hasQuery) {
+    const q = filters!.q!.trim().toLowerCase();
+    items = items.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q),
+    );
   }
 
-  const sql = `SELECT * FROM products ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ${orderBy}`;
-  const rows = db.prepare(sql).all(...params);
-  return rows.map(rowToProduct);
+  if (sort === 'asc') {
+    return [...items].sort((a, b) => (a.price > 0 ? 0 : 1) - (b.price > 0 ? 0 : 1) || a.price - b.price);
+  }
+  if (sort === 'desc') {
+    return [...items].sort((a, b) => b.price - a.price);
+  }
+  if (sort === 'featured') {
+    return [...items].sort(
+      (a, b) =>
+        (a.price > 0 ? 0 : 1) - (b.price > 0 ? 0 : 1) ||
+        Number(b.inStock) - Number(a.inStock) ||
+        b.price - a.price,
+    );
+  }
+  return items === cachedCatalogAll ? items.slice() : items;
 }
 
 export function getCatalogFacets(): {
@@ -760,6 +819,9 @@ export function getCatalogFacets(): {
   byCategory: Record<string, number>;
   brands: Array<{ brand: string; count: number }>;
 } {
+  if (cachedCatalogFacets) {
+    return cachedCatalogFacets;
+  }
   const db = getDb();
   const totalRow = db.prepare('SELECT COUNT(*) as cnt FROM products').get();
   const catRows = db.prepare('SELECT cat, COUNT(*) as cnt FROM products GROUP BY cat').all();
@@ -776,17 +838,17 @@ export function getCatalogFacets(): {
     count: Number(r.cnt),
   }));
 
-  return {
+  cachedCatalogFacets = {
     total: Number(totalRow?.cnt ?? 0),
     byCategory,
     brands,
   };
+  return cachedCatalogFacets;
 }
 
 export function getProductById(id: string): Product | null {
-  const db = getDb();
-  const row = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
-  return row ? rowToProduct(row) : null;
+  ensureCatalogCache();
+  return cachedCatalogById?.get(id) ?? null;
 }
 
 export function updateProduct(
@@ -855,6 +917,7 @@ export function updateProduct(
     id,
   );
 
+  invalidateCatalogCache();
   checkpointDb(db);
   syncCatalogSeedFile(db);
   return getProductById(id);
@@ -909,6 +972,7 @@ export function createProduct(input: {
     now,
   );
 
+  invalidateCatalogCache();
   checkpointDb(db);
   syncCatalogSeedFile(db);
   return getProductById(id)!;
@@ -919,6 +983,7 @@ export function deleteProduct(id: string): boolean {
   const res = db.prepare('DELETE FROM products WHERE id = ?').run(id);
   const deleted = Number(res.changes) > 0;
   if (deleted) {
+    invalidateCatalogCache();
     checkpointDb(db);
     syncCatalogSeedFile(db);
   }
@@ -1208,11 +1273,13 @@ export function recordAnalyticsEvent(
     'INSERT INTO analytics_events (event_name, meta_event, ga4_event, payload_json, created_at) VALUES (?, ?, ?, ?, ?)',
   ).run(eventName, metaEvent, ga4Event, JSON.stringify(payload), now);
 
-  // Keep only last 100 events in SQLite
-  db.prepare(
-    'DELETE FROM analytics_events WHERE id NOT IN (SELECT id FROM analytics_events ORDER BY id DESC LIMIT 100)',
-  ).run();
-  checkpointDb(db);
+  // Keep only last 100 events in SQLite (pruned periodically to avoid write amplification)
+  analyticsInsertCounter += 1;
+  if (analyticsInsertCounter % 25 === 0) {
+    db.prepare(
+      'DELETE FROM analytics_events WHERE id NOT IN (SELECT id FROM analytics_events ORDER BY id DESC LIMIT 100)',
+    ).run();
+  }
 }
 
 export function listRecentAnalyticsEvents(limit = 35): Array<{
@@ -1264,11 +1331,13 @@ export function recordClientErrorLog(input: {
     now,
   );
 
-  // Bound stored client error records to latest 200 entries
-  db.prepare(
-    'DELETE FROM client_error_logs WHERE id NOT IN (SELECT id FROM client_error_logs ORDER BY id DESC LIMIT 200)',
-  ).run();
-  checkpointDb(db);
+  // Bound stored client error records to latest 200 entries (pruned periodically)
+  errorLogInsertCounter += 1;
+  if (errorLogInsertCounter % 20 === 0) {
+    db.prepare(
+      'DELETE FROM client_error_logs WHERE id NOT IN (SELECT id FROM client_error_logs ORDER BY id DESC LIMIT 200)',
+    ).run();
+  }
 }
 
 export function listRecentClientErrorLogs(limit = 30): ClientErrorRecord[] {
@@ -1437,15 +1506,18 @@ function rowToProjectCase(r: Record<string, unknown>): ProjectCase {
 }
 
 export function listProjectCases(): ProjectCase[] {
+  if (cachedProjectsList) {
+    return cachedProjectsList.slice();
+  }
   const db = getDb();
   const rows = db.prepare('SELECT * FROM projects ORDER BY sort_order ASC, created_at DESC').all();
-  return rows.map(rowToProjectCase);
+  cachedProjectsList = rows.map(rowToProjectCase);
+  return cachedProjectsList.slice();
 }
 
 export function getProjectCaseById(id: string): ProjectCase | null {
-  const db = getDb();
-  const row = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
-  return row ? rowToProjectCase(row) : null;
+  const found = listProjectCases().find((p) => p.id === id);
+  return found ?? null;
 }
 
 export function createProjectCase(input: {
@@ -1488,6 +1560,7 @@ export function createProjectCase(input: {
     now,
   );
 
+  invalidateProjectsCache();
   checkpointDb(db);
   syncProjectsSeedFile(db);
   return getProjectCaseById(id)!;
@@ -1526,6 +1599,7 @@ export function updateProjectCase(
     WHERE id = ?
   `).run(seg, tag, title, img, task, solution, specs, result, now, id);
 
+  invalidateProjectsCache();
   checkpointDb(db);
   syncProjectsSeedFile(db);
   return getProjectCaseById(id);
@@ -1536,6 +1610,7 @@ export function deleteProjectCase(id: string): boolean {
   const res = db.prepare('DELETE FROM projects WHERE id = ?').run(id);
   const deleted = Number(res.changes) > 0;
   if (deleted) {
+    invalidateProjectsCache();
     checkpointDb(db);
     syncProjectsSeedFile(db);
   }
@@ -1574,29 +1649,40 @@ export function saveSocialLinks(links: SocialLinksConfig): void {
 }
 
 export function listSitemapProductEntries(): Array<{ id: string; title: string; img: string; updatedAt: string }> {
+  if (cachedSitemapProducts) {
+    return cachedSitemapProducts;
+  }
   const db = getDb();
   const rows = db.prepare('SELECT id, title, img, updated_at FROM products ORDER BY id ASC').all();
-  return rows.map((r) => ({
+  cachedSitemapProducts = rows.map((r) => ({
     id: String(r.id),
     title: String(r.title || ''),
     img: String(r.img || ''),
     updatedAt: String(r.updated_at || new Date().toISOString()),
   }));
+  return cachedSitemapProducts;
 }
 
 export function listSitemapCategoryEntries(): Array<{ cat: string; updatedAt: string; itemCount: number }> {
+  if (cachedSitemapCategories) {
+    return cachedSitemapCategories;
+  }
   const db = getDb();
   const rows = db
     .prepare('SELECT cat, MAX(updated_at) AS last_updated, COUNT(*) AS item_count FROM products GROUP BY cat ORDER BY cat ASC')
     .all();
-  return rows.map((r) => ({
+  cachedSitemapCategories = rows.map((r) => ({
     cat: String(r.cat || ''),
     updatedAt: String(r.last_updated || new Date().toISOString()),
     itemCount: Number(r.item_count || 0),
   }));
+  return cachedSitemapCategories;
 }
 
 export function getLatestCatalogOrProjectUpdatedAt(): string {
+  if (cachedLatestCatalogOrProjectUpdatedAt) {
+    return cachedLatestCatalogOrProjectUpdatedAt;
+  }
   const db = getDb();
   const row = db
     .prepare(
@@ -1607,7 +1693,8 @@ export function getLatestCatalogOrProjectUpdatedAt(): string {
        )`,
     )
     .get() as { latest?: string | null } | undefined;
-  return String(row?.latest || new Date().toISOString());
+  cachedLatestCatalogOrProjectUpdatedAt = String(row?.latest || new Date().toISOString());
+  return cachedLatestCatalogOrProjectUpdatedAt;
 }
 
 export function getRecentCatalogAndProjectChanges(limit = 12): RecentChangeRecord[] {
@@ -1953,6 +2040,44 @@ export async function listTasks(filters?: { contactId?: number; dealId?: number 
   });
 }
 
+async function getTaskById(id: number): Promise<CrmTask | null> {
+  const t = await drizzleDb.select().from(schema.tasksTable).where(eq(schema.tasksTable.id, id)).get();
+  if (!t) return null;
+
+  const [contact, deal] = await Promise.all([
+    t.contactId
+      ? drizzleDb
+          .select({ name: schema.contactsTable.name, phone: schema.contactsTable.phone })
+          .from(schema.contactsTable)
+          .where(eq(schema.contactsTable.id, t.contactId))
+          .get()
+      : Promise.resolve(undefined),
+    t.dealId
+      ? drizzleDb
+          .select({ dealNumber: schema.dealsTable.dealNumber })
+          .from(schema.dealsTable)
+          .where(eq(schema.dealsTable.id, t.dealId))
+          .get()
+      : Promise.resolve(undefined),
+  ]);
+
+  return {
+    id: t.id,
+    contactId: t.contactId,
+    dealId: t.dealId,
+    title: t.title,
+    status: (t.status as TaskStatus) || 'todo',
+    priority: (t.priority as TaskPriority) || 'medium',
+    assignee: t.assignee,
+    dueDate: t.dueDate,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+    contactName: contact?.name,
+    contactPhone: contact?.phone,
+    dealNumber: deal?.dealNumber,
+  };
+}
+
 export async function createTask(input: {
   contactId?: number | null;
   dealId?: number | null;
@@ -1988,19 +2113,20 @@ export async function createTask(input: {
     })
     .returning();
 
-  const all = await listTasks();
-  return all.find((item) => item.id === inserted.id) ?? {
-    id: inserted.id,
-    contactId: inserted.contactId,
-    dealId: inserted.dealId,
-    title: inserted.title,
-    status: inserted.status as TaskStatus,
-    priority: inserted.priority as TaskPriority,
-    assignee: inserted.assignee,
-    dueDate: inserted.dueDate,
-    createdAt: inserted.createdAt,
-    updatedAt: inserted.updatedAt,
-  };
+  return (
+    (await getTaskById(inserted.id)) ?? {
+      id: inserted.id,
+      contactId: inserted.contactId,
+      dealId: inserted.dealId,
+      title: inserted.title,
+      status: inserted.status as TaskStatus,
+      priority: inserted.priority as TaskPriority,
+      assignee: inserted.assignee,
+      dueDate: inserted.dueDate,
+      createdAt: inserted.createdAt,
+      updatedAt: inserted.updatedAt,
+    }
+  );
 }
 
 export async function updateTask(
@@ -2033,8 +2159,7 @@ export async function updateTask(
     })
     .where(eq(schema.tasksTable.id, id));
 
-  const all = await listTasks();
-  return all.find((item) => item.id === id) ?? null;
+  return getTaskById(id);
 }
 
 export async function deleteTask(id: number): Promise<boolean> {
