@@ -714,9 +714,28 @@ function AppContent() {
 
   const fetchCatalog = useCallback(async () => {
     const mergeMissingKits = (items: Product[]): Product[] => {
-      const existingIds = new Set(items.map((item) => item.id));
+      const kitById = new Map(READY_TO_USE_KITS.map((kit) => [kit.id, kit]));
+      const normalized = items.map((item) => {
+        const knownKit = kitById.get(item.id);
+        const shouldBeKit = item.isKit || Boolean(knownKit);
+        if (!shouldBeKit) return item;
+        const nextCat = item.cat === 'kits' ? item.cat : 'kits';
+        const nextSku = item.sku.trim() ? item.sku : (knownKit?.sku ?? item.sku);
+        const nextImg = item.img.trim() ? item.img : (knownKit?.img ?? item.img);
+        if (item.isKit && nextCat === item.cat && nextSku === item.sku && nextImg === item.img) {
+          return item;
+        }
+        return {
+          ...item,
+          isKit: true,
+          cat: nextCat,
+          sku: nextSku,
+          img: nextImg,
+        };
+      });
+      const existingIds = new Set(normalized.map((item) => item.id));
       const missingKits = READY_TO_USE_KITS.filter((kit) => !existingIds.has(kit.id));
-      return missingKits.length > 0 ? [...items, ...missingKits] : items;
+      return missingKits.length > 0 ? [...normalized, ...missingKits] : normalized;
     };
 
     try {

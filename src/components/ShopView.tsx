@@ -17,6 +17,7 @@ import {
   EQUIPMENT_TYPE_FILTERS,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  getEffectiveProductCategory,
   getPriceBudgetPresets,
   getProductSearchSuggestions,
   INVERTER_POWER_FILTERS,
@@ -24,6 +25,7 @@ import {
   matchesEquipmentTypes,
   matchesInverterPowerRanges,
   matchesPriceRange,
+  matchesProductCategory,
   matchesSkuFilter,
   normalizePriceBounds,
   type EquipmentTypeFilterId,
@@ -156,7 +158,8 @@ export function ShopView({
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: products.length, kits: 0, inverters: 0, batteries: 0, panels: 0, parts: 0 };
     for (const p of products) {
-      map[p.cat] = (map[p.cat] || 0) + 1;
+      const effectiveCat = getEffectiveProductCategory(p);
+      map[effectiveCat] = (map[effectiveCat] || 0) + 1;
     }
     return map;
   }, [products]);
@@ -232,7 +235,7 @@ export function ShopView({
 
   const filtered = useMemo(() => {
     const baseFiltered = products.filter((p) => {
-      if (cat !== 'all' && p.cat !== cat) return false;
+      if (!matchesProductCategory(p, cat)) return false;
       if (!matchesEquipmentTypes(p, selectedEquipmentTypes)) return false;
       if (!matchesBrandFilters(p, selectedBrands, brand)) return false;
       if (!matchesInverterPowerRanges(p, selectedPowerRanges)) return false;

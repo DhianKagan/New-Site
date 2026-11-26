@@ -300,6 +300,7 @@ function getDb(): DatabaseSync {
   }
 
   seedCatalogIfEmpty(db);
+  reconcileSeedCatalogOnStartup(db);
   seedDealsIfEmpty(db);
   backfillContactsAndSeedCrm(db);
   seedStaffIfEmpty(db);
@@ -524,6 +525,120 @@ function seedCatalogIfEmpty(db: DatabaseSync): void {
         now,
       );
     }
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
+export function reconcileSeedCatalogOnStartup(
+  db: DatabaseSync,
+  seedCatalogPath: string = SEED_CATALOG_PATH,
+): void {
+  const now = new Date().toISOString();
+
+  // 1. Normalize any legacy kit rows where is_kit = 1 was stored under another category (e.g. 'parts')
+  db.prepare("UPDATE products SET cat = 'kits', updated_at = ? WHERE is_kit = 1 AND cat != 'kits'").run(now);
+
+  if (!fs.existsSync(seedCatalogPath)) return;
+
+  let seedProducts: Product[];
+  try {
+    seedProducts = JSON.parse(fs.readFileSync(seedCatalogPath, 'utf-8')) as Product[];
+  } catch {
+    return;
+  }
+  if (!Array.isArray(seedProducts) || seedProducts.length === 0) return;
+
+  const syncedRow = db
+    .prepare("SELECT value FROM settings WHERE key = 'catalog_seed_synced_ids_v1'")
+    .get() as { value?: string } | undefined;
+
+  let previouslySyncedIds = new Set<string>();
+  if (syncedRow?.value) {
+    try {
+      const parsed = JSON.parse(syncedRow.value);
+      if (Array.isArray(parsed)) {
+        previouslySyncedIds = new Set(parsed.map(String));
+      }
+    } catch {
+      previouslySyncedIds = new Set<string>();
+    }
+  }
+
+  const existingRows = db
+    .prepare('SELECT id, sku, cat, is_kit, img FROM products')
+    .all() as Array<{ id: string; sku: string; cat: string; is_kit: number; img: string }>;
+  const existingById = new Map(existingRows.map((r) => [String(r.id), r]));
+
+  const insertMissing = db.prepare(`
+    INSERT OR IGNORE INTO products (
+      id, sku, title, cat, raw_cats_json, brand, is_kit,
+      price, old_price, in_stock, status_label, img,
+      specs_json, description, source_url, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const backfillSkuStmt = db.prepare(
+    "UPDATE products SET sku = ?, updated_at = ? WHERE id = ? AND TRIM(COALESCE(sku, '')) = ''",
+  );
+  const backfillImgStmt = db.prepare(
+    "UPDATE products SET img = ?, updated_at = ? WHERE id = ? AND TRIM(COALESCE(img, '')) = ''",
+  );
+  const normalizeSeedKitStmt = db.prepare(
+    "UPDATE products SET cat = 'kits', is_kit = 1, updated_at = ? WHERE id = ? AND (cat != 'kits' OR is_kit != 1)",
+  );
+
+  db.exec('BEGIN;');
+  try {
+    for (const p of seedProducts) {
+      const existing = existingById.get(p.id);
+      if (!existing) {
+        // Insert new seed items that haven't been synced before (preserves admin deletions once synced)
+        if (!previouslySyncedIds.has(p.id)) {
+          insertMissing.run(
+            p.id,
+            p.sku,
+            p.title,
+            p.isKit ? 'kits' : p.cat,
+            JSON.stringify(p.rawCats ?? []),
+            p.brand,
+            p.isKit ? 1 : 0,
+            p.price ?? 0,
+            p.oldPrice ?? 0,
+            p.inStock ? 1 : 0,
+            p.statusLabel ?? 'в наявності',
+            p.img ?? '',
+            JSON.stringify(p.specs ?? []),
+            p.description ?? '',
+            p.sourceUrl ?? '',
+            now,
+          );
+        }
+        continue;
+      }
+
+      if (p.isKit && p.cat === 'kits' && (existing.cat !== 'kits' || Number(existing.is_kit) !== 1)) {
+        normalizeSeedKitStmt.run(now, p.id);
+      }
+      if (p.sku?.trim() && !String(existing.sku ?? '').trim()) {
+        backfillSkuStmt.run(p.sku.trim(), now, p.id);
+      }
+      if (p.img?.trim() && !String(existing.img ?? '').trim()) {
+        backfillImgStmt.run(p.img.trim(), now, p.id);
+      }
+    }
+
+    const nextSyncedIds = Array.from(
+      new Set([
+        ...previouslySyncedIds,
+        ...seedProducts.map((p) => p.id),
+      ]),
+    );
+    db.prepare(
+      "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('catalog_seed_synced_ids_v1', ?, ?)",
+    ).run(JSON.stringify(nextSyncedIds), now);
+
     db.exec('COMMIT;');
   } catch (err) {
     db.exec('ROLLBACK;');
@@ -778,7 +893,11 @@ export function listProducts(filters?: {
 
   let items = ensureCatalogCache();
   if (hasCat) {
-    items = items.filter((p) => p.cat === filters!.cat);
+    items = items.filter((p) =>
+      filters!.cat === 'kits'
+        ? p.cat === 'kits' || p.isKit
+        : (p.isKit ? 'kits' : p.cat) === filters!.cat,
+    );
   }
   if (hasBrand) {
     items = items.filter((p) => p.brand === filters!.brand);

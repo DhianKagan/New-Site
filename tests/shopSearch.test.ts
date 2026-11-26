@@ -10,6 +10,7 @@ import {
   extractSkuSearchTerm,
   FEATURED_BRAND_FILTERS,
   filterAndRankProductsBySearch,
+  getEffectiveProductCategory,
   getPriceBudgetPresets,
   getProductDisplayPrice,
   getProductSearchSuggestions,
@@ -18,6 +19,7 @@ import {
   matchesEquipmentTypes,
   matchesInverterPowerRanges,
   matchesPriceRange,
+  matchesProductCategory,
   matchesSkuFilter,
   normalizePriceBounds,
 } from '../src/lib/shopSearch.ts';
@@ -449,5 +451,162 @@ test('ShopView renders dedicated SKU filter input wired to matchesSkuFilter and 
   assert.match(shopViewSource, /activeSkuLabel=/);
   assert.match(emptyStateSource, /activeSkuLabel/);
 });
+
+test('getEffectiveProductCategory and matchesProductCategory normalize legacy isKit products stored under parts', () => {
+  const legacyKit: Product = {
+    ...SAMPLE_PRODUCTS[0],
+    id: 'legacy-kit-1',
+    cat: 'parts',
+    isKit: true,
+    brand: 'Deye',
+    title: 'Готове рішення Deye 8 кВт / 16 кВт*год',
+  };
+
+  assert.equal(getEffectiveProductCategory(legacyKit), 'kits');
+  assert.equal(matchesProductCategory(legacyKit, 'kits'), true);
+  assert.equal(matchesProductCategory(legacyKit, 'parts'), false);
+  assert.equal(matchesProductCategory(legacyKit, 'all'), true);
+  assert.equal(matchesEquipmentTypes(legacyKit, ['kits']), true);
+
+  assert.deepEqual(
+    computeFeaturedBrandCounts([legacyKit, SAMPLE_PRODUCTS[2]], { category: 'kits' }),
+    {
+      Deye: 1,
+      SolaX: 0,
+      Solis: 0,
+      Dyness: 0,
+      Trina: 0,
+    },
+  );
+});
+
+test('ShopView uses kit-normalized category helpers for tabs and filtering', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const shopViewSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopView.tsx'),
+    'utf-8',
+  );
+
+  assert.match(shopViewSource, /getEffectiveProductCategory/);
+  assert.match(shopViewSource, /matchesProductCategory\(p,\s*cat\)/);
+});
+
+test('reconcileSeedCatalogOnStartup migrates legacy kits, backfills empty SKUs, adds new seed items, and respects later admin deletions', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { DatabaseSync } = await import('node:sqlite');
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ec-seed-reconcile-'));
+  process.env.DATA_DIR = tempDir;
+
+  try {
+    const { reconcileSeedCatalogOnStartup } = await import('../server/db.ts');
+    const dbPath = path.join(tempDir, 'test.db');
+    const db = new DatabaseSync(dbPath);
+    db.exec(`
+      CREATE TABLE products (
+        id TEXT PRIMARY KEY,
+        sku TEXT NOT NULL,
+        title TEXT NOT NULL,
+        cat TEXT NOT NULL,
+        raw_cats_json TEXT NOT NULL DEFAULT '[]',
+        brand TEXT NOT NULL,
+        is_kit INTEGER NOT NULL DEFAULT 0,
+        price INTEGER NOT NULL DEFAULT 0,
+        old_price INTEGER NOT NULL DEFAULT 0,
+        in_stock INTEGER NOT NULL DEFAULT 1,
+        status_label TEXT NOT NULL DEFAULT 'в наявності',
+        img TEXT NOT NULL DEFAULT '',
+        specs_json TEXT NOT NULL DEFAULT '[]',
+        description TEXT NOT NULL DEFAULT '',
+        source_url TEXT NOT NULL DEFAULT '',
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    // Simulate legacy Railway volume state: kit stored as 'parts' with empty SKU, plus custom admin price
+    db.prepare(`
+      INSERT INTO products (id, sku, title, cat, brand, is_kit, price, old_price, in_stock, status_label, img, updated_at)
+      VALUES ('kit-legacy', '', 'Custom Admin Title', 'parts', 'Deye', 1, 4200, 0, 1, 'в наявності', '', '2026-01-01T00:00:00Z')
+    `).run();
+
+    const seedPath = path.join(tempDir, 'seed.json');
+    fs.writeFileSync(
+      seedPath,
+      JSON.stringify([
+        {
+          id: 'kit-legacy',
+          sku: '8389',
+          title: 'Seed Kit Title',
+          cat: 'kits',
+          rawCats: ['Готові рішення'],
+          brand: 'Deye',
+          isKit: true,
+          price: 3999,
+          oldPrice: 0,
+          inStock: true,
+          statusLabel: 'в наявності',
+          img: '/assets/products/kit.jpg',
+          specs: [],
+          description: '',
+          sourceUrl: '',
+        },
+        {
+          id: 'new-seed-item',
+          sku: '4136',
+          title: 'New Battery',
+          cat: 'batteries',
+          rawCats: ['Акумулятори'],
+          brand: 'Felicity',
+          isKit: false,
+          price: 1200,
+          oldPrice: 0,
+          inStock: true,
+          statusLabel: 'в наявності',
+          img: '/assets/products/bat.png',
+          specs: [],
+          description: '',
+          sourceUrl: '',
+        },
+      ]),
+      'utf-8',
+    );
+
+    reconcileSeedCatalogOnStartup(db, seedPath);
+
+    const migratedKit = db
+      .prepare('SELECT sku, title, cat, price, img FROM products WHERE id = ?')
+      .get('kit-legacy') as { sku: string; title: string; cat: string; price: number; img: string };
+    assert.equal(migratedKit.cat, 'kits');
+    assert.equal(migratedKit.sku, '8389');
+    assert.equal(migratedKit.img, '/assets/products/kit.jpg');
+    // Preserves admin-edited title & price
+    assert.equal(migratedKit.title, 'Custom Admin Title');
+    assert.equal(migratedKit.price, 4200);
+
+    const insertedNew = db
+      .prepare('SELECT id, sku, cat FROM products WHERE id = ?')
+      .get('new-seed-item') as { id: string; sku: string; cat: string } | undefined;
+    assert.equal(insertedNew?.sku, '4136');
+    assert.equal(insertedNew?.cat, 'batteries');
+
+    // If admin deletes the already-synced item, subsequent restarts must not resurrect it
+    db.prepare('DELETE FROM products WHERE id = ?').run('new-seed-item');
+    reconcileSeedCatalogOnStartup(db, seedPath);
+    const afterDelete = db.prepare('SELECT id FROM products WHERE id = ?').get('new-seed-item');
+    assert.equal(afterDelete, undefined);
+
+    db.close();
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 
 

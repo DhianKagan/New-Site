@@ -1,4 +1,16 @@
-import type { Product } from '../types.ts';
+import type { Product, ProductCategory } from '../types.ts';
+
+export function getEffectiveProductCategory(product: Product): ProductCategory {
+  return product.isKit ? 'kits' : product.cat;
+}
+
+export function matchesProductCategory(product: Product, category: string): boolean {
+  if (!category || category === 'all') return true;
+  if (category === 'kits') {
+    return product.cat === 'kits' || Boolean(product.isKit);
+  }
+  return getEffectiveProductCategory(product) === category;
+}
 
 function normalizeCompact(value: string): string {
   return value.toLowerCase().replace(/[\s\-_/.]+/g, '');
@@ -223,7 +235,7 @@ export function matchesEquipmentTypes(
   if (selectedTypes.includes('kits') && (product.cat === 'kits' || product.isKit)) {
     return true;
   }
-  return selectedTypes.includes(product.cat as EquipmentTypeFilterId);
+  return selectedTypes.includes(getEffectiveProductCategory(product) as EquipmentTypeFilterId);
 }
 
 export type InverterPowerRangeId = 'up_to_5' | 'from_5_to_10' | 'over_10';
@@ -456,7 +468,7 @@ export function computeFeaturedBrandCounts(
   } = options;
 
   const base = products.filter((p) => {
-    if (category !== 'all' && p.cat !== category) return false;
+    if (!matchesProductCategory(p, category)) return false;
     if (!matchesEquipmentTypes(p, equipmentTypes)) return false;
     if (inStockOnly && !p.inStock) return false;
     if (!matchesInverterPowerRanges(p, powerRanges)) return false;
@@ -510,7 +522,7 @@ export function computeInverterPowerCounts(
   } = options;
 
   const base = products.filter((p) => {
-    if (category !== 'all' && p.cat !== category) return false;
+    if (!matchesProductCategory(p, category)) return false;
     if (!matchesEquipmentTypes(p, equipmentTypes)) return false;
     if (!matchesBrandFilters(p, selectedBrands, dropdownBrand)) return false;
     if (!matchesPriceRange(p, minPrice, maxPrice, usdUahRate)) return false;
