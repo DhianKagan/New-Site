@@ -1,16 +1,146 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowRight, Cable, HelpCircle, TrendingUp } from 'lucide-react';
+import { Component, Suspense, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
+import { ArrowDown, ArrowRight, Cable, HelpCircle, RefreshCw, TrendingUp } from 'lucide-react';
 import {
+  SYSTEM_MODES,
   SYSTEM_NODES,
   type SystemFlowMode,
   type SystemNodeId,
 } from '../lib/howItWorksNodes.ts';
+import { lazyWithRetry } from '../lib/lazyWithRetry.ts';
 import { tr } from '../lib/i18n.ts';
 import { VideoBackground } from './VideoBackground.tsx';
 
-const LazyHowItWorks3DCanvas = lazy(() =>
+const LazyHowItWorks3DCanvas = lazyWithRetry(() =>
   import('./HowItWorks3DCanvas.tsx').then((m) => ({ default: m.HowItWorks3DCanvas })),
 );
+
+interface Scene3DErrorBoundaryProps {
+  children: ReactNode;
+  selectedNodeId: SystemNodeId;
+  activeMode: SystemFlowMode;
+  onSelectNode: (id: SystemNodeId) => void;
+  onSelectMode: (mode: SystemFlowMode) => void;
+}
+
+interface Scene3DErrorBoundaryState {
+  hasError: boolean;
+  retryAttempt: number;
+}
+
+class Scene3DErrorBoundary extends Component<Scene3DErrorBoundaryProps, Scene3DErrorBoundaryState> {
+  state: Scene3DErrorBoundaryState = {
+    hasError: false,
+    retryAttempt: 0,
+  };
+
+  static getDerivedStateFromError(): Partial<Scene3DErrorBoundaryState> {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, _info: ErrorInfo): void {
+    console.warn('[HowItWorks] 3D scene fallback activated:', error.message);
+  }
+
+  private handleRetry = (): void => {
+    if (this.state.retryAttempt >= 1 && typeof window !== 'undefined') {
+      window.location.reload();
+      return;
+    }
+    this.setState((prev) => ({
+      hasError: false,
+      retryAttempt: prev.retryAttempt + 1,
+    }));
+  };
+
+  render(): ReactNode {
+    if (!this.state.hasError) {
+      return <div key={this.state.retryAttempt}>{this.props.children}</div>;
+    }
+
+    const { selectedNodeId, activeMode, onSelectNode, onSelectMode } = this.props;
+    const modeInfo = SYSTEM_MODES.find((m) => m.id === activeMode) ?? SYSTEM_MODES[0];
+
+    return (
+      <div className="rounded-2xl overflow-hidden border border-sky-200/35 bg-gradient-to-br from-[#07182e] via-[#0a2547] to-[#061830] shadow-xl p-5 sm:p-7 text-white">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-sky-200/20">
+          <div>
+            <div className="text-xs font-mono font-bold text-sky-300">
+              {tr('Інтерактивна 2D-схема роботи СЕС', 'Интерактивная 2D-схема работы СЭС')}
+            </div>
+            <h3 className="text-lg font-extrabold text-white mt-0.5">
+              {tr(modeInfo.labelUk, modeInfo.labelRu)}
+            </h3>
+            <p className="text-xs sm:text-sm text-sky-100/85 mt-1 max-w-2xl">
+              {tr(modeInfo.summaryUk, modeInfo.summaryRu)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={this.handleRetry}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-300/35 bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-colors shrink-0 self-start md:self-auto cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{tr('Спробувати 3D-режим знову', 'Повторить загрузку 3D-режима')}</span>
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={tr('Режими роботи станції', 'Режимы работы станции')}>
+          {SYSTEM_MODES.map((mode) => {
+            const isActive = mode.id === activeMode;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => onSelectMode(mode.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                  isActive
+                    ? 'bg-[#f59e0b] text-[#07213e]'
+                    : 'bg-white/10 text-sky-100 hover:bg-white/18 border border-sky-200/20'
+                }`}
+              >
+                {tr(mode.labelUk, mode.labelRu)}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-5 gap-3">
+          {SYSTEM_NODES.map((node) => {
+            const isSelected = node.id === selectedNodeId;
+            return (
+              <button
+                key={node.id}
+                type="button"
+                onClick={() => onSelectNode(node.id)}
+                className={`text-left rounded-xl p-3.5 border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-sky-500/25 border-[#f59e0b] shadow-md'
+                    : 'bg-white/8 border-sky-200/20 hover:bg-white/14'
+                }`}
+              >
+                <div className="flex items-center justify-between text-[11px] font-mono font-bold text-sky-200">
+                  <span>{node.order}</span>
+                  <span
+                    className="w-2.5 h-2.5 rounded-xs shrink-0"
+                    style={{ backgroundColor: node.accentHex }}
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="mt-1.5 text-xs font-extrabold text-white">
+                  {tr(node.titleUk, node.titleRu)}
+                </div>
+                <div className="mt-1 text-[11px] text-sky-100/75 leading-snug">
+                  {tr(node.shortUk, node.shortRu)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+}
 
 interface HowItWorksProps {
   onOpenLeadModal: (
@@ -85,24 +215,31 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
           </div>
         </div>
 
-        {/* Interactive 3D Viewport */}
+        {/* Interactive 3D Viewport with resilient ErrorBoundary + 2D schematic fallback */}
         {shouldLoad3D ? (
-          <Suspense
-            fallback={
-              <div className="rounded-2xl overflow-hidden border border-sky-200/35 bg-[#07182e] shadow-xl">
-                <div className="w-full h-[300px] sm:h-[420px] lg:h-[470px] flex items-center justify-center text-sky-200/80 text-xs font-bold">
-                  {tr('Завантаження 3D-схеми станції…', 'Загрузка 3D-схемы станции…')}
-                </div>
-              </div>
-            }
+          <Scene3DErrorBoundary
+            selectedNodeId={selectedNodeId}
+            activeMode={activeMode}
+            onSelectNode={setSelectedNodeId}
+            onSelectMode={setActiveMode}
           >
-            <LazyHowItWorks3DCanvas
-              selectedNodeId={selectedNodeId}
-              activeMode={activeMode}
-              onSelectNode={setSelectedNodeId}
-              onSelectMode={setActiveMode}
-            />
-          </Suspense>
+            <Suspense
+              fallback={
+                <div className="rounded-2xl overflow-hidden border border-sky-200/35 bg-[#07182e] shadow-xl">
+                  <div className="w-full h-[300px] sm:h-[420px] lg:h-[470px] flex items-center justify-center text-sky-200/80 text-xs font-bold">
+                    {tr('Завантаження 3D-схеми станції…', 'Загрузка 3D-схемы станции…')}
+                  </div>
+                </div>
+              }
+            >
+              <LazyHowItWorks3DCanvas
+                selectedNodeId={selectedNodeId}
+                activeMode={activeMode}
+                onSelectNode={setSelectedNodeId}
+                onSelectMode={setActiveMode}
+              />
+            </Suspense>
+          </Scene3DErrorBoundary>
         ) : (
           <div className="rounded-2xl overflow-hidden border border-sky-200/35 bg-[#07182e] shadow-xl">
             <div className="w-full h-[300px] sm:h-[420px] lg:h-[470px] flex items-center justify-center text-sky-200/75 text-xs font-bold">

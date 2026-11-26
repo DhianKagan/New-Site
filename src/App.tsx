@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
 import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check, Heart } from 'lucide-react';
 import type {
   AdminAuthStatus,
@@ -24,6 +24,7 @@ import {
   type Placement,
 } from './lib/analytics.ts';
 import { reportClientError, type ClientErrorReportPayload } from './lib/errorReporting.ts';
+import { isDynamicImportError, lazyWithRetry } from './lib/lazyWithRetry.ts';
 import { HomeView } from './components/HomeView.tsx';
 import type { CabinetTab } from './components/ClientCabinetView.tsx';
 import { SmartImage } from './components/SmartImage.tsx';
@@ -56,21 +57,21 @@ import { CompareBar } from './components/CompareBar.tsx';
 import { HeaderScrollProgress } from './components/HeaderScrollProgress.tsx';
 import { ScrollToTopButton } from './components/ScrollToTopButton.tsx';
 
-const ShopView = lazy(() => import('./components/ShopView.tsx').then((m) => ({ default: m.ShopView })));
-const ServicesView = lazy(() => import('./components/ServicesView.tsx').then((m) => ({ default: m.ServicesView })));
-const ProjectsView = lazy(() => import('./components/ProjectsView.tsx').then((m) => ({ default: m.ProjectsView })));
-const ContactsView = lazy(() => import('./components/ContactsView.tsx').then((m) => ({ default: m.ContactsView })));
-const CrmView = lazy(() => import('./components/CrmView.tsx').then((m) => ({ default: m.CrmView })));
-const AuthPortalView = lazy(() => import('./components/AuthPortalView.tsx').then((m) => ({ default: m.AuthPortalView })));
-const ClientCabinetView = lazy(() => import('./components/ClientCabinetView.tsx').then((m) => ({ default: m.ClientCabinetView })));
-const InfoPage = lazy(() => import('./components/InfoPage.tsx').then((m) => ({ default: m.InfoPage })));
-const ProductModal = lazy(() => import('./components/ProductModal.tsx').then((m) => ({ default: m.ProductModal })));
-const QuickViewModal = lazy(() => import('./components/QuickViewModal.tsx').then((m) => ({ default: m.QuickViewModal })));
-const ProductPaybackModal = lazy(() => import('./components/ProductPaybackModal.tsx').then((m) => ({ default: m.ProductPaybackModal })));
-const CompareModal = lazy(() => import('./components/CompareModal.tsx').then((m) => ({ default: m.CompareModal })));
-const CaseModal = lazy(() => import('./components/CaseModal.tsx').then((m) => ({ default: m.CaseModal })));
-const LeadModal = lazy(() => import('./components/LeadModal.tsx').then((m) => ({ default: m.LeadModal })));
-const CartDrawer = lazy(() => import('./components/CartDrawer.tsx').then((m) => ({ default: m.CartDrawer })));
+const ShopView = lazyWithRetry(() => import('./components/ShopView.tsx').then((m) => ({ default: m.ShopView })));
+const ServicesView = lazyWithRetry(() => import('./components/ServicesView.tsx').then((m) => ({ default: m.ServicesView })));
+const ProjectsView = lazyWithRetry(() => import('./components/ProjectsView.tsx').then((m) => ({ default: m.ProjectsView })));
+const ContactsView = lazyWithRetry(() => import('./components/ContactsView.tsx').then((m) => ({ default: m.ContactsView })));
+const CrmView = lazyWithRetry(() => import('./components/CrmView.tsx').then((m) => ({ default: m.CrmView })));
+const AuthPortalView = lazyWithRetry(() => import('./components/AuthPortalView.tsx').then((m) => ({ default: m.AuthPortalView })));
+const ClientCabinetView = lazyWithRetry(() => import('./components/ClientCabinetView.tsx').then((m) => ({ default: m.ClientCabinetView })));
+const InfoPage = lazyWithRetry(() => import('./components/InfoPage.tsx').then((m) => ({ default: m.InfoPage })));
+const ProductModal = lazyWithRetry(() => import('./components/ProductModal.tsx').then((m) => ({ default: m.ProductModal })));
+const QuickViewModal = lazyWithRetry(() => import('./components/QuickViewModal.tsx').then((m) => ({ default: m.QuickViewModal })));
+const ProductPaybackModal = lazyWithRetry(() => import('./components/ProductPaybackModal.tsx').then((m) => ({ default: m.ProductPaybackModal })));
+const CompareModal = lazyWithRetry(() => import('./components/CompareModal.tsx').then((m) => ({ default: m.CompareModal })));
+const CaseModal = lazyWithRetry(() => import('./components/CaseModal.tsx').then((m) => ({ default: m.CaseModal })));
+const LeadModal = lazyWithRetry(() => import('./components/LeadModal.tsx').then((m) => ({ default: m.LeadModal })));
+const CartDrawer = lazyWithRetry(() => import('./components/CartDrawer.tsx').then((m) => ({ default: m.CartDrawer })));
 
 type AppView =
   | 'home'
@@ -236,6 +237,11 @@ export class GlobalErrorBoundary extends Component<GlobalErrorBoundaryProps, Glo
   }
 
   private handleRetry = (): void => {
+    const rep = this.state.report;
+    if (rep && isDynamicImportError(`${rep.name} ${rep.message}`) && typeof window !== 'undefined') {
+      window.location.reload();
+      return;
+    }
     this.setState((prev) => ({
       hasError: false,
       report: null,
@@ -402,6 +408,15 @@ function AppContent() {
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reasonMsg =
+        event.reason instanceof Error
+          ? event.reason.message
+          : typeof event.reason === 'string'
+            ? event.reason
+            : '';
+      if (reasonMsg.includes('WebSocket closed without opened')) {
+        return;
+      }
       reportClientError({
         kind: 'unhandled_rejection',
         error:

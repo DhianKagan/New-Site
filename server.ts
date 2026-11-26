@@ -2328,9 +2328,34 @@ async function startServer() {
 
   // Static assets & Vite / Production serving
   if (!IS_PROD) {
+    if (process.env.ENABLE_HMR !== 'true' && process.env.DISABLE_HMR === undefined) {
+      process.env.DISABLE_HMR = 'true';
+    }
+    const disableHmr = process.env.DISABLE_HMR === 'true';
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      plugins: disableHmr
+        ? [
+            {
+              name: 'ec-disable-hmr-client-ws',
+              enforce: 'post' as const,
+              transform(code: string, id: string) {
+                if (id.endsWith('vite/dist/client/client.mjs')) {
+                  return code.replace(
+                    /const transport = normalizeModuleRunnerTransport\(\(\(\) => \{[\s\S]*?\}\)\(\)\);/,
+                    'const transport = normalizeModuleRunnerTransport({ connect() {}, async disconnect() {}, send() {} });',
+                  );
+                }
+                return null;
+              },
+            },
+          ]
+        : [],
+      server: {
+        middlewareMode: true,
+        hmr: !disableHmr,
+        ws: disableHmr ? false : undefined,
+      },
       appType: 'custom',
     });
     app.use(vite.middlewares);

@@ -207,6 +207,14 @@ export default defineConfig(() => {
         '@': path.resolve(projectDir, '.'),
       },
     },
+    optimizeDeps: {
+      include: [
+        'three',
+        'three/addons/controls/OrbitControls.js',
+        'three/addons/environments/RoomEnvironment.js',
+        'lucide-react',
+      ],
+    },
     build: {
       chunkSizeWarningLimit: 700,
       rolldownOptions: {

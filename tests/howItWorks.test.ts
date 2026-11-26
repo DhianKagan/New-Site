@@ -6,6 +6,10 @@ import {
   SYSTEM_MODES,
   SYSTEM_NODES,
 } from '../src/lib/howItWorksNodes.ts';
+import {
+  isDynamicImportError,
+  retryDynamicImport,
+} from '../src/lib/lazyWithRetry.ts';
 
 test('SYSTEM_NODES covers solar panels, inverter, battery, loads, and grid with full bilingual explanations', () => {
   const ids = SYSTEM_NODES.map((n) => n.id);
@@ -63,7 +67,7 @@ test('sampleSolarCycleState moves sun east-to-west and shifts sky lighting from 
   assert.equal(nextSunrise.skyHorizonHex, sunrise.skyHorizonHex);
 });
 
-test('HowItWorks component splits node breakdown into three separate cards', async () => {
+test('HowItWorks component splits node breakdown into three separate cards and protects 3D canvas with Scene3DErrorBoundary', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const source = fs.readFileSync(
@@ -73,6 +77,31 @@ test('HowItWorks component splits node breakdown into three separate cards', asy
   const articleMatches = source.match(/<article\b/g) ?? [];
   assert.equal(articleMatches.length, 3);
   assert.match(source, /grid grid-cols-1 md:grid-cols-3 gap-4/);
+  assert.match(source, /class Scene3DErrorBoundary/);
+  assert.match(source, /lazyWithRetry/);
+});
+
+test('isDynamicImportError and retryDynamicImport recover transient module fetch failures', async () => {
+  assert.equal(
+    isDynamicImportError(new TypeError('Failed to fetch dynamically imported module: https://example.com/HowItWorks3DCanvas.tsx')),
+    true,
+  );
+  assert.equal(isDynamicImportError(new Error('Regular runtime bug')), false);
+
+  let attempts = 0;
+  const result = await retryDynamicImport(
+    async () => {
+      attempts += 1;
+      if (attempts < 3) {
+        throw new TypeError('Failed to fetch dynamically imported module: /src/components/HowItWorks3DCanvas.tsx');
+      }
+      return { ok: true };
+    },
+    2,
+    1,
+  );
+  assert.deepEqual(result, { ok: true });
+  assert.equal(attempts, 3);
 });
 
 
