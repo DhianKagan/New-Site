@@ -17,9 +17,9 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
 
   return (
     <div>
-      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
+      <section className="ec-banner text-[#07213e] break-words hyphens-none">
         <div className="ec-container">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+          <h1 className="text-[clamp(1.25rem,4.8vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
             {tr('Реалізовані проєкти СЕС та систем живлення в Одеській області', 'Реализованные солнечные электростанции и системы питания в Одесской области')}
           </h1>
           <p className="text-sm text-[#1c3d5e] font-medium max-w-2xl">
@@ -30,7 +30,7 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="cobalt" start={32} end={44} brightness={0.56} />
-        <div className="relative ec-container break-words hyphens-auto">
+        <div className="relative ec-container break-words hyphens-none">
           <h2 className="sr-only">{tr('Кейси встановлених сонячних електростанцій та систем резервного живлення', 'Примеры установленных солнечных электростанций и систем резервного питания')}</h2>
           <div className="inline-flex flex-wrap gap-1.5 p-1.5 ec-glass-plate rounded-2xl mb-6">
             <button

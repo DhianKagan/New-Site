@@ -63,13 +63,13 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
       className="relative overflow-hidden isolate ec-section border-b border-white/25"
     >
       <VideoBackground position="absolute" tone="light" tint="cyan" start={11} end={17} brightness={0.54} />
-      <div className="relative ec-container break-words hyphens-auto">
-        <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-7 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+      <div className="relative ec-container break-words hyphens-none">
+        <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-7 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
           <div className="max-w-2xl">
             <div className="text-xs font-extrabold text-[#0b66b2] mb-1.5">
               {tr('Архітектура системи наочно', 'Архитектура системы наглядно')}
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+            <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
               {tr('Як це працює: схема підключення у 3D', 'Как это работает: схема подключения в 3D')}
             </h2>
             <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">

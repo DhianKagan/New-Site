@@ -15,9 +15,9 @@ interface ContactsViewProps {
 export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps) {
   return (
     <div>
-      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
+      <section className="ec-banner text-[#07213e] break-words hyphens-none">
         <div className="ec-container">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+          <h1 className="text-[clamp(1.25rem,4.8vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
             {tr('Ми на зв’язку та раді відповісти на ваші питання')}
           </h1>
           <p className="text-sm text-[#1c3d5e] font-medium max-w-2xl">
@@ -28,8 +28,8 @@ export function ContactsView({ onOpenLeadModal, socialLinks }: ContactsViewProps
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="azure" start={14} end={26} brightness={0.56} />
-        <div className="relative ec-container grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch break-words hyphens-auto">
-          <div className="lg:col-span-5 ec-glass-card rounded-2xl p-6 sm:p-7 h-full flex flex-col justify-between">
+        <div className="relative ec-container grid grid-cols-1 gap-6 lg:grid-cols-12 items-stretch break-words hyphens-none">
+          <div className="lg:col-span-5 ec-glass-card rounded-2xl p-4 sm:p-6 lg:p-7 h-full flex flex-col justify-between">
             <div>
               <div className="mb-6">
                 <div className="text-xs font-extrabold text-[#0b66b2] mb-1">{tr('Контакти')}</div>

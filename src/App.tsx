@@ -1385,7 +1385,7 @@ function AppContent() {
   const activeVideoSegment = ROUTE_VIDEO_SEGMENTS[view] ?? ROUTE_VIDEO_SEGMENTS.home;
 
   return (
-    <div className={`min-h-screen flex flex-col relative text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
+    <div className={`min-h-screen flex flex-col relative overflow-x-clip text-[#172636] ${stickyCtaVisible && view !== 'crm' ? 'pb-16 lg:pb-0' : ''}`}>
       <VideoBackground
         src="https://www.youtube.com/watch?v=o7fTs8et1QM"
         tone="light"
@@ -1474,7 +1474,8 @@ function AppContent() {
                     view === 'login' ? 'bg-[#f59e0b] text-[#07213e]' : 'bg-white/10 text-amber-200 hover:bg-white/20'
                   }`}
                 >
-                  {tr('Увійти / Реєстрація', 'Войти / Регистрация')}
+                  <span className="sm:hidden">{tr('Увійти', 'Войти')}</span>
+                  <span className="hidden sm:inline">{tr('Увійти / Реєстрація', 'Войти / Регистрация')}</span>
                 </button>
               )}
             </div>
@@ -1483,21 +1484,21 @@ function AppContent() {
       </div>
 
       {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
-      <header className="sticky top-0 z-40 bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
-        <div className="ec-container h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4">
+      <header className="sticky top-0 z-40 w-full max-w-full bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
+        <div className="ec-container h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4 min-w-0">
           {/* Zone 1: Single-line Brand Wordmark */}
           <a
             href="/"
             onClick={(e) => handleNavAnchor(e, 'home')}
-            className="flex items-center gap-2 whitespace-nowrap shrink-0 text-left min-w-0"
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink lg:shrink-0 text-left"
           >
             <SmartImage
               src="/assets/energocomfort/logo_mark.webp"
               alt="Energo Comfort"
               priority
-              className="h-7 w-7 sm:h-8 sm:w-8 object-contain rounded-lg bg-white/95 p-0.5 shadow-sm shrink-0"
+              className="h-6 w-6 sm:h-8 sm:w-8 object-contain rounded-lg bg-white/95 p-0.5 shadow-sm shrink-0"
             />
-            <span className="text-sm sm:text-base lg:text-lg font-extrabold tracking-tight text-white">
+            <span className="text-[12.5px] min-[390px]:text-[13.5px] sm:text-base lg:text-lg font-extrabold tracking-tight text-white whitespace-nowrap truncate">
               Energo Comfort
             </span>
           </a>
@@ -1552,14 +1553,14 @@ function AppContent() {
           </nav>
 
           {/* Zone 3: Quick Lead CTA + Wishlist + Compact Cart Button + Mobile/Tablet Menu */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 min-[400px]:gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={() => openLeadModal('Підбір рішення з шапки сайту')}
-              className="inline-flex items-center justify-center h-9 px-2.5 sm:px-3.5 rounded-lg bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] hover:from-[#38bdf8] hover:to-[#0284c7] border border-sky-300/35 text-white text-[11px] sm:text-xs font-bold shadow-[0_4px_14px_rgba(14,165,233,0.3)] transition-all whitespace-nowrap shrink-0 cursor-pointer"
+              className="hidden min-[430px]:inline-flex items-center justify-center h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-lg bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] hover:from-[#38bdf8] hover:to-[#0284c7] border border-sky-300/35 text-white text-[11px] sm:text-xs font-bold shadow-[0_4px_14px_rgba(14,165,233,0.3)] transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <span className="min-[440px]:hidden">{tr('Підібрати')}</span>
-              <span className="hidden min-[440px]:inline">{tr('Підібрати рішення')}</span>
+              <span className="sm:hidden">{tr('Підібрати')}</span>
+              <span className="hidden sm:inline">{tr('Підібрати рішення')}</span>
             </button>
 
             <button
@@ -1567,9 +1568,9 @@ function AppContent() {
               onClick={handleOpenWishlist}
               aria-label={`${tr('Список бажань', 'Список желаний')} (${wishlistIds.length})`}
               title={tr('Список бажань', 'Список желаний')}
-              className="inline-flex items-center justify-center gap-1 h-9 px-2 sm:px-2.5 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 hover:border-sky-200/50 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 h-8 sm:h-9 px-1.5 sm:px-2.5 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 hover:border-sky-200/50 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Heart className={`w-4 h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-100'}`} />
+              <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-100'}`} />
               <span className="font-mono text-[11px] text-sky-100 tabular-nums leading-none">
                 {wishlistIds.length}
               </span>
@@ -1580,9 +1581,9 @@ function AppContent() {
               onClick={handleOpenCart}
               aria-label={`${tr('Кошик')} (${cartTotalCount})`}
               title={tr('Кошик обладнання', 'Корзина оборудования')}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-2.5 xl:px-3.5 rounded-lg border border-sky-200/30 bg-[#051a36]/85 hover:bg-[#07264d] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2 xl:px-3.5 rounded-lg border border-sky-200/30 bg-[#051a36]/85 hover:bg-[#07264d] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <ShoppingBag className="w-4 h-4 text-[#fbbf24] shrink-0" />
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#fbbf24] shrink-0" />
               <span className="hidden xl:inline">{tr('Кошик')}</span>
               <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
                 {cartTotalCount}
@@ -1594,7 +1595,7 @@ function AppContent() {
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={tr('Меню', 'Меню')}
               aria-expanded={mobileMenuOpen}
-              className="lg:hidden w-9 h-9 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 flex items-center justify-center text-white cursor-pointer shrink-0"
+              className="lg:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 flex items-center justify-center text-white cursor-pointer shrink-0"
             >
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
@@ -1664,7 +1665,7 @@ function AppContent() {
             </div>
           </div>
         ) : (
-          <div className="ec-main-radial-bg break-words hyphens-auto">
+          <div className="ec-main-radial-bg break-words hyphens-none">
             {view === 'home' && (
               <HomeView
                 usdUahRate={usdUahRate}
@@ -1834,10 +1835,10 @@ function AppContent() {
 
       {/* Footer */}
       {view !== 'crm' && (
-        <footer className="bg-gradient-to-b from-[#072347]/92 to-[#051a36]/95 backdrop-blur-xl text-sky-100/85 pt-12 pb-20 lg:pb-12 border-t border-sky-200/20 break-words hyphens-auto">
+        <footer className="bg-gradient-to-b from-[#072347]/92 to-[#051a36]/95 backdrop-blur-xl text-sky-100/85 pt-12 pb-20 lg:pb-12 border-t border-sky-200/20 break-words hyphens-none">
           <div className="ec-container">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div className="min-w-0 break-words hyphens-auto">
+              <div className="min-w-0 break-words hyphens-none">
                 <SmartImage
                   src="/assets/energocomfort/logo_full.png"
                   alt="Energo Comfort — сонячні станції та резервне живлення"
@@ -1850,7 +1851,7 @@ function AppContent() {
                 <SocialIcons links={socialLinks} variant="footer" />
               </div>
 
-              <div className="min-w-0 break-words hyphens-auto">
+              <div className="min-w-0 break-words hyphens-none">
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Обладнання')}</h2>
                 <div className="space-y-1.5 text-xs text-sky-100/75">
                   {(
@@ -1874,7 +1875,7 @@ function AppContent() {
                 </div>
               </div>
 
-              <div className="min-w-0 break-words hyphens-auto">
+              <div className="min-w-0 break-words hyphens-none">
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Компанія та сервіс', 'Компания и сервис')}</h2>
                 <div className="space-y-1.5 text-xs text-sky-100/75">
                   <a
@@ -1932,7 +1933,7 @@ function AppContent() {
                 </div>
               </div>
 
-              <div className="min-w-0 break-words hyphens-auto">
+              <div className="min-w-0 break-words hyphens-none">
                 <h2 className="text-xs font-extrabold text-white mb-3">{tr('Контакти · Одеса', 'Контакты · Одесса')}</h2>
                 <div className="space-y-1.5 text-xs text-sky-100/75">
                   <p>{tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</p>
@@ -1961,7 +1962,7 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap justify-between gap-2 break-words hyphens-auto">
+            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap justify-between gap-2 break-words hyphens-none">
               <span>© 2026 Energo Comfort · energocomfort.shop</span>
               <span>{tr('Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina', 'Официальное оборудование Deye, SolaX, Solis, Dyness, Trina')}</span>
             </div>

@@ -10,15 +10,15 @@ interface InfoPageProps {
   onBackHome: () => void;
 }
 
-const cardClass = 'ec-glass-card rounded-2xl p-6 sm:p-7 text-[#07213e]';
+const cardClass = 'ec-glass-card rounded-2xl p-4 sm:p-6 lg:p-7 text-[#07213e]';
 
 export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
   const isOffer = type === 'offer';
   return (
     <div>
-      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
+      <section className="ec-banner text-[#07213e] break-words hyphens-none">
         <div className="ec-container">
-          <h1 className="mb-2 text-2xl font-extrabold text-[#07213e] sm:text-3xl">
+          <h1 className="mb-2 text-[clamp(1.25rem,4.8vw,1.875rem)] font-extrabold text-[#07213e] leading-tight">
             {isOffer ? tr('Публічна оферта') : tr('Оплата і доставка')}
           </h1>
           <p className="max-w-2xl text-sm font-medium text-[#1c3d5e]">
@@ -31,7 +31,7 @@ export function InfoPage({ type, usdUahRate, onBackHome }: InfoPageProps) {
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="daylight" start={26} end={38} brightness={0.56} />
-        <div className="relative ec-container space-y-6 break-words hyphens-auto">
+        <div className="relative ec-container space-y-6 break-words hyphens-none">
           {isOffer ? (
             <>
               <div role="note" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950">

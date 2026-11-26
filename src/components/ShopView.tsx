@@ -301,9 +301,9 @@ export function ShopView({
 
   return (
     <div>
-      <section className="ec-banner text-[#061c36] break-words hyphens-auto">
-        <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#061c36] mb-2">
+      <section className="ec-banner text-[#061c36] break-words hyphens-none">
+        <div className="max-w-[1380px] mx-auto px-3.5 sm:px-6 lg:px-8">
+          <h1 className="text-[clamp(1.25rem,4.8vw,1.875rem)] font-extrabold text-[#061c36] leading-tight mb-2">
             {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
           </h1>
           <p className="text-sm text-[#133659] font-medium max-w-2xl leading-[1.6]">
@@ -314,7 +314,7 @@ export function ShopView({
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="sky" start={8} end={20} brightness={0.56} />
-        <div className="relative max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8 break-words hyphens-auto">
+        <div className="relative max-w-[1380px] mx-auto px-3.5 sm:px-6 lg:px-8 break-words hyphens-none">
           <h2 className="sr-only">{tr('Фільтри та перелік обладнання', 'Фильтры и каталог оборудования')}</h2>
           {/* Category Filter Tabs */}
           <div className="ec-glass-plate flex flex-wrap gap-1.5 p-1.5 rounded-2xl mb-6 w-fit max-w-full">

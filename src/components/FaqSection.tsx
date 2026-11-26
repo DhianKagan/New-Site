@@ -24,10 +24,10 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
       className="relative overflow-hidden isolate ec-section border-t border-white/25"
     >
       <VideoBackground position="absolute" tone="light" tint="indigo" start={47} end={53} brightness={0.54} />
-      <div className="relative ec-container break-words hyphens-auto">
+      <div className="relative ec-container break-words hyphens-none">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Left Equal-Height Summary & Trust Plate */}
-          <div className="lg:col-span-5 min-w-0 ec-glass-plate rounded-2xl p-6 sm:p-8 flex flex-col justify-between gap-6 h-full">
+          <div className="lg:col-span-5 min-w-0 ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-8 flex flex-col justify-between gap-6 h-full">
             <div>
               <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#0b66b2] mb-2">
                 <HelpCircle className="w-3.5 h-3.5 shrink-0" />
@@ -35,7 +35,7 @@ export function FaqSection({ onOpenLeadModal }: FaqSectionProps) {
               </div>
               <h2
                 id="faq-heading"
-                className="text-2xl sm:text-3xl font-extrabold text-[#061c36] leading-tight mb-3"
+                className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#061c36] leading-tight mb-3"
               >
                 {tr('Часті запитання', 'Частые вопросы')}
               </h2>

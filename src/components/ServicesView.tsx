@@ -19,9 +19,9 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
     );
   return (
     <div>
-      <section className="ec-banner text-[#07213e] break-words hyphens-auto">
+      <section className="ec-banner text-[#07213e] break-words hyphens-none">
         <div className="ec-container">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+          <h1 className="text-[clamp(1.25rem,4.8vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
             {tr('Послуги монтажу СЕС та додатковий інженерний сервіс')}
           </h1>
           <p className="text-sm text-[#1c3d5e] font-medium max-w-2xl">
@@ -32,11 +32,11 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="ocean" start={20} end={32} brightness={0.56} />
-        <div className="relative ec-container space-y-12 break-words hyphens-auto">
+        <div className="relative ec-container space-y-12 break-words hyphens-none">
           <div>
-            <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-7">
+            <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-7">
               <div className="text-xs font-extrabold text-[#0b66b2] mb-1">{tr('Напрямок 01')}</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e]">{tr('Послуги монтажу під ключ')}</h2>
+              <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight">{tr('Послуги монтажу під ключ')}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">

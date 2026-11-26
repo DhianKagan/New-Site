@@ -315,11 +315,11 @@ export function HomeView({
         />
         <div className="relative ec-container">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-6">
-            <div className="lg:col-span-7 min-w-0 flex flex-col justify-center ec-glass-plate rounded-2xl p-6 sm:p-7 break-words hyphens-auto">
+            <div className="lg:col-span-7 min-w-0 flex flex-col justify-center ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 break-words hyphens-none">
               <div className="text-xs font-extrabold text-[#0b66b2] uppercase tracking-wider mb-2.5">
                 {tr('Резервне живлення · Сонячні електростанції · Одеса')}
               </div>
-              <h1 className="text-[clamp(1.85rem,3.6vw,2.65rem)] font-extrabold text-[#07213e] leading-[1.2] tracking-normal mb-4 max-w-2xl">
+              <h1 className="text-[clamp(1.35rem,5.1vw,2.65rem)] font-extrabold text-[#07213e] leading-[1.18] tracking-normal mb-4 max-w-2xl">
                 {tr('Сонячні електростанції та резервне живлення', 'Солнечные электростанции и резервное питание')}{' '}
                 <span className="text-[#0b66b2]">{tr('в Одесі та області під ключ', 'в Одессе и области под ключ')}</span>
               </h1>
@@ -456,7 +456,7 @@ export function HomeView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch break-words hyphens-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch break-words hyphens-none">
             <div className="ec-glass-sapphire rounded-2xl p-6 flex flex-col justify-between gap-4 h-full min-w-0 hover:border-sky-300/60 transition-colors">
               <div>
                 <div className="text-xs font-bold text-sky-200 mb-1.5">{tr('01. Квартира та дім', '01. Квартира и дом')}</div>
@@ -565,14 +565,14 @@ export function HomeView({
           end={HOME_VIDEO_SEGMENTS.calculator.end}
           brightness={0.54}
         />
-        <div className="relative ec-container break-words hyphens-auto">
-          <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+        <div className="relative ec-container break-words hyphens-none">
+          <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
             <div className="max-w-xl">
               <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">
                 <Calculator className="w-3.5 h-3.5" />
                 <span>{tr('Онлайн-підбір за вашим лічильником', 'Онлайн-подбор по вашему счётчику')}</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+              <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
                 {tr('Калькулятор окупності СЕС', 'Калькулятор окупаемости СЭС')}
               </h2>
               <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">
@@ -896,11 +896,11 @@ export function HomeView({
           end={HOME_VIDEO_SEGMENTS.showcase.end}
           brightness={0.54}
         />
-        <div className="relative ec-container break-words hyphens-auto">
-          <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-6 flex flex-col gap-4">
+        <div className="relative ec-container break-words hyphens-none">
+          <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col gap-4">
             <div>
               <div className="text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">{tr('Рішення та обладнання')}</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-1.5">
+              <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-1.5">
                 {tr('Популярні конфігурації та комплектуючі')}
               </h2>
               <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed max-w-3xl">
@@ -1011,9 +1011,9 @@ export function HomeView({
             </div>
           </div>
 
-          <div className="lg:col-span-7 min-w-0 ec-glass-plate rounded-2xl p-6 sm:p-7 flex flex-col justify-center break-words hyphens-auto">
+          <div className="lg:col-span-7 min-w-0 ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 flex flex-col justify-center break-words hyphens-none">
             <div className="text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">{tr('Інженерний підхід')}</div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-3">
+            <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-3">
               {tr('Аудит, підбір сумісного обладнання та безпечний монтаж')}
             </h2>
             <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed mb-5">
@@ -1073,11 +1073,11 @@ export function HomeView({
           end={HOME_VIDEO_SEGMENTS.projects.end}
           brightness={0.54}
         />
-        <div className="relative ec-container break-words hyphens-auto">
-          <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+        <div className="relative ec-container break-words hyphens-none">
+          <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
             <div className="max-w-xl">
               <div className="text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">{tr('Портфоліо компанії')}</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+              <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
                 {tr('Реалізовані об’єкти в Одесі та області')}
               </h2>
               <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">
@@ -1175,13 +1175,13 @@ export function HomeView({
           playsInline
           brightness={0.52}
         />
-        <div className="relative ec-container break-words hyphens-auto">
-          <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="relative ec-container break-words hyphens-none">
+          <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
               <div className="text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">
                 {tr('Порядок співпраці')}
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e]">
+              <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight">
                 {tr('Як ми працюємо: від розрахунку до запуску')}
               </h2>
             </div>
@@ -1277,11 +1277,11 @@ export function HomeView({
           playsInline
           brightness={0.52}
         />
-        <div className="relative ec-container grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch break-words hyphens-auto">
-          <div className="lg:col-span-5 min-w-0 ec-glass-plate rounded-2xl p-6 sm:p-8 flex flex-col justify-between gap-6 h-full">
+        <div className="relative ec-container grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch break-words hyphens-none">
+          <div className="lg:col-span-5 min-w-0 ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-8 flex flex-col justify-between gap-6 h-full">
             <div>
               <div className="text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-2">{tr('Швидкий інженерний бриф', 'Краткий бриф для инженера')}</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#061c36] leading-tight mb-3">
+              <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#061c36] leading-tight mb-3">
                 {tr('Отримайте інженерний розрахунок під ваш об’єкт', 'Получите инженерный расчёт для вашего объекта')}
               </h2>
               <p className="text-[15px] text-[#133659] font-medium leading-[1.65] max-w-[44ch]">
