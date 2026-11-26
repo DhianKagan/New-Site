@@ -53,6 +53,7 @@ import {
   writeCompareToStorage,
 } from './lib/compare.ts';
 import { CompareBar } from './components/CompareBar.tsx';
+import { HeaderScrollProgress } from './components/HeaderScrollProgress.tsx';
 
 const ShopView = lazy(() => import('./components/ShopView.tsx').then((m) => ({ default: m.ShopView })));
 const ServicesView = lazy(() => import('./components/ServicesView.tsx').then((m) => ({ default: m.ServicesView })));
@@ -78,6 +79,8 @@ type AppView =
   | 'contacts'
   | 'payment-delivery'
   | 'offer'
+  | 'privacy'
+  | 'terms'
   | 'login'
   | 'account'
   | 'crm';
@@ -96,6 +99,8 @@ const ROUTE_VIDEO_SEGMENTS: Record<AppView, { start: number; end: number }> = {
   contacts: { start: 8, end: 22 },
   'payment-delivery': { start: 20, end: 36 },
   offer: { start: 34, end: 48 },
+  privacy: { start: 28, end: 42 },
+  terms: { start: 30, end: 44 },
   login: { start: 12, end: 28 },
   account: { start: 24, end: 40 },
   crm: { start: 40, end: 56 },
@@ -148,6 +153,8 @@ function parseRouteFromLocation(): {
   if (pathname === '/contacts') return { view: 'contacts', cat: 'all', searchQuery: '', productId: null, authMode };
   if (pathname === '/payment-delivery') return { view: 'payment-delivery', cat: 'all', searchQuery: '', productId: null, authMode };
   if (pathname === '/public-offer') return { view: 'offer', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/privacy-policy') return { view: 'privacy', cat: 'all', searchQuery: '', productId: null, authMode };
+  if (pathname === '/terms-of-service') return { view: 'terms', cat: 'all', searchQuery: '', productId: null, authMode };
   if (pathname === '/login') return { view: 'login', cat: 'all', searchQuery: '', productId: null, authMode };
   if (pathname === '/account') return { view: 'account', cat: 'all', searchQuery: '', productId: null, authMode };
   if (pathname === '/crm') return { view: 'crm', cat: 'all', searchQuery: '', productId: null, authMode };
@@ -176,6 +183,8 @@ function buildPathForRoute(
     return authMode === 'register' ? '/login?mode=register' : '/login';
   }
   if (view === 'offer') return '/public-offer';
+  if (view === 'privacy') return '/privacy-policy';
+  if (view === 'terms') return '/terms-of-service';
   return `/${view}`;
 }
 
@@ -854,6 +863,14 @@ function AppContent() {
       title = 'Публічна оферта та гарантія — Energo Comfort';
       description =
         'Умови публічного договору купівлі-продажу, гарантійного обслуговування та повернення обладнання в інтернет-магазині Energo Comfort.';
+    } else if (view === 'privacy') {
+      title = 'Політика конфіденційності — Energo Comfort';
+      description =
+        'Порядок збору, обробки та захисту персональних даних користувачів інтернет-магазину Energo Comfort.';
+    } else if (view === 'terms') {
+      title = 'Умови використання сервісу — Energo Comfort';
+      description =
+        'Правила користування сайтом, онлайн-калькуляторами, каталогом та оформлення замовлень в Energo Comfort.';
     } else if (view === 'login') {
       title = 'Вхід та реєстрація — Energo Comfort';
     } else if (view === 'account') {
@@ -1485,6 +1502,7 @@ function AppContent() {
 
       {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
       <header className="sticky top-0 z-40 w-full max-w-full overflow-x-clip bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
+        <HeaderScrollProgress routeKey={`${view}|${shopInitialCat}|${selectedProduct?.id ?? ''}|${loadingCatalog}`} />
         <div className="ec-container h-14 sm:h-16 lg:h-[68px] grid grid-cols-[minmax(0,1fr)_auto] lg:flex items-center justify-between gap-1.5 sm:gap-4 min-w-0">
           {/* Zone 1: Single-line Brand Wordmark */}
           <a
@@ -1782,7 +1800,7 @@ function AppContent() {
                 />
               )}
 
-              {(view === 'payment-delivery' || view === 'offer') && (
+              {(view === 'payment-delivery' || view === 'offer' || view === 'privacy' || view === 'terms') && (
                 <InfoPage
                   type={view}
                   usdUahRate={usdUahRate}
@@ -1937,6 +1955,12 @@ function AppContent() {
                   <a href="/public-offer" onClick={(e) => handleNavAnchor(e, 'offer')} className="block overflow-hidden text-ellipsis hover:text-white transition-colors">
                     {tr('Публічна оферта')}
                   </a>
+                  <a href="/privacy-policy" onClick={(e) => handleNavAnchor(e, 'privacy')} className="block overflow-hidden text-ellipsis hover:text-white transition-colors">
+                    {tr('Політика конфіденційності', 'Политика конфиденциальности')}
+                  </a>
+                  <a href="/terms-of-service" onClick={(e) => handleNavAnchor(e, 'terms')} className="block overflow-hidden text-ellipsis hover:text-white transition-colors">
+                    {tr('Умови використання', 'Условия использования')}
+                  </a>
                   {adminToken ? (
                     <a
                       href="/crm"
@@ -1994,9 +2018,26 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap justify-between gap-2 break-words hyphens-none">
+            <div className="mt-8 pt-5 border-t border-sky-200/15 text-[11px] text-sky-200/65 flex flex-wrap items-center justify-between gap-3 break-words hyphens-none">
               <span>© 2026 Energo Comfort · energocomfort.shop</span>
-              <span>{tr('Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina', 'Официальное оборудование Deye, SolaX, Solis, Dyness, Trina')}</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <a
+                  href="/privacy-policy"
+                  onClick={(e) => handleNavAnchor(e, 'privacy')}
+                  className="hover:text-white transition-colors underline underline-offset-2 decoration-sky-300/35"
+                >
+                  {tr('Політика конфіденційності', 'Политика конфиденциальности')}
+                </a>
+                <a
+                  href="/terms-of-service"
+                  onClick={(e) => handleNavAnchor(e, 'terms')}
+                  className="hover:text-white transition-colors underline underline-offset-2 decoration-sky-300/35"
+                >
+                  {tr('Умови використання', 'Условия использования')}
+                </a>
+                <span className="hidden sm:inline text-sky-200/50">·</span>
+                <span>{tr('Офіційне обладнання Deye, SolaX, Solis, Dyness, Trina', 'Официальное оборудование Deye, SolaX, Solis, Dyness, Trina')}</span>
+              </div>
             </div>
           </div>
         </footer>

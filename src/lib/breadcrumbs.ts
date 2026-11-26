@@ -9,6 +9,8 @@ export type BreadcrumbView =
   | 'contacts'
   | 'payment-delivery'
   | 'offer'
+  | 'privacy'
+  | 'terms'
   | 'login'
   | 'account'
   | 'crm';
@@ -47,6 +49,8 @@ const VIEW_BREADCRUMB_LABELS: Record<BreadcrumbView, { uk: string; ru: string }>
   contacts: { uk: 'Контакти', ru: 'Контакты' },
   'payment-delivery': { uk: 'Оплата і доставка', ru: 'Оплата и доставка' },
   offer: { uk: 'Публічна оферта', ru: 'Публичная оферта' },
+  privacy: { uk: 'Політика конфіденційності', ru: 'Политика конфиденциальности' },
+  terms: { uk: 'Умови використання', ru: 'Условия использования' },
   login: { uk: 'Вхід та реєстрація', ru: 'Вход и регистрация' },
   account: { uk: 'Особистий кабінет', ru: 'Личный кабинет' },
   crm: { uk: 'CRM', ru: 'CRM' },
@@ -214,7 +218,14 @@ export function buildBreadcrumbTrail(input: BreadcrumbTrailInput): BreadcrumbIte
     return trail;
   }
 
-  const routeHref = input.view === 'offer' ? '/public-offer' : `/${input.view}`;
+  const routeHref =
+    input.view === 'offer'
+      ? '/public-offer'
+      : input.view === 'privacy'
+        ? '/privacy-policy'
+        : input.view === 'terms'
+          ? '/terms-of-service'
+          : `/${input.view}`;
   return [
     homeItem,
     {

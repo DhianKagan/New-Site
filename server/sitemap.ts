@@ -45,6 +45,8 @@ export const SITEMAP_INFO_PAGES: readonly SitemapStaticPage[] = [
   { path: '/contacts', priority: '0.7', changefreq: 'monthly' },
   { path: '/payment-delivery', priority: '0.6', changefreq: 'monthly' },
   { path: '/public-offer', priority: '0.4', changefreq: 'monthly' },
+  { path: '/privacy-policy', priority: '0.4', changefreq: 'monthly' },
+  { path: '/terms-of-service', priority: '0.4', changefreq: 'monthly' },
 ];
 
 export function escapeXml(value: string): string {

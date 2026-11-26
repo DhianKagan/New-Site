@@ -362,6 +362,8 @@ export function buildRouteJsonLdGraph(input: RouteJsonLdInput): unknown[] {
     contacts: 'ContactPage',
     'payment-delivery': 'WebPage',
     offer: 'WebPage',
+    privacy: 'WebPage',
+    terms: 'WebPage',
   };
 
   return [

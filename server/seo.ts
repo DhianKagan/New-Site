@@ -141,6 +141,18 @@ export function renderRouteSeoHtml(input: RouteSeoInput): string {
     title = 'Публічна оферта (проєкт) — Energo Comfort';
     description = 'Проєкт умов дистанційного замовлення обладнання та послуг Energo Comfort.';
     canonicalPath = '/public-offer';
+  } else if (rawPath === '/privacy-policy') {
+    view = 'privacy';
+    title = 'Політика конфіденційності — Energo Comfort';
+    description =
+      'Порядок збору, зберігання та захисту персональних даних клієнтів інтернет-магазину Energo Comfort.';
+    canonicalPath = '/privacy-policy';
+  } else if (rawPath === '/terms-of-service') {
+    view = 'terms';
+    title = 'Умови використання сайту — Energo Comfort';
+    description =
+      'Правила користування інтернет-магазином, інформацією про ціни, гарантію та замовлення обладнання Energo Comfort.';
+    canonicalPath = '/terms-of-service';
   } else if (rawPath === '/crm' || rawPath === '/login' || rawPath === '/account') {
     view = rawPath === '/crm' ? 'crm' : rawPath === '/login' ? 'login' : 'account';
     title =
