@@ -773,3 +773,184 @@ export function calculateBatteryLifecycle(cyclesPerYear: number, usableKwhNeeded
     agmEfficiencyPct: 80,
   };
 }
+
+export const BATTERY_SIZING_DAILY_PRESETS = [6, 10, 15, 25, 40] as const;
+export const BATTERY_SIZING_DURATION_PRESETS = [4, 8, 12, 24, 48] as const;
+
+/**
+ * Standard LiFePO4 battery sizing constants:
+ * - 90% usable Depth of Discharge (DoD)
+ * - 94% DC-to-AC inverter discharge efficiency -> 0.846 combined usable factor
+ * - $185/kWh fallback benchmark calibrated to Energo Comfort 2025-2026 LV LiFePO4 catalog
+ */
+export const LIFEPO4_USABLE_FACTOR = 0.9 * 0.94;
+export const LIFEPO4_BENCHMARK_USD_PER_KWH = 185;
+
+export interface BatterySizingInput {
+  dailyKwh: number;
+  backupHours: number;
+  criticalLoadSharePct?: number;
+  usdUahRate: number | null;
+  products: Product[];
+}
+
+export interface BatterySizingMatchedOption {
+  product: Product;
+  moduleKwh: number;
+  modulesCount: number;
+  totalBankKwh: number;
+  totalPriceUsd: number;
+  totalPriceUah: number | null;
+}
+
+export interface BatterySizingResult {
+  safeDailyKwh: number;
+  safeBackupHours: number;
+  safeCriticalSharePct: number;
+  averageLoadKw: number;
+  usableEnergyNeededKwh: number;
+  rawNominalKwh: number;
+  recommendedCapacityKwh: number;
+  usableCapacityKwh: number;
+  recommendedModules: number;
+  actualBankKwh: number;
+  primaryBattery: Product | null;
+  matchedBatteries: Product[];
+  matchedOptions: BatterySizingMatchedOption[];
+  usedCatalogPricing: boolean;
+  estimatedCostUsd: number;
+  estimatedCostUah: number | null;
+  benchmarkCostUsd: number;
+  benchmarkCostUah: number | null;
+  cyclesRated: number;
+  dodPct: number;
+  inverterEfficiencyPct: number;
+}
+
+function is24VoltBattery(p: Product): boolean {
+  return /24\s*v|25[.,-]6\s*v|lp16-24/i.test(`${p.id} ${p.title}`);
+}
+
+export function calculateBatterySizing(input: BatterySizingInput): BatterySizingResult {
+  const safeDailyKwh = Number.isFinite(input.dailyKwh)
+    ? Math.max(1, Math.min(500, input.dailyKwh))
+    : 12;
+  const safeBackupHours = Number.isFinite(input.backupHours)
+    ? Math.max(1, Math.min(72, input.backupHours))
+    : 12;
+  const safeCriticalSharePct =
+    input.criticalLoadSharePct !== undefined && Number.isFinite(input.criticalLoadSharePct)
+      ? Math.max(25, Math.min(100, Math.round(input.criticalLoadSharePct)))
+      : 100;
+
+  const shareRatio = safeCriticalSharePct / 100;
+  const averageLoadKw = Math.round(((safeDailyKwh * shareRatio) / 24) * 100) / 100;
+  const usableEnergyNeededKwh =
+    Math.round(safeDailyKwh * shareRatio * (safeBackupHours / 24) * 10) / 10;
+  const rawNominalKwh = usableEnergyNeededKwh / LIFEPO4_USABLE_FACTOR;
+
+  // Step to practical 2.5 kWh LiFePO4 planning tiers starting at 5 kWh
+  const recommendedCapacityKwh = Math.max(5, Math.ceil(rawNominalKwh / 2.5) * 2.5);
+  const usableCapacityKwh = Math.round(recommendedCapacityKwh * LIFEPO4_USABLE_FACTOR * 10) / 10;
+
+  const rate =
+    input.usdUahRate && Number.isFinite(input.usdUahRate) && input.usdUahRate > 0
+      ? input.usdUahRate
+      : null;
+
+  const candidates = input.products
+    .filter(isBatteryModule)
+    .map((p) => {
+      const moduleKwh = parseBatteryKwh(p);
+      const hv = isHighVoltageBatteryOrInverter(p);
+      const is24v = is24VoltBattery(p);
+      const modulesCount = Math.max(1, Math.min(16, Math.ceil((rawNominalKwh - 0.15) / moduleKwh)));
+      const totalBankKwh = Math.round(modulesCount * moduleKwh * 100) / 100;
+      const totalPriceUsd = Math.round(p.price * modulesCount);
+      return {
+        p,
+        moduleKwh,
+        hv,
+        is24v,
+        modulesCount,
+        totalBankKwh,
+        totalPriceUsd,
+      };
+    })
+    .sort((a, b) => {
+      // Standard 48V/51.2V LV or HV preferred over legacy 24V modules
+      if (a.is24v !== b.is24v) return a.is24v ? 1 : -1;
+      // For residential/small commercial (< 20 kWh), strongly prefer 48V LV modules
+      if (recommendedCapacityKwh < 20 && a.hv !== b.hv) return a.hv ? 1 : -1;
+      // Prefer practical stack sizes (1-4 units) over stacking many small bricks
+      const aPractical = a.modulesCount <= 4 ? 1 : 0;
+      const bPractical = b.modulesCount <= 4 ? 1 : 0;
+      if (aPractical !== bPractical) return bPractical - aPractical;
+      // Prefer closer fit to recommended nominal capacity (small overshoot penalized lightly)
+      const aFit = Math.abs(a.totalBankKwh - recommendedCapacityKwh);
+      const bFit = Math.abs(b.totalBankKwh - recommendedCapacityKwh);
+      if (Math.abs(aFit - bFit) > 1.2) return aFit - bFit;
+      if (a.p.inStock !== b.p.inStock) return a.p.inStock ? -1 : 1;
+      return a.totalPriceUsd - b.totalPriceUsd;
+    });
+
+  // Deduplicate by brand+capacity bracket when picking up to 3 diverse options if available
+  const picked: typeof candidates = [];
+  const seenKeys = new Set<string>();
+  for (const item of candidates) {
+    const key = `${item.p.brand.toLowerCase()}-${Math.round(item.moduleKwh)}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    picked.push(item);
+    if (picked.length >= 3) break;
+  }
+  if (picked.length < 3) {
+    for (const item of candidates) {
+      if (picked.some((x) => x.p.id === item.p.id)) continue;
+      picked.push(item);
+      if (picked.length >= 3) break;
+    }
+  }
+
+  const matchedOptions: BatterySizingMatchedOption[] = picked.map((item) => ({
+    product: item.p,
+    moduleKwh: item.moduleKwh,
+    modulesCount: item.modulesCount,
+    totalBankKwh: item.totalBankKwh,
+    totalPriceUsd: item.totalPriceUsd,
+    totalPriceUah: rate ? Math.round(item.totalPriceUsd * rate) : null,
+  }));
+
+  const primaryOption = matchedOptions[0] ?? null;
+  const benchmarkCostUsd = Math.round(recommendedCapacityKwh * LIFEPO4_BENCHMARK_USD_PER_KWH);
+  const benchmarkCostUah = rate ? Math.round(benchmarkCostUsd * rate) : null;
+
+  const usedCatalogPricing = Boolean(primaryOption && primaryOption.totalPriceUsd > 0);
+  const estimatedCostUsd = usedCatalogPricing && primaryOption ? primaryOption.totalPriceUsd : benchmarkCostUsd;
+  const estimatedCostUah = rate ? Math.round(estimatedCostUsd * rate) : null;
+
+  return {
+    safeDailyKwh,
+    safeBackupHours,
+    safeCriticalSharePct,
+    averageLoadKw,
+    usableEnergyNeededKwh,
+    rawNominalKwh: Math.round(rawNominalKwh * 10) / 10,
+    recommendedCapacityKwh,
+    usableCapacityKwh,
+    recommendedModules: primaryOption ? primaryOption.modulesCount : Math.max(1, Math.ceil(recommendedCapacityKwh / 5)),
+    actualBankKwh: primaryOption ? primaryOption.totalBankKwh : recommendedCapacityKwh,
+    primaryBattery: primaryOption ? primaryOption.product : null,
+    matchedBatteries: matchedOptions.map((o) => o.product),
+    matchedOptions,
+    usedCatalogPricing,
+    estimatedCostUsd,
+    estimatedCostUah,
+    benchmarkCostUsd,
+    benchmarkCostUah,
+    cyclesRated: 6000,
+    dodPct: 90,
+    inverterEfficiencyPct: 94,
+  };
+}
+

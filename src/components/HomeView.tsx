@@ -14,6 +14,7 @@ import {
 import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
 import { BRAND_PARTNERS, COMPANY_INFO } from '../data/siteContent.ts';
 import { ProductCard } from './ProductCard.tsx';
+import { BatterySizingCalculator } from './BatterySizingCalculator.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { HowItWorks } from './HowItWorks.tsx';
 import { FaqSection } from './FaqSection.tsx';
@@ -883,6 +884,23 @@ export function HomeView({
               </div>
             </div>
           )}
+
+          <div className="mt-12 pt-10 border-t border-sky-200/55">
+            <BatterySizingCalculator
+              products={products}
+              usdUahRate={usdUahRate}
+              wishlistIds={wishlistIds}
+              compareIds={compareIds}
+              onNavigateShop={onNavigateShop}
+              onSelectProduct={onSelectProduct}
+              onQuickViewProduct={onQuickViewProduct}
+              onToggleWishlist={onToggleWishlist}
+              onToggleCompare={onToggleCompare}
+              onAddToCart={onAddToCart}
+              onCalculatePayback={onCalculatePayback}
+              onOpenLeadModal={onOpenLeadModal}
+            />
+          </div>
         </div>
       </section>
 

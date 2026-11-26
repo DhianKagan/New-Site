@@ -3,12 +3,15 @@ import fs from 'node:fs';
 import test from 'node:test';
 import {
   calculateBatteryLifecycle,
+  calculateBatterySizing,
   calculateProductPayback,
   calculateSolarConstructor,
   calculateSolarPayback,
   DEFAULT_BUSINESS_TARIFF_UAH,
   DEFAULT_RESIDENTIAL_TARIFF_UAH,
   getDefaultConsumptionForProduct,
+  LIFEPO4_BENCHMARK_USD_PER_KWH,
+  LIFEPO4_USABLE_FACTOR,
   matchConstructorEquipment,
   ODESA_ANNUAL_YIELD_PER_KW,
 } from '../src/lib/calculators.ts';
@@ -226,3 +229,59 @@ test('per-product payback calculator adapts defaults and recalculates for invert
       businessConsumption.paybackYears < lowConsumption.paybackYears,
   );
 });
+
+test('battery sizing calculator computes LiFePO4 capacity with 90% DoD & 94% efficiency and matches catalog batteries', () => {
+  const shortBackup = calculateBatterySizing({
+    dailyKwh: 8,
+    backupHours: 8,
+    usdUahRate: 42,
+    products: CATALOG,
+  });
+  // 8 * (8/24) = 2.7 kWh usable -> 2.7 / 0.846 ≈ 3.19 kWh raw -> min 5 kWh tier
+  assert.equal(shortBackup.recommendedCapacityKwh, 5);
+  assert.equal(shortBackup.usableCapacityKwh, Math.round(5 * LIFEPO4_USABLE_FACTOR * 10) / 10);
+  assert.equal(shortBackup.recommendedModules, 1);
+  assert.ok(shortBackup.primaryBattery && !/bms|pdu|блок/i.test(shortBackup.primaryBattery.title));
+  assert.equal(shortBackup.usedCatalogPricing, true);
+  assert.equal(shortBackup.estimatedCostUsd, shortBackup.primaryBattery.price);
+  assert.equal(shortBackup.estimatedCostUah, Math.round(shortBackup.estimatedCostUsd * 42));
+
+  const fullDayBackup = calculateBatterySizing({
+    dailyKwh: 20,
+    backupHours: 24,
+    usdUahRate: 42,
+    products: CATALOG,
+  });
+  // 20 kWh usable / 0.846 ≈ 23.64 kWh raw -> 25 kWh tier
+  assert.equal(fullDayBackup.usableEnergyNeededKwh, 20);
+  assert.equal(fullDayBackup.recommendedCapacityKwh, 25);
+  assert.ok(fullDayBackup.actualBankKwh >= 23);
+  assert.ok(fullDayBackup.estimatedCostUsd > shortBackup.estimatedCostUsd);
+  assert.ok(fullDayBackup.matchedOptions.length >= 2);
+
+  const criticalOnly = calculateBatterySizing({
+    dailyKwh: 20,
+    backupHours: 24,
+    criticalLoadSharePct: 65,
+    usdUahRate: 42,
+    products: CATALOG,
+  });
+  assert.ok(criticalOnly.recommendedCapacityKwh < fullDayBackup.recommendedCapacityKwh);
+  assert.ok(criticalOnly.estimatedCostUsd <= fullDayBackup.estimatedCostUsd);
+});
+
+test('battery sizing calculator falls back to $185/kWh benchmark when catalog is empty', () => {
+  const fallback = calculateBatterySizing({
+    dailyKwh: 12,
+    backupHours: 12,
+    usdUahRate: 42,
+    products: [],
+  });
+  // 12 * (12/24) = 6 kWh usable -> 6 / 0.846 ≈ 7.09 kWh raw -> 7.5 kWh tier
+  assert.equal(fallback.recommendedCapacityKwh, 7.5);
+  assert.equal(fallback.usedCatalogPricing, false);
+  assert.equal(fallback.primaryBattery, null);
+  assert.equal(fallback.estimatedCostUsd, Math.round(7.5 * LIFEPO4_BENCHMARK_USD_PER_KWH));
+  assert.equal(fallback.estimatedCostUah, Math.round(fallback.estimatedCostUsd * 42));
+});
+
