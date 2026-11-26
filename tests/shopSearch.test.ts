@@ -309,4 +309,16 @@ test('ShopView renders accessible combobox search suggestion dropdown wired to g
   assert.match(shopViewSource, /role="option"/);
 });
 
+test('ProductCard displays full product titles with adaptive typography and no line-clamp truncation', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const cardSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ProductCard.tsx'),
+    'utf-8',
+  );
+
+  assert.doesNotMatch(cardSource, /line-clamp-/);
+  assert.match(cardSource, /getProductTitleSizeClass/);
+});
+
 

@@ -14,6 +14,17 @@ const CAT_LABELS: Record<string, string> = {
   parts: 'Комплектуючі',
 };
 
+export function getProductTitleSizeClass(title: string): string {
+  const length = title.trim().length;
+  if (length >= 80) {
+    return 'text-[12.5px] sm:text-[13px] leading-[1.35]';
+  }
+  if (length >= 52) {
+    return 'text-[13.5px] sm:text-[14px] leading-[1.35]';
+  }
+  return 'text-[15px] sm:text-[15.5px] leading-snug';
+}
+
 interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
@@ -147,7 +158,7 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="p-5 flex-1 flex flex-col justify-between gap-3.5 min-w-0">
+      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3.5 min-w-0">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#133659] mb-1.5 overflow-hidden text-ellipsis whitespace-nowrap">
             <span>{tr(CAT_LABELS[product.cat] || product.cat)}</span>
@@ -160,9 +171,14 @@ export function ProductCard({
           <button
             type="button"
             onClick={() => onSelect(product)}
-            className="text-left block w-full min-w-0 overflow-hidden cursor-pointer group"
+            className="text-left block w-full min-w-0 cursor-pointer group"
           >
-            <h3 className="text-[15.5px] font-bold text-[#061c36] leading-snug line-clamp-2 overflow-hidden text-ellipsis break-words min-h-[2.7rem] group-hover:text-[#0b66b2] transition-colors">
+            <h3
+              className={cn(
+                'font-bold text-[#061c36] break-words hyphens-none min-h-[2.6rem] group-hover:text-[#0b66b2] transition-colors',
+                getProductTitleSizeClass(localizedTitle),
+              )}
+            >
               {localizedTitle}
             </h3>
           </button>
