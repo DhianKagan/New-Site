@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { resolveSmartImageAttrs } from '../src/components/SmartImage.tsx';
+import { buildBlurPlaceholderDataUri, resolveSmartImageAttrs } from '../src/components/SmartImage.tsx';
 
 function listSourceFiles(dir: string): string[] {
   const out: string[] = [];
@@ -66,4 +66,44 @@ test('Only critical above-the-fold SmartImage instances use priority; all other 
 
   const videoBgSource = fs.readFileSync(path.join(srcDir, 'components', 'VideoBackground.tsx'), 'utf-8');
   assert.match(videoBgSource, /loading=\{lazy \? 'lazy' : 'eager'\}/);
+});
+
+test('buildBlurPlaceholderDataUri generates deterministic category-tinted SVG blur placeholders', () => {
+  const kitsUriA = buildBlurPlaceholderDataUri('/assets/products/kit-a.jpg', 'kits');
+  const kitsUriB = buildBlurPlaceholderDataUri('/assets/products/kit-b.jpg', 'kits');
+  const invUri = buildBlurPlaceholderDataUri('/assets/products/inv-a.png', 'inverters');
+  const batUri = buildBlurPlaceholderDataUri('/assets/products/bat-a.png', 'batteries');
+
+  assert.ok(kitsUriA.startsWith('data:image/svg+xml;charset=utf-8,'));
+  assert.equal(kitsUriA, buildBlurPlaceholderDataUri('/assets/products/kit-a.jpg', 'kits'));
+  assert.notEqual(kitsUriA, kitsUriB);
+  assert.notEqual(kitsUriA, invUri);
+
+  const decodedKit = decodeURIComponent(kitsUriA.replace('data:image/svg+xml;charset=utf-8,', ''));
+  const decodedBat = decodeURIComponent(batUri.replace('data:image/svg+xml;charset=utf-8,', ''));
+  assert.match(decodedKit, /<svg[^>]+viewBox="0 0 16 10"/);
+  assert.match(decodedKit, /#fef3c7/);
+  assert.match(decodedBat, /#ccfbf1/);
+});
+
+test('SmartImage and catalog product views implement progressive blur-up loading and reduced-motion safeguards', () => {
+  const srcDir = path.resolve(process.cwd(), 'src');
+  const smartImageSrc = fs.readFileSync(path.join(srcDir, 'components', 'SmartImage.tsx'), 'utf8');
+  assert.match(smartImageSrc, /data-progressive-state=\{isLoaded \? 'loaded' : 'loading'\}/);
+  assert.match(smartImageSrc, /img\.complete && img\.naturalWidth > 0/);
+  assert.match(smartImageSrc, /ec-blur-shimmer/);
+  assert.match(smartImageSrc, /motion-reduce:transition-none/);
+
+  for (const rel of [
+    'components/ProductCard.tsx',
+    'components/ShopView.tsx',
+    'components/QuickViewModal.tsx',
+    'components/ProductModal.tsx',
+    'components/CompareModal.tsx',
+    'components/SolarSavingsCalculator.tsx',
+  ]) {
+    const fileSrc = fs.readFileSync(path.join(srcDir, rel), 'utf8');
+    assert.match(fileSrc, /\bprogressive\b/, `${rel} should enable progressive blur-up loading`);
+    assert.match(fileSrc, /placeholderTone=/, `${rel} should pass category placeholderTone`);
+  }
 });

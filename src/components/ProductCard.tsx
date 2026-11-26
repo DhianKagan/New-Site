@@ -92,7 +92,10 @@ export const ProductCard = memo(function ProductCard({
             src={product.img}
             alt={localizedTitle}
             loading="lazy"
-            className={`w-full h-full transition-transform duration-200 group-hover:scale-[1.02] ${
+            progressive
+            placeholderTone={product.cat}
+            wrapperClassName="w-full h-full transition-transform duration-200 group-hover:scale-[1.02]"
+            className={`w-full h-full ${
               useCoverImage ? 'object-cover' : 'object-contain p-3.5'
             }`}
           />

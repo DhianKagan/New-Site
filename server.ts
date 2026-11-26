@@ -636,10 +636,21 @@ async function startServer() {
     const q = typeof req.query.q === 'string' ? req.query.q : undefined;
     const inStockOnly = req.query.inStockOnly === 'true' || req.query.inStockOnly === '1';
     const sort = typeof req.query.sort === 'string' ? req.query.sort : undefined;
+    const items = listProducts({ cat, brand, q, inStockOnly, sort });
+    const facets = getCatalogFacets();
 
     res.json({
-      items: listProducts({ cat, brand, q, inStockOnly, sort }),
-      facets: getCatalogFacets(),
+      items,
+      facets,
+      meta: {
+        environment: process.env.NODE_ENV || 'development',
+        dataDirMode: process.env.DATA_DIR ? 'custom' : 'default',
+        totalCount: facets.total,
+        kitCount: items.filter((p) => p.cat === 'kits' || p.isKit).length,
+        legacyKitCategoryMismatchCount: items.filter((p) => p.isKit && p.cat !== 'kits').length,
+        missingSkuKitCount: items.filter((p) => (p.cat === 'kits' || p.isKit) && !p.sku.trim()).length,
+        latestUpdatedAt: getLatestCatalogOrProjectUpdatedAt(),
+      },
     });
   });
 

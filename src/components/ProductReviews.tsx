@@ -20,6 +20,7 @@ import type {
   ProductReviewStats,
 } from '../types.ts';
 import { signInWithGooglePopup } from '../lib/firebaseAuth.ts';
+import { ReviewListSkeleton } from './CatalogSkeletons.tsx';
 import {
   createProductReview,
   deleteProductReview,
@@ -772,14 +773,7 @@ export function ProductReviews({
 
       {/* Reviews List */}
       {loading ? (
-        <div className="space-y-2.5" aria-busy="true">
-          {[1, 2].map((skeleton) => (
-            <div
-              key={skeleton}
-              className="h-20 rounded-xl border border-slate-200 bg-white animate-pulse"
-            />
-          ))}
-        </div>
+        <ReviewListSkeleton count={2} />
       ) : loadError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900">
           <div className="flex items-start gap-2">

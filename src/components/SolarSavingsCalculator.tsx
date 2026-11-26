@@ -420,6 +420,8 @@ export function SolarSavingsCalculator({
                           <SmartImage
                             src={item.img}
                             alt={itemTitle}
+                            progressive
+                            placeholderTone={item.cat}
                             className={`w-full h-full ${
                               item.isKit && item.id !== 'vysokovoltna-sistema-solax-x3-ies-p15b15'
                                 ? 'object-cover'

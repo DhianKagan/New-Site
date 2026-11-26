@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale, Banknote, Calculator, Hash } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { PerformanceProfiler } from './PerformanceProfiler.tsx';
+import { ProductCardSkeleton } from './CatalogSkeletons.tsx';
 import { ProductCard } from './ProductCard.tsx';
 import { ShopEmptyState } from './ShopEmptyState.tsx';
 import { SmartImage } from './SmartImage.tsx';
@@ -52,6 +53,7 @@ interface ShopViewProps {
   onOpenCustomRequest?: (topic: string, notes?: string) => void;
   onBackHome?: () => void;
   usdUahRate: number | null;
+  isLoading?: boolean;
 }
 
 const PAGE_SIZE = 24;
@@ -83,6 +85,7 @@ export function ShopView({
   onCalculatePayback,
   onOpenCustomRequest,
   usdUahRate,
+  isLoading = false,
 }: ShopViewProps) {
   const [cat, setCat] = useState<ProductCategory | 'all'>(initialCategory);
   const [query, setQuery] = useState(initialQuery);
@@ -663,7 +666,10 @@ export function ShopView({
                               <SmartImage
                                 src={item.img}
                                 alt={item.title}
-                                className="w-10 h-10 rounded-lg object-contain bg-white border border-sky-100 p-0.5 shrink-0"
+                                progressive
+                                placeholderTone={item.cat}
+                                wrapperClassName="w-10 h-10 rounded-lg bg-white border border-sky-100 shrink-0"
+                                className="w-full h-full object-contain p-0.5"
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="text-xs sm:text-[13px] font-bold text-[#07213e] truncate">
@@ -1223,7 +1229,17 @@ export function ShopView({
                 </div>
               </div>
 
-              {paginated.length === 0 ? (
+              {isLoading && paginated.length === 0 ? (
+                <div
+                  aria-busy="true"
+                  aria-label={tr('Завантаження товарів каталогу', 'Загрузка товаров каталога')}
+                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 items-stretch"
+                >
+                  {Array.from({ length: 6 }, (_, idx) => (
+                    <ProductCardSkeleton key={`shop-grid-skeleton-${idx}`} />
+                  ))}
+                </div>
+              ) : paginated.length === 0 ? (
                 <ShopEmptyState
                   query={query}
                   categoryLabel={cat !== 'all' ? tr(CATEGORY_TITLES[cat] || cat) : undefined}

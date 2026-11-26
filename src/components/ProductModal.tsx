@@ -334,6 +334,8 @@ export function ProductModal({
             <SmartImage
               src={product.img}
               alt={title}
+              progressive
+              placeholderTone={product.cat}
               className={`w-full h-full ${
                 product.isKit && product.id !== 'vysokovoltna-sistema-solax-x3-ies-p15b15'
                   ? 'object-cover'
@@ -341,7 +343,7 @@ export function ProductModal({
               }`}
             />
             {discountPct > 0 && (
-              <span className="absolute top-3 left-3 px-2 py-1 rounded-md bg-rose-600 text-white font-mono text-xs font-extrabold">
+              <span className="absolute top-3 left-3 z-10 px-2 py-1 rounded-md bg-rose-600 text-white font-mono text-xs font-extrabold">
                 -{discountPct}%
               </span>
             )}

@@ -27,6 +27,7 @@ import { SolarConstructorTab } from './cabinet/SolarConstructorTab.tsx';
 import { SystemSchemesTab } from './cabinet/SystemSchemesTab.tsx';
 import { TechGuideTab } from './cabinet/TechGuideTab.tsx';
 import { PerformanceProfiler } from './PerformanceProfiler.tsx';
+import { CabinetOrdersSkeleton } from './CatalogSkeletons.tsx';
 import { ProductCard } from './ProductCard.tsx';
 import { SmartImage } from './SmartImage.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
@@ -621,11 +622,7 @@ export function ClientCabinetView({
             )}
 
             {loading && deals.length === 0 ? (
-              <div className="space-y-3">
-                {[1, 2].map((n) => (
-                  <div key={n} className="h-32 rounded-xl bg-white border border-slate-200 animate-pulse" />
-                ))}
-              </div>
+              <CabinetOrdersSkeleton count={2} />
             ) : deals.length === 0 ? (
               <Card className="p-8 text-center">
                 <ShoppingBag className="w-9 h-9 text-slate-300 mx-auto mb-3" />

@@ -79,6 +79,16 @@ import { HeaderScrollProgress } from './components/HeaderScrollProgress.tsx';
 import { ScrollToTopButton } from './components/ScrollToTopButton.tsx';
 import { VerifiedWarrantyBadge } from './components/VerifiedWarrantyBadge.tsx';
 import { PerformanceProfiler } from './components/PerformanceProfiler.tsx';
+import { ViewRouteSkeleton } from './components/CatalogSkeletons.tsx';
+import {
+  computeCatalogFingerprint,
+  diffCatalogItems,
+  normalizeAndMergeKits,
+  readCachedCatalog,
+  recordCatalogSwrDiagnostics,
+  writeCachedCatalog,
+  type CatalogEnvironmentMeta,
+} from './lib/catalogCache.ts';
 
 const ShopView = lazyWithRetry(
   () => import('./components/ShopView.tsx').then((m) => ({ default: m.ShopView })),
@@ -524,13 +534,74 @@ function AppContent() {
     setLocale(nextLocale);
   }
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const initialCatalogSnapshot = useMemo(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'ssr';
+    const storage = typeof window !== 'undefined' ? window.localStorage : null;
+    const cached = readCachedCatalog(storage, OFFLINE_CATALOG_STORAGE_KEY);
+    if (cached.items.length === 0) {
+      return {
+        items: [] as Product[],
+        cachedAt: null as number | null,
+        cachedOrigin: null as string | null,
+        origin,
+        hadCache: false,
+      };
+    }
+    const normalized = normalizeAndMergeKits(cached.items, READY_TO_USE_KITS);
+    return {
+      items: normalized.items,
+      cachedAt: cached.cachedAt,
+      cachedOrigin: cached.cachedOrigin,
+      serverMeta: cached.serverMeta,
+      repairedKitIds: normalized.repairedKitIds,
+      injectedMissingKitIds: normalized.injectedMissingKitIds,
+      backfilledKitSkuIds: normalized.backfilledKitSkuIds,
+      origin,
+      hadCache: true,
+    };
+  }, []);
+
+  const [products, setProducts] = useState<Product[]>(initialCatalogSnapshot.items);
+  const productsRef = useRef<Product[]>(products);
+  productsRef.current = products;
+  const catalogCacheMetaRef = useRef<{
+    cachedAt: number | null;
+    cachedOrigin: string | null;
+  }>({
+    cachedAt: initialCatalogSnapshot.cachedAt,
+    cachedOrigin: initialCatalogSnapshot.cachedOrigin,
+  });
+  const inFlightCatalogFetchRef = useRef<Promise<void> | null>(null);
+  const hydratedDiagnosticLoggedRef = useRef(false);
   const [projects, setProjects] = useState<ProjectCase[]>(PROJECTS);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinksConfig>(DEFAULT_SOCIAL_LINKS);
   const [telegramConfigured, setTelegramConfigured] = useState(false);
-  const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [loadingCatalog, setLoadingCatalog] = useState(!initialCatalogSnapshot.hadCache);
   const [usdUahRate, setUsdUahRate] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!initialCatalogSnapshot.hadCache || hydratedDiagnosticLoggedRef.current) return;
+    hydratedDiagnosticLoggedRef.current = true;
+    const cacheAgeMs =
+      initialCatalogSnapshot.cachedAt !== null ? Math.max(0, Date.now() - initialCatalogSnapshot.cachedAt) : null;
+    recordCatalogSwrDiagnostics({
+      timestamp: new Date().toISOString(),
+      origin: initialCatalogSnapshot.origin,
+      phase: 'cache_hydrated',
+      cacheHit: true,
+      cacheAgeMs,
+      cachedOrigin: initialCatalogSnapshot.cachedOrigin,
+      originMismatch:
+        Boolean(initialCatalogSnapshot.cachedOrigin) &&
+        initialCatalogSnapshot.cachedOrigin !== initialCatalogSnapshot.origin,
+      serverMeta: initialCatalogSnapshot.serverMeta,
+      normalizedFingerprint: computeCatalogFingerprint(initialCatalogSnapshot.items),
+      repairedKitIds: initialCatalogSnapshot.repairedKitIds ?? [],
+      injectedMissingKitIds: initialCatalogSnapshot.injectedMissingKitIds ?? [],
+      backfilledKitSkuIds: initialCatalogSnapshot.backfilledKitSkuIds ?? [],
+    });
+  }, [initialCatalogSnapshot]);
 
   // Auth tokens held strictly in React memory (never persisted to localStorage)
   const [adminToken, setAdminToken] = useState<string | null>(null);
@@ -713,70 +784,151 @@ function AppContent() {
   }, [clientToken]);
 
   const fetchCatalog = useCallback(async () => {
-    const mergeMissingKits = (items: Product[]): Product[] => {
-      const kitById = new Map(READY_TO_USE_KITS.map((kit) => [kit.id, kit]));
-      const normalized = items.map((item) => {
-        const knownKit = kitById.get(item.id);
-        const shouldBeKit = item.isKit || Boolean(knownKit);
-        if (!shouldBeKit) return item;
-        const nextCat = item.cat === 'kits' ? item.cat : 'kits';
-        const nextSku = item.sku.trim() ? item.sku : (knownKit?.sku ?? item.sku);
-        const nextImg = item.img.trim() ? item.img : (knownKit?.img ?? item.img);
-        if (item.isKit && nextCat === item.cat && nextSku === item.sku && nextImg === item.img) {
-          return item;
-        }
-        return {
-          ...item,
-          isKit: true,
-          cat: nextCat,
-          sku: nextSku,
-          img: nextImg,
-        };
-      });
-      const existingIds = new Set(normalized.map((item) => item.id));
-      const missingKits = READY_TO_USE_KITS.filter((kit) => !existingIds.has(kit.id));
-      return missingKits.length > 0 ? [...normalized, ...missingKits] : normalized;
-    };
-
-    try {
-      const resp = await fetch('/api/catalog');
-      const isJson = resp.headers.get('content-type')?.includes('application/json');
-      if (resp.ok && isJson) {
-        const data = (await resp.json()) as { items: Product[] };
-        const merged = mergeMissingKits(data.items);
-        setProducts(merged);
-        setApiAvailable(true);
-        try {
-          localStorage.setItem(OFFLINE_CATALOG_STORAGE_KEY, JSON.stringify(merged));
-        } catch {
-          // ignore storage quota errors
-        }
-        return;
-      }
-      throw new Error('Catalog API unavailable');
-    } catch {
-      setApiAvailable(false);
-      try {
-        const cachedRaw = localStorage.getItem(OFFLINE_CATALOG_STORAGE_KEY);
-        if (cachedRaw) {
-          const cachedItems = JSON.parse(cachedRaw) as Product[];
-          if (Array.isArray(cachedItems) && cachedItems.length > 0) {
-            setProducts(mergeMissingKits(cachedItems));
-            return;
-          }
-        }
-      } catch {
-        // fallback to bundled seed catalog
-      }
-      try {
-        const seed = await import('../server/seed/catalog.json');
-        setProducts(mergeMissingKits(seed.default as Product[]));
-      } catch {
-        setProducts(READY_TO_USE_KITS);
-      }
-    } finally {
-      setLoadingCatalog(false);
+    if (inFlightCatalogFetchRef.current) {
+      return inFlightCatalogFetchRef.current;
     }
+
+    const run = (async () => {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'ssr';
+      const storage = typeof window !== 'undefined' ? window.localStorage : null;
+      const cachedAt = catalogCacheMetaRef.current.cachedAt;
+      const cachedOrigin = catalogCacheMetaRef.current.cachedOrigin;
+      const cacheAgeMs = cachedAt !== null ? Math.max(0, Date.now() - cachedAt) : null;
+      const originMismatch = Boolean(cachedOrigin) && cachedOrigin !== origin;
+      const currentProducts = productsRef.current;
+
+      try {
+        const resp = await fetch('/api/catalog', { cache: 'no-store' });
+        const isJson = resp.headers.get('content-type')?.includes('application/json');
+        if (resp.ok && isJson) {
+          const data = (await resp.json()) as {
+            items: Product[];
+            meta?: CatalogEnvironmentMeta;
+          };
+          const rawItems = Array.isArray(data.items) ? data.items : [];
+          const rawServerFingerprint = computeCatalogFingerprint(rawItems);
+          const normalizedReport = normalizeAndMergeKits(rawItems, READY_TO_USE_KITS);
+          const normalizedFingerprint = computeCatalogFingerprint(normalizedReport.items);
+          const diffFromCache = diffCatalogItems(currentProducts, normalizedReport.items);
+
+          if (currentProducts.length === 0 || diffFromCache.hasChanges) {
+            setProducts(normalizedReport.items);
+          }
+          setApiAvailable(true);
+
+          const nowMs = Date.now();
+          writeCachedCatalog(storage, OFFLINE_CATALOG_STORAGE_KEY, normalizedReport.items, origin, data.meta, nowMs);
+          catalogCacheMetaRef.current = { cachedAt: nowMs, cachedOrigin: origin };
+
+          recordCatalogSwrDiagnostics({
+            timestamp: new Date().toISOString(),
+            origin,
+            phase:
+              currentProducts.length > 0 && !diffFromCache.hasChanges
+                ? 'revalidated_unchanged'
+                : 'revalidated_updated',
+            cacheHit: currentProducts.length > 0,
+            cacheAgeMs,
+            cachedOrigin,
+            originMismatch,
+            serverMeta: data.meta,
+            rawServerFingerprint,
+            normalizedFingerprint,
+            repairedKitIds: normalizedReport.repairedKitIds,
+            injectedMissingKitIds: normalizedReport.injectedMissingKitIds,
+            backfilledKitSkuIds: normalizedReport.backfilledKitSkuIds,
+            diffFromCache,
+          });
+          return;
+        }
+        throw new Error(`Catalog API unavailable (HTTP ${resp.status})`);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        setApiAvailable(false);
+
+        if (currentProducts.length > 0) {
+          recordCatalogSwrDiagnostics({
+            timestamp: new Date().toISOString(),
+            origin,
+            phase: 'fallback_cache',
+            cacheHit: true,
+            cacheAgeMs,
+            cachedOrigin,
+            originMismatch,
+            normalizedFingerprint: computeCatalogFingerprint(currentProducts),
+            repairedKitIds: [],
+            injectedMissingKitIds: [],
+            backfilledKitSkuIds: [],
+            errorMessage,
+          });
+          return;
+        }
+
+        const cached = readCachedCatalog(storage, OFFLINE_CATALOG_STORAGE_KEY);
+        if (cached.items.length > 0) {
+          const normalizedReport = normalizeAndMergeKits(cached.items, READY_TO_USE_KITS);
+          setProducts(normalizedReport.items);
+          recordCatalogSwrDiagnostics({
+            timestamp: new Date().toISOString(),
+            origin,
+            phase: 'fallback_cache',
+            cacheHit: true,
+            cacheAgeMs: cached.cachedAt !== null ? Math.max(0, Date.now() - cached.cachedAt) : null,
+            cachedOrigin: cached.cachedOrigin,
+            originMismatch: Boolean(cached.cachedOrigin) && cached.cachedOrigin !== origin,
+            serverMeta: cached.serverMeta,
+            normalizedFingerprint: computeCatalogFingerprint(normalizedReport.items),
+            repairedKitIds: normalizedReport.repairedKitIds,
+            injectedMissingKitIds: normalizedReport.injectedMissingKitIds,
+            backfilledKitSkuIds: normalizedReport.backfilledKitSkuIds,
+            errorMessage,
+          });
+          return;
+        }
+
+        try {
+          const seed = await import('../server/seed/catalog.json');
+          const normalizedReport = normalizeAndMergeKits(seed.default as Product[], READY_TO_USE_KITS);
+          setProducts(normalizedReport.items);
+          recordCatalogSwrDiagnostics({
+            timestamp: new Date().toISOString(),
+            origin,
+            phase: 'fallback_seed',
+            cacheHit: false,
+            cacheAgeMs: null,
+            cachedOrigin: null,
+            originMismatch: false,
+            normalizedFingerprint: computeCatalogFingerprint(normalizedReport.items),
+            repairedKitIds: normalizedReport.repairedKitIds,
+            injectedMissingKitIds: normalizedReport.injectedMissingKitIds,
+            backfilledKitSkuIds: normalizedReport.backfilledKitSkuIds,
+            errorMessage,
+          });
+        } catch {
+          setProducts(READY_TO_USE_KITS);
+          recordCatalogSwrDiagnostics({
+            timestamp: new Date().toISOString(),
+            origin,
+            phase: 'fallback_kits',
+            cacheHit: false,
+            cacheAgeMs: null,
+            cachedOrigin: null,
+            originMismatch: false,
+            normalizedFingerprint: computeCatalogFingerprint(READY_TO_USE_KITS),
+            repairedKitIds: [],
+            injectedMissingKitIds: [],
+            backfilledKitSkuIds: [],
+            errorMessage,
+          });
+        }
+      } finally {
+        setLoadingCatalog(false);
+        inFlightCatalogFetchRef.current = null;
+      }
+    })();
+
+    inFlightCatalogFetchRef.current = run;
+    return run;
   }, []);
 
   const fetchAuthStatus = useCallback(async () => {
@@ -1893,18 +2045,7 @@ function AppContent() {
       <main className="flex-1">
         <Breadcrumbs items={breadcrumbItems} onNavigate={handleBreadcrumbNavigate} />
         {loadingCatalog && view !== 'crm' ? (
-          <div className="ec-main-radial-bg">
-            <div className="ec-container py-14">
-              <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
-                <div className="h-8 w-64 bg-sky-100 rounded animate-pulse" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} className="h-72 bg-sky-50/80 rounded-2xl animate-pulse" />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <ViewRouteSkeleton view={view} />
         ) : (
           <div className="ec-main-radial-bg break-words hyphens-none">
             {view === 'home' && (
@@ -1934,23 +2075,13 @@ function AppContent() {
               </PerformanceProfiler>
             )}
 
-            <Suspense
-              fallback={
-                <div className="ec-main-radial-bg">
-                  <div className="ec-container py-14">
-                    <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
-                      <div className="h-8 w-56 bg-sky-100 rounded animate-pulse" />
-                      <div className="h-56 bg-sky-50/80 rounded-2xl animate-pulse" />
-                    </div>
-                  </div>
-                </div>
-              }
-            >
+            <Suspense fallback={<ViewRouteSkeleton view={view} />}>
               {view === 'shop' && (
                 <PerformanceProfiler id="ShopView" trackLoad itemCount={products.length}>
                   <ShopView
                     usdUahRate={usdUahRate}
                     products={products}
+                    isLoading={loadingCatalog}
                     initialCategory={shopInitialCat}
                     initialQuery={shopInitialQuery}
                     wishlistIds={wishlistIds}

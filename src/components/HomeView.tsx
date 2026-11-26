@@ -14,6 +14,7 @@ import {
 import type { Deal, Product, ProductCategory, ProjectCase } from '../types.ts';
 import { BRAND_PARTNERS, COMPANY_INFO } from '../data/siteContent.ts';
 import { PerformanceProfiler } from './PerformanceProfiler.tsx';
+import { ProductCardSkeleton } from './CatalogSkeletons.tsx';
 import { ProductCard } from './ProductCard.tsx';
 import { BatterySizingCalculator } from './BatterySizingCalculator.tsx';
 import { SmartImage } from './SmartImage.tsx';
@@ -972,22 +973,24 @@ export function HomeView({
 
           <PerformanceProfiler id="HomeView.ProductShowcase" itemCount={activeShowcase.length}>
             <div className={showcaseGridClass}>
-              {activeShowcase.map((prod) => (
-                <ProductCard
-                  usdUahRate={usdUahRate}
-                  key={prod.id}
-                  product={prod}
-                  onSelect={onSelectProduct}
-                  onQuickView={onQuickViewProduct}
-                  isWishlisted={wishlistSet.has(prod.id)}
-                  onToggleWishlist={onToggleWishlist}
-                  isCompared={compareSet.has(prod.id)}
-                  onToggleCompare={onToggleCompare}
-                  onAddToCart={onAddToCart}
-                  onCalculatePayback={onCalculatePayback}
-                  onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
-                />
-              ))}
+              {activeShowcase.length === 0
+                ? [0, 1, 2].map((idx) => <ProductCardSkeleton key={`showcase-skeleton-${idx}`} />)
+                : activeShowcase.map((prod) => (
+                    <ProductCard
+                      usdUahRate={usdUahRate}
+                      key={prod.id}
+                      product={prod}
+                      onSelect={onSelectProduct}
+                      onQuickView={onQuickViewProduct}
+                      isWishlisted={wishlistSet.has(prod.id)}
+                      onToggleWishlist={onToggleWishlist}
+                      isCompared={compareSet.has(prod.id)}
+                      onToggleCompare={onToggleCompare}
+                      onAddToCart={onAddToCart}
+                      onCalculatePayback={onCalculatePayback}
+                      onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
+                    />
+                  ))}
             </div>
           </PerformanceProfiler>
 

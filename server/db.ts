@@ -539,7 +539,10 @@ export function reconcileSeedCatalogOnStartup(
   const now = new Date().toISOString();
 
   // 1. Normalize any legacy kit rows where is_kit = 1 was stored under another category (e.g. 'parts')
-  db.prepare("UPDATE products SET cat = 'kits', updated_at = ? WHERE is_kit = 1 AND cat != 'kits'").run(now);
+  const legacyKitFixRes = db
+    .prepare("UPDATE products SET cat = 'kits', updated_at = ? WHERE is_kit = 1 AND cat != 'kits'")
+    .run(now);
+  const normalizedLegacyKitRows = Number(legacyKitFixRes.changes ?? 0);
 
   if (!fs.existsSync(seedCatalogPath)) return;
 
@@ -589,6 +592,11 @@ export function reconcileSeedCatalogOnStartup(
     "UPDATE products SET cat = 'kits', is_kit = 1, updated_at = ? WHERE id = ? AND (cat != 'kits' OR is_kit != 1)",
   );
 
+  let insertedMissingSeedCount = 0;
+  let normalizedSeedKitCount = 0;
+  let backfilledSkuCount = 0;
+  let backfilledImgCount = 0;
+
   db.exec('BEGIN;');
   try {
     for (const p of seedProducts) {
@@ -596,7 +604,7 @@ export function reconcileSeedCatalogOnStartup(
       if (!existing) {
         // Insert new seed items that haven't been synced before (preserves admin deletions once synced)
         if (!previouslySyncedIds.has(p.id)) {
-          insertMissing.run(
+          const insertRes = insertMissing.run(
             p.id,
             p.sku,
             p.title,
@@ -614,18 +622,22 @@ export function reconcileSeedCatalogOnStartup(
             p.sourceUrl ?? '',
             now,
           );
+          insertedMissingSeedCount += Number(insertRes.changes ?? 0);
         }
         continue;
       }
 
       if (p.isKit && p.cat === 'kits' && (existing.cat !== 'kits' || Number(existing.is_kit) !== 1)) {
-        normalizeSeedKitStmt.run(now, p.id);
+        const res = normalizeSeedKitStmt.run(now, p.id);
+        normalizedSeedKitCount += Number(res.changes ?? 0);
       }
       if (p.sku?.trim() && !String(existing.sku ?? '').trim()) {
-        backfillSkuStmt.run(p.sku.trim(), now, p.id);
+        const res = backfillSkuStmt.run(p.sku.trim(), now, p.id);
+        backfilledSkuCount += Number(res.changes ?? 0);
       }
       if (p.img?.trim() && !String(existing.img ?? '').trim()) {
-        backfillImgStmt.run(p.img.trim(), now, p.id);
+        const res = backfillImgStmt.run(p.img.trim(), now, p.id);
+        backfilledImgCount += Number(res.changes ?? 0);
       }
     }
 
@@ -643,6 +655,31 @@ export function reconcileSeedCatalogOnStartup(
   } catch (err) {
     db.exec('ROLLBACK;');
     throw err;
+  }
+
+  const finalCount = Number(
+    (db.prepare('SELECT COUNT(*) as cnt FROM products').get() as { cnt?: number } | undefined)?.cnt ?? 0,
+  );
+  if (
+    normalizedLegacyKitRows > 0 ||
+    insertedMissingSeedCount > 0 ||
+    normalizedSeedKitCount > 0 ||
+    backfilledSkuCount > 0 ||
+    backfilledImgCount > 0 ||
+    finalCount !== seedProducts.length
+  ) {
+    console.info('[CatalogSync] Startup DB/seed reconciliation diagnostics', {
+      env: process.env.NODE_ENV || 'development',
+      dataDir: DATA_DIR,
+      dbCountBefore: existingRows.length,
+      dbCountAfter: finalCount,
+      seedCount: seedProducts.length,
+      normalizedLegacyKitRows,
+      normalizedSeedKitCount,
+      insertedMissingSeedCount,
+      backfilledSkuCount,
+      backfilledImgCount,
+    });
   }
 }
 

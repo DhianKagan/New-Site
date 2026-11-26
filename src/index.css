@@ -425,6 +425,50 @@
   will-change: opacity, transform;
 }
 
+@keyframes ecBlurShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ec-blur-shimmer {
+  animation: ecBlurShimmer 1.35s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes ecSkeletonSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ec-skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(203, 224, 245, 0.58);
+}
+
+.ec-skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.68) 48%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: ecSkeletonSweep 1.45s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .video-bg-fade-in {
     animation: none;
@@ -439,6 +483,14 @@
     animation: none;
     opacity: 1;
     transform: none;
+  }
+  .ec-blur-shimmer {
+    animation: none;
+    display: none;
+  }
+  .ec-skeleton-shimmer::after {
+    animation: none;
+    display: none;
   }
   .ec-banner,
   .ec-glass-plate,

@@ -381,6 +381,8 @@ export function CompareModal({
                                   <SmartImage
                                     src={product.img}
                                     alt={title}
+                                    progressive
+                                    placeholderTone={product.cat}
                                     className={`w-full h-full ${
                                       product.isKit && product.id !== 'vysokovoltna-sistema-solax-x3-ies-p15b15'
                                         ? 'object-cover'
@@ -389,7 +391,7 @@ export function CompareModal({
                                   />
                                 </button>
                                 {discountPct > 0 && (
-                                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-rose-600 text-white font-mono text-[10px] font-extrabold">
+                                  <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded bg-rose-600 text-white font-mono text-[10px] font-extrabold">
                                     -{discountPct}%
                                   </span>
                                 )}
