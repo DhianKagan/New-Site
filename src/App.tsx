@@ -1,5 +1,27 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
-import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check, Heart } from 'lucide-react';
+import {
+  ShoppingBag,
+  Menu,
+  X,
+  PhoneCall,
+  Send,
+  User,
+  AlertTriangle,
+  RefreshCw,
+  Home,
+  Copy,
+  Check,
+  Heart,
+  Package,
+  Wrench,
+  Building2,
+  Truck,
+  FileText,
+  LayoutDashboard,
+  LogIn,
+  ChevronRight,
+  Calculator,
+} from 'lucide-react';
 import type {
   AdminAuthStatus,
   AnalyticsConfig,
@@ -396,6 +418,17 @@ function AppContent() {
   useEffect(() => {
     captureAttribution();
   }, []);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     const handleWindowError = (event: ErrorEvent) => {
@@ -1646,20 +1679,25 @@ function AppContent() {
 
         {/* Mobile / Tablet Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden w-full max-w-full overflow-x-hidden border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/95 to-[#051c3b]/95 backdrop-blur-xl px-4 py-4 space-y-2">
-            {/* Quick Mobile Actions: Wishlist & Cart */}
-            <div className="sm:hidden grid grid-cols-2 gap-2 pb-1">
+          <nav
+            aria-label={tr('Мобільна навігація', 'Мобильная навигация')}
+            className="lg:hidden w-full max-w-full max-h-[calc(100dvh-3.75rem)] overflow-y-auto overscroll-contain border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/97 via-[#062145]/97 to-[#041731]/98 backdrop-blur-xl px-4 pt-3.5 pb-5 space-y-4"
+          >
+            {/* Quick Commerce Bar (mobile < sm) */}
+            <div className="sm:hidden grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   handleOpenWishlist();
                 }}
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-white/10 hover:bg-white/18 border border-sky-200/20 text-xs font-bold text-white cursor-pointer"
+                className="min-h-[44px] flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-sky-200/20 text-xs font-bold text-white transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
               >
-                <Heart className={`w-3.5 h-3.5 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-200'}`} />
-                <span className="truncate">{tr('Обране', 'Избранное')}</span>
-                <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
+                <span className="flex items-center gap-2 min-w-0">
+                  <Heart className={`w-4 h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-200'}`} />
+                  <span className="truncate">{tr('Обране', 'Избранное')}</span>
+                </span>
+                <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none shrink-0">
                   {wishlistIds.length}
                 </span>
               </button>
@@ -1669,56 +1707,222 @@ function AppContent() {
                   setMobileMenuOpen(false);
                   handleOpenCart();
                 }}
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-[#051a36]/85 hover:bg-[#07264d] border border-sky-200/20 text-xs font-bold text-white cursor-pointer"
+                className="min-h-[44px] flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-[#051a36]/90 hover:bg-[#07264d] border border-sky-200/20 text-xs font-bold text-white transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
               >
-                <ShoppingBag className="w-3.5 h-3.5 text-[#fbbf24] shrink-0" />
-                <span className="truncate">{tr('Кошик', 'Корзина')}</span>
-                <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
+                <span className="flex items-center gap-2 min-w-0">
+                  <ShoppingBag className="w-4 h-4 text-[#fbbf24] shrink-0" />
+                  <span className="truncate">{tr('Кошик', 'Корзина')}</span>
+                </span>
+                <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none shrink-0">
                   {cartTotalCount}
                 </span>
               </button>
             </div>
 
-            {(
-              [
-                ['home', '/', tr('Головна')],
-                ['shop', '/shop', `${tr('Обладнання')} (${products.length})`],
-                ['services', '/services', tr('Послуги монтажу та інжинірингу')],
-                ['projects', '/projects', `${tr('Реалізовані проєкти')} (${projects.length})`],
-                ['contacts', '/contacts', tr('Контакти')],
-                ['payment-delivery', '/payment-delivery', tr('Оплата і доставка')],
-                ['offer', '/public-offer', tr('Публічна оферта')],
-                ...(adminToken
-                  ? ([['crm', '/crm', crmButtonLabel]] as const)
-                  : clientToken
-                    ? ([['account', '/account', tr('Особистий кабінет', 'Личный кабинет')]] as const)
-                    : ([['login', '/login', tr('Увійти / Реєстрація', 'Войти / Регистрация')]] as const)),
-              ] as const
-            ).map(([v, href, label]) => (
-              <a
-                key={v}
-                href={href}
-                onClick={(e) => handleNavAnchor(e, v)}
-                className="block w-full text-left px-3 py-2.5 rounded-lg bg-white/10 hover:bg-white/16 border border-sky-200/15 text-sm font-bold text-white overflow-hidden text-ellipsis whitespace-nowrap transition-colors"
-              >
-                {label}
-              </a>
-            ))}
+            {/* Tier 1: Primary Storefront Navigation */}
+            <div className="space-y-1.5">
+              <p className="px-1 text-[11px] font-bold uppercase tracking-[0.08em] text-sky-200/65">
+                {tr('Навігація', 'Навигация')}
+              </p>
+              <div className="rounded-xl border border-sky-200/18 bg-white/[0.06] divide-y divide-sky-200/10 overflow-hidden">
+                {(
+                  [
+                    {
+                      v: 'home' as const,
+                      href: '/',
+                      label: tr('Головна'),
+                      icon: Home,
+                      count: null,
+                    },
+                    {
+                      v: 'shop' as const,
+                      href: '/shop',
+                      label: tr('Обладнання'),
+                      icon: Package,
+                      count: products.length,
+                    },
+                    {
+                      v: 'services' as const,
+                      href: '/services',
+                      label: tr('Послуги монтажу та інжинірингу'),
+                      icon: Wrench,
+                      count: null,
+                    },
+                    {
+                      v: 'projects' as const,
+                      href: '/projects',
+                      label: tr('Реалізовані проєкти'),
+                      icon: Building2,
+                      count: projects.length,
+                    },
+                  ] as const
+                ).map(({ v, href, label, icon: Icon, count }) => {
+                  const isActive = view === v;
+                  return (
+                    <a
+                      key={v}
+                      href={href}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={(e) => handleNavAnchor(e, v)}
+                      className={`min-h-[48px] flex items-center justify-between gap-3 px-3.5 py-2.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-300 ${
+                        isActive
+                          ? 'bg-sky-400/20 text-white font-bold'
+                          : 'text-sky-50/95 font-semibold hover:bg-white/[0.08] active:bg-white/[0.12]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                            isActive
+                              ? 'bg-[#0ea5e9] text-white shadow-[0_2px_10px_rgba(14,165,233,0.4)]'
+                              : 'bg-sky-300/12 text-sky-200'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" aria-hidden="true" />
+                        </span>
+                        <span className="truncate">{label}</span>
+                      </span>
+                      <span className="flex items-center gap-2 shrink-0">
+                        {count !== null && (
+                          <span className="text-xs font-mono tabular-nums text-sky-200/80">
+                            {count}
+                          </span>
+                        )}
+                        <ChevronRight
+                          className={`w-4 h-4 shrink-0 ${isActive ? 'text-sky-200' : 'text-sky-200/45'}`}
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Tier 2: Information, Contacts & Account */}
+            <div className="space-y-1.5">
+              <p className="px-1 text-[11px] font-bold uppercase tracking-[0.08em] text-sky-200/65">
+                {tr('Інформація та кабінет', 'Информация и кабинет')}
+              </p>
+              <div className="rounded-xl border border-sky-200/12 bg-white/[0.03] divide-y divide-sky-200/10 overflow-hidden">
+                {(
+                  [
+                    {
+                      v: 'contacts' as const,
+                      href: '/contacts',
+                      label: tr('Контакти'),
+                      icon: PhoneCall,
+                      accent: false,
+                    },
+                    {
+                      v: 'payment-delivery' as const,
+                      href: '/payment-delivery',
+                      label: tr('Оплата і доставка'),
+                      icon: Truck,
+                      accent: false,
+                    },
+                    {
+                      v: 'offer' as const,
+                      href: '/public-offer',
+                      label: tr('Публічна оферта'),
+                      icon: FileText,
+                      accent: false,
+                    },
+                    ...(adminToken
+                      ? ([
+                          {
+                            v: 'crm' as const,
+                            href: '/crm',
+                            label: crmButtonLabel,
+                            icon: LayoutDashboard,
+                            accent: true,
+                          },
+                        ] as const)
+                      : clientToken
+                        ? ([
+                            {
+                              v: 'account' as const,
+                              href: '/account',
+                              label: tr('Особистий кабінет', 'Личный кабинет'),
+                              icon: User,
+                              accent: true,
+                            },
+                          ] as const)
+                        : ([
+                            {
+                              v: 'login' as const,
+                              href: '/login',
+                              label: tr('Увійти / Реєстрація', 'Войти / Регистрация'),
+                              icon: LogIn,
+                              accent: true,
+                            },
+                          ] as const)),
+                  ] as const
+                ).map(({ v, href, label, icon: Icon, accent }) => {
+                  const isActive = view === v;
+                  return (
+                    <a
+                      key={v}
+                      href={href}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={(e) => handleNavAnchor(e, v)}
+                      className={`min-h-[46px] flex items-center justify-between gap-3 px-3.5 py-2 text-[13.5px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-300 ${
+                        isActive
+                          ? 'bg-sky-400/20 text-white font-bold'
+                          : 'text-sky-100/90 font-medium hover:bg-white/[0.07] active:bg-white/[0.11]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                            isActive
+                              ? 'bg-[#0ea5e9] text-white'
+                              : accent
+                                ? 'bg-amber-400/15 text-amber-300'
+                                : 'bg-white/[0.08] text-sky-200/85'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                        </span>
+                        <span className="truncate">{label}</span>
+                      </span>
+                      <ChevronRight
+                        className={`w-4 h-4 shrink-0 ${isActive ? 'text-sky-200' : 'text-sky-200/40'}`}
+                        aria-hidden="true"
+                      />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Tier 3: Primary Action CTA */}
             <button
               type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
                 openLeadModal('Підбір рішення з мобільного меню');
               }}
-              className="block w-full text-center px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] text-white text-sm font-bold"
+              className="min-h-[48px] w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] hover:from-[#38bdf8] hover:to-[#0284c7] border border-sky-300/35 text-white text-sm font-bold shadow-[0_6px_18px_rgba(14,165,233,0.3)] transition-all cursor-pointer active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
             >
-              {tr('Підібрати рішення')}
+              <Calculator className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>{tr('Підібрати рішення')}</span>
+              <ChevronRight className="w-4 h-4 shrink-0 opacity-85" aria-hidden="true" />
             </button>
-            <div className="pt-2 border-t border-sky-200/15 flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-sky-200/80">{tr('Ми в соцмережах:', 'Мы в соцсетях:')}</span>
+
+            {/* Tier 4: Direct Phone & Socials */}
+            <div className="pt-3 border-t border-sky-200/15 flex flex-wrap items-center justify-between gap-3">
+              <a
+                href={COMPANY_INFO.phone1Href}
+                onClick={() => track({ name: 'phone_click', placement: 'section', scenario: 'unspecified' })}
+                className="inline-flex items-center gap-2 text-xs font-bold text-white hover:text-sky-200 tabular-nums transition-colors py-1"
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-[#fbbf24] shrink-0" aria-hidden="true" />
+                <span>{COMPANY_INFO.phone1}</span>
+              </a>
               <SocialIcons links={socialLinks} variant="footer" />
             </div>
-          </div>
+          </nav>
         )}
       </header>
 
