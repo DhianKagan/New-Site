@@ -34,7 +34,7 @@ import type {
   SocialLinksConfig,
   UnifiedAuthResult,
 } from './types.ts';
-import { COMPANY_INFO, PROJECTS } from './data/siteContent.ts';
+import { COMPANY_INFO, PROJECTS, READY_TO_USE_KITS } from './data/siteContent.ts';
 import {
   captureAttribution,
   initAnalytics,
@@ -663,15 +663,22 @@ function AppContent() {
   }, [clientToken]);
 
   const fetchCatalog = useCallback(async () => {
+    const mergeMissingKits = (items: Product[]): Product[] => {
+      const existingIds = new Set(items.map((item) => item.id));
+      const missingKits = READY_TO_USE_KITS.filter((kit) => !existingIds.has(kit.id));
+      return missingKits.length > 0 ? [...items, ...missingKits] : items;
+    };
+
     try {
       const resp = await fetch('/api/catalog');
       const isJson = resp.headers.get('content-type')?.includes('application/json');
       if (resp.ok && isJson) {
         const data = (await resp.json()) as { items: Product[] };
-        setProducts(data.items);
+        const merged = mergeMissingKits(data.items);
+        setProducts(merged);
         setApiAvailable(true);
         try {
-          localStorage.setItem(OFFLINE_CATALOG_STORAGE_KEY, JSON.stringify(data.items));
+          localStorage.setItem(OFFLINE_CATALOG_STORAGE_KEY, JSON.stringify(merged));
         } catch {
           // ignore storage quota errors
         }
@@ -685,7 +692,7 @@ function AppContent() {
         if (cachedRaw) {
           const cachedItems = JSON.parse(cachedRaw) as Product[];
           if (Array.isArray(cachedItems) && cachedItems.length > 0) {
-            setProducts(cachedItems);
+            setProducts(mergeMissingKits(cachedItems));
             return;
           }
         }
@@ -694,9 +701,9 @@ function AppContent() {
       }
       try {
         const seed = await import('../server/seed/catalog.json');
-        setProducts(seed.default as Product[]);
+        setProducts(mergeMissingKits(seed.default as Product[]));
       } catch {
-        // ignore fallback load failure
+        setProducts(READY_TO_USE_KITS);
       }
     } finally {
       setLoadingCatalog(false);

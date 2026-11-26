@@ -1,4 +1,4 @@
-import type { ProjectCase, ServiceItem } from '../types.ts';
+import type { Product, ProjectCase, ServiceItem } from '../types.ts';
 
 export const COMPANY_INFO = {
   name: 'Energo Comfort',
@@ -312,6 +312,429 @@ export const FAQ_ITEMS: FaqItem[] = [
     a: 'Літій-залізо-фосфатні (LiFePO4) батареї Deye, Dyness і SolaX не виділяють газів і є пожежобезпечними, тому підходять для коридорів, комор і техприміщень. Ресурс понад 6 000 циклів забезпечує 12–15 років щоденної роботи.',
     qRu: 'Безопасно ли устанавливать аккумуляторы LiFePO4 в квартире или доме и на сколько лет их хватает?',
     aRu: 'Литий-железо-фосфатные (LiFePO4) батареи Deye, Dyness и SolaX не выделяют газов и пожаробезопасны, поэтому подходят для коридоров, кладовых и техпомещений. Ресурс свыше 6 000 циклов обеспечивает 12–15 лет ежедневной работы.',
+  },
+];
+
+export const READY_TO_USE_KITS: Product[] = [
+  {
+    id: 'systema-rezervnogo-zhyvlennya-deye-10kw-akb-10kwh-pid-klyuch',
+    sku: '8011',
+    title: '☀️ Готове рішення Deye 10 кВт / 10.2 кВт*год',
+    titleRu: '☀️ Готовое решение Deye 10 кВт / 10.2 кВт·ч',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'Deye',
+    isKit: true,
+    price: 4500,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/systema-rezervnogo-zhyvlennya-deye-10kw-akb-10kwh-pid-klyuch.png',
+    specs: [
+      ['Потужність', '10 кВт'],
+      ['Ємність АКБ', '10.2 кВт·год'],
+    ],
+    specsRu: [
+      ['Мощность', '10 кВт'],
+      ['Ёмкость АКБ', '10.2 кВт·ч'],
+    ],
+    description:
+      'Готове рішення Deye 10 кВт + 2× АКБ 5.1 кВт·год (10.2 кВт·год) із захисною автоматикою та монтажем під ключ для великих приватних будинків і котеджів.',
+    descriptionRu:
+      'Готовое решение Deye 10 кВт + 2× АКБ 5.1 кВт·ч (10.2 кВт·ч) с защитной автоматикой и монтажом под ключ для больших частных домов и коттеджей.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-deye-10kw-akb-10kwh-pid-klyuch',
+  },
+  {
+    id: 'systema-rezervnogo-zhyvlennya-deye-6kw-akb-5kwh-montazh-pid-klyuch',
+    sku: '8010',
+    title: '☀️ Готове рішення Deye 6 кВт / 5.1 кВт*год',
+    titleRu: '☀️ Готовое решение Deye 6 кВт / 5.1 кВт·ч',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'Deye',
+    isKit: true,
+    price: 2999,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/systema-rezervnogo-zhyvlennya-deye-6kw-akb-5kwh-montazh-pid-klyuch.png',
+    specs: [
+      ['Потужність', '6 кВт'],
+      ['Ємність АКБ', '5.1 кВт·год'],
+    ],
+    specsRu: [
+      ['Мощность', '6 кВт'],
+      ['Ёмкость АКБ', '5.1 кВт·ч'],
+    ],
+    description:
+      'Готове рішення 6 кВт / 5.1 кВт·год (Deye + повний комплект матеріалів + монтаж в Одесі під ключ) для квартири, будинку чи офісу.',
+    descriptionRu:
+      'Готовое решение 6 кВт / 5.1 кВт·ч (Deye + полный комплект материалов + монтаж в Одессе под ключ) для квартиры, дома или офиса.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-deye-6kw-akb-5kwh-montazh-pid-klyuch',
+  },
+  {
+    id: 'systema-rezervnogo-zhyvlennya-must-4kw-akb-5kwh-montazh-pid-klyuch',
+    sku: '8030',
+    title: '☀️ Готове рішення Must 4 кВт / 5.1 кВт*год',
+    titleRu: '☀️ Готовое решение Must 4 кВт / 5.1 кВт·ч',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'Must',
+    isKit: true,
+    price: 2000,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/systema-rezervnogo-zhyvlennya-must-4kw-akb-5kwh-montazh-pid-klyuch.png',
+    specs: [
+      ['Потужність', '4 кВт'],
+      ['Ємність АКБ', '5.1 кВт·год'],
+    ],
+    specsRu: [
+      ['Мощность', '4 кВт'],
+      ['Ёмкость АКБ', '5.1 кВт·ч'],
+    ],
+    description:
+      'Система резервного живлення «Must Comfort» 4 кВт / 5.1 кВт·год (інвертор + LiFePO4 АКБ + монтаж в Одесі під ключ).',
+    descriptionRu:
+      'Система резервного питания «Must Comfort» 4 кВт / 5.1 кВт·ч (инвертор + LiFePO4 АКБ + монтаж в Одессе под ключ).',
+    sourceUrl:
+      'https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-must-4kw-akb-5kwh-montazh-pid-klyuch',
+  },
+  {
+    id: 'systema-rezervnogo-zhyvlennya-must-6-2kw-akb-5kwh-montazh-pid-klyuch',
+    sku: '8654',
+    title: '☀️ Готове рішення Must 6.2 кВт + АКБ 5.12 кВт·год',
+    titleRu: '☀️ Готовое решение Must 6.2 кВт + АКБ 5.12 кВт·ч',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'Must',
+    isKit: true,
+    price: 2600,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/systema-rezervnogo-zhyvlennya-must-6-2kw-akb-5kwh-montazh-pid-klyuch.jpg',
+    specs: [
+      ['Потужність', '6.2 кВт'],
+      ['Ємність АКБ', '5.12 кВт·год'],
+    ],
+    specsRu: [
+      ['Мощность', '6.2 кВт'],
+      ['Ёмкость АКБ', '5.12 кВт·ч'],
+    ],
+    description:
+      'Система резервного живлення MUST 6.2 кВт + АКБ 5.12 кВт·год із захистом та професійним монтажем під ключ.',
+    descriptionRu:
+      'Система резервного питания MUST 6.2 кВт + АКБ 5.12 кВт·ч с защитой и профессиональным монтажом под ключ.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/systema-rezervnogo-zhyvlennya-must-6-2kw-akb-5kwh-montazh-pid-klyuch',
+  },
+  {
+    id: 'sistema-rezervnogo-zhyvlennya-solax-5kw-akb-5-3kwh-pid-klyuch',
+    sku: '8055',
+    title: '☀️ Готове рішення SolaX Power 5 кВт + 5.3 кВт*год',
+    titleRu: '☀️ Готовое решение SolaX Power 5 кВт + 5.3 кВт·ч',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'SolaX',
+    isKit: true,
+    price: 2499,
+    oldPrice: 2999,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/sistema-rezervnogo-zhyvlennya-solax-5kw-akb-5-3kwh-pid-klyuch.png',
+    specs: [
+      ['Потужність', '5 кВт'],
+      ['Ємність АКБ', '5.3 кВт·год'],
+    ],
+    specsRu: [
+      ['Мощность', '5 кВт'],
+      ['Ёмкость АКБ', '5.3 кВт·ч'],
+    ],
+    description:
+      'Система резервного живлення SolaX Power 5 кВт + АКБ 5.3 кВт·год з монтажем в Одесі «під ключ».',
+    descriptionRu:
+      'Система резервного питания SolaX Power 5 кВт + АКБ 5.3 кВт·ч с монтажом в Одессе «под ключ».',
+    sourceUrl:
+      'https://energocomfort.shop/shop/sistema-rezervnogo-zhyvlennya-solax-5kw-akb-5-3kwh-pid-klyuch',
+  },
+  {
+    id: 'sistema-rezervnogo-zhivlennya-solax-10kw-t-bat-5-3kwh-pid-klyuch',
+    sku: '7854',
+    title: '☀️ Готове рішення SolaX Premium 10 кВт + 2х АКБ 5.3 кВт·год',
+    titleRu: '☀️ Готовое решение SolaX Premium 10 кВт + 2× АКБ 5.3 кВт·ч',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'SolaX',
+    isKit: true,
+    price: 3999,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/sistema-rezervnogo-zhivlennya-solax-10kw-t-bat-5-3kwh-pid-klyuch.png',
+    specs: [
+      ['Потужність', '10 кВт'],
+      ['Ємність АКБ', '10.6 кВт·год'],
+    ],
+    specsRu: [
+      ['Мощность', '10 кВт'],
+      ['Ёмкость АКБ', '10.6 кВт·ч'],
+    ],
+    description:
+      'Система резервного живлення SolaX Premium 10 кВт + 2× АКБ 5.3 кВт·год (10.6 кВт·год) з монтажем в Одесі під ключ.',
+    descriptionRu:
+      'Система резервного питания SolaX Premium 10 кВт + 2× АКБ 5.3 кВт·ч (10.6 кВт·ч) с монтажом в Одессе под ключ.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/sistema-rezervnogo-zhivlennya-solax-10kw-t-bat-5-3kwh-pid-klyuch',
+  },
+  {
+    id: 'sonyachna-stantsiya-deye-10kw-akb-10kwh-20trina-bifacial-pid-klyuch',
+    sku: '8021',
+    title: '☀️ Готове рішення СЕС Deye 10 кВт / 10.2 кВт*год + 20x Trina BIFACIAL',
+    titleRu: '☀️ Готовое решение СЭС Deye 10 кВт / 10.2 кВт·ч + 20× Trina BIFACIAL',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'sonyachni-elektrostanciyi-pid-klyuch',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'Deye',
+    isKit: true,
+    price: 8500,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/sonyachna-stantsiya-deye-10kw-akb-10kwh-20trina-bifacial-pid-klyuch.png',
+    specs: [
+      ['Потужність', '10 кВт'],
+      ['Ємність АКБ', '10.2 кВт·год'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    specsRu: [
+      ['Мощность', '10 кВт'],
+      ['Ёмкость АКБ', '10.2 кВт·ч'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    description:
+      'Сонячна електростанція Deye 10 кВт / 10.2 кВт·год + 20× Trina Solar Bifacial із кріпленням та монтажем під ключ в Одесі.',
+    descriptionRu:
+      'Солнечная электростанция Deye 10 кВт / 10.2 кВт·ч + 20× Trina Solar Bifacial с креплениями и монтажом под ключ в Одессе.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/sonyachna-stantsiya-deye-10kw-akb-10kwh-20trina-bifacial-pid-klyuch',
+  },
+  {
+    id: 'sonyachna-stantsiya-deye-6kw-akb-5kwh-trina-bifacial-pid-klyuch',
+    sku: '8020',
+    title: '☀️ Готове рішення СЕС Deye 6 кВт / 5.1 кВт*год + 10x Trina BIFACIAL',
+    titleRu: '☀️ Готовое решение СЭС Deye 6 кВт / 5.1 кВт·ч + 10× Trina BIFACIAL',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'sonyachni-elektrostanciyi-pid-klyuch',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'Deye',
+    isKit: true,
+    price: 4500,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/sonyachna-stantsiya-deye-6kw-akb-5kwh-trina-bifacial-pid-klyuch.png',
+    specs: [
+      ['Потужність', '6 кВт'],
+      ['Ємність АКБ', '5.1 кВт·год'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    specsRu: [
+      ['Мощность', '6 кВт'],
+      ['Ёмкость АКБ', '5.1 кВт·ч'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    description:
+      'Готове рішення СЕС «Максимальна генерація» Deye 6 кВт / 5.1 кВт·год + 10× Trina Solar Bifacial із монтажем під ключ.',
+    descriptionRu:
+      'Готовое решение СЭС «Максимальная генерация» Deye 6 кВт / 5.1 кВт·ч + 10× Trina Solar Bifacial с монтажом под ключ.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/sonyachna-stantsiya-deye-6kw-akb-5kwh-trina-bifacial-pid-klyuch',
+  },
+  {
+    id: 'ses-solax-10kw-2x-t-bat-10-6kwh-20x-trina-bifacial',
+    sku: '8213',
+    title: '☀️ Готове рішення СЕС SolaX Power 10 кВт / 10.6 кВт*год + 20x Trina BIFACIAL',
+    titleRu: '☀️ Готовое решение СЭС SolaX Power 10 кВт / 10.6 кВт·ч + 20× Trina BIFACIAL',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'sonyachni-elektrostanciyi-pid-klyuch',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'SolaX',
+    isKit: true,
+    price: 9000,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/ses-solax-10kw-2x-t-bat-10-6kwh-20x-trina-bifacial.png',
+    specs: [
+      ['Потужність', '10 кВт'],
+      ['Ємність АКБ', '10.6 кВт·год'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    specsRu: [
+      ['Мощность', '10 кВт'],
+      ['Ёмкость АКБ', '10.6 кВт·ч'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    description:
+      'Готове рішення СЕС «Повна енергонезалежність» SolaX Power 10 кВт / 10.6 кВт·год + 20× Trina Bifacial із монтажем під ключ.',
+    descriptionRu:
+      'Готовое решение СЭС «Полная энергонезависимость» SolaX Power 10 кВт / 10.6 кВт·ч + 20× Trina Bifacial с монтажом под ключ.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/ses-solax-10kw-2x-t-bat-10-6kwh-20x-trina-bifacial',
+  },
+  {
+    id: 'ses-solax-5kw-t-bat-5-3kwh-trina-bifacial',
+    sku: '8831',
+    title: '☀️ Готове рішення СЕС SolaX Power 5 кВт / 5.3 кВт*год + 10x Trina BIFACIAL',
+    titleRu: '☀️ Готовое решение СЭС SolaX Power 5 кВт / 5.3 кВт·ч + 10× Trina BIFACIAL',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'sonyachni-elektrostanciyi-pid-klyuch',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'SolaX',
+    isKit: true,
+    price: 4500,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'в наявності',
+    statusLabelRu: 'в наличии',
+    img: '/assets/products/ses-solax-5kw-t-bat-5-3kwh-trina-bifacial.png',
+    specs: [
+      ['Потужність', '5 кВт'],
+      ['Ємність АКБ', '5.3 кВт·год'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    specsRu: [
+      ['Мощность', '5 кВт'],
+      ['Ёмкость АКБ', '5.3 кВт·ч'],
+      ['Тип модуля', 'Bifacial N-Type'],
+    ],
+    description:
+      'Готове рішення СЕС «Інтелектуальна автономія» SolaX Power 5 кВт / 5.3 кВт·год + 10× Trina Bifacial із монтажем під ключ.',
+    descriptionRu:
+      'Готовое решение СЭС «Интеллектуальная автономия» SolaX Power 5 кВт / 5.3 кВт·ч + 10× Trina Bifacial с монтажом под ключ.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/ses-solax-5kw-t-bat-5-3kwh-trina-bifacial',
+  },
+  {
+    id: 'komplekt-rezervnoho-zhyvlennya-deye-8kw-akb-16kwh',
+    sku: '8389',
+    title: '☀️ Готове рішення Deye 8 кВт / 16 кВт*год',
+    titleRu: '☀️ Готовое решение Deye 8 кВт / 16 кВт·ч',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'Deye',
+    isKit: true,
+    price: 3999,
+    oldPrice: 0,
+    inStock: true,
+    statusLabel: 'очікується',
+    statusLabelRu: 'ожидается',
+    img: '/assets/products/komplekt-rezervnoho-zhyvlennya-deye-8kw-akb-16kwh.jpg',
+    specs: [
+      ['Потужність', '8 кВт'],
+      ['Ємність АКБ', '16 кВт·год'],
+      ['Технологія', 'LiFePO4'],
+    ],
+    specsRu: [
+      ['Мощность', '8 кВт'],
+      ['Ёмкость АКБ', '16 кВт·ч'],
+      ['Технология', 'LiFePO4'],
+    ],
+    description:
+      'Готове рішення для енергонезалежності «ПІД КЛЮЧ» — комплект резервного живлення Deye 8 кВт + LiFePO4 АКБ 16 кВт·год.',
+    descriptionRu:
+      'Готовое решение для энергонезависимости «ПОД КЛЮЧ» — комплект резервного питания Deye 8 кВт + LiFePO4 АКБ 16 кВт·ч.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/komplekt-rezervnoho-zhyvlennya-deye-8kw-akb-16kwh',
+  },
+  {
+    id: 'vysokovoltna-sistema-solax-x3-ies-p15b15',
+    sku: '9988',
+    title: 'Гібридна система накопичення енергії SolaX Power X3-IES-P15B15 (15 кВт / 15 кВт*год, High Voltage)',
+    titleRu: 'Гибридная система накопления энергии SolaX Power X3-IES-P15B15 (15 кВт / 15 кВт·ч, High Voltage)',
+    cat: 'kits',
+    rawCats: [
+      'gotovi-rishennya-dlya-energonezalezhnosti',
+      'rezervne-zhivlennya-dlya-domu-ta-kvartiri',
+      'gotovi-rishennya-ses-pid-klyuch',
+    ],
+    brand: 'SolaX',
+    isKit: true,
+    price: 10120,
+    oldPrice: 0,
+    inStock: false,
+    statusLabel: 'немає в наявності',
+    statusLabelRu: 'нет в наличии',
+    img: '/assets/products/vysokovoltna-sistema-solax-x3-ies-p15b15.png',
+    specs: [
+      ['Потужність', '15 кВт'],
+      ['Ємність АКБ', '15 кВт·год'],
+      ['Тип системи', 'Високовольтна (HV)'],
+    ],
+    specsRu: [
+      ['Мощность', '15 кВт'],
+      ['Ёмкость АКБ', '15 кВт·ч'],
+      ['Тип системы', 'Высоковольтная (HV)'],
+    ],
+    description:
+      'SolaX Power X3-IES-P15B15 — високовольтне (High Voltage) рішення преміум-класу формату «All-in-One» потужністю 15 кВт із накопичувачем 15 кВт·год.',
+    descriptionRu:
+      'SolaX Power X3-IES-P15B15 — высоковольтное (High Voltage) решение премиум-класса формата «All-in-One» мощностью 15 кВт с накопителем 15 кВт·ч.',
+    sourceUrl:
+      'https://energocomfort.shop/shop/vysokovoltna-sistema-solax-x3-ies-p15b15',
   },
 ];
 

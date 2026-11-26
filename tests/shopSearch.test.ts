@@ -366,4 +366,19 @@ test('ShopView renders price range inputs, budget slider, and budget presets', a
   assert.match(shopViewSource, /matchesPriceRange/);
 });
 
+test('ShopView applies Tailwind fade-in and slide-up entrance classes on mount and category changes', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const shopViewSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ShopView.tsx'),
+    'utf-8',
+  );
+
+  assert.doesNotMatch(shopViewSource, /shop-card-fade-in/);
+  assert.match(shopViewSource, /motion-safe:transition-all/);
+  assert.match(shopViewSource, /motion-safe:opacity-0/);
+  assert.match(shopViewSource, /motion-safe:translate-y-4/);
+  assert.match(shopViewSource, /opacity-100 translate-y-0/);
+  assert.match(shopViewSource, /\}, \[cat\]\);/);
+});
 

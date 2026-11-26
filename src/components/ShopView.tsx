@@ -90,6 +90,8 @@ export function ShopView({
   const [sort, setSort] = useState<'default' | 'asc' | 'desc'>('default');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
+  const [cardsVisible, setCardsVisible] = useState(false);
+  const [isEntering, setIsEntering] = useState(true);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -97,10 +99,31 @@ export function ShopView({
   const lastTrackedSearchRef = useRef('');
 
   useEffect(() => {
+    setIsEntering(true);
+    setCardsVisible(false);
     setCat(initialCategory);
     setSelectedEquipmentTypes([]);
     setPage(1);
   }, [initialCategory]);
+
+  useEffect(() => {
+    setIsEntering(true);
+    setCardsVisible(false);
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        setCardsVisible(true);
+      });
+    });
+    const doneTimer = window.setTimeout(() => {
+      setIsEntering(false);
+    }, 850);
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      if (raf2) window.cancelAnimationFrame(raf2);
+      window.clearTimeout(doneTimer);
+    };
+  }, [cat]);
 
   useEffect(() => {
     setQuery(initialQuery);
@@ -268,6 +291,10 @@ export function ShopView({
   }, [query, cat, filtered.length]);
 
   function handleCategoryChange(nextCat: ProductCategory | 'all') {
+    if (nextCat !== cat) {
+      setIsEntering(true);
+      setCardsVisible(false);
+    }
     setCat(nextCat);
     setSelectedEquipmentTypes([]);
     setPage(1);
@@ -1118,7 +1145,7 @@ export function ShopView({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 items-stretch">
                   {paginated.map((p, index) => (
                     <ProductCard
-                      key={`${cat}-${safePage}-${p.id}`}
+                      key={`${cat}-${p.id}`}
                       product={p}
                       onSelect={onSelectProduct}
                       onQuickView={onQuickViewProduct}
@@ -1130,8 +1157,16 @@ export function ShopView({
                       onRequestQuote={(prod) => onRequestQuote(prod)}
                       onCalculatePayback={onCalculatePayback}
                       usdUahRate={usdUahRate}
-                      className="shop-card-fade-in duration-200 ease-out motion-safe:hover:scale-[1.015]"
-                      style={{ animationDelay: `${Math.min(index, 11) * 30}ms` }}
+                      className={
+                        isEntering
+                          ? `motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out motion-safe:hover:scale-[1.015] ${
+                              cardsVisible
+                                ? 'opacity-100 translate-y-0'
+                                : 'motion-safe:opacity-0 motion-safe:translate-y-4'
+                            }`
+                          : 'opacity-100 translate-y-0 duration-200 ease-out motion-safe:hover:scale-[1.015]'
+                      }
+                      style={isEntering ? { transitionDelay: `${Math.min(index, 11) * 30}ms` } : undefined}
                     />
                   ))}
                 </div>
