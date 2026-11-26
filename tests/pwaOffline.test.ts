@@ -2,9 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { existsSync, readFileSync } from 'node:fs';
 
-test('PWA icon assets and SVG exist in public/', () => {
+test('PWA and favicon assets (vector SVG + all scales) exist in public/', () => {
   const requiredAssets = [
     '../public/icon.svg',
+    '../public/icon-maskable.svg',
+    '../public/favicon.ico',
+    '../public/favicon-16x16.png',
+    '../public/favicon-32x32.png',
+    '../public/favicon-48x48.png',
     '../public/apple-touch-icon.png',
     '../public/pwa-192x192.png',
     '../public/pwa-512x512.png',
@@ -24,6 +29,7 @@ test('vite.config.ts configures VitePWA manifest, critical precaching, and runti
   assert.ok(viteConfig.includes("short_name: 'EnergoShop'"));
   assert.ok(viteConfig.includes("display: 'standalone'"));
   assert.ok(viteConfig.includes("purpose: 'maskable'"));
+  assert.ok(viteConfig.includes("type: 'image/svg+xml'"));
   assert.ok(viteConfig.includes("cacheName: 'api-catalog-cache'"));
   assert.ok(viteConfig.includes("cacheName: 'storefront-assets-cache'"));
   assert.ok(viteConfig.includes("navigateFallback: '/index.html'"));
@@ -35,6 +41,10 @@ test('index.html, main.tsx, tsconfig.json, and App.tsx wire PWA registration, in
   assert.ok(html.includes('apple-touch-icon.png'));
   assert.ok(html.includes('apple-mobile-web-app-capable'));
   assert.ok(html.includes('icon.svg'));
+  assert.ok(html.includes('favicon-16x16.png'));
+  assert.ok(html.includes('favicon-32x32.png'));
+  assert.ok(html.includes('favicon-48x48.png'));
+  assert.ok(html.includes('favicon.ico'));
 
   const tsconfig = readFileSync(new URL('../tsconfig.json', import.meta.url), 'utf8');
   assert.ok(tsconfig.includes('vite-plugin-pwa/client'));

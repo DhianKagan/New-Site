@@ -16,8 +16,12 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: [
           'favicon.ico',
+          'favicon-16x16.png',
+          'favicon-32x32.png',
+          'favicon-48x48.png',
           'apple-touch-icon.png',
           'icon.svg',
+          'icon-maskable.svg',
           'pwa-192x192.png',
           'pwa-512x512.png',
           'pwa-maskable-512x512.png',
@@ -36,6 +40,18 @@ export default defineConfig(() => {
           start_url: '/',
           scope: '/',
           icons: [
+            {
+              src: '/icon.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any',
+            },
+            {
+              src: '/icon-maskable.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'maskable',
+            },
             {
               src: '/pwa-192x192.png',
               sizes: '192x192',
@@ -63,6 +79,7 @@ export default defineConfig(() => {
           skipWaiting: true,
           globPatterns: [
             '**/*.{js,css,html,ico,svg,woff,woff2}',
+            'favicon-*.png',
             'pwa-*.png',
             'apple-touch-icon.png',
             'assets/energocomfort/logo_mark.webp',

@@ -1486,11 +1486,11 @@ function AppContent() {
       {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
       <header className="sticky top-0 z-40 w-full max-w-full overflow-x-clip bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
         <div className="ec-container h-14 sm:h-16 lg:h-[68px] grid grid-cols-[minmax(0,1fr)_auto] lg:flex items-center justify-between gap-1.5 sm:gap-4 min-w-0">
-          {/* Zone 1: Single-line Brand Wordmark (width-constrained on mobile so Zone 3 never overflows) */}
+          {/* Zone 1: Single-line Brand Wordmark */}
           <a
             href="/"
             onClick={(e) => handleNavAnchor(e, 'home')}
-            className="flex items-center gap-1.5 sm:gap-2 min-w-0 max-w-[42vw] sm:max-w-none justify-self-start lg:shrink-0 text-left overflow-hidden"
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 max-w-full justify-self-start lg:shrink-0 text-left overflow-hidden"
           >
             <SmartImage
               src="/assets/energocomfort/logo_mark.webp"
@@ -1498,7 +1498,7 @@ function AppContent() {
               priority
               className="h-6 w-6 sm:h-8 sm:w-8 object-contain rounded-lg bg-white/95 p-0.5 shadow-sm shrink-0"
             />
-            <span className="text-[12px] min-[390px]:text-[13px] sm:text-base lg:text-lg font-extrabold tracking-tight text-white whitespace-nowrap truncate min-w-0">
+            <span className="text-[12.5px] min-[390px]:text-[13.5px] sm:text-base lg:text-lg font-extrabold tracking-tight text-white whitespace-nowrap truncate min-w-0">
               Energo Comfort
             </span>
           </a>
@@ -1552,14 +1552,14 @@ function AppContent() {
             </a>
           </nav>
 
-          {/* Zone 3: Quick Lead CTA + Wishlist + Compact Cart Button + Mobile/Tablet Menu */}
-          <div className="flex items-center justify-end gap-1 min-[400px]:gap-1.5 sm:gap-2 shrink-0 justify-self-end">
+          {/* Zone 3: Quick Lead CTA + Wishlist (sm+) + Compact Cart Button + Mobile/Tablet Menu (3 harmonious buttons on mobile) */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 justify-self-end">
             <button
               type="button"
               onClick={() => openLeadModal('Підбір рішення з шапки сайту')}
-              className="hidden min-[430px]:inline-flex items-center justify-center h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-lg bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] hover:from-[#38bdf8] hover:to-[#0284c7] border border-sky-300/35 text-white text-[11px] sm:text-xs font-bold shadow-[0_4px_14px_rgba(14,165,233,0.3)] transition-all whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center justify-center h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-lg bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] hover:from-[#38bdf8] hover:to-[#0284c7] border border-sky-300/35 text-white text-[11px] sm:text-xs font-bold shadow-[0_4px_14px_rgba(14,165,233,0.3)] transition-all whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <span className="sm:hidden">{tr('Підібрати')}</span>
+              <span className="sm:hidden">{tr('Підібрати', 'Подобрать')}</span>
               <span className="hidden sm:inline">{tr('Підібрати рішення')}</span>
             </button>
 
@@ -1568,9 +1568,9 @@ function AppContent() {
               onClick={handleOpenWishlist}
               aria-label={`${tr('Список бажань', 'Список желаний')} (${wishlistIds.length})`}
               title={tr('Список бажань', 'Список желаний')}
-              className="inline-flex items-center justify-center gap-1 h-8 sm:h-9 px-1.5 sm:px-2.5 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 hover:border-sky-200/50 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="hidden sm:inline-flex items-center justify-center gap-1 h-8 sm:h-9 px-2.5 rounded-lg border border-sky-200/30 bg-white/10 hover:bg-white/18 hover:border-sky-200/50 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-100'}`} />
+              <Heart className={`w-4 h-4 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-100'}`} />
               <span className="font-mono text-[11px] text-sky-100 tabular-nums leading-none">
                 {wishlistIds.length}
               </span>
@@ -1605,6 +1605,38 @@ function AppContent() {
         {/* Mobile / Tablet Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden w-full max-w-full overflow-x-hidden border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/95 to-[#051c3b]/95 backdrop-blur-xl px-4 py-4 space-y-2">
+            {/* Quick Mobile Actions: Wishlist & Cart */}
+            <div className="sm:hidden grid grid-cols-2 gap-2 pb-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleOpenWishlist();
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-white/10 hover:bg-white/18 border border-sky-200/20 text-xs font-bold text-white cursor-pointer"
+              >
+                <Heart className={`w-3.5 h-3.5 shrink-0 ${wishlistIds.length > 0 ? 'fill-rose-400 text-rose-400' : 'text-sky-200'}`} />
+                <span className="truncate">{tr('Обране', 'Избранное')}</span>
+                <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
+                  {wishlistIds.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleOpenCart();
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-[#051a36]/85 hover:bg-[#07264d] border border-sky-200/20 text-xs font-bold text-white cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-[#fbbf24] shrink-0" />
+                <span className="truncate">{tr('Кошик', 'Корзина')}</span>
+                <span className="font-mono text-[11px] bg-white/15 px-1.5 py-0.5 rounded tabular-nums leading-none">
+                  {cartTotalCount}
+                </span>
+              </button>
+            </div>
+
             {(
               [
                 ['home', '/', tr('Головна')],
@@ -1835,7 +1867,7 @@ function AppContent() {
 
       {/* Footer */}
       {view !== 'crm' && (
-        <footer className="bg-gradient-to-b from-[#072347]/92 to-[#051a36]/95 backdrop-blur-xl text-sky-100/85 pt-12 pb-20 lg:pb-12 border-t border-sky-200/20 break-words hyphens-none">
+        <footer className="bg-gradient-to-r from-[#072750]/95 via-[#0d488a]/90 to-[#072750]/95 backdrop-blur-xl text-sky-100/85 pt-12 pb-20 lg:pb-12 border-t border-sky-300/25 break-words hyphens-none">
           <div className="ec-container">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="min-w-0 break-words hyphens-none">
@@ -1999,13 +2031,13 @@ function AppContent() {
         !quickViewProduct &&
         !paybackProduct &&
         !selectedCase && (
-        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-[#f0f7ff]/95 backdrop-blur-md border-t border-sky-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-gradient-to-r from-[#072750]/95 via-[#0d488a]/92 to-[#072750]/95 backdrop-blur-xl border-t border-sky-300/25 shadow-[0_-8px_28px_rgba(4,18,40,0.34)] px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
             onClick={() => track({ name: 'phone_click', placement: 'sticky', scenario: 'unspecified' })}
-            className="flex-1 min-w-0 min-h-12 rounded-xl border border-sky-200 bg-white text-[#07213e] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"
+            className="flex-1 min-w-0 min-h-11 rounded-xl border border-sky-200/30 bg-white/10 hover:bg-white/18 text-white text-[11px] font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
           >
-            <PhoneCall className="w-4 h-4 text-[#0b66b2]" />
+            <PhoneCall className="w-4 h-4 text-sky-200 shrink-0" />
             {tr('Подзвонити', 'Позвонить')}
           </a>
           <button
@@ -2014,11 +2046,23 @@ function AppContent() {
               track({ name: 'cta_click', placement: 'sticky', scenario: 'unspecified' });
               openLeadModal('Експрес-підбір із мобільної панелі', undefined, 'sticky');
             }}
-            className="flex-1 min-w-0 min-h-12 rounded-xl bg-[#0b66b2] text-white text-[11px] font-bold inline-flex items-center justify-center whitespace-nowrap cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#07213e]"
+            className="flex-1 min-w-0 min-h-11 rounded-xl bg-gradient-to-r from-[#0ea5e9] to-[#0b66b2] hover:from-[#38bdf8] hover:to-[#0284c7] border border-sky-300/40 text-white text-[11px] font-bold inline-flex items-center justify-center whitespace-nowrap shadow-[0_4px_14px_rgba(14,165,233,0.35)] transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
           >
             {tr('Розрахунок', 'Расчёт')}
           </button>
-          {socialLinks.telegram && <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" aria-label="Telegram" onClick={() => track({ name: 'messenger_click', placement: 'sticky', scenario: 'unspecified', channel: 'telegram' })} className="flex-1 min-w-0 min-h-12 rounded-xl border border-sky-200 bg-sky-50 text-[#0b66b2] text-[11px] font-bold inline-flex items-center justify-center gap-1 whitespace-nowrap"><Send className="w-4 h-4" />Telegram</a>}
+          {socialLinks.telegram && (
+            <a
+              href={socialLinks.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Telegram"
+              onClick={() => track({ name: 'messenger_click', placement: 'sticky', scenario: 'unspecified', channel: 'telegram' })}
+              className="flex-1 min-w-0 min-h-11 rounded-xl border border-sky-200/30 bg-[#051a36]/85 hover:bg-[#07264d] text-white text-[11px] font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors"
+            >
+              <Send className="w-4 h-4 text-[#38bdf8] shrink-0" />
+              Telegram
+            </a>
+          )}
         </div>
       )}
 
