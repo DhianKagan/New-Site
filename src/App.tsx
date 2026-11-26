@@ -483,16 +483,22 @@ function AppContent() {
   const [leadNotes, setLeadNotes] = useState('');
 
   useEffect(() => {
+    let rafId = 0;
     const updateStickyVisibility = () => {
-      const viewport = window.visualViewport;
-      const keyboardOpen = Boolean(viewport && viewport.height < window.innerHeight * 0.72);
-      setStickyCtaVisible(window.scrollY > window.innerHeight && !keyboardOpen);
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        const viewport = window.visualViewport;
+        const keyboardOpen = Boolean(viewport && viewport.height < window.innerHeight * 0.72);
+        setStickyCtaVisible(window.scrollY > window.innerHeight && !keyboardOpen);
+      });
     };
     window.addEventListener('scroll', updateStickyVisibility, { passive: true });
-    window.addEventListener('resize', updateStickyVisibility);
+    window.addEventListener('resize', updateStickyVisibility, { passive: true });
     window.visualViewport?.addEventListener('resize', updateStickyVisibility);
     updateStickyVisibility();
     return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
       window.removeEventListener('scroll', updateStickyVisibility);
       window.removeEventListener('resize', updateStickyVisibility);
       window.visualViewport?.removeEventListener('resize', updateStickyVisibility);
@@ -979,29 +985,43 @@ function AppContent() {
     if (!analyticsReady || view === 'crm' || view === 'login' || view === 'account') return;
     const fired = new Set<number>();
     const routePath = `${window.location.pathname}${window.location.search}`;
+    let rafId = 0;
     const onScroll = () => {
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (docHeight <= 150) return;
-      const pct = Math.round((window.scrollY / docHeight) * 100);
-      for (const threshold of [50, 90]) {
-        if (pct >= threshold && !fired.has(threshold)) {
-          fired.add(threshold);
-          trackEvent('scroll_depth', {
-            percent_scrolled: threshold,
-            page_path: routePath,
-          });
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (docHeight <= 150) return;
+        const pct = Math.round((window.scrollY / docHeight) * 100);
+        for (const threshold of [50, 90]) {
+          if (pct >= threshold && !fired.has(threshold)) {
+            fired.add(threshold);
+            trackEvent('scroll_depth', {
+              percent_scrolled: threshold,
+              page_path: routePath,
+            });
+          }
         }
-      }
+      });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, [analyticsReady, view, shopInitialCat, selectedProduct]);
+
+  const selectedProductRef = useRef(selectedProduct);
+  selectedProductRef.current = selectedProduct;
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (selectedProduct) {
-          handleCloseProductModal();
+        if (selectedProductRef.current) {
+          setSelectedProduct(null);
+          if (window.location.pathname.startsWith('/shop/')) {
+            window.history.back();
+          }
         }
         setQuickViewProduct(null);
         setPaybackProduct(null);
@@ -1013,7 +1033,7 @@ function AppContent() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  });
+  }, []);
 
   function navigateTo(
     nextView: AppView,

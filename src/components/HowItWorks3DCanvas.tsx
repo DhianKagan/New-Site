@@ -48,24 +48,14 @@ const _cSun = new THREE.Color();
 const _cSunGlow = new THREE.Color();
 const CYCLE_DURATION_SECONDS = 24;
 
-function detectSoftwareWebGL(): { supported: boolean; isSoftwareGl: boolean } {
-  if (typeof document === 'undefined') {
-    return { supported: false, isSoftwareGl: true };
-  }
+function isRendererSoftwareWebGL(gl: WebGLRenderingContext | WebGL2RenderingContext): boolean {
   try {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-    if (!gl) {
-      return { supported: false, isSoftwareGl: true };
-    }
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     const param = ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER;
     const gpu = String(gl.getParameter(param) ?? '');
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
-    const isSoftwareGl = /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
-    return { supported: true, isSoftwareGl };
+    return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(gpu);
   } catch {
-    return { supported: false, isSoftwareGl: true };
+    return false;
   }
 }
 
@@ -539,13 +529,17 @@ export function HowItWorks3DCanvas({
     const container = mountRef.current;
     if (!container) return;
 
-    const probe = detectSoftwareWebGL();
-    if (!probe.supported) {
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+      });
+    } catch {
       setWebglUnavailable(true);
       return;
     }
 
-    const isSoftwareGl = probe.isSoftwareGl;
+    const isSoftwareGl = isRendererSoftwareWebGL(renderer.getContext());
     const prefersReducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -556,9 +550,6 @@ export function HowItWorks3DCanvas({
     const width = Math.max(container.clientWidth, 320);
     const height = Math.max(container.clientHeight, 320);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isSoftwareGl,
-    });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
@@ -1651,8 +1642,18 @@ export function HowItWorks3DCanvas({
     let lastRaycastTime = 0;
     let pointerDownPos = { x: 0, y: 0 };
 
+    let cachedDomRect: DOMRect | null = null;
+    const invalidateDomRect = () => {
+      cachedDomRect = null;
+    };
+    window.addEventListener('scroll', invalidateDomRect, { passive: true });
+    window.addEventListener('resize', invalidateDomRect, { passive: true });
+
     const updateNdc = (clientX: number, clientY: number) => {
-      const rect = renderer.domElement.getBoundingClientRect();
+      if (!cachedDomRect) {
+        cachedDomRect = renderer.domElement.getBoundingClientRect();
+      }
+      const rect = cachedDomRect;
       pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
       pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     };
@@ -1699,6 +1700,7 @@ export function HowItWorks3DCanvas({
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (!entry) return;
+      cachedDomRect = null;
       const nextW = Math.max(Math.floor(entry.contentRect.width), 280);
       const nextH = Math.max(Math.floor(entry.contentRect.height), 260);
       camera.fov = nextW < 520 ? 52 : nextW < 768 ? 46 : 40;
@@ -2067,6 +2069,8 @@ export function HowItWorks3DCanvas({
       timer.disconnect();
       timer.dispose();
       resizeObserver.disconnect();
+      window.removeEventListener('scroll', invalidateDomRect);
+      window.removeEventListener('resize', invalidateDomRect);
       controls.removeEventListener('start', onControlStart);
       controls.dispose();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);

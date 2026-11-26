@@ -304,6 +304,8 @@ export function VideoBackground({
       ? `${src.split('#')[0]}#t=${effectiveStart ?? 0}${effectiveEnd !== undefined ? `,${effectiveEnd}` : ''}`
       : src;
 
+  const allowYouTubeIframe = !youtubeEmbedUrl || position === 'fixed';
+
   useEffect(() => {
     const prefersReducedMotion =
       typeof window !== 'undefined' &&
@@ -312,34 +314,22 @@ export function VideoBackground({
       typeof navigator !== 'undefined' &&
       Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
 
-    if (prefersReducedMotion || saveDataEnabled) {
+    if (prefersReducedMotion || saveDataEnabled || !allowYouTubeIframe) {
       setShouldRenderMedia(false);
       return;
     }
 
     if (!lazy) {
-      const win = typeof window !== 'undefined' ? window : null;
-      if (!win) return;
-      let timerId: number | null = null;
-      let idleId: number | null = null;
-      const activate = () => setShouldRenderMedia(true);
-
-      const winWithIdle = win as Window & {
-        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-        cancelIdleCallback?: (id: number) => void;
-      };
-
-      if (typeof winWithIdle.requestIdleCallback === 'function') {
-        idleId = winWithIdle.requestIdleCallback(activate, { timeout: 1400 });
-      } else {
-        timerId = win.setTimeout(activate, 1000);
-      }
+      let rafId = 0;
+      const timerId = window.setTimeout(() => {
+        rafId = window.requestAnimationFrame(() => {
+          setShouldRenderMedia(true);
+        });
+      }, 1200);
       return () => {
-        if (idleId !== null && typeof winWithIdle.cancelIdleCallback === 'function') {
-          winWithIdle.cancelIdleCallback(idleId);
-        }
-        if (timerId !== null) {
-          win.clearTimeout(timerId);
+        window.clearTimeout(timerId);
+        if (rafId) {
+          window.cancelAnimationFrame(rafId);
         }
       };
     }
@@ -382,7 +372,7 @@ export function VideoBackground({
       }
       observer.disconnect();
     };
-  }, [lazy]);
+  }, [lazy, allowYouTubeIframe]);
 
   useEffect(() => {
     return () => {
@@ -399,7 +389,7 @@ export function VideoBackground({
   }, [youtubeEmbedUrl, directVideoSrc]);
 
   useEffect(() => {
-    if (!youtubeEmbedUrl || !shouldRenderMedia) return;
+    if (!youtubeEmbedUrl || !shouldRenderMedia || !allowYouTubeIframe) return;
 
     const sendPlayerCommand = (func: string, args: unknown[] = []) => {
       const target = iframeRef.current?.contentWindow;
@@ -423,7 +413,8 @@ export function VideoBackground({
     };
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.source && iframeRef.current?.contentWindow && event.source !== iframeRef.current.contentWindow) {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) {
         return;
       }
       if (
@@ -436,6 +427,7 @@ export function VideoBackground({
 
       let payload: unknown = event.data;
       if (typeof payload === 'string') {
+        if (!payload.startsWith('{')) return;
         try {
           payload = JSON.parse(payload);
         } catch {
@@ -483,7 +475,7 @@ export function VideoBackground({
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [youtubeEmbedUrl, shouldRenderMedia, loop, autoPlay]);
+  }, [youtubeEmbedUrl, shouldRenderMedia, allowYouTubeIframe, loop, autoPlay]);
 
   useEffect(() => {
     if (youtubeEmbedUrl || !shouldRenderMedia || !videoRef.current) return;
@@ -528,11 +520,11 @@ export function VideoBackground({
           alt=""
           aria-hidden="true"
           className={`absolute inset-0 w-full h-full object-cover scale-105 ${
-            isLightTone ? 'brightness-95 saturate-105' : 'brightness-90'
-          }`}
+            !allowYouTubeIframe ? 'opacity-20 ' : ''
+          }${isLightTone ? 'brightness-95 saturate-105' : 'brightness-90'}`}
         />
 
-        {shouldRenderMedia &&
+        {shouldRenderMedia && allowYouTubeIframe &&
           (youtubeEmbedUrl ? (
             <iframe
               ref={iframeRef}

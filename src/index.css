@@ -124,8 +124,6 @@
     rgba(255, 250, 240, 0.92) 48%,
     rgba(219, 240, 255, 0.94) 100%
   );
-  background-size: 200% 200%;
-  animation: ecGradientFlow 16s ease-in-out infinite;
   backdrop-filter: blur(20px) saturate(1.5);
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
   border-bottom: 1px solid rgba(147, 197, 253, 0.65);
@@ -145,8 +143,6 @@
     rgba(226, 243, 255, 0.90) 52%,
     rgba(236, 250, 255, 0.94) 100%
   );
-  background-size: 200% 200%;
-  animation: ecGradientFlow 14s ease-in-out infinite;
   backdrop-filter: blur(20px) saturate(1.55);
   -webkit-backdrop-filter: blur(20px) saturate(1.55);
   border: 1px solid rgba(191, 224, 255, 0.92);
@@ -160,8 +156,6 @@
     rgba(232, 246, 255, 0.91) 54%,
     rgba(224, 247, 252, 0.93) 100%
   );
-  background-size: 200% 200%;
-  animation: ecGradientFlow 15s ease-in-out infinite;
   backdrop-filter: blur(18px) saturate(1.5);
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
   border: 1px solid rgba(191, 224, 255, 0.9);
@@ -175,8 +169,6 @@
     rgba(12, 76, 134, 0.82) 50%,
     rgba(10, 68, 106, 0.86) 100%
   );
-  background-size: 200% 200%;
-  animation: ecGradientFlow 14s ease-in-out infinite;
   backdrop-filter: blur(18px) saturate(1.45);
   -webkit-backdrop-filter: blur(18px) saturate(1.45);
   border: 1px solid rgba(125, 211, 252, 0.42);
