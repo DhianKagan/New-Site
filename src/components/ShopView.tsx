@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale, Banknote } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale, Banknote, Calculator } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { ShopEmptyState } from './ShopEmptyState.tsx';
 import { SmartImage } from './SmartImage.tsx';
+import { SolarSavingsCalculator } from './SolarSavingsCalculator.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
 import { tr } from '../lib/i18n.ts';
@@ -94,6 +95,9 @@ export function ShopView({
   const [isEntering, setIsEntering] = useState(true);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [savingsCalcOpen, setSavingsCalcOpen] = useState(
+    () => typeof window !== 'undefined' && window.location.hash === '#solar-savings-calculator',
+  );
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const lastTrackedListKeyRef = useRef('');
   const lastTrackedSearchRef = useRef('');
@@ -417,16 +421,44 @@ export function ShopView({
     setPage(1);
   }
 
+  function handleQuickOpenSavingsCalculator(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault();
+    setSavingsCalcOpen(true);
+    window.requestAnimationFrame(() => {
+      const section = document.getElementById('solar-savings-calculator');
+      section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const input = document.getElementById('solar-savings-kwh-input') as HTMLInputElement | null;
+      input?.focus({ preventScroll: true });
+    });
+  }
+
   return (
     <div>
       <section className="ec-banner text-[#061c36] break-words hyphens-none">
-        <div className="max-w-[1380px] mx-auto px-3.5 sm:px-6 lg:px-8">
-          <h1 className="text-[clamp(1.25rem,4.8vw,1.875rem)] font-extrabold text-[#061c36] leading-tight mb-2">
-            {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
-          </h1>
-          <p className="text-sm text-[#133659] font-medium max-w-2xl leading-[1.6]">
-            {tr('Повний каталог позицій із energocomfort.shop', 'Полный каталог товаров energocomfort.shop')} ({products.length} {tr('товарів', 'товаров')}). {tr('Окремі інвертори, АКБ, панелі та захист додаються у кошик; готові комплекти підключаються через інженерний розрахунок.', 'Отдельные инверторы, аккумуляторы, панели и защита добавляются в корзину; готовые комплекты подбираются инженером.')}
-          </p>
+        <div className="max-w-[1380px] mx-auto px-3.5 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-[clamp(1.25rem,4.8vw,1.875rem)] font-extrabold text-[#061c36] leading-tight mb-2">
+              {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
+            </h1>
+            <p className="text-sm text-[#133659] font-medium max-w-2xl leading-[1.6]">
+              {tr('Повний каталог позицій із energocomfort.shop', 'Полный каталог товаров energocomfort.shop')} ({products.length} {tr('товарів', 'товаров')}). {tr('Окремі інвертори, АКБ, панелі та захист додаються у кошик; готові комплекти підключаються через інженерний розрахунок.', 'Отдельные инверторы, аккумуляторы, панели и защита добавляются в корзину; готовые комплекты подбираются инженером.')}
+            </p>
+          </div>
+
+          <a
+            href="#solar-savings-calculator"
+            onClick={handleQuickOpenSavingsCalculator}
+            aria-expanded={savingsCalcOpen}
+            aria-controls="solar-savings-calculator"
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-extrabold whitespace-nowrap shrink-0 self-start md:self-auto transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b66b2] ${
+              savingsCalcOpen
+                ? 'bg-[#0b66b2] border-[#0b66b2] text-white shadow-sm'
+                : 'bg-white/90 hover:bg-white border-sky-300/80 text-[#0b66b2] shadow-xs'
+            }`}
+          >
+            <Calculator className="w-4 h-4 shrink-0" />
+            <span>{tr('Калькулятор окупності (кВт·год)', 'Калькулятор окупаемости (кВт·ч)')}</span>
+          </a>
         </div>
       </section>
 
@@ -434,6 +466,21 @@ export function ShopView({
         <VideoBackground position="absolute" tone="light" tint="sky" start={8} end={20} brightness={0.56} />
         <div className="relative max-w-[1380px] mx-auto px-3.5 sm:px-6 lg:px-8 break-words hyphens-none">
           <h2 className="sr-only">{tr('Фільтри та перелік обладнання', 'Фильтры и каталог оборудования')}</h2>
+
+          {savingsCalcOpen && (
+            <SolarSavingsCalculator
+              products={products}
+              usdUahRate={usdUahRate}
+              onSelectProduct={onSelectProduct}
+              onNavigateCategory={(nextCat) => {
+                handleCategoryChange(nextCat);
+                setSavingsCalcOpen(false);
+              }}
+              onOpenCustomRequest={onOpenCustomRequest}
+              onClose={() => setSavingsCalcOpen(false)}
+            />
+          )}
+
           {/* Category Filter Tabs */}
           <div className="ec-glass-plate flex flex-wrap gap-1.5 p-1.5 rounded-2xl mb-6 w-fit max-w-full">
             {(

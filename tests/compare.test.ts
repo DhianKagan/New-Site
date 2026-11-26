@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   buildComparisonSpecRows,
+  buildDetailedComparisonSections,
   doesRowDiffer,
+  extractProductBatteryKwhForCompare,
+  extractProductDecisionMetrics,
+  extractProductPowerKwForCompare,
+  findOptimalMetricIndices,
   MAX_COMPARE_PRODUCTS,
   normalizeCompareIds,
   resolveCompareProducts,
@@ -156,4 +161,108 @@ test('CompareModal exposes Highlight differences switch and distinguishes varyin
   assert.match(source, /const isHighlighted = highlightDifferences && row\.differs/);
   assert.match(source, /data-highlighted=\{isHighlighted \? 'true' : 'false'\}/);
 });
+
+test('extractProductPowerKwForCompare, extractProductBatteryKwhForCompare, and decision metrics work across kits and panels', () => {
+  const kit: Product = {
+    ...makeProduct(
+      'kit-10kw',
+      [
+        ['Потужність', '10 кВт'],
+        ['Ємність АКБ', '10.6 кВт·год'],
+        ['Гарантія', '5 років'],
+      ],
+      [
+        ['Мощность', '10 кВт'],
+        ['Ёмкость АКБ', '10.6 кВт·ч'],
+        ['Гарантия', '5 лет'],
+      ],
+    ),
+    title: 'СЕС SolaX Power 10 кВт / 10.6 кВт·год LiFePO4 3 фази',
+    cat: 'kits',
+    isKit: true,
+    price: 9000,
+    oldPrice: 10000,
+  };
+
+  const panel: Product = {
+    ...makeProduct('panel-460', [['Потужність', '460 Вт'], ['Тип модуля', 'N-Type Bifacial']]),
+    title: 'Astronergy 460W N-Type Bifacial',
+    cat: 'panels',
+    price: 115,
+  };
+
+  assert.equal(extractProductPowerKwForCompare(kit), 10);
+  assert.equal(extractProductBatteryKwhForCompare(kit), 10.6);
+  assert.equal(extractProductPowerKwForCompare(panel), 0.46);
+  assert.equal(extractProductBatteryKwhForCompare(panel), null);
+
+  const kitMetrics = extractProductDecisionMetrics(kit, false);
+  assert.equal(kitMetrics.powerKw, 10);
+  assert.equal(kitMetrics.batteryKwh, 10.6);
+  assert.equal(kitMetrics.pricePerKwUsd, 900);
+  assert.equal(kitMetrics.pricePerKwhUsd, 849);
+  assert.equal(kitMetrics.discountPct, 10);
+  assert.equal(kitMetrics.phasesLabel, '3 фази (380В)');
+  assert.equal(kitMetrics.chemistryLabel, 'LiFePO4');
+  assert.equal(kitMetrics.warrantyLabel, '5 років');
+});
+
+test('findOptimalMetricIndices and buildDetailedComparisonSections identify best value metrics and group specs', () => {
+  assert.deepEqual(findOptimalMetricIndices([900, 750, 750, null], 'min'), [1, 2]);
+  assert.deepEqual(findOptimalMetricIndices([5, 10, 8], 'max'), [1]);
+  assert.deepEqual(findOptimalMetricIndices([5, 5], 'max'), []);
+
+  const k1: Product = {
+    ...makeProduct('k1', [['Потужність', '6 кВт'], ['Ємність АКБ', '5.1 кВт·год'], ['ККД', '97.6%']]),
+    title: 'СЕС Deye 6 кВт / 5.1 кВт·год',
+    cat: 'kits',
+    isKit: true,
+    price: 4500,
+  };
+  const k2: Product = {
+    ...makeProduct('k2', [['Потужність', '10 кВт'], ['Ємність АКБ', '10.2 кВт·год'], ['ККД', '97.6%']]),
+    title: 'СЕС Deye 10 кВт / 10.2 кВт·год',
+    cat: 'kits',
+    isKit: true,
+    price: 8500,
+  };
+
+  const sections = buildDetailedComparisonSections([k1, k2], false, 41.5);
+  assert.deepEqual(
+    sections.map((s) => s.id),
+    ['commercial', 'electrical', 'specs', 'engineering'],
+  );
+
+  const commercial = sections.find((s) => s.id === 'commercial')!;
+  const priceRow = commercial.rows.find((r) => r.id === 'comm-price')!;
+  assert.deepEqual(priceRow.bestIndices, [0]);
+  assert.equal(priceRow.differs, true);
+  assert.match(priceRow.values[0], /\$4,500/);
+
+  const electrical = sections.find((s) => s.id === 'electrical')!;
+  const powerRow = electrical.rows.find((r) => r.id === 'elec-power')!;
+  assert.deepEqual(powerRow.bestIndices, [1]);
+
+  const specs = sections.find((s) => s.id === 'specs')!;
+  assert.equal(specs.rows.some((r) => r.label === 'ККД' && !r.differs), true);
+});
+
+test('CompareDetailsModal renders accessible grouped side-by-side table and interactive controls', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const source = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'CompareDetailsModal.tsx'),
+    'utf-8',
+  );
+  assert.match(source, /export function CompareDetailsModal/);
+  assert.match(source, /role="dialog"/);
+  assert.match(source, /aria-modal="true"/);
+  assert.match(source, /buildDetailedComparisonSections/);
+  assert.match(source, /scope="col"/);
+  assert.match(source, /scope="row"/);
+  assert.match(source, /data-best=\{isBest \? 'true' : 'false'\}/);
+  assert.match(source, /role="switch"/);
+  assert.match(source, /onlyDifferences/);
+});
+
 

@@ -2,6 +2,7 @@ import type { Product, ProductCategory, SocialLinksConfig } from '../src/types.t
 import { COMPANY_INFO } from '../src/data/siteContent.ts';
 import { isValidProductCategory, type BreadcrumbView } from '../src/lib/breadcrumbs.ts';
 import {
+  buildLongTailSolarKeywords,
   buildPageJsonLdDocument,
   buildProductOfferJsonLd,
   buildStoreJsonLdEntity,
@@ -180,11 +181,24 @@ export function renderRouteSeoHtml(input: RouteSeoInput): string {
     socialLinks: input.socialLinks,
   });
 
+  const isPrivateView = view === 'crm' || view === 'login' || view === 'account';
+  const keywordsMeta = !isPrivateView
+    ? `\n    <meta name="keywords" content="${escapeXml(
+        buildLongTailSolarKeywords({
+          view,
+          shopCat,
+          searchQuery: input.querySearch,
+          selectedProduct: input.product ?? null,
+          categoryProducts: input.categoryProducts,
+        }).join(', '),
+      )}" />`
+    : '';
+
   let html = input.template
     .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${escapeXml(title)}</title>`)
     .replace(
-      /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i,
-      () => `<meta name="description" content="${escapeXml(description)}" />`,
+      /<meta\s+name="description"\s+content="[\s\S]*?"\s*\/?>/i,
+      () => `<meta name="description" content="${escapeXml(description)}" />${keywordsMeta}`,
     )
     .replace(
       /<meta\s+name="robots"\s+content="[^"]*"\s*\/?>/i,

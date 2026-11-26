@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   PlusCircle,
   Highlighter,
+  TableProperties,
 } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
@@ -38,6 +39,7 @@ interface CompareModalProps {
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   onBrowseCatalog: () => void;
+  onOpenDetails?: () => void;
 }
 
 export function CompareModal({
@@ -51,6 +53,7 @@ export function CompareModal({
   onAddToCart,
   onRequestQuote,
   onBrowseCatalog,
+  onOpenDetails,
 }: CompareModalProps) {
   const [onlyDifferences, setOnlyDifferences] = useState(false);
   const [highlightDifferences, setHighlightDifferences] = useState(true);
@@ -232,6 +235,17 @@ export function CompareModal({
                   <span>{tr('Лише відмінності', 'Только отличия')}</span>
                 </label>
               </>
+            )}
+
+            {products.length > 0 && onOpenDetails && (
+              <button
+                type="button"
+                onClick={onOpenDetails}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-xs font-bold text-[#0b66b2] transition-colors cursor-pointer"
+              >
+                <TableProperties className="w-3.5 h-3.5" />
+                <span>{tr('Детальна таблиця', 'Детальная таблица')}</span>
+              </button>
             )}
 
             {products.length > 0 && (

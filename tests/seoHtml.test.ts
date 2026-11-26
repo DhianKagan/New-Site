@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { renderRouteSeoHtml, resolveGoogleProductCategory, resolveProductTypeLabel } from '../server/seo.ts';
+import {
+  buildDynamicSeoMeta,
+  buildLongTailSolarKeywords,
+  updateSiteMetaTags,
+} from '../src/lib/seoSchema.ts';
 import type { Product } from '../src/types.ts';
 
 const template = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf-8');
@@ -149,4 +154,134 @@ test('renderRouteSeoHtml preserves literal $& and $1 replacement tokens in produ
   assert.ok(html.includes('"name":"Комплект $& $1 $2 Deye"'));
   assert.doesNotMatch(html, /<\/head>.*<\/head>/s);
 });
+
+test('buildLongTailSolarKeywords and buildDynamicSeoMeta generate long-tail solar equipment meta and support custom overrides', () => {
+  const queryKeywords = buildLongTailSolarKeywords({
+    view: 'shop',
+    shopCat: 'inverters',
+    searchQuery: 'Deye 8kW 48V',
+    categoryProducts: [sampleProduct],
+  });
+  assert.ok(queryKeywords.some((kw) => kw.includes('Deye 8kW 48V купити Одеса')));
+  assert.ok(queryKeywords.some((kw) => kw.includes('Deye')));
+
+  const meta = buildDynamicSeoMeta({
+    view: 'shop',
+    baseUrl: 'https://energocomfort.shop',
+    shopCat: 'batteries',
+    searchQuery: 'LiFePO4 51.2V 100Ah',
+    keywords: ['акумулятор для інвертора Одеса'],
+    extraMeta: {
+      author: 'Energo Comfort Engineering',
+      'twitter:site': '@energocomfort',
+      'og:see_also': 'https://energocomfort.shop/services',
+    },
+  });
+
+  assert.match(meta.title, /LiFePO4 51\.2V 100Ah/);
+  assert.match(meta.keywords, /акумулятор для інвертора Одеса/);
+  assert.match(meta.keywords, /LiFePO4 51\.2V 100Ah купити Одеса/);
+  assert.ok(meta.metaTags.some((t) => t.attr === 'name' && t.key === 'author' && t.content === 'Energo Comfort Engineering'));
+  assert.ok(meta.metaTags.some((t) => t.attr === 'name' && t.key === 'twitter:site' && t.content === '@energocomfort'));
+  assert.ok(meta.metaTags.some((t) => t.attr === 'property' && t.key === 'og:see_also' && t.content === 'https://energocomfort.shop/services'));
+});
+
+test('updateSiteMetaTags dynamically creates, updates, and removes meta tags and canonical links on Document', () => {
+  type MockEl = {
+    tagName: string;
+    attrs: Record<string, string>;
+    removed: boolean;
+    setAttribute(name: string, value: string): void;
+    getAttribute(name: string): string | undefined;
+    remove(): void;
+  };
+  const elements: MockEl[] = [];
+  const makeEl = (tagName: string): MockEl => ({
+    tagName,
+    attrs: {},
+    removed: false,
+    setAttribute(name, value) {
+      this.attrs[name] = value;
+    },
+    getAttribute(name) {
+      return this.attrs[name];
+    },
+    remove() {
+      this.removed = true;
+      const idx = elements.indexOf(this);
+      if (idx >= 0) elements.splice(idx, 1);
+    },
+  });
+  const query = (selector: string): MockEl | null => {
+    if (selector === 'link[rel="canonical"]') {
+      return elements.find((e) => e.tagName === 'link' && e.attrs.rel === 'canonical') ?? null;
+    }
+    const m = selector.match(/^meta\[(name|property)="(.+)"\]$/);
+    if (!m) return null;
+    return elements.find((e) => e.tagName === 'meta' && e.attrs[m[1]] === m[2]) ?? null;
+  };
+  const mockDoc = {
+    title: '',
+    head: {
+      querySelector: query,
+      appendChild(el: MockEl) {
+        elements.push(el);
+        return el;
+      },
+    },
+    querySelector: query,
+    createElement: makeEl,
+  } as unknown as Document;
+
+  const productMeta = updateSiteMetaTags(
+    {
+      view: 'shop',
+      baseUrl: 'https://energocomfort.shop',
+      selectedProduct: sampleProduct,
+      usdUahRate: 42,
+      extraMeta: [{ attr: 'name', key: 'custom-solar-tag', content: 'hybrid-8kw' }],
+    },
+    mockDoc,
+  );
+
+  assert.match(mockDoc.title, /Energo Comfort$/);
+  assert.equal(productMeta.canonicalUrl, 'https://energocomfort.shop/shop/deye-sun-8k');
+  assert.equal(query('link[rel="canonical"]')?.getAttribute('href'), 'https://energocomfort.shop/shop/deye-sun-8k');
+  assert.equal(query('meta[name="custom-solar-tag"]')?.getAttribute('content'), 'hybrid-8kw');
+  assert.equal(query('meta[property="product:price:amount"]')?.getAttribute('content'), '63000');
+  assert.ok((query('meta[name="keywords"]')?.getAttribute('content') ?? '').includes('Deye'));
+
+  // Navigating to a category clears stale product:* tags and removes nulled custom tags
+  updateSiteMetaTags(
+    {
+      view: 'shop',
+      baseUrl: 'https://energocomfort.shop',
+      shopCat: 'kits',
+      extraMeta: [{ attr: 'name', key: 'custom-solar-tag', content: null }],
+    },
+    mockDoc,
+  );
+
+  assert.equal(query('meta[property="product:price:amount"]'), null);
+  assert.equal(query('meta[name="custom-solar-tag"]'), null);
+  assert.equal(query('link[rel="canonical"]')?.getAttribute('href'), 'https://energocomfort.shop/shop?cat=kits');
+});
+
+test('renderRouteSeoHtml injects dynamic long-tail solar keywords on public routes and omits them on private routes', () => {
+  const categoryHtml = renderRouteSeoHtml({
+    template,
+    baseUrl: 'https://energocomfort.shop',
+    rawPath: '/shop',
+    queryCat: 'kits',
+  });
+  assert.match(categoryHtml, /<meta name="keywords" content="[^"]*готовий комплект резервного живлення під ключ Одеса[^"]*" \/>/);
+
+  const crmHtml = renderRouteSeoHtml({
+    template,
+    baseUrl: 'https://energocomfort.shop',
+    rawPath: '/crm',
+  });
+  assert.doesNotMatch(crmHtml, /<meta name="keywords"/);
+});
+
 

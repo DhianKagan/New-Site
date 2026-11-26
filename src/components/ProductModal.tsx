@@ -154,6 +154,17 @@ export function ProductModal({
     return () => controller.abort();
   }, [productId, reviewsReloadNonce, isRussian, preferredSessionToken, authUser?.uid]);
 
+  useEffect(() => {
+    if (!productId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [productId, onClose]);
+
   const reviewStats = useMemo(() => computeProductReviewStats(reviews), [reviews]);
 
   if (!product) return null;

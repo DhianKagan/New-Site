@@ -59,8 +59,7 @@ import {
   isValidProductCategory,
   type BreadcrumbItem,
 } from './lib/breadcrumbs.ts';
-import { buildPageJsonLdDocument } from './lib/seoSchema.ts';
-import { formatUahFromUsd } from './lib/currency.ts';
+import { buildPageJsonLdDocument, updateSiteMetaTags } from './lib/seoSchema.ts';
 import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 import {
   mergeWishlistIds,
@@ -92,6 +91,7 @@ const ProductModal = lazyWithRetry(() => import('./components/ProductModal.tsx')
 const QuickViewModal = lazyWithRetry(() => import('./components/QuickViewModal.tsx').then((m) => ({ default: m.QuickViewModal })));
 const ProductPaybackModal = lazyWithRetry(() => import('./components/ProductPaybackModal.tsx').then((m) => ({ default: m.ProductPaybackModal })));
 const CompareModal = lazyWithRetry(() => import('./components/CompareModal.tsx').then((m) => ({ default: m.CompareModal })));
+const CompareDetailsModal = lazyWithRetry(() => import('./components/CompareDetailsModal.tsx').then((m) => ({ default: m.CompareDetailsModal })));
 const CaseModal = lazyWithRetry(() => import('./components/CaseModal.tsx').then((m) => ({ default: m.CaseModal })));
 const LeadModal = lazyWithRetry(() => import('./components/LeadModal.tsx').then((m) => ({ default: m.LeadModal })));
 const CartDrawer = lazyWithRetry(() => import('./components/CartDrawer.tsx').then((m) => ({ default: m.CartDrawer })));
@@ -514,6 +514,7 @@ function AppContent() {
   const compareIdsRef = useRef<string[]>(compareIds);
   compareIdsRef.current = compareIds;
   const [compareModalOpen, setCompareModalOpen] = useState(false);
+  const [compareDetailsModalOpen, setCompareDetailsModalOpen] = useState(false);
   const [compareLimitNotice, setCompareLimitNotice] = useState(false);
   const compareLimitTimerRef = useRef<number | null>(null);
 
@@ -862,81 +863,15 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [products]);
 
-  // Dynamic Client-side SEO (<title>, meta description, robots, og:*, twitter:*, canonical, JSON-LD)
+  // Dynamic Client-side SEO (<title>, meta description, keywords, geo, robots, og:*, twitter:*, canonical, JSON-LD)
   useEffect(() => {
-    let title = 'Energo Comfort — СЕС та резервне живлення в Одесі';
-    let description =
-      'Сонячні електростанції та резервне живлення в Одесі: інвертори Deye, SolaX, Solis, АКБ LiFePO4, панелі та монтаж під ключ із гарантією. Замовте розрахунок!';
-    let ogImage = `${window.location.origin}/assets/energocomfort/sto_110kw.jpg`;
-    let ogType = 'website';
     const isPrivateView = view === 'crm' || view === 'login' || view === 'account';
-
-    if (selectedProduct) {
-      const priceText = selectedProduct.price > 0 ? formatUahFromUsd(selectedProduct.price, usdUahRate) : 'За запитом';
-      const maxTitleLen = 46;
-      const shortProdTitle =
-        selectedProduct.title.length > maxTitleLen
-          ? `${selectedProduct.title.slice(0, maxTitleLen - 1).trimEnd()}…`
-          : selectedProduct.title;
-      title = `${shortProdTitle} (${priceText}) — Energo Comfort`;
-      description = (
-        selectedProduct.description.trim() ||
-        `${selectedProduct.title} (${selectedProduct.brand}). ${selectedProduct.statusLabel}. Доставка зі складу в Одесі, гарантія та професійний монтаж.`
-      ).slice(0, 158);
-      if (selectedProduct.img) {
-        ogImage = selectedProduct.img.startsWith('http')
-          ? selectedProduct.img
-          : `${window.location.origin}${selectedProduct.img.startsWith('/') ? '' : '/'}${selectedProduct.img}`;
-      }
-      ogType = 'product';
-    } else if (view === 'shop') {
-      const catTitles: Record<ProductCategory | 'all', string> = {
-        all: 'Каталог обладнання СЕС та резервного живлення',
-        kits: 'Готові комплекти резервного живлення та СЕС',
-        inverters: 'Гібридні та мережеві інвертори Deye, SolaX, Solis',
-        batteries: 'Акумулятори LiFePO4 Deye, Dyness в Одесі',
-        panels: 'Сонячні панелі Jinko, Trina, Longi в Одесі',
-        parts: 'Комплектуючі та захист AC/DC для СЕС',
-      };
-      title = `${catTitles[shopInitialCat]} — Energo Comfort`;
-      description = `Каталог із ${products.length || 250} позицій для автономного живлення та СЕС зі складу в Одесі: Deye, SolaX, Solis, Dyness, Jinko. Замовляйте з доставкою!`;
-    } else if (view === 'services') {
-      title = 'Послуги монтажу СЕС та інжинірингу — Energo Comfort';
-      description =
-        'Професійний монтаж сонячних електростанцій, систем резервного живлення та енергоаудит для дому і бізнесу в Одесі та області з гарантією.';
-    } else if (view === 'projects') {
-      title = 'Реалізовані проєкти — Energo Comfort Одеса';
-      description =
-        'Реальні кейси СЕС і резервного живлення 6–110 кВт для бізнесу та приватних будинків в Одесі й області. Дивіться характеристики та фото об’єктів.';
-    } else if (view === 'contacts') {
-      title = 'Контакти та умови співпраці — Energo Comfort Одеса';
-      description =
-        'Офіс та склад Energo Comfort: м. Одеса, вул. Європейська 93. Телефони +38 (050) 777-71-72, +38 (098) 152-32-61. Графік Пн–Сб 09:00–18:00.';
-    } else if (view === 'payment-delivery') {
-      title = 'Оплата і доставка обладнання — Energo Comfort Одеса';
-      description =
-        'Способи оплати (ФОП/ТОВ з ПДВ, готівка, переказ), самовивіз зі складу в Одесі на вул. Європейська 93 та доставка по Україні Новою Поштою.';
-    } else if (view === 'offer') {
-      title = 'Публічна оферта та гарантія — Energo Comfort';
-      description =
-        'Умови публічного договору купівлі-продажу, гарантійного обслуговування та повернення обладнання в інтернет-магазині Energo Comfort.';
-    } else if (view === 'privacy') {
-      title = 'Політика конфіденційності — Energo Comfort';
-      description =
-        'Порядок збору, обробки та захисту персональних даних користувачів інтернет-магазину Energo Comfort.';
-    } else if (view === 'terms') {
-      title = 'Умови використання сервісу — Energo Comfort';
-      description =
-        'Правила користування сайтом, онлайн-калькуляторами, каталогом та оформлення замовлень в Energo Comfort.';
-    } else if (view === 'login') {
-      title = 'Вхід та реєстрація — Energo Comfort';
-    } else if (view === 'account') {
-      title = 'Особистий кабінет — Energo Comfort';
-    } else if (view === 'crm') {
-      title = 'CRM — Energo Comfort';
-    }
-
-    document.title = title;
+    const categoryProducts =
+      view === 'shop' && !selectedProduct
+        ? shopInitialCat === 'all'
+          ? products
+          : products.filter((p) => p.cat === shopInitialCat)
+        : undefined;
     const canonicalPath = selectedProduct
       ? `/shop/${encodeURIComponent(selectedProduct.id)}`
       : view === 'shop'
@@ -944,74 +879,25 @@ function AppContent() {
           ? `/shop?cat=${encodeURIComponent(shopInitialCat)}`
           : '/shop'
         : buildPathForRoute(view, shopInitialCat);
-    const canonicalUrl = `${window.location.origin}${canonicalPath}`;
 
-    const ensureMeta = (attrName: 'name' | 'property', key: string, content: string) => {
-      let el = document.querySelector(`meta[${attrName}="${key}"]`);
-      if (!el) {
-        el = document.createElement('meta');
-        el.setAttribute(attrName, key);
-        document.head.appendChild(el);
-      }
-      el.setAttribute('content', content);
-    };
-
-    const removeMeta = (attrName: 'name' | 'property', key: string) => {
-      document.querySelector(`meta[${attrName}="${key}"]`)?.remove();
-    };
-
-    ensureMeta('name', 'description', description);
-    ensureMeta('name', 'robots', isPrivateView ? 'noindex, nofollow' : 'index, follow');
-    ensureMeta('property', 'og:type', ogType);
-    ensureMeta('property', 'og:title', title);
-    ensureMeta('property', 'og:description', description);
-    ensureMeta('property', 'og:url', canonicalUrl);
-    ensureMeta('property', 'og:image', ogImage);
-    ensureMeta('property', 'og:locale', locale === 'ru' ? 'ru_UA' : 'uk_UA');
-    ensureMeta('name', 'twitter:title', title);
-    ensureMeta('name', 'twitter:description', description);
-    ensureMeta('name', 'twitter:image', ogImage);
-
-    if (selectedProduct) {
-      const productUah = selectedProduct.price > 0 && usdUahRate ? Math.round(selectedProduct.price * usdUahRate) : null;
-      ensureMeta('property', 'product:brand', selectedProduct.brand || 'Energo Comfort');
-      ensureMeta('property', 'product:availability', selectedProduct.inStock ? 'in stock' : 'available for order');
-      ensureMeta('property', 'product:condition', 'new');
-      ensureMeta('property', 'product:retailer_item_id', selectedProduct.sku || selectedProduct.id);
-      if (productUah) {
-        ensureMeta('property', 'product:price:amount', String(productUah));
-        ensureMeta('property', 'product:price:currency', 'UAH');
-      } else if (selectedProduct.price > 0) {
-        ensureMeta('property', 'product:price:amount', String(selectedProduct.price));
-        ensureMeta('property', 'product:price:currency', 'USD');
-      } else {
-        removeMeta('property', 'product:price:amount');
-        removeMeta('property', 'product:price:currency');
-      }
-    } else {
-      removeMeta('property', 'product:brand');
-      removeMeta('property', 'product:availability');
-      removeMeta('property', 'product:condition');
-      removeMeta('property', 'product:retailer_item_id');
-      removeMeta('property', 'product:price:amount');
-      removeMeta('property', 'product:price:currency');
-    }
-
-    const canonicalEl = document.querySelector('link[rel="canonical"]');
-    if (canonicalEl) {
-      canonicalEl.setAttribute('href', canonicalUrl);
-    }
+    const { title, description, canonicalUrl, ogImage } = updateSiteMetaTags({
+      view,
+      baseUrl: window.location.origin,
+      canonicalPath,
+      shopCat: shopInitialCat,
+      searchQuery: shopInitialQuery,
+      selectedProduct,
+      selectedCase,
+      categoryProducts,
+      catalogCount: products.length,
+      usdUahRate,
+      isRussian: locale === 'ru',
+    });
 
     const existingJsonLdEl = document.getElementById('ec-jsonld');
     if (isPrivateView) {
       existingJsonLdEl?.remove();
     } else {
-      const categoryProducts =
-        view === 'shop' && !selectedProduct
-          ? shopInitialCat === 'all'
-            ? products
-            : products.filter((p) => p.cat === shopInitialCat)
-          : undefined;
       const jsonLdDoc = buildPageJsonLdDocument({
         view,
         baseUrl: window.location.origin,
@@ -1400,6 +1286,7 @@ function AppContent() {
     setCompareLimitNotice(false);
     setCompareIds([]);
     setCompareModalOpen(false);
+    setCompareDetailsModalOpen(false);
   }, []);
 
   const handleAddManyToCart = useCallback((items: Product[]) => {
@@ -2307,13 +2194,15 @@ function AppContent() {
         !quickViewProduct &&
         !paybackProduct &&
         !selectedCase &&
-        !compareModalOpen && (
+        !compareModalOpen &&
+        !compareDetailsModalOpen && (
           <CompareBar
             products={compareProducts}
             limitNotice={compareLimitNotice}
             onRemove={handleRemoveCompare}
             onClear={handleClearCompare}
             onOpenModal={() => setCompareModalOpen(true)}
+            onOpenDetailsModal={() => setCompareDetailsModalOpen(true)}
           />
         )}
 
@@ -2322,6 +2211,7 @@ function AppContent() {
         stickyCtaVisible &&
         compareProducts.length === 0 &&
         !compareModalOpen &&
+        !compareDetailsModalOpen &&
         !cartOpen &&
         !leadModalOpen &&
         !selectedProduct &&
@@ -2370,6 +2260,7 @@ function AppContent() {
           view === 'crm' ||
           mobileMenuOpen ||
           compareModalOpen ||
+          compareDetailsModalOpen ||
           cartOpen ||
           leadModalOpen ||
           Boolean(selectedProduct) ||
@@ -2395,6 +2286,29 @@ function AppContent() {
             onAddToCart={handleAddToCart}
             onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
             onBrowseCatalog={() => navigateTo('shop', 'all')}
+            onOpenDetails={() => {
+              setCompareModalOpen(false);
+              setCompareDetailsModalOpen(true);
+            }}
+          />
+        )}
+
+        {compareDetailsModalOpen && (
+          <CompareDetailsModal
+            open={compareDetailsModalOpen}
+            products={compareProducts}
+            usdUahRate={usdUahRate}
+            onClose={() => setCompareDetailsModalOpen(false)}
+            onRemoveProduct={handleRemoveCompare}
+            onClearAll={handleClearCompare}
+            onSelectProduct={handleSelectProduct}
+            onAddToCart={handleAddToCart}
+            onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+            onBrowseCatalog={() => navigateTo('shop', 'all')}
+            onBackToSummary={() => {
+              setCompareDetailsModalOpen(false);
+              setCompareModalOpen(true);
+            }}
           />
         )}
 

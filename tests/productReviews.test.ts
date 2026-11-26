@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import {
   createClientSessionToken,
@@ -280,3 +282,25 @@ test('review auth accepts valid clientToken and adminToken sessions and rejects 
   assert.equal(verifyClientSessionToken('invalid.token'), null);
   assert.equal(verifySessionToken('invalid.token'), null);
 });
+
+test('ProductReviews exposes star rating & text review form and is integrated in ProductModal', () => {
+  const reviewsSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ProductReviews.tsx'),
+    'utf-8',
+  );
+  assert.match(reviewsSource, /export function ProductReviews/);
+  assert.match(reviewsSource, /role="radiogroup"/);
+  assert.match(reviewsSource, /id="review-comment"/);
+  assert.match(reviewsSource, /ArrowRight/);
+  assert.match(reviewsSource, /createProductReview/);
+
+  const modalSource = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'ProductModal.tsx'),
+    'utf-8',
+  );
+  assert.match(modalSource, /from '\.\/ProductReviews\.tsx'/);
+  assert.match(modalSource, /<ProductReviews/);
+  assert.match(modalSource, /fetchProductReviews/);
+  assert.match(modalSource, /e\.key === 'Escape'/);
+});
+

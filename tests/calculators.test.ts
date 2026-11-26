@@ -285,3 +285,25 @@ test('battery sizing calculator falls back to $185/kWh benchmark when catalog is
   assert.equal(fallback.estimatedCostUah, Math.round(fallback.estimatedCostUsd * 42));
 });
 
+test('SolarSavingsCalculator component and ShopView quick-link integration work cleanly', () => {
+  const calcSource = fs.readFileSync(
+    new URL('../src/components/SolarSavingsCalculator.tsx', import.meta.url),
+    'utf8',
+  );
+  assert.match(calcSource, /export function SolarSavingsCalculator/);
+  assert.match(calcSource, /calculateSolarPayback/);
+  assert.match(calcSource, /id="solar-savings-kwh-input"/);
+  assert.match(calcSource, /paybackYears/);
+  assert.match(calcSource, /paybackMonths/);
+  assert.match(calcSource, /monthlySavingsUah/);
+
+  const shopSource = fs.readFileSync(
+    new URL('../src/components/ShopView.tsx', import.meta.url),
+    'utf8',
+  );
+  assert.match(shopSource, /import \{ SolarSavingsCalculator \} from '\.\/SolarSavingsCalculator\.tsx'/);
+  assert.match(shopSource, /href="#solar-savings-calculator"/);
+  assert.match(shopSource, /<SolarSavingsCalculator/);
+});
+
+

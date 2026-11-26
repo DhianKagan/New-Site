@@ -1,4 +1,4 @@
-import { Scale, Trash2, X, ArrowRight, AlertCircle } from 'lucide-react';
+import { Scale, Trash2, X, ArrowRight, AlertCircle, TableProperties } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { MAX_COMPARE_PRODUCTS } from '../lib/compare.ts';
 import { getActiveLocale, localizeCatalogText, tr } from '../lib/i18n.ts';
@@ -10,6 +10,7 @@ interface CompareBarProps {
   onRemove: (productId: string) => void;
   onClear: () => void;
   onOpenModal: () => void;
+  onOpenDetailsModal?: () => void;
 }
 
 export function CompareBar({
@@ -18,6 +19,7 @@ export function CompareBar({
   onRemove,
   onClear,
   onOpenModal,
+  onOpenDetailsModal,
 }: CompareBarProps) {
   if (products.length === 0) return null;
 
@@ -96,6 +98,18 @@ export function CompareBar({
               <Trash2 className="w-3.5 h-3.5" />
               <span>{tr('Очистити', 'Очистить')}</span>
             </button>
+
+            {canCompare && onOpenDetailsModal && (
+              <button
+                type="button"
+                onClick={onOpenDetailsModal}
+                title={tr('Відкрити детальну технічну таблицю', 'Открыть детальную техническую таблицу')}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-xs font-bold text-[#0b66b2] transition-colors whitespace-nowrap cursor-pointer"
+              >
+                <TableProperties className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{tr('Детальна таблиця', 'Детальная таблица')}</span>
+              </button>
+            )}
 
             <button
               type="button"

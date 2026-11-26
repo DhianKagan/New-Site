@@ -369,9 +369,10 @@ export function ProductReviews({
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <h3 id="product-reviews-heading" className="text-base font-extrabold text-[#0d1f33]">
-              {tr('Відгуки', 'Отзывы')}
+              {tr('Відгуки покупців', 'Отзывы покупателей')}
             </h3>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-mono font-extrabold text-[#0d1f33] tabular-nums">
+            <span aria-hidden="true" className="text-slate-300">·</span>
+            <span className="inline-flex items-center gap-1 text-xs font-mono font-extrabold text-[#0d1f33] tabular-nums">
               <Star className="w-3.5 h-3.5 text-[#f59e0b] fill-[#f59e0b]" />
               {averageLabel}
             </span>
@@ -379,8 +380,8 @@ export function ProductReviews({
           <p className="text-xs text-slate-500 mt-1">
             {stats.count > 0
               ? tr(
-                  `Середній рейтинг ${averageLabel} на основі ${formatReviewsCountLabel(stats.count, false)}`,
-                  `Средний рейтинг ${averageLabel} на основе ${formatReviewsCountLabel(stats.count, true)}`,
+                  `Середній рейтинг ${averageLabel} на основі ${formatReviewsCountLabel(stats.count, false)} · підтверджені облікові записи`,
+                  `Средний рейтинг ${averageLabel} на основе ${formatReviewsCountLabel(stats.count, true)} · подтверждённые аккаунты`,
                 )
               : tr(
                   'Поки немає відгуків — поділіться враженням про це обладнання',
@@ -573,6 +574,15 @@ export function ProductReviews({
                 aria-label={tr('Оцінка товару від 1 до 5 зірок', 'Оценка товара от 1 до 5 звёзд')}
                 className="inline-flex items-center gap-1"
                 onMouseLeave={() => setHoverRating(null)}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setRating((prev) => Math.min(5, prev + 1));
+                  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setRating((prev) => Math.max(1, prev - 1));
+                  }
+                }}
               >
                 {[1, 2, 3, 4, 5].map((starValue) => {
                   const active = starValue <= displayedStarValue;
