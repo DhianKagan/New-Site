@@ -1484,13 +1484,13 @@ function AppContent() {
       </div>
 
       {/* Main Sticky Header: Responsive 3-Zone Top Bar */}
-      <header className="sticky top-0 z-40 w-full max-w-full bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
-        <div className="ec-container h-14 sm:h-16 lg:h-[68px] flex items-center justify-between gap-2 sm:gap-4 min-w-0">
-          {/* Zone 1: Single-line Brand Wordmark */}
+      <header className="sticky top-0 z-40 w-full max-w-full overflow-x-clip bg-gradient-to-r from-[#072750]/92 via-[#0d488a]/88 to-[#072750]/92 backdrop-blur-xl border-b border-sky-300/25 shadow-[0_8px_28px_rgba(4,18,40,0.28)]">
+        <div className="ec-container h-14 sm:h-16 lg:h-[68px] grid grid-cols-[minmax(0,1fr)_auto] lg:flex items-center justify-between gap-1.5 sm:gap-4 min-w-0">
+          {/* Zone 1: Single-line Brand Wordmark (width-constrained on mobile so Zone 3 never overflows) */}
           <a
             href="/"
             onClick={(e) => handleNavAnchor(e, 'home')}
-            className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink lg:shrink-0 text-left"
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 max-w-[42vw] sm:max-w-none justify-self-start lg:shrink-0 text-left overflow-hidden"
           >
             <SmartImage
               src="/assets/energocomfort/logo_mark.webp"
@@ -1498,7 +1498,7 @@ function AppContent() {
               priority
               className="h-6 w-6 sm:h-8 sm:w-8 object-contain rounded-lg bg-white/95 p-0.5 shadow-sm shrink-0"
             />
-            <span className="text-[12.5px] min-[390px]:text-[13.5px] sm:text-base lg:text-lg font-extrabold tracking-tight text-white whitespace-nowrap truncate">
+            <span className="text-[12px] min-[390px]:text-[13px] sm:text-base lg:text-lg font-extrabold tracking-tight text-white whitespace-nowrap truncate min-w-0">
               Energo Comfort
             </span>
           </a>
@@ -1553,7 +1553,7 @@ function AppContent() {
           </nav>
 
           {/* Zone 3: Quick Lead CTA + Wishlist + Compact Cart Button + Mobile/Tablet Menu */}
-          <div className="flex items-center gap-1 min-[400px]:gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center justify-end gap-1 min-[400px]:gap-1.5 sm:gap-2 shrink-0 justify-self-end">
             <button
               type="button"
               onClick={() => openLeadModal('Підбір рішення з шапки сайту')}
@@ -1604,7 +1604,7 @@ function AppContent() {
 
         {/* Mobile / Tablet Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/95 to-[#051c3b]/95 backdrop-blur-xl px-4 py-4 space-y-2">
+          <div className="lg:hidden w-full max-w-full overflow-x-hidden border-t border-sky-200/20 bg-gradient-to-b from-[#072750]/95 to-[#051c3b]/95 backdrop-blur-xl px-4 py-4 space-y-2">
             {(
               [
                 ['home', '/', tr('Головна')],
