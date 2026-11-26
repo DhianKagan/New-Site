@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react';
+import { Pause, Play, RotateCcw } from 'lucide-react';
 import {
   MODE_TARGET_PHASE,
   normalizeCyclePhase,
@@ -506,7 +506,6 @@ export function HowItWorks3DCanvas({
   const mountRef = useRef<HTMLDivElement | null>(null);
   const [webglUnavailable, setWebglUnavailable] = useState(false);
   const [contextLost, setContextLost] = useState(false);
-  const [hudCollapsed, setHudCollapsed] = useState(false);
   const [autoCycle, setAutoCycle] = useState(() =>
     typeof window !== 'undefined'
       ? !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -608,7 +607,8 @@ export function HowItWorks3DCanvas({
     roomEnv.dispose();
     pmrem.dispose();
 
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 80);
+    const initialFov = width < 520 ? 52 : width < 768 ? 46 : 40;
+    const camera = new THREE.PerspectiveCamera(initialFov, width / height, 0.1, 80);
     camera.position.copy(DEFAULT_CAMERA_POS);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -1701,7 +1701,8 @@ export function HowItWorks3DCanvas({
       const entry = entries[0];
       if (!entry) return;
       const nextW = Math.max(Math.floor(entry.contentRect.width), 280);
-      const nextH = Math.max(Math.floor(entry.contentRect.height), 280);
+      const nextH = Math.max(Math.floor(entry.contentRect.height), 260);
+      camera.fov = nextW < 520 ? 52 : nextW < 768 ? 46 : 40;
       camera.aspect = nextW / nextH;
       camera.updateProjectionMatrix();
       renderer.setSize(nextW, nextH);
@@ -2080,102 +2081,104 @@ export function HowItWorks3DCanvas({
   }
 
   return (
-    <div className="relative w-full h-[400px] sm:h-[450px] lg:h-[490px] rounded-2xl overflow-hidden bg-[#0b1929] border border-slate-800 shadow-lg select-none">
-      {/* Dedicated isolated WebGL canvas container */}
-      <div ref={mountRef} className="w-full h-full" />
+    <div className="rounded-2xl overflow-hidden border border-sky-200/35 bg-[#07182e] shadow-xl select-none">
+      {/* Unobstructed 3D Viewport */}
+      <div className="relative w-full h-[300px] sm:h-[420px] lg:h-[470px] bg-[#0b1929]">
+        <div ref={mountRef} className="w-full h-full" />
 
-      {/* Minimal Top-Left Node Spec Readout (no backdrop-filter over WebGL, no pulsating dots) */}
-      <div className="pointer-events-none absolute top-3.5 left-3.5 right-3.5 sm:right-auto sm:max-w-md z-10">
-        <div className="rounded-xl bg-[#091523]/92 border border-white/15 px-3.5 py-2.5 text-white">
-          <div className="flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-300">
-            <span>
-              {activeNode.order} · {tr(activeNode.titleUk, activeNode.titleRu)}
+        {/* Compact Top Corner Status & Reset Only (zero scene obstruction on mobile) */}
+        <div className="pointer-events-none absolute top-2.5 inset-x-2.5 sm:top-3.5 sm:inset-x-3.5 z-10 flex items-center justify-between gap-2">
+          <div className="inline-flex items-center gap-2 rounded-lg bg-[#091523]/82 border border-white/15 px-2.5 py-1 text-[11px] font-bold text-white">
+            <span className="text-sky-300 font-mono">{activeNode.order}</span>
+            <span className="text-slate-400" aria-hidden="true">·</span>
+            <span
+              ref={clockLabelRef}
+              className="font-mono text-amber-300 tabular-nums"
+            >
+              09:20
             </span>
-            <div className="flex items-center gap-2 shrink-0">
-              <span
-                ref={clockLabelRef}
-                className="font-mono text-[11px] font-bold text-amber-300 tabular-nums"
-              >
-                09:20
-              </span>
-              <span className="text-slate-500">·</span>
-              <span className="font-mono text-sky-300 tabular-nums">
-                {tr(activeModeObj.labelUk, activeModeObj.labelRu)}
-              </span>
-            </div>
+            <span className="hidden sm:inline text-slate-400" aria-hidden="true">·</span>
+            <span className="hidden sm:inline text-sky-100 truncate max-w-[160px] md:max-w-none">
+              {tr(activeModeObj.labelUk, activeModeObj.labelRu)}
+            </span>
           </div>
-          <p className="text-[11px] text-slate-200 mt-1 leading-snug">
-            {tr(activeModeObj.summaryUk, activeModeObj.summaryRu)}
-          </p>
+
+          <button
+            type="button"
+            onClick={() => resetCameraFnRef.current?.()}
+            aria-label={tr('Загальний вигляд 3D-сцени', 'Общий вид 3D-сцены')}
+            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-lg bg-[#091523]/82 hover:bg-[#0b66b2] border border-white/15 px-2.5 py-1 text-[11px] font-bold text-slate-100 transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">{tr('Загальний вигляд', 'Общий вид')}</span>
+          </button>
         </div>
       </div>
 
-      {/* Collapsible Bottom Control Dock (single unified dock, zero mid-left/right clutter) */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 w-[min(95%,860px)] flex flex-col items-center pointer-events-none">
-        <button
-          type="button"
-          onClick={() => setHudCollapsed((prev) => !prev)}
-          className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-t-lg bg-[#091523]/95 border border-b-0 border-white/15 text-[11px] font-bold text-slate-200 hover:text-white cursor-pointer"
-        >
-          {hudCollapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          <span>
-            {hudCollapsed
-              ? tr('Показати режими', 'Показать режимы')
-              : tr('Сховати панель', 'Скрыть панель')}
-          </span>
-        </button>
-
-        {!hudCollapsed && (
-          <div className="pointer-events-auto w-full rounded-xl bg-[#091523]/95 border border-white/15 p-2 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={tr('Режим роботи станції', 'Режим работы станции')}>
-              {SYSTEM_MODES.map((mode) => {
-                const isActive = mode.id === activeMode;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => {
-                      setAutoCycle(false);
-                      onSelectMode(mode.id);
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-                      isActive
-                        ? 'bg-[#f59e0b] text-[#0d1f33]'
-                        : 'bg-white/10 text-slate-200 hover:bg-white/18'
-                    }`}
-                  >
-                    {tr(mode.labelUk, mode.labelRu)}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                aria-pressed={autoCycle}
-                onClick={() => setAutoCycle((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
-                  autoCycle
-                    ? 'bg-sky-500/25 border border-sky-400/50 text-sky-200 hover:bg-sky-500/35'
-                    : 'bg-white/10 border border-transparent text-slate-300 hover:bg-white/20'
-                }`}
-              >
-                {autoCycle ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                <span>{tr('Цикл доби', 'Цикл суток')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => resetCameraFnRef.current?.()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200 whitespace-nowrap cursor-pointer transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>{tr('Загальний вигляд', 'Общий вид')}</span>
-              </button>
-            </div>
+      {/* Integrated Control & Readout Bar Below 3D Scene */}
+      <div className="border-t border-sky-200/20 bg-gradient-to-r from-[#071c36] via-[#0b2e55] to-[#072342] px-4 py-3.5 sm:px-5 sm:py-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs sm:text-[13px]">
+          <div className="font-extrabold text-white">
+            {activeNode.order} · {tr(activeNode.titleUk, activeNode.titleRu)}
+            <span className="mx-2 text-sky-400/70" aria-hidden="true">—</span>
+            <span className="font-semibold text-amber-300">
+              {tr(activeModeObj.labelUk, activeModeObj.labelRu)}
+            </span>
           </div>
-        )}
+          <p className="text-xs sm:text-[13px] text-sky-100/90 font-medium leading-[1.55] sm:text-right">
+            {tr(activeModeObj.summaryUk, activeModeObj.summaryRu)}
+          </p>
+        </div>
+
+        <div className="pt-2.5 border-t border-sky-200/15 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={tr('Режим роботи станції', 'Режим работы станции')}>
+            {SYSTEM_MODES.map((mode) => {
+              const isActive = mode.id === activeMode;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => {
+                    setAutoCycle(false);
+                    onSelectMode(mode.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-[#f59e0b] text-[#061c36] shadow-xs'
+                      : 'bg-white/10 text-sky-100 hover:bg-white/18'
+                  }`}
+                >
+                  {tr(mode.labelUk, mode.labelRu)}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              aria-pressed={autoCycle}
+              onClick={() => setAutoCycle((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                autoCycle
+                  ? 'bg-sky-500/25 border border-sky-400/50 text-sky-100 hover:bg-sky-500/35'
+                  : 'bg-white/10 border border-transparent text-sky-100/80 hover:bg-white/20'
+              }`}
+            >
+              {autoCycle ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              <span>{tr('Цикл доби', 'Цикл суток')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => resetCameraFnRef.current?.()}
+              className="sm:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-sky-100 whitespace-nowrap cursor-pointer transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{tr('Загальний вигляд', 'Общий вид')}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

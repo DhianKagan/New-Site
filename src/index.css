@@ -1,59 +1,59 @@
 @import "tailwindcss";
 
 @theme {
-  --text-xs: 0.84rem;
+  --text-xs: 0.82rem;
   --text-xs--line-height: 1.5;
-  --text-sm: 0.95rem;
-  --text-sm--line-height: 1.55;
+  --text-sm: 0.92rem;
+  --text-sm--line-height: 1.6;
   --text-base: 1rem;
-  --text-base--line-height: 1.6;
-  --text-lg: 1.15rem;
+  --text-base--line-height: 1.65;
+  --text-lg: 1.14rem;
   --text-lg--line-height: 1.45;
-  --text-xl: 1.32rem;
+  --text-xl: 1.3rem;
   --text-xl--line-height: 1.35;
-  --text-2xl: 1.58rem;
+  --text-2xl: 1.55rem;
   --text-2xl--line-height: 1.25;
-  --text-3xl: 1.98rem;
+  --text-3xl: 1.95rem;
   --text-3xl--line-height: 1.2;
 }
 
 @layer base {
   :root {
-    --navy: #07213e;
+    --navy: #061c36;
     --navy-mid: #0d3663;
     --blue: #0b66b2;
     --blue-hover: #08508e;
     --cyan: #0d9488;
     --amber: #f59e0b;
     --amber-hover: #d97706;
-    --ink: #07213e;
-    --muted: #1c3d5e;
+    --ink: #061c36;
+    --muted: #133659;
     --line: #cfe1f4;
     --bg: #eef6ff;
   }
 
   html {
-    font-size: 16.5px;
+    font-size: 15.5px;
     scroll-behavior: smooth;
     text-rendering: optimizeLegibility;
   }
 
   @media (min-width: 640px) {
     html {
-      font-size: 17.5px;
+      font-size: 16px;
     }
   }
 
-  @media (min-width: 1024px) {
+  @media (min-width: 1280px) {
     html {
-      font-size: 18.5px;
+      font-size: 16.5px;
     }
   }
 
   body {
     font-family: 'Manrope', system-ui, -apple-system, sans-serif;
     font-size: 1rem;
-    line-height: 1.6;
+    line-height: 1.65;
     color: var(--ink);
     background: transparent;
   }
@@ -62,6 +62,10 @@
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     letter-spacing: -0.015em;
     text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   .font-mono {
@@ -81,7 +85,16 @@
     0 0 1px rgba(4, 18, 38, 0.95);
 }
 
-/* Standardized layout & translucent frosted glass system */
+@keyframes ecGradientFlow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Standardized layout & dynamic translucent frosted glass system */
 .ec-container {
   max-width: 1200px;
   margin-inline: auto;
@@ -100,15 +113,22 @@
 
 @media (min-width: 640px) {
   .ec-section {
-    padding-block: 3.5rem;
+    padding-block: 3.75rem;
   }
 }
 
 .ec-banner {
-  background: linear-gradient(180deg, rgba(242, 248, 255, 0.90) 0%, rgba(232, 244, 255, 0.86) 100%);
+  background: linear-gradient(
+    125deg,
+    rgba(235, 246, 255, 0.94) 0%,
+    rgba(255, 250, 240, 0.92) 48%,
+    rgba(219, 240, 255, 0.94) 100%
+  );
+  background-size: 200% 200%;
+  animation: ecGradientFlow 16s ease-in-out infinite;
   backdrop-filter: blur(20px) saturate(1.5);
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  border-bottom: 1px solid rgba(147, 197, 253, 0.55);
+  border-bottom: 1px solid rgba(147, 197, 253, 0.65);
   padding-block: 2rem;
 }
 
@@ -119,27 +139,48 @@
 }
 
 .ec-glass-plate {
-  background: linear-gradient(145deg, rgba(252, 250, 244, 0.90) 0%, rgba(235, 246, 255, 0.84) 100%);
+  background: linear-gradient(
+    130deg,
+    rgba(255, 252, 245, 0.94) 0%,
+    rgba(226, 243, 255, 0.90) 52%,
+    rgba(236, 250, 255, 0.94) 100%
+  );
+  background-size: 200% 200%;
+  animation: ecGradientFlow 14s ease-in-out infinite;
   backdrop-filter: blur(20px) saturate(1.55);
   -webkit-backdrop-filter: blur(20px) saturate(1.55);
-  border: 1px solid rgba(214, 234, 255, 0.85);
-  box-shadow: 0 12px 32px rgba(6, 28, 58, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(191, 224, 255, 0.92);
+  box-shadow: 0 14px 36px rgba(6, 28, 58, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .ec-glass-card {
-  background: linear-gradient(155deg, rgba(255, 253, 249, 0.91) 0%, rgba(238, 247, 255, 0.86) 100%);
-  backdrop-filter: blur(18px) saturate(1.45);
-  -webkit-backdrop-filter: blur(18px) saturate(1.45);
-  border: 1px solid rgba(214, 234, 255, 0.86);
-  box-shadow: 0 10px 26px rgba(6, 28, 58, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 254, 250, 0.95) 0%,
+    rgba(232, 246, 255, 0.91) 54%,
+    rgba(224, 247, 252, 0.93) 100%
+  );
+  background-size: 200% 200%;
+  animation: ecGradientFlow 15s ease-in-out infinite;
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border: 1px solid rgba(191, 224, 255, 0.9);
+  box-shadow: 0 12px 30px rgba(6, 28, 58, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .ec-glass-sapphire {
-  background: linear-gradient(145deg, rgba(9, 44, 86, 0.82) 0%, rgba(14, 72, 128, 0.76) 100%);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  border: 1px solid rgba(125, 211, 252, 0.34);
-  box-shadow: 0 12px 32px rgba(5, 24, 52, 0.28), inset 0 1px 0 rgba(186, 230, 253, 0.16);
+  background: linear-gradient(
+    130deg,
+    rgba(7, 39, 79, 0.88) 0%,
+    rgba(12, 76, 134, 0.82) 50%,
+    rgba(10, 68, 106, 0.86) 100%
+  );
+  background-size: 200% 200%;
+  animation: ecGradientFlow 14s ease-in-out infinite;
+  backdrop-filter: blur(18px) saturate(1.45);
+  -webkit-backdrop-filter: blur(18px) saturate(1.45);
+  border: 1px solid rgba(125, 211, 252, 0.42);
+  box-shadow: 0 14px 36px rgba(5, 24, 52, 0.32), inset 0 1px 0 rgba(186, 230, 253, 0.2);
 }
 
 @layer utilities {
@@ -156,7 +197,7 @@
     font-size: 0.91rem;
   }
   .text-\[15px\] {
-    font-size: 1.04rem;
+    font-size: 1.02rem;
   }
 }
 
@@ -183,6 +224,12 @@
     animation: none;
     opacity: 1;
     transform: none;
+  }
+  .ec-banner,
+  .ec-glass-plate,
+  .ec-glass-card,
+  .ec-glass-sapphire {
+    animation: none;
   }
 }
 

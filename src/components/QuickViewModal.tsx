@@ -1,4 +1,4 @@
-import { X, ShoppingBag, ArrowUpRight, CheckCircle2, ExternalLink, Heart } from 'lucide-react';
+import { X, ShoppingBag, ArrowUpRight, CheckCircle2, ExternalLink, Heart, Scale } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { formatUahFromUsd } from '../lib/currency.ts';
@@ -20,6 +20,8 @@ interface QuickViewModalProps {
   onOpenFullDetails?: (product: Product) => void;
   isWishlisted?: boolean;
   onToggleWishlist?: (product: Product) => void;
+  isCompared?: boolean;
+  onToggleCompare?: (product: Product) => void;
   usdUahRate: number | null;
 }
 
@@ -31,6 +33,8 @@ export function QuickViewModal({
   onOpenFullDetails,
   isWishlisted = false,
   onToggleWishlist,
+  isCompared = false,
+  onToggleCompare,
   usdUahRate,
 }: QuickViewModalProps) {
   if (!product) return null;
@@ -72,6 +76,30 @@ export function QuickViewModal({
             <span className="font-mono">SKU {product.sku}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {onToggleCompare && (
+              <button
+                type="button"
+                onClick={() => onToggleCompare(product)}
+                aria-pressed={isCompared}
+                aria-label={
+                  isCompared
+                    ? tr('Прибрати з порівняння', 'Убрать из сравнения')
+                    : tr('Додати до порівняння', 'Добавить к сравнению')
+                }
+                title={
+                  isCompared
+                    ? tr('Прибрати з порівняння', 'Убрать из сравнения')
+                    : tr('Додати до порівняння', 'Добавить к сравнению')
+                }
+                className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b66b2] ${
+                  isCompared
+                    ? 'bg-[#0b66b2] border-[#0b66b2] text-white hover:bg-[#08508e]'
+                    : 'border-slate-200 text-slate-600 hover:bg-sky-50 hover:text-[#0b66b2]'
+                }`}
+              >
+                <Scale className="w-4 h-4" />
+              </button>
+            )}
             {onToggleWishlist && (
               <button
                 type="button"

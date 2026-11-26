@@ -39,11 +39,11 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e]">{tr('Послуги монтажу під ключ')}</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
               {MONTAGE_SERVICES.map((svc) => (
                 <article
                   key={svc.id}
-                  className="ec-glass-card rounded-2xl overflow-hidden flex flex-col justify-between"
+                  className="ec-glass-card rounded-2xl overflow-hidden h-full flex flex-col justify-between"
                 >
                   <div>
                     {svc.image && (
@@ -53,9 +53,9 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
                     )}
                     <div className="p-5 sm:p-6">
                       <div className="text-[11px] font-bold text-[#0b66b2] mb-1">{isRussian ? svc.kickerRu ?? svc.kicker : svc.kicker}</div>
-                      <h3 className="text-lg font-extrabold text-[#07213e] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
-                      <p className="text-xs sm:text-sm text-[#1c3d5e] font-medium leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
-                      <ul className="space-y-2 text-xs text-[#07213e]">
+                      <h3 className="text-lg font-extrabold text-[#061c36] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
+                      <p className="text-sm text-[#133659] font-medium leading-[1.65] mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
+                      <ul className="space-y-2 text-[13px] text-[#061c36] font-medium">
                         {(isRussian ? svc.bulletsRu ?? svc.bullets : svc.bullets).map((b) => (
                           <li key={b} className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-[#0d9488] shrink-0 mt-0.5" strokeWidth={2.5} />
@@ -88,11 +88,11 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e]">{tr('Додаткові інженерні послуги')}</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
               {EXTRA_SERVICES.map((svc) => (
                 <article
                   key={svc.id}
-                  className="ec-glass-card rounded-2xl overflow-hidden flex flex-col justify-between"
+                  className="ec-glass-card rounded-2xl overflow-hidden h-full flex flex-col justify-between"
                 >
                   <div>
                     {svc.image && (
@@ -102,9 +102,9 @@ export function ServicesView({ onOrderService, usdUahRate }: ServicesViewProps) 
                     )}
                     <div className="p-5 sm:p-6">
                       <div className="text-[11px] font-bold text-[#0b66b2] mb-1">{isRussian ? svc.kickerRu ?? svc.kicker : svc.kicker}</div>
-                      <h3 className="text-lg font-extrabold text-[#07213e] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
-                      <p className="text-xs sm:text-sm text-[#1c3d5e] font-medium leading-relaxed mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
-                      <ul className="space-y-2 text-xs text-[#07213e]">
+                      <h3 className="text-lg font-extrabold text-[#061c36] mb-2">{isRussian ? svc.titleRu ?? svc.title : svc.title}</h3>
+                      <p className="text-sm text-[#133659] font-medium leading-[1.65] mb-4">{isRussian ? svc.summaryRu ?? svc.summary : svc.summary}</p>
+                      <ul className="space-y-2 text-[13px] text-[#061c36] font-medium">
                         {(isRussian ? svc.bulletsRu ?? svc.bullets : svc.bullets).map((b) => (
                           <li key={b} className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-[#0d9488] shrink-0 mt-0.5" strokeWidth={2.5} />

@@ -120,45 +120,45 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
         </div>
 
         {/* Selected Node Breakdown: 3 Uniform Glass Cards */}
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          <article className="ec-glass-card rounded-2xl p-5 sm:p-6 space-y-3">
+        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-stretch">
+          <article className="ec-glass-card rounded-2xl p-5 sm:p-6 h-full flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               <span className="w-9 h-9 rounded-xl bg-[#e6f3ff] text-[#0b66b2] flex items-center justify-center shrink-0">
                 <Cable className="w-4 h-4" />
               </span>
-              <h4 className="text-sm font-extrabold text-[#07213e]">
+              <h4 className="text-[15px] font-extrabold text-[#061c36]">
                 {tr('Як і куди підключається', 'Как и куда подключается')}
               </h4>
             </div>
-            <p className="text-xs sm:text-sm text-[#1c3d5e] leading-relaxed">
+            <p className="text-sm text-[#133659] font-medium leading-[1.65]">
               {tr(activeNode.howConnectsUk, activeNode.howConnectsRu)}
             </p>
           </article>
 
-          <article className="ec-glass-card rounded-2xl p-5 sm:p-6 space-y-3">
+          <article className="ec-glass-card rounded-2xl p-5 sm:p-6 h-full flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               <span className="w-9 h-9 rounded-xl bg-amber-50 text-[#d97706] flex items-center justify-center shrink-0">
                 <HelpCircle className="w-4 h-4" />
               </span>
-              <h4 className="text-sm font-extrabold text-[#07213e]">
+              <h4 className="text-[15px] font-extrabold text-[#061c36]">
                 {tr('Навіщо потрібен у системі', 'Зачем нужен в системе')}
               </h4>
             </div>
-            <p className="text-xs sm:text-sm text-[#1c3d5e] leading-relaxed">
+            <p className="text-sm text-[#133659] font-medium leading-[1.65]">
               {tr(activeNode.whyNeededUk, activeNode.whyNeededRu)}
             </p>
           </article>
 
-          <article className="ec-glass-card rounded-2xl p-5 sm:p-6 space-y-3">
+          <article className="ec-glass-card rounded-2xl p-5 sm:p-6 h-full flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               <span className="w-9 h-9 rounded-xl bg-emerald-50 text-[#0d9488] flex items-center justify-center shrink-0">
                 <TrendingUp className="w-4 h-4" />
               </span>
-              <h4 className="text-sm font-extrabold text-[#07213e]">
+              <h4 className="text-[15px] font-extrabold text-[#061c36]">
                 {tr('Що дає власнику', 'Что даёт владельцу')}
               </h4>
             </div>
-            <p className="text-xs sm:text-sm text-[#1c3d5e] leading-relaxed">
+            <p className="text-sm text-[#133659] font-medium leading-[1.65]">
               {tr(activeNode.whatGivesUk, activeNode.whatGivesRu)}
             </p>
           </article>

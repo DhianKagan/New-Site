@@ -10,6 +10,7 @@ import {
   PhoneCall,
   MessageSquarePlus,
   Heart,
+  Scale,
 } from 'lucide-react';
 import type { Product, ProductReview } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
@@ -50,6 +51,8 @@ interface ProductModalProps {
   onRequireLogin?: () => void;
   isWishlisted?: boolean;
   onToggleWishlist?: (product: Product) => void;
+  isCompared?: boolean;
+  onToggleCompare?: (product: Product) => void;
 }
 
 export function ProductModal({
@@ -64,6 +67,8 @@ export function ProductModal({
   onRequireLogin,
   isWishlisted = false,
   onToggleWishlist,
+  isCompared = false,
+  onToggleCompare,
 }: ProductModalProps) {
   const isRussian = getActiveLocale() === 'ru';
   const productId = product?.id ?? null;
@@ -180,6 +185,33 @@ export function ProductModal({
             <span className="font-mono">SKU {product.sku}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {onToggleCompare && (
+              <button
+                type="button"
+                onClick={() => onToggleCompare(product)}
+                aria-pressed={isCompared}
+                aria-label={
+                  isCompared
+                    ? tr('Прибрати з порівняння', 'Убрать из сравнения')
+                    : tr('Додати до порівняння', 'Добавить к сравнению')
+                }
+                title={
+                  isCompared
+                    ? tr('Прибрати з порівняння', 'Убрать из сравнения')
+                    : tr('Додати до порівняння', 'Добавить к сравнению')
+                }
+                className={`h-8 px-2.5 rounded-lg border inline-flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${
+                  isCompared
+                    ? 'bg-[#0b66b2] border-[#0b66b2] text-white hover:bg-[#08508e]'
+                    : 'border-slate-200 text-slate-600 hover:bg-sky-50 hover:text-[#0b66b2]'
+                }`}
+              >
+                <Scale className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">
+                  {isCompared ? tr('У порівнянні', 'В сравнении') : tr('Порівняти', 'Сравнить')}
+                </span>
+              </button>
+            )}
             {onToggleWishlist && (
               <button
                 type="button"

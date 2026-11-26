@@ -60,6 +60,14 @@ import {
   toggleWishlistId,
   writeWishlistToStorage,
 } from './lib/wishlist.ts';
+import {
+  readCompareFromStorage,
+  resolveCompareProducts,
+  toggleCompareId,
+  writeCompareToStorage,
+} from './lib/compare.ts';
+import { CompareBar } from './components/CompareBar.tsx';
+import { CompareModal } from './components/CompareModal.tsx';
 
 type AppView =
   | 'home'
@@ -432,6 +440,14 @@ function AppContent() {
   const wishlistIdsRef = useRef<string[]>(wishlistIds);
   wishlistIdsRef.current = wishlistIds;
 
+  // Compare state persisted in localStorage (up to 4 products)
+  const [compareIds, setCompareIds] = useState<string[]>(() => readCompareFromStorage());
+  const compareIdsRef = useRef<string[]>(compareIds);
+  compareIdsRef.current = compareIds;
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
+  const [compareLimitNotice, setCompareLimitNotice] = useState(false);
+  const compareLimitTimerRef = useRef<number | null>(null);
+
   // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
@@ -522,6 +538,18 @@ function AppContent() {
   useEffect(() => {
     writeWishlistToStorage(wishlistIds);
   }, [wishlistIds]);
+
+  useEffect(() => {
+    writeCompareToStorage(compareIds);
+  }, [compareIds]);
+
+  useEffect(() => {
+    return () => {
+      if (compareLimitTimerRef.current !== null) {
+        window.clearTimeout(compareLimitTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!clientToken) return;
@@ -1331,6 +1359,39 @@ function AppContent() {
     void pushWishlistToServer([]);
   }, [pushWishlistToServer]);
 
+  const compareProducts = useMemo(
+    () => resolveCompareProducts(compareIds, products),
+    [compareIds, products],
+  );
+
+  const handleToggleCompare = useCallback((product: Product) => {
+    const result = toggleCompareId(compareIdsRef.current, product.id);
+    if (result.limitReached) {
+      setCompareLimitNotice(true);
+      if (compareLimitTimerRef.current !== null) {
+        window.clearTimeout(compareLimitTimerRef.current);
+      }
+      compareLimitTimerRef.current = window.setTimeout(() => {
+        setCompareLimitNotice(false);
+        compareLimitTimerRef.current = null;
+      }, 3200);
+      return;
+    }
+    setCompareLimitNotice(false);
+    setCompareIds(result.ids);
+  }, []);
+
+  const handleRemoveCompare = useCallback((productId: string) => {
+    setCompareLimitNotice(false);
+    setCompareIds((prev) => prev.filter((id) => id !== productId));
+  }, []);
+
+  const handleClearCompare = useCallback(() => {
+    setCompareLimitNotice(false);
+    setCompareIds([]);
+    setCompareModalOpen(false);
+  }, []);
+
   const handleAddManyToCart = useCallback((items: Product[]) => {
     const buyable = items.filter((p) => !p.isKit && p.price > 0);
     if (buyable.length === 0) return;
@@ -1674,6 +1735,7 @@ function AppContent() {
                 telegramUrl={socialLinks.telegram}
                 isStaff={Boolean(adminToken)}
                 wishlistIds={wishlistIds}
+                compareIds={compareIds}
                 onNavigateShop={(cat) => navigateTo('shop', cat)}
                 onNavigateServices={() => navigateTo('services')}
                 onNavigateProjects={() => navigateTo('projects')}
@@ -1681,6 +1743,7 @@ function AppContent() {
                 onSelectProduct={handleSelectProduct}
                 onQuickViewProduct={handleQuickViewProduct}
                 onToggleWishlist={handleToggleWishlist}
+                onToggleCompare={handleToggleCompare}
                 onAddToCart={handleAddToCart}
                 onCalculatePayback={setPaybackProduct}
                 onSelectCase={setSelectedCase}
@@ -1696,11 +1759,14 @@ function AppContent() {
                 initialCategory={shopInitialCat}
                 initialQuery={shopInitialQuery}
                 wishlistIds={wishlistIds}
+                compareIds={compareIds}
                 onCategoryChange={handleShopCategorySync}
                 onQueryChange={handleShopQuerySync}
                 onSelectProduct={handleSelectProduct}
                 onQuickViewProduct={handleQuickViewProduct}
                 onToggleWishlist={handleToggleWishlist}
+                onToggleCompare={handleToggleCompare}
+                onOpenCompare={() => setCompareModalOpen(true)}
                 onAddToCart={handleAddToCart}
                 onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
                 onCalculatePayback={setPaybackProduct}
@@ -1951,8 +2017,35 @@ function AppContent() {
         </footer>
       )}
 
+      {/* Floating Product Comparison Dock */}
+      {view !== 'crm' &&
+        !cartOpen &&
+        !leadModalOpen &&
+        !selectedProduct &&
+        !quickViewProduct &&
+        !paybackProduct &&
+        !selectedCase &&
+        !compareModalOpen && (
+          <CompareBar
+            products={compareProducts}
+            limitNotice={compareLimitNotice}
+            onRemove={handleRemoveCompare}
+            onClear={handleClearCompare}
+            onOpenModal={() => setCompareModalOpen(true)}
+          />
+        )}
+
       {/* Slim Mobile Thumb CTA Bar (<= 44px height) */}
-      {view !== 'crm' && stickyCtaVisible && !cartOpen && !leadModalOpen && !selectedProduct && !quickViewProduct && !paybackProduct && !selectedCase && (
+      {view !== 'crm' &&
+        stickyCtaVisible &&
+        compareProducts.length === 0 &&
+        !compareModalOpen &&
+        !cartOpen &&
+        !leadModalOpen &&
+        !selectedProduct &&
+        !quickViewProduct &&
+        !paybackProduct &&
+        !selectedCase && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-[#f0f7ff]/95 backdrop-blur-md border-t border-sky-200 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-2">
           <a
             href={COMPANY_INFO.phone1Href}
@@ -1977,6 +2070,19 @@ function AppContent() {
       )}
 
       {/* Modals & Cart Drawer */}
+      <CompareModal
+        open={compareModalOpen}
+        products={compareProducts}
+        usdUahRate={usdUahRate}
+        onClose={() => setCompareModalOpen(false)}
+        onRemoveProduct={handleRemoveCompare}
+        onClearAll={handleClearCompare}
+        onSelectProduct={handleSelectProduct}
+        onAddToCart={handleAddToCart}
+        onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+        onBrowseCatalog={() => navigateTo('shop', 'all')}
+      />
+
       <ProductModal
         product={selectedProduct}
         onClose={handleCloseProductModal}
@@ -1989,6 +2095,8 @@ function AppContent() {
         onRequireLogin={() => navigateTo('login', undefined, 'login')}
         isWishlisted={selectedProduct ? wishlistIds.includes(selectedProduct.id) : false}
         onToggleWishlist={handleToggleWishlist}
+        isCompared={selectedProduct ? compareIds.includes(selectedProduct.id) : false}
+        onToggleCompare={handleToggleCompare}
       />
 
       <QuickViewModal
@@ -2002,6 +2110,8 @@ function AppContent() {
         }}
         isWishlisted={quickViewProduct ? wishlistIds.includes(quickViewProduct.id) : false}
         onToggleWishlist={handleToggleWishlist}
+        isCompared={quickViewProduct ? compareIds.includes(quickViewProduct.id) : false}
+        onToggleCompare={handleToggleCompare}
         usdUahRate={usdUahRate}
       />
 

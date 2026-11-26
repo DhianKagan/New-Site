@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, X, MessageSquarePlus, SlidersHorizontal, Zap, Layers, Scale } from 'lucide-react';
 import type { Product, ProductCategory } from '../types.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
@@ -25,11 +25,14 @@ interface ShopViewProps {
   initialCategory: ProductCategory | 'all';
   initialQuery?: string;
   wishlistIds?: string[];
+  compareIds?: string[];
   onCategoryChange?: (cat: ProductCategory | 'all') => void;
   onQueryChange?: (query: string) => void;
   onSelectProduct: (product: Product) => void;
   onQuickViewProduct?: (product: Product) => void;
   onToggleWishlist?: (product: Product) => void;
+  onToggleCompare?: (product: Product) => void;
+  onOpenCompare?: () => void;
   onAddToCart: (product: Product) => void;
   onRequestQuote: (product: Product) => void;
   onCalculatePayback?: (product: Product) => void;
@@ -54,11 +57,14 @@ export function ShopView({
   initialCategory,
   initialQuery = '',
   wishlistIds = [],
+  compareIds = [],
   onCategoryChange,
   onQueryChange,
   onSelectProduct,
   onQuickViewProduct,
   onToggleWishlist,
+  onToggleCompare,
+  onOpenCompare,
   onAddToCart,
   onRequestQuote,
   onCalculatePayback,
@@ -269,12 +275,12 @@ export function ShopView({
 
   return (
     <div>
-      <section className="ec-banner text-[#07213e]">
-        <div className="ec-container">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+      <section className="ec-banner text-[#061c36]">
+        <div className="max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#061c36] mb-2">
             {tr('Обладнання та готові рішення Energo Comfort', 'Оборудование и готовые решения Energo Comfort')}
           </h1>
-          <p className="text-sm text-[#1c3d5e] font-medium max-w-2xl">
+          <p className="text-sm text-[#133659] font-medium max-w-2xl leading-[1.6]">
             {tr('Повний каталог позицій із energocomfort.shop', 'Полный каталог товаров energocomfort.shop')} ({products.length} {tr('товарів', 'товаров')}). {tr('Окремі інвертори, АКБ, панелі та захист додаються у кошик; готові комплекти підключаються через інженерний розрахунок.', 'Отдельные инверторы, аккумуляторы, панели и защита добавляются в корзину; готовые комплекты подбираются инженером.')}
           </p>
         </div>
@@ -282,7 +288,7 @@ export function ShopView({
 
       <section className="relative overflow-hidden isolate ec-section">
         <VideoBackground position="absolute" tone="light" tint="sky" start={8} end={20} brightness={0.56} />
-        <div className="relative ec-container">
+        <div className="relative max-w-[1380px] mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="sr-only">{tr('Фільтри та перелік обладнання', 'Фильтры и каталог оборудования')}</h2>
           {/* Category Filter Tabs */}
           <div className="ec-glass-plate flex flex-wrap gap-1.5 p-1.5 rounded-2xl mb-6 w-fit max-w-full">
@@ -404,7 +410,7 @@ export function ShopView({
             {/* Sidebar Filters: Equipment Type, Brand, Inverter Power */}
             <aside
               aria-label={tr('Фільтри каталогу', 'Фильтры каталога')}
-              className="w-full lg:w-[250px] shrink-0 ec-glass-plate rounded-2xl p-5 lg:sticky lg:top-24"
+              className="w-full lg:w-[240px] xl:w-[255px] shrink-0 ec-glass-plate rounded-2xl p-4 sm:p-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
             >
               {/* Equipment Type Checkboxes */}
               <div className="pb-4 mb-4 border-b border-sky-200/80">
@@ -620,11 +626,25 @@ export function ShopView({
                     </span>
                   )}
                 </div>
-                {totalPages > 1 && (
-                  <span className="font-mono tabular-nums text-[#1c3d5e]">
-                    {tr('Сторінка', 'Страница')} {safePage} {tr('з', 'из')} {totalPages}
-                  </span>
-                )}
+                <div className="flex items-center gap-3 shrink-0">
+                  {compareIds.length > 0 && onOpenCompare && (
+                    <button
+                      type="button"
+                      onClick={onOpenCompare}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0b66b2] hover:bg-[#08508e] text-white text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Scale className="w-3.5 h-3.5" />
+                      <span>
+                        {tr('Порівняти', 'Сравнить')} ({compareIds.length})
+                      </span>
+                    </button>
+                  )}
+                  {totalPages > 1 && (
+                    <span className="font-mono tabular-nums text-[#1c3d5e]">
+                      {tr('Сторінка', 'Страница')} {safePage} {tr('з', 'из')} {totalPages}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {paginated.length === 0 ? (
@@ -682,7 +702,7 @@ export function ShopView({
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 items-stretch">
                   {paginated.map((p, index) => (
                     <ProductCard
                       key={`${cat}-${safePage}-${p.id}`}
@@ -691,11 +711,13 @@ export function ShopView({
                       onQuickView={onQuickViewProduct}
                       isWishlisted={wishlistIds.includes(p.id)}
                       onToggleWishlist={onToggleWishlist}
+                      isCompared={compareIds.includes(p.id)}
+                      onToggleCompare={onToggleCompare}
                       onAddToCart={onAddToCart}
                       onRequestQuote={(prod) => onRequestQuote(prod)}
                       onCalculatePayback={onCalculatePayback}
                       usdUahRate={usdUahRate}
-                      className="shop-card-fade-in duration-200 ease-out motion-safe:hover:scale-[1.02]"
+                      className="shop-card-fade-in duration-200 ease-out motion-safe:hover:scale-[1.015]"
                       style={{ animationDelay: `${Math.min(index, 11) * 30}ms` }}
                     />
                   ))}

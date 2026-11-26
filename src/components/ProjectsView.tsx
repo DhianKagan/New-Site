@@ -62,14 +62,14 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {filtered.map((c) => (
               <article
                 key={c.id}
                 onClick={() => onSelectCase(c)}
-                className="ec-glass-card rounded-2xl overflow-hidden flex flex-col cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
+                className="ec-glass-card rounded-2xl overflow-hidden h-full flex flex-col cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
               >
-                <div className="relative h-48 bg-[#07213e]">
+                <div className="relative h-48 bg-[#061c36]">
                   <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-[#041830]/85 to-transparent text-[11px] font-bold text-white">
                     {isRussian ? c.tagRu ?? c.tag : c.tag}
@@ -77,12 +77,16 @@ export function ProjectsView({ projects, onSelectCase }: ProjectsViewProps) {
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-extrabold text-[#07213e] mb-1.5">{isRussian ? c.titleRu ?? c.title : c.title}</h3>
-                    <p className="text-xs text-[#1c3d5e] font-medium leading-relaxed">{isRussian ? c.taskRu ?? c.task : c.task}</p>
+                    <h3 className="text-[15.5px] font-extrabold text-[#061c36] mb-1.5 line-clamp-2 min-h-[2.6rem]">
+                      {isRussian ? c.titleRu ?? c.title : c.title}
+                    </h3>
+                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium leading-[1.6] line-clamp-3">
+                      {isRussian ? c.taskRu ?? c.task : c.task}
+                    </p>
                   </div>
                   <div className="pt-3 border-t border-sky-200/75 flex items-center justify-between gap-2 text-[11px] font-bold">
-                    <span className="font-mono text-[#07213e] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
-                    <span className="text-[#0b66b2] shrink-0">{tr('Деталі')} →</span>
+                    <span className="font-mono text-[#061c36] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
+                    <span className="text-[#0b66b2] shrink-0 whitespace-nowrap">{tr('Деталі')} →</span>
                   </div>
                 </div>
               </article>

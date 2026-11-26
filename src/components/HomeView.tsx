@@ -36,6 +36,7 @@ interface HomeViewProps {
   telegramUrl?: string;
   isStaff?: boolean;
   wishlistIds?: string[];
+  compareIds?: string[];
   onNavigateShop: (cat?: ProductCategory | 'all') => void;
   onNavigateServices: () => void;
   onNavigateProjects: () => void;
@@ -48,6 +49,7 @@ interface HomeViewProps {
   onSelectProduct: (product: Product) => void;
   onQuickViewProduct?: (product: Product) => void;
   onToggleWishlist?: (product: Product) => void;
+  onToggleCompare?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onCalculatePayback?: (product: Product) => void;
   onSelectCase: (project: ProjectCase) => void;
@@ -75,6 +77,7 @@ export function HomeView({
   telegramUrl,
   isStaff = false,
   wishlistIds = [],
+  compareIds = [],
   onNavigateShop,
   onNavigateServices,
   onNavigateProjects,
@@ -82,6 +85,7 @@ export function HomeView({
   onSelectProduct,
   onQuickViewProduct,
   onToggleWishlist,
+  onToggleCompare,
   onAddToCart,
   onCalculatePayback,
   onSelectCase,
@@ -428,13 +432,13 @@ export function HomeView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="ec-glass-sapphire rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-3 hover:border-sky-300/55 transition-colors">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+            <div className="ec-glass-sapphire rounded-2xl p-6 flex flex-col justify-between gap-4 h-full hover:border-sky-300/60 transition-colors">
               <div>
-                <div className="text-xs font-bold text-sky-200 mb-1">{tr('01. Квартира та дім', '01. Квартира и дом')}</div>
-                <h3 className="text-base font-extrabold text-white mb-1.5">{tr('Резервне живлення', 'Резервное питание')}</h3>
-                <p className="text-xs text-sky-100/90 leading-relaxed">
-                {tr('Інвертор + АКБ LiFePO4: котел, холодильник, роутер та світло працюють автоматично при блекауті.', 'Инвертор и аккумулятор LiFePO4 автоматически обеспечивают питание котла, холодильника, роутера и освещения при отключении света.')}
+                <div className="text-xs font-bold text-sky-200 mb-1.5">{tr('01. Квартира та дім', '01. Квартира и дом')}</div>
+                <h3 className="text-[17px] font-extrabold text-white mb-2">{tr('Резервне живлення', 'Резервное питание')}</h3>
+                <p className="text-[13px] text-sky-50/90 leading-[1.6]">
+                  {tr('Інвертор + АКБ LiFePO4: котел, холодильник, роутер та світло працюють автоматично при блекауті.', 'Инвертор и аккумулятор LiFePO4 автоматически обеспечивают питание котла, холодильника, роутера и освещения при отключении света.')}
                 </p>
               </div>
               <button
@@ -443,17 +447,17 @@ export function HomeView({
                   setShowcaseTab('backup-kits');
                   document.getElementById('home-kits')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer"
+                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer pt-2 border-t border-sky-200/15"
               >
                 {tr('Дивитись комплекти 5–10 кВт →', 'Посмотреть комплекты 5–10 кВт →')}
               </button>
             </div>
 
-            <div className="ec-glass-sapphire rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-3 hover:border-sky-300/55 transition-colors">
+            <div className="ec-glass-sapphire rounded-2xl p-6 flex flex-col justify-between gap-4 h-full hover:border-sky-300/60 transition-colors">
               <div>
-                <div className="text-xs font-bold text-sky-200 mb-1">{tr('02. Приватний сектор', '02. Частный сектор')}</div>
-                <h3 className="text-base font-extrabold text-white mb-1.5">{tr('Сонячні станції (СЕС)', 'Солнечные электростанции')}</h3>
-                <p className="text-xs text-sky-100/90 leading-relaxed">
+                <div className="text-xs font-bold text-sky-200 mb-1.5">{tr('02. Приватний сектор', '02. Частный сектор')}</div>
+                <h3 className="text-[17px] font-extrabold text-white mb-2">{tr('Сонячні станції (СЕС)', 'Солнечные электростанции')}</h3>
+                <p className="text-[13px] text-sky-50/90 leading-[1.6]">
                   {tr('Гібридні та мережеві рішення 6–12 кВт із оформленням «активного споживача» та гарантією монтажу.', 'Гибридные и сетевые решения 6–12 кВт с оформлением статуса активного потребителя и гарантией на монтаж.')}
                 </p>
               </div>
@@ -463,24 +467,24 @@ export function HomeView({
                   setShowcaseTab('solar-kits');
                   document.getElementById('home-kits')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer"
+                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer pt-2 border-t border-sky-200/15"
               >
                 {tr('Дивитись готові СЕС →', 'Посмотреть готовые СЭС →')}
               </button>
             </div>
 
-            <div className="ec-glass-sapphire rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-3 hover:border-sky-300/55 transition-colors">
+            <div className="ec-glass-sapphire rounded-2xl p-6 flex flex-col justify-between gap-4 h-full hover:border-sky-300/60 transition-colors">
               <div>
-                <div className="text-xs font-bold text-sky-200 mb-1">{tr('03. Бізнес 380 В і магазин', '03. Бизнес 380 В и магазин')}</div>
-                <h3 className="text-base font-extrabold text-white mb-1.5">{tr('Станції 30–110 кВт та каталог', 'Станции 30–110 кВт и каталог')}</h3>
-                <p className="text-xs text-sky-100/90 leading-relaxed">
+                <div className="text-xs font-bold text-sky-200 mb-1.5">{tr('03. Бізнес 380 В і магазин', '03. Бизнес 380 В и магазин')}</div>
+                <h3 className="text-[17px] font-extrabold text-white mb-2">{tr('Станції 30–110 кВт та каталог', 'Станции 30–110 кВт и каталог')}</h3>
+                <p className="text-[13px] text-sky-50/90 leading-[1.6]">
                   {tr('Рішення для СТО, готелів, заводів або окремі інвертори, панелі й АКБ зі складу в Одесі.', 'Решения для СТО, гостиниц и заводов, а также отдельные инверторы, панели и аккумуляторы со склада в Одессе.')}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onNavigateShop('inverters')}
-                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer"
+                className="text-xs font-extrabold text-[#fbbf24] hover:underline text-left cursor-pointer pt-2 border-t border-sky-200/15"
               >
                 {tr('Відкрити каталог обладнання →', 'Открыть каталог оборудования →')}
               </button>
@@ -837,6 +841,8 @@ export function HomeView({
                     onQuickView={onQuickViewProduct}
                     isWishlisted={wishlistIds.includes(prod.id)}
                     onToggleWishlist={onToggleWishlist}
+                    isCompared={compareIds.includes(prod.id)}
+                    onToggleCompare={onToggleCompare}
                     onAddToCart={onAddToCart}
                     onCalculatePayback={onCalculatePayback}
                     onRequestQuote={(p) =>
@@ -924,6 +930,8 @@ export function HomeView({
                 onQuickView={onQuickViewProduct}
                 isWishlisted={wishlistIds.includes(prod.id)}
                 onToggleWishlist={onToggleWishlist}
+                isCompared={compareIds.includes(prod.id)}
+                onToggleCompare={onToggleCompare}
                 onAddToCart={onAddToCart}
                 onCalculatePayback={onCalculatePayback}
                 onRequestQuote={(p) => onOpenLeadModal(`Розрахунок: ${p.title}`, p.price)}
@@ -1094,14 +1102,14 @@ export function HomeView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {visibleCases.map((c) => (
               <article
                 key={c.id}
                 onClick={() => onSelectCase(c)}
-                className="ec-glass-card rounded-2xl overflow-hidden flex flex-col cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
+                className="ec-glass-card rounded-2xl overflow-hidden h-full flex flex-col cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
               >
-                <div className="relative h-48 bg-[#07213e]">
+                <div className="relative h-48 bg-[#061c36]">
                   <SmartImage src={c.img} alt={isRussian ? c.titleRu ?? c.title : c.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-[#041830]/85 to-transparent text-[11px] font-bold text-white">
                     {isRussian ? c.tagRu ?? c.tag : c.tag}
@@ -1109,12 +1117,16 @@ export function HomeView({
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-extrabold text-[#07213e] mb-1.5">{isRussian ? c.titleRu ?? c.title : c.title}</h3>
-                    <p className="text-xs text-[#1c3d5e] font-medium line-clamp-2 leading-relaxed">{isRussian ? c.taskRu ?? c.task : c.task}</p>
+                    <h3 className="text-[15.5px] font-extrabold text-[#061c36] mb-1.5 line-clamp-2 min-h-[2.6rem]">
+                      {isRussian ? c.titleRu ?? c.title : c.title}
+                    </h3>
+                    <p className="text-xs sm:text-[13px] text-[#133659] font-medium line-clamp-2 min-h-[2.5rem] leading-[1.6]">
+                      {isRussian ? c.taskRu ?? c.task : c.task}
+                    </p>
                   </div>
                   <div className="pt-3 border-t border-sky-200/75 flex items-center justify-between gap-2 text-[11px] font-bold">
-                    <span className="font-mono text-[#07213e] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
-                    <span className="text-[#0b66b2] shrink-0">{tr('Деталі')} →</span>
+                    <span className="font-mono text-[#061c36] truncate">{isRussian ? c.specsRu ?? c.specs : c.specs}</span>
+                    <span className="text-[#0b66b2] shrink-0 whitespace-nowrap">{tr('Деталі')} →</span>
                   </div>
                 </div>
               </article>
@@ -1152,7 +1164,7 @@ export function HomeView({
             </p>
           </div>
 
-          <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
             {[
               {
                 number: '01',
@@ -1185,19 +1197,19 @@ export function HomeView({
             ].map(({ number, title, desc, detail, Icon }) => (
               <article
                 key={number}
-                className="group ec-glass-sapphire rounded-2xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300/55"
+                className="group ec-glass-sapphire rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300/60"
               >
                 <div>
                   <div className="mb-4 flex items-center justify-between">
                     <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-400/20 text-sky-200 border border-sky-300/25 transition-colors group-hover:bg-[#0b66b2] group-hover:text-white">
                       <Icon className="h-5 w-5" strokeWidth={2.2} />
                     </span>
-                    <span className="font-mono text-2xl font-extrabold tracking-tight text-white/25 group-hover:text-sky-200/60">
+                    <span className="font-mono text-2xl font-extrabold tracking-tight text-white/30 group-hover:text-sky-200/70">
                       {number}
                     </span>
                   </div>
-                  <h3 className="mb-2 text-base font-extrabold text-white">{tr(title)}</h3>
-                  <p className="text-xs leading-relaxed text-sky-100/90">{tr(desc)}</p>
+                  <h3 className="mb-2 text-[16px] font-extrabold text-white">{tr(title)}</h3>
+                  <p className="text-[13px] leading-[1.6] text-sky-50/90 min-h-[3.9rem]">{tr(desc)}</p>
                 </div>
                 <div className="mt-5 border-t border-sky-200/15 pt-3 text-[11px] font-bold text-sky-200">
                   {tr(detail)}
@@ -1240,17 +1252,17 @@ export function HomeView({
           brightness={0.52}
         />
         <div className="relative ec-container grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          <div className="lg:col-span-5 ec-glass-plate rounded-2xl p-6 sm:p-7 flex flex-col justify-between">
+          <div className="lg:col-span-5 ec-glass-plate rounded-2xl p-6 sm:p-8 flex flex-col justify-between gap-6 h-full">
             <div>
               <div className="text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-2">{tr('Швидкий інженерний бриф', 'Краткий бриф для инженера')}</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] leading-tight mb-3">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#061c36] leading-tight mb-3">
                 {tr('Отримайте інженерний розрахунок під ваш об’єкт', 'Получите инженерный расчёт для вашего объекта')}
               </h2>
-              <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed mb-6">
+              <p className="text-[15px] text-[#133659] font-medium leading-[1.65] max-w-[44ch]">
                 {tr('Заявка автоматично створює картку угоди у вбудованій CRM Energo Comfort та надсилає сповіщення менеджеру у Telegram.', 'Заявка автоматически создаёт сделку во встроенной CRM Energo Comfort и отправляет уведомление менеджеру в Telegram.')}
               </p>
             </div>
-            <ul className="space-y-2 text-xs font-semibold text-[#07213e] pt-4 border-t border-sky-200/75">
+            <ul className="space-y-2.5 text-xs sm:text-[13px] font-semibold text-[#061c36] pt-5 border-t border-sky-200/80">
               <li>→ {tr('Офіс:', 'Офис:')} {tr(COMPANY_INFO.address, 'Украина, г. Одесса, ул. Европейская, 93')}</li>
               <li>
                 → {tr('Телефони:', 'Телефоны:')} {COMPANY_INFO.phone1} · {COMPANY_INFO.phone2}
@@ -1267,7 +1279,7 @@ export function HomeView({
                 track({ name: 'form_start', placement: 'section', scenario: getFormScenario(taskType) });
               }
             }}
-            className="lg:col-span-7 ec-glass-sapphire text-white rounded-2xl p-6 sm:p-7 space-y-4"
+            className="lg:col-span-7 ec-glass-sapphire text-white rounded-2xl p-6 sm:p-8 h-full flex flex-col justify-between gap-4"
           >
             <div className="hidden" aria-hidden="true">
               <label htmlFor="brief-website">Website</label>
