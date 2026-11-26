@@ -30,6 +30,9 @@ interface BatterySizingCalculatorProps {
     initialNotes?: string,
   ) => void;
   compactHeader?: boolean;
+  embedded?: boolean;
+  criticalSharePct?: 65 | 100;
+  onCriticalShareChange?: (value: 65 | 100) => void;
 }
 
 export function BatterySizingCalculator({
@@ -46,10 +49,15 @@ export function BatterySizingCalculator({
   onCalculatePayback,
   onOpenLeadModal,
   compactHeader = false,
+  embedded = false,
+  criticalSharePct: controlledCriticalSharePct,
+  onCriticalShareChange,
 }: BatterySizingCalculatorProps) {
   const [dailyKwh, setDailyKwh] = useState(15);
   const [backupHours, setBackupHours] = useState(12);
-  const [criticalSharePct, setCriticalSharePct] = useState<65 | 100>(100);
+  const [internalCriticalSharePct, setInternalCriticalSharePct] = useState<65 | 100>(100);
+  const criticalSharePct = controlledCriticalSharePct ?? internalCriticalSharePct;
+  const setCriticalSharePct = onCriticalShareChange ?? setInternalCriticalSharePct;
   const trackedRef = useRef(false);
 
   const sizing = useMemo(
@@ -85,54 +93,56 @@ export function BatterySizingCalculator({
   const primaryOption = sizing.matchedOptions[0] ?? null;
 
   return (
-    <div id="battery-sizing-calculator" className="break-words hyphens-none">
-      {/* Header Plate */}
-      <div
-        className={`ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5 ${
-          compactHeader ? 'mb-5' : ''
-        }`}
-      >
-        <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">
-            <BatteryCharging className="w-3.5 h-3.5" />
-            <span>{tr('Підбір накопичувача LiFePO4', 'Подбор накопителя LiFePO4')}</span>
+    <div id={embedded ? undefined : 'battery-sizing-calculator'} className="break-words hyphens-none">
+      {/* Header Plate (rendered standalone; HomeView provides a unified switcher header when embedded) */}
+      {!embedded && (
+        <div
+          className={`ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5 ${
+            compactHeader ? 'mb-5' : ''
+          }`}
+        >
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">
+              <BatteryCharging className="w-3.5 h-3.5" />
+              <span>{tr('Підбір накопичувача LiFePO4', 'Подбор накопителя LiFePO4')}</span>
+            </div>
+            <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
+              {tr('Калькулятор ємності акумуляторів', 'Калькулятор ёмкости аккумуляторов')}
+            </h2>
+            <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">
+              {tr(
+                'Оберіть добове споживання та бажаний час резервного живлення, щоб розрахувати необхідну ємність LiFePO4 батарей і орієнтовний бюджет з каталогу.',
+                'Выберите суточное потребление и желаемое время резервного питания, чтобы рассчитать нужную ёмкость LiFePO4 батарей и ориентировочный бюджет из каталога.',
+              )}
+            </p>
           </div>
-          <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
-            {tr('Калькулятор ємності акумуляторів', 'Калькулятор ёмкости аккумуляторов')}
-          </h2>
-          <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">
-            {tr(
-              'Оберіть добове споживання та бажаний час резервного живлення, щоб розрахувати необхідну ємність LiFePO4 батарей і орієнтовний бюджет з каталогу.',
-              'Выберите суточное потребление и желаемое время резервного питания, чтобы рассчитать нужную ёмкость LiFePO4 батарей и ориентировочный бюджет из каталога.',
-            )}
-          </p>
-        </div>
 
-        <div className="inline-flex p-1 bg-sky-100/80 border border-sky-200/80 rounded-xl self-start lg:self-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => setCriticalSharePct(100)}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-              criticalSharePct === 100
-                ? 'bg-[#0b66b2] text-white shadow-sm'
-                : 'text-[#1c3d5e] hover:text-[#07213e]'
-            }`}
-          >
-            {tr('Весь обʼєкт (100%)', 'Весь объект (100%)')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCriticalSharePct(65)}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-              criticalSharePct === 65
-                ? 'bg-[#0b66b2] text-white shadow-sm'
-                : 'text-[#1c3d5e] hover:text-[#07213e]'
-            }`}
-          >
-            {tr('Критична група (65%)', 'Критическая группа (65%)')}
-          </button>
+          <div className="inline-flex p-1 bg-sky-100/80 border border-sky-200/80 rounded-xl self-start lg:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => setCriticalSharePct(100)}
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                criticalSharePct === 100
+                  ? 'bg-[#0b66b2] text-white shadow-sm'
+                  : 'text-[#1c3d5e] hover:text-[#07213e]'
+              }`}
+            >
+              {tr('Весь обʼєкт (100%)', 'Весь объект (100%)')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCriticalSharePct(65)}
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                criticalSharePct === 65
+                  ? 'bg-[#0b66b2] text-white shadow-sm'
+                  : 'text-[#1c3d5e] hover:text-[#07213e]'
+              }`}
+            >
+              {tr('Критична група (65%)', 'Критическая группа (65%)')}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Calculator Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-6">

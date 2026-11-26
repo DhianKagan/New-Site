@@ -306,4 +306,28 @@ test('SolarSavingsCalculator component and ShopView quick-link integration work 
   assert.match(shopSource, /<SolarSavingsCalculator/);
 });
 
+test('HomeView merges Solar Payback and Battery Sizing calculators into a single unified switcher block', () => {
+  const homeSource = fs.readFileSync(new URL('../src/components/HomeView.tsx', import.meta.url), 'utf8');
+  const batteryCalcSource = fs.readFileSync(
+    new URL('../src/components/BatterySizingCalculator.tsx', import.meta.url),
+    'utf8',
+  );
 
+  // Unified accessible tablist switcher in HomeView
+  assert.match(homeSource, /type HomeCalculatorMode = 'solar' \| 'battery'/);
+  assert.match(homeSource, /role="tablist"/);
+  assert.match(homeSource, /id="calc-tab-solar"/);
+  assert.match(homeSource, /id="calc-tab-battery"/);
+  assert.match(homeSource, /id="calc-panel-solar"/);
+  assert.match(homeSource, /id="calc-panel-battery"/);
+  assert.match(homeSource, /calculatorMode === 'solar'/);
+
+  // BatterySizingCalculator is rendered embedded inside the switcher (not stacked below a divider)
+  assert.match(homeSource, /<BatterySizingCalculator[\s\S]*embedded/);
+  assert.doesNotMatch(homeSource, /mt-12 pt-10 border-t border-sky-200\/55[\s\S]*<BatterySizingCalculator/);
+
+  // BatterySizingCalculator supports embedded & controlled criticalSharePct props
+  assert.match(batteryCalcSource, /embedded\?: boolean/);
+  assert.match(batteryCalcSource, /\{!embedded && \(/);
+  assert.match(batteryCalcSource, /criticalSharePct\?: 65 \| 100/);
+});

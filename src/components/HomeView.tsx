@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import {
+  BatteryCharging,
   Calculator,
   ChevronLeft,
   ChevronRight,
@@ -63,6 +64,7 @@ interface HomeViewProps {
 }
 
 type ShowcaseTab = 'backup-kits' | 'solar-kits' | 'hardware';
+type HomeCalculatorMode = 'solar' | 'battery';
 
 const HOME_VIDEO_SEGMENTS = {
   hero: { start: 0, end: 6, tint: 'sky' },
@@ -120,11 +122,28 @@ export function HomeView({
     return () => window.clearInterval(timer);
   }, [heroPaused, projects.length]);
 
-  // Payback Calculator state
+  // Unified Home Calculator state
+  const [calculatorMode, setCalculatorMode] = useState<HomeCalculatorMode>(() =>
+    typeof window !== 'undefined' && window.location.hash === '#battery-sizing-calculator' ? 'battery' : 'solar',
+  );
+  const [batteryCriticalSharePct, setBatteryCriticalSharePct] = useState<65 | 100>(100);
   const [monthlyKwh, setMonthlyKwh] = useState(600);
   const [calcTariffType, setCalcTariffType] = useState<'home' | 'business'>('home');
   const [calcSystemMode, setCalcSystemMode] = useState<PaybackSystemMode>('hybrid');
   const [tariffUah, setTariffUah] = useState(DEFAULT_RESIDENTIAL_TARIFF_UAH);
+
+  useEffect(() => {
+    const syncCalcModeFromHash = () => {
+      if (window.location.hash === '#battery-sizing-calculator') {
+        setCalculatorMode('battery');
+        document.getElementById('payback-calculator')?.scrollIntoView({ behavior: 'smooth' });
+      } else if (window.location.hash === '#payback-calculator') {
+        setCalculatorMode('solar');
+      }
+    };
+    window.addEventListener('hashchange', syncCalcModeFromHash);
+    return () => window.removeEventListener('hashchange', syncCalcModeFromHash);
+  }, []);
 
   // Engineering Brief Form state
   const [taskType, setTaskType] = useState('Резервне живлення (квартира / дім)');
@@ -562,8 +581,9 @@ export function HomeView({
       {/* Interactive 3D How It Works Section */}
       <HowItWorks onOpenLeadModal={onOpenLeadModal} />
 
-      {/* Payback Calculator + Matched Catalog Solutions */}
+      {/* Unified Interactive Calculator (Solar Payback / LiFePO4 Battery Sizing) + Matched Catalog Solutions */}
       <section id="payback-calculator" className="relative overflow-hidden isolate ec-section border-b border-sky-200/45">
+        <span id="battery-sizing-calculator" className="sr-only" aria-hidden="true" />
         <VideoBackground
           position="absolute"
           tone="light"
@@ -573,61 +593,174 @@ export function HomeView({
           brightness={0.54}
         />
         <div className="relative ec-container break-words hyphens-none">
-          <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">
-                <Calculator className="w-3.5 h-3.5" />
-                <span>{tr('Онлайн-підбір за вашим лічильником', 'Онлайн-подбор по вашему счётчику')}</span>
+          <div className="ec-glass-plate rounded-2xl p-4 sm:p-6 lg:p-7 mb-6 flex flex-col gap-5">
+            {/* Top Mode Switcher Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-sky-200/70">
+              <div
+                role="tablist"
+                aria-label={tr('Вибір режиму калькулятора', 'Выбор режима калькулятора')}
+                className="inline-flex p-1 bg-sky-100/90 border border-sky-200/90 rounded-xl self-start max-w-full overflow-x-auto"
+              >
+                <button
+                  id="calc-tab-solar"
+                  role="tab"
+                  type="button"
+                  aria-selected={calculatorMode === 'solar'}
+                  aria-controls="calc-panel-solar"
+                  tabIndex={calculatorMode === 'solar' ? 0 : -1}
+                  onClick={() => setCalculatorMode('solar')}
+                  onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                      e.preventDefault();
+                      setCalculatorMode('battery');
+                      document.getElementById('calc-tab-battery')?.focus();
+                    }
+                  }}
+                  className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b66b2] ${
+                    calculatorMode === 'solar'
+                      ? 'bg-[#0b66b2] text-white shadow-sm'
+                      : 'text-[#1c3d5e] hover:text-[#07213e] hover:bg-white/60'
+                  }`}
+                >
+                  <Calculator className="w-4 h-4 shrink-0" />
+                  <span>{tr('Окупність СЕС', 'Окупаемость СЭС')}</span>
+                </button>
+                <button
+                  id="calc-tab-battery"
+                  role="tab"
+                  type="button"
+                  aria-selected={calculatorMode === 'battery'}
+                  aria-controls="calc-panel-battery"
+                  tabIndex={calculatorMode === 'battery' ? 0 : -1}
+                  onClick={() => setCalculatorMode('battery')}
+                  onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                      e.preventDefault();
+                      setCalculatorMode('solar');
+                      document.getElementById('calc-tab-solar')?.focus();
+                    }
+                  }}
+                  className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b66b2] ${
+                    calculatorMode === 'battery'
+                      ? 'bg-[#0b66b2] text-white shadow-sm'
+                      : 'text-[#1c3d5e] hover:text-[#07213e] hover:bg-white/60'
+                  }`}
+                >
+                  <BatteryCharging className="w-4 h-4 shrink-0" />
+                  <span>{tr('Ємність АКБ (LiFePO4)', 'Ёмкость АКБ (LiFePO4)')}</span>
+                </button>
               </div>
-              <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
-                {tr('Калькулятор окупності СЕС', 'Калькулятор окупаемости СЭС')}
-              </h2>
-              <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">
-                {tr(
-                  'Вкажіть середньомісячне споживання у кВт·год, щоб оцінити річну економію, орієнтовну окупність та побачити сумісні комплекти з каталогу.',
-                  'Укажите среднемесячное потребление в кВт·ч, чтобы оценить годовую экономию, ориентировочную окупаемость и подобрать комплекты из каталога.',
-                )}
-              </p>
+
+              <span className="text-[11px] font-bold text-[#1c3d5e]/85">
+                {calculatorMode === 'solar'
+                  ? tr('Перемикайтесь на підбір ємності АКБ в один клік', 'Переключайтесь на подбор ёмкости АКБ в один клик')
+                  : tr('Перемикайтесь на розрахунок окупності СЕС в один клік', 'Переключайтесь на расчёт окупаемости СЭС в один клик')}
+              </span>
             </div>
-            <div className="inline-flex p-1 bg-sky-100/80 border border-sky-200/80 rounded-xl self-start lg:self-auto shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setCalcTariffType('home');
-                  setCalcSystemMode('hybrid');
-                  setTariffUah(DEFAULT_RESIDENTIAL_TARIFF_UAH);
-                  if (!calcTrackedRef.current) {
-                    calcTrackedRef.current = true;
-                    trackEvent('calculator_used', { tariff_type: 'home', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
-                  }
-                }}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                  calcTariffType === 'home' ? 'bg-[#0b66b2] text-white shadow-sm' : 'text-[#1c3d5e] hover:text-[#07213e]'
-                }`}
-              >
-                {tr('Дім / Квартира (4.32 ₴)', 'Дом / Квартира (4.32 ₴)')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCalcTariffType('business');
-                  setCalcSystemMode('ongrid');
-                  setTariffUah(DEFAULT_BUSINESS_TARIFF_UAH);
-                  if (!calcTrackedRef.current) {
-                    calcTrackedRef.current = true;
-                    trackEvent('calculator_used', { tariff_type: 'business', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
-                  }
-                }}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                  calcTariffType === 'business' ? 'bg-[#0b66b2] text-white shadow-sm' : 'text-[#1c3d5e] hover:text-[#07213e]'
-                }`}
-              >
-                {tr('Бізнес 380 В (9.60 ₴)', 'Бизнес 380 В (9.60 ₴)')}
-              </button>
+
+            {/* Active Mode Description & Contextual Sub-Toggle */}
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+              <div className="max-w-2xl">
+                <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">
+                  {calculatorMode === 'solar' ? (
+                    <>
+                      <Calculator className="w-3.5 h-3.5" />
+                      <span>{tr('Онлайн-підбір за вашим лічильником', 'Онлайн-подбор по вашему счётчику')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <BatteryCharging className="w-3.5 h-3.5" />
+                      <span>{tr('Підбір накопичувача LiFePO4', 'Подбор накопителя LiFePO4')}</span>
+                    </>
+                  )}
+                </div>
+                <h2 className="text-[clamp(1.2rem,4.5vw,1.875rem)] font-extrabold text-[#07213e] leading-tight mb-2">
+                  {calculatorMode === 'solar'
+                    ? tr('Калькулятор окупності СЕС', 'Калькулятор окупаемости СЭС')
+                    : tr('Калькулятор ємності акумуляторів', 'Калькулятор ёмкости аккумуляторов')}
+                </h2>
+                <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">
+                  {calculatorMode === 'solar'
+                    ? tr(
+                        'Вкажіть середньомісячне споживання у кВт·год, щоб оцінити річну економію, орієнтовну окупність та побачити сумісні комплекти з каталогу.',
+                        'Укажите среднемесячное потребление в кВт·ч, чтобы оценить годовую экономию, ориентировочную окупаемость и подобрать комплекты из каталога.',
+                      )
+                    : tr(
+                        'Оберіть добове споживання та бажаний час резервного живлення, щоб розрахувати необхідну ємність LiFePO4 батарей і орієнтовний бюджет з каталогу.',
+                        'Выберите суточное потребление и желаемое время резервного питания, чтобы рассчитать нужную ёмкость LiFePO4 батарей и ориентировочный бюджет из каталога.',
+                      )}
+                </p>
+              </div>
+
+              {calculatorMode === 'solar' ? (
+                <div className="inline-flex p-1 bg-sky-100/80 border border-sky-200/80 rounded-xl self-start lg:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCalcTariffType('home');
+                      setCalcSystemMode('hybrid');
+                      setTariffUah(DEFAULT_RESIDENTIAL_TARIFF_UAH);
+                      if (!calcTrackedRef.current) {
+                        calcTrackedRef.current = true;
+                        trackEvent('calculator_used', { tariff_type: 'home', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
+                      }
+                    }}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                      calcTariffType === 'home' ? 'bg-[#0b66b2] text-white shadow-sm' : 'text-[#1c3d5e] hover:text-[#07213e]'
+                    }`}
+                  >
+                    {tr('Дім / Квартира (4.32 ₴)', 'Дом / Квартира (4.32 ₴)')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCalcTariffType('business');
+                      setCalcSystemMode('ongrid');
+                      setTariffUah(DEFAULT_BUSINESS_TARIFF_UAH);
+                      if (!calcTrackedRef.current) {
+                        calcTrackedRef.current = true;
+                        trackEvent('calculator_used', { tariff_type: 'business', monthly_kwh: safeMonthlyKwh, recommended_kw: recommendedKw });
+                      }
+                    }}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                      calcTariffType === 'business' ? 'bg-[#0b66b2] text-white shadow-sm' : 'text-[#1c3d5e] hover:text-[#07213e]'
+                    }`}
+                  >
+                    {tr('Бізнес 380 В (9.60 ₴)', 'Бизнес 380 В (9.60 ₴)')}
+                  </button>
+                </div>
+              ) : (
+                <div className="inline-flex p-1 bg-sky-100/80 border border-sky-200/80 rounded-xl self-start lg:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setBatteryCriticalSharePct(100)}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                      batteryCriticalSharePct === 100
+                        ? 'bg-[#0b66b2] text-white shadow-sm'
+                        : 'text-[#1c3d5e] hover:text-[#07213e]'
+                    }`}
+                  >
+                    {tr('Весь обʼєкт (100%)', 'Весь объект (100%)')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBatteryCriticalSharePct(65)}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                      batteryCriticalSharePct === 65
+                        ? 'bg-[#0b66b2] text-white shadow-sm'
+                        : 'text-[#1c3d5e] hover:text-[#07213e]'
+                    }`}
+                  >
+                    {tr('Критична група (65%)', 'Критическая группа (65%)')}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-6">
+          {calculatorMode === 'solar' ? (
+            <div id="calc-panel-solar" role="tabpanel" aria-labelledby="calc-tab-solar">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch mb-6">
             <div className="lg:col-span-5 ec-glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between gap-5">
               <div className="space-y-4">
                 <div>
@@ -889,26 +1022,31 @@ export function HomeView({
                     />
                   ))}
                 </div>
-              </PerformanceProfiler>
+                  </PerformanceProfiler>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div id="calc-panel-battery" role="tabpanel" aria-labelledby="calc-tab-battery">
+              <BatterySizingCalculator
+                embedded
+                criticalSharePct={batteryCriticalSharePct}
+                onCriticalShareChange={setBatteryCriticalSharePct}
+                products={products}
+                usdUahRate={usdUahRate}
+                wishlistIds={wishlistIds}
+                compareIds={compareIds}
+                onNavigateShop={onNavigateShop}
+                onSelectProduct={onSelectProduct}
+                onQuickViewProduct={onQuickViewProduct}
+                onToggleWishlist={onToggleWishlist}
+                onToggleCompare={onToggleCompare}
+                onAddToCart={onAddToCart}
+                onCalculatePayback={onCalculatePayback}
+                onOpenLeadModal={onOpenLeadModal}
+              />
             </div>
           )}
-
-          <div className="mt-12 pt-10 border-t border-sky-200/55">
-            <BatterySizingCalculator
-              products={products}
-              usdUahRate={usdUahRate}
-              wishlistIds={wishlistIds}
-              compareIds={compareIds}
-              onNavigateShop={onNavigateShop}
-              onSelectProduct={onSelectProduct}
-              onQuickViewProduct={onQuickViewProduct}
-              onToggleWishlist={onToggleWishlist}
-              onToggleCompare={onToggleCompare}
-              onAddToCart={onAddToCart}
-              onCalculatePayback={onCalculatePayback}
-              onOpenLeadModal={onOpenLeadModal}
-            />
-          </div>
         </div>
       </section>
 
