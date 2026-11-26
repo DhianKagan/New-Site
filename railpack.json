@@ -3,6 +3,8 @@
   "steps": {
     "install": {
       "commands": [
+        { "src": "package.json", "dest": "package.json" },
+        { "src": "bun.lock", "dest": "bun.lock" },
         "bun install"
       ]
     }
