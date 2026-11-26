@@ -168,6 +168,42 @@ export default defineConfig(() => {
         '@': path.resolve(projectDir, '.'),
       },
     },
+    build: {
+      chunkSizeWarningLimit: 700,
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name: 'react-vendor',
+                test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+                priority: 30,
+              },
+              {
+                name: 'three-vendor',
+                test: /[\\/]node_modules[\\/]three[\\/]/,
+                priority: 25,
+              },
+              {
+                name: 'firebase-vendor',
+                test: /[\\/]node_modules[\\/](firebase|@firebase)[\\/]/,
+                priority: 20,
+              },
+              {
+                name: 'table-vendor',
+                test: /[\\/]node_modules[\\/]@tanstack[\\/]/,
+                priority: 15,
+              },
+              {
+                name: 'icons-vendor',
+                test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+                priority: 10,
+              },
+            ],
+          },
+        },
+      },
+    },
     server: {
       allowedHosts: true as const,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

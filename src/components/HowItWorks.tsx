@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowRight, Cable, HelpCircle, TrendingUp } from 'lucide-react';
 import {
   SYSTEM_NODES,
@@ -6,8 +6,11 @@ import {
   type SystemNodeId,
 } from '../lib/howItWorksNodes.ts';
 import { tr } from '../lib/i18n.ts';
-import { HowItWorks3DCanvas } from './HowItWorks3DCanvas.tsx';
 import { VideoBackground } from './VideoBackground.tsx';
+
+const LazyHowItWorks3DCanvas = lazy(() =>
+  import('./HowItWorks3DCanvas.tsx').then((m) => ({ default: m.HowItWorks3DCanvas })),
+);
 
 interface HowItWorksProps {
   onOpenLeadModal: (
@@ -21,6 +24,28 @@ interface HowItWorksProps {
 export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<SystemNodeId>('inverter');
   const [activeMode, setActiveMode] = useState<SystemFlowMode>('day_solar');
+  const [shouldLoad3D, setShouldLoad3D] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (shouldLoad3D || typeof IntersectionObserver === 'undefined') {
+      setShouldLoad3D(true);
+      return;
+    }
+    const target = sectionRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad3D(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '400px 0px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [shouldLoad3D]);
 
   const activeNode = SYSTEM_NODES.find((n) => n.id === selectedNodeId) ?? SYSTEM_NODES[1];
 
@@ -32,7 +57,11 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
   }
 
   return (
-    <section id="how-it-works" className="relative overflow-hidden isolate ec-section border-b border-white/25">
+    <section
+      ref={sectionRef}
+      id="how-it-works"
+      className="relative overflow-hidden isolate ec-section border-b border-white/25"
+    >
       <VideoBackground position="absolute" tone="light" tint="cyan" start={11} end={17} brightness={0.54} />
       <div className="relative ec-container">
         <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-7 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
@@ -57,12 +86,30 @@ export function HowItWorks({ onOpenLeadModal }: HowItWorksProps) {
         </div>
 
         {/* Interactive 3D Viewport */}
-        <HowItWorks3DCanvas
-          selectedNodeId={selectedNodeId}
-          activeMode={activeMode}
-          onSelectNode={setSelectedNodeId}
-          onSelectMode={setActiveMode}
-        />
+        {shouldLoad3D ? (
+          <Suspense
+            fallback={
+              <div className="rounded-2xl overflow-hidden border border-sky-200/35 bg-[#07182e] shadow-xl">
+                <div className="w-full h-[300px] sm:h-[420px] lg:h-[470px] flex items-center justify-center text-sky-200/80 text-xs font-bold">
+                  {tr('Завантаження 3D-схеми станції…', 'Загрузка 3D-схемы станции…')}
+                </div>
+              </div>
+            }
+          >
+            <LazyHowItWorks3DCanvas
+              selectedNodeId={selectedNodeId}
+              activeMode={activeMode}
+              onSelectNode={setSelectedNodeId}
+              onSelectMode={setActiveMode}
+            />
+          </Suspense>
+        ) : (
+          <div className="rounded-2xl overflow-hidden border border-sky-200/35 bg-[#07182e] shadow-xl">
+            <div className="w-full h-[300px] sm:h-[420px] lg:h-[470px] flex items-center justify-center text-sky-200/75 text-xs font-bold">
+              {tr('Інтерактивна 3D-схема СЕС…', 'Интерактивная 3D-схема СЭС…')}
+            </div>
+          </div>
+        )}
 
         {/* Node Selector Tabs */}
         <div

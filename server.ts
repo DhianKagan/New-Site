@@ -377,6 +377,7 @@ async function startServer() {
     '/uploads',
     express.static(getUploadsDir(), {
       dotfiles: 'deny',
+      maxAge: IS_PROD ? '7d' : 0,
       setHeaders: (res) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
       },
@@ -388,6 +389,7 @@ async function startServer() {
       '/uploads',
       express.static(publicUploadsDir, {
         dotfiles: 'deny',
+        maxAge: IS_PROD ? '7d' : 0,
         setHeaders: (res) => {
           res.setHeader('X-Content-Type-Options', 'nosniff');
         },
@@ -2355,7 +2357,16 @@ async function startServer() {
     const distDir = path.resolve(process.cwd(), 'dist');
     const publicDir = path.resolve(process.cwd(), 'public');
     if (fs.existsSync(publicDir)) {
-      app.use(express.static(publicDir));
+      app.use(
+        express.static(publicDir, {
+          maxAge: '7d',
+          setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.json') || filePath.endsWith('sw.js')) {
+              res.setHeader('Cache-Control', 'no-cache');
+            }
+          },
+        }),
+      );
     }
     const distHtmlPath = path.join(distDir, 'index.html');
     const distHtmlTemplate = fs.existsSync(distHtmlPath) ? fs.readFileSync(distHtmlPath, 'utf8') : '';
@@ -2363,13 +2374,18 @@ async function startServer() {
       express.static(distDir, {
         index: false,
         setHeaders: (res, filePath) => {
-          if (filePath.endsWith('sw.js') || filePath.endsWith('manifest.webmanifest')) {
+          if (filePath.endsWith('sw.js') || filePath.endsWith('manifest.webmanifest') || filePath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache');
+          } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else {
+            res.setHeader('Cache-Control', 'public, max-age=604800');
           }
         },
       }),
     );
     app.get('*', (req, res) => {
+      res.setHeader('Cache-Control', 'no-cache');
       if (distHtmlTemplate) {
         res.type('text/html; charset=utf-8').send(buildRouteSeoHtml(distHtmlTemplate, req));
         return;

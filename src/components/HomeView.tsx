@@ -212,7 +212,7 @@ export function HomeView({
     matchedProducts: matchedCalculatorProducts,
     primaryKit: primaryCalcKit,
     indicativeCapexUah,
-    paybackYears,
+    paybackMonths,
   } = payback;
 
   const calcGridClass =
@@ -768,7 +768,7 @@ export function HomeView({
                   <div className="rounded-xl bg-white/10 border border-sky-200/20 p-3.5">
                     <div className="text-[11px] text-sky-100/85 mb-1">{tr('Окупність (орієнт.)', 'Окупаемость (ориент.)')}</div>
                     <div className="font-mono text-xl font-extrabold text-sky-200 tabular-nums">
-                      {paybackYears ? `~${paybackYears} ${tr('р.', 'г.')}` : '—'}
+                      {paybackMonths ? `~${paybackMonths} ${tr('міс.', 'мес.')}` : '—'}
                     </div>
                   </div>
                 </div>
@@ -806,7 +806,7 @@ export function HomeView({
                     const summaryNote = [
                       `${tr('Споживання', 'Потребление')}: ${safeMonthlyKwh} ${tr('кВт·год/міс', 'кВт·ч/мес')}`,
                       `${tr('Тариф', 'Тариф')}: ${safeTariffUah} грн/кВт·год (${calcTariffType === 'business' ? tr('Бізнес 380 В', 'Бизнес 380 В') : tr('Дім / Квартира', 'Дом / Квартира')}) · ${calcSystemMode === 'hybrid' ? tr('Гібридна з АКБ', 'Гибридная с АКБ') : tr('Мережева без АКБ', 'Сетевая без АКБ')}`,
-                      `${tr('Рекомендована СЕС', 'Рекомендованная СЭС')}: ${recommendedKw} кВт (~${annualSavingsUah.toLocaleString('uk-UA')} грн/рік${paybackYears ? `, окупність ~${paybackYears} р.` : ''})`,
+                      `${tr('Рекомендована СЕС', 'Рекомендованная СЭС')}: ${recommendedKw} кВт (~${annualSavingsUah.toLocaleString('uk-UA')} грн/рік${paybackMonths ? `, ${tr('окупність', 'окупаемость')} ~${paybackMonths} ${tr('міс.', 'мес.')}` : ''})`,
                       primaryCalcKit ? `${tr('Підібраний комплект', 'Подобранный комплект')}: ${primaryCalcKit.title} (SKU ${primaryCalcKit.sku}, ${formatUahFromUsd(primaryCalcKit.price, usdUahRate)})` : '',
                     ]
                       .filter(Boolean)

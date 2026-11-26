@@ -558,7 +558,6 @@ export function HowItWorks3DCanvas({
 
     const renderer = new THREE.WebGLRenderer({
       antialias: !isSoftwareGl,
-      powerPreference: 'high-performance',
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -566,7 +565,7 @@ export function HowItWorks3DCanvas({
     renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = !isSoftwareGl;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.domElement.style.display = 'block';
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
@@ -1736,15 +1735,42 @@ export function HowItWorks3DCanvas({
       frameId = window.setTimeout(poll, 5);
     }
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
+    timer.connect(document);
     let lastRenderedScreenMode: SystemFlowMode | null = null;
     let lastClockText = '';
+    let isViewportVisible = true;
+    let isTabVisible = typeof document === 'undefined' ? true : !document.hidden;
+    let loopPaused = false;
 
-    function tick() {
-      if (disposed) return;
+    function scheduleNextFrame() {
+      if (disposed || loopPaused) return;
+      if (isSoftwareGl) {
+        afterDraw(tick);
+      } else {
+        frameId = requestAnimationFrame(tick);
+      }
+    }
 
-      const delta = Math.min(clock.getDelta(), 0.1);
-      const elapsed = clock.getElapsedTime();
+    function syncPlaybackState() {
+      const shouldPause = !isViewportVisible || !isTabVisible;
+      if (shouldPause === loopPaused) return;
+      loopPaused = shouldPause;
+      if (loopPaused) {
+        cancelAnimationFrame(frameId);
+        clearTimeout(frameId);
+      } else {
+        timer.reset();
+        scheduleNextFrame();
+      }
+    }
+
+    function tick(timestamp?: number) {
+      if (disposed || loopPaused) return;
+
+      timer.update(typeof timestamp === 'number' ? timestamp : undefined);
+      const delta = Math.min(timer.getDelta(), 0.1);
+      const elapsed = timer.getElapsed();
 
       const currentMode = activeModeRef.current;
 
@@ -2008,24 +2034,38 @@ export function HowItWorks3DCanvas({
       controls.update();
       renderer.render(scene, camera);
 
-      if (isSoftwareGl) {
-        afterDraw(tick);
-      } else {
-        frameId = requestAnimationFrame(tick);
-      }
+      scheduleNextFrame();
     }
 
-    if (isSoftwareGl) {
-      renderer.render(scene, camera);
-      afterDraw(tick);
-    } else {
-      frameId = requestAnimationFrame(tick);
-    }
+    const viewportObserver =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            (entries) => {
+              isViewportVisible = entries.some((entry) => entry.isIntersecting);
+              syncPlaybackState();
+            },
+            { rootMargin: '120px 0px' },
+          )
+        : null;
+    viewportObserver?.observe(container);
+
+    const handleVisibilityChange = () => {
+      isTabVisible = !document.hidden;
+      syncPlaybackState();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    renderer.render(scene, camera);
+    scheduleNextFrame();
 
     return () => {
       disposed = true;
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
+      viewportObserver?.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      timer.disconnect();
+      timer.dispose();
       resizeObserver.disconnect();
       controls.removeEventListener('start', onControlStart);
       controls.dispose();

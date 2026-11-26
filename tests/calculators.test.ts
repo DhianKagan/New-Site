@@ -51,6 +51,7 @@ test('payback calculator matches real 6 kW solar kit for 600 kWh/mo home hybrid 
   assert.equal(res.estimatedAnnualGenKwh, 6 * ODESA_ANNUAL_YIELD_PER_KW);
   assert.equal(res.usedCatalogKitPrice, true);
   assert.ok(res.primaryKit && res.primaryKit.price >= 4500);
+  assert.ok(res.paybackMonths && res.paybackMonths >= 66 && res.paybackMonths <= 102);
   assert.ok(res.paybackYears && res.paybackYears >= 5.5 && res.paybackYears <= 8.5);
 });
 
@@ -67,6 +68,7 @@ test('payback calculator for 5000 kWh/mo business on-grid uses turnkey commercia
   assert.equal(res.recommendedKw, 50);
   assert.equal(res.usedCatalogKitPrice, false);
   assert.equal(res.indicativeCapexUah, Math.round(50 * 510 * 42));
+  assert.ok(res.paybackMonths && res.paybackMonths >= 21 && res.paybackMonths <= 34);
   assert.ok(res.paybackYears && res.paybackYears >= 1.8 && res.paybackYears <= 2.8);
 });
 
@@ -171,6 +173,7 @@ test('per-product payback calculator uses exact kit price for full solar kits an
   });
   assert.equal(fullRes.capexBasis, 'kit_price');
   assert.equal(fullRes.capexUsd, fullSolarKit.price);
+  assert.ok(fullRes.paybackMonths && fullRes.paybackMonths > 24 && fullRes.paybackMonths < 180);
   assert.ok(fullRes.paybackYears && fullRes.paybackYears > 2 && fullRes.paybackYears < 15);
 
   const backupRes = calculateProductPayback({
@@ -212,6 +215,11 @@ test('per-product payback calculator adapts defaults and recalculates for invert
 
   assert.equal(businessConsumption.capexBasis, 'turnkey_station');
   assert.ok(businessConsumption.annualSavingsUah > lowConsumption.annualSavingsUah);
+  assert.ok(
+    businessConsumption.paybackMonths &&
+      lowConsumption.paybackMonths &&
+      businessConsumption.paybackMonths < lowConsumption.paybackMonths,
+  );
   assert.ok(
     businessConsumption.paybackYears &&
       lowConsumption.paybackYears &&

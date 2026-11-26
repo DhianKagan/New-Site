@@ -49,6 +49,7 @@ export interface PaybackCalculatorResult {
   capexPerKwUsd: number;
   indicativeCapexUah: number | null;
   paybackYears: number | null;
+  paybackMonths: number | null;
 }
 
 export function extractProductPowerKw(p: Product): number | null {
@@ -227,6 +228,11 @@ export function calculateSolarPayback(input: PaybackCalculatorInput): PaybackCal
       ? Number((indicativeCapexUah / annualSavingsUah).toFixed(1))
       : null;
 
+  const paybackMonths =
+    indicativeCapexUah && annualSavingsUah > 0
+      ? Math.max(1, Math.round((indicativeCapexUah / annualSavingsUah) * 12))
+      : null;
+
   return {
     safeMonthlyKwh,
     safeTariffUah,
@@ -245,6 +251,7 @@ export function calculateSolarPayback(input: PaybackCalculatorInput): PaybackCal
     capexPerKwUsd,
     indicativeCapexUah,
     paybackYears,
+    paybackMonths,
   };
 }
 
@@ -281,6 +288,7 @@ export interface ProductPaybackResult {
   capexBasis: ProductPaybackCapexBasis;
   indicativeCapexUah: number | null;
   paybackYears: number | null;
+  paybackMonths: number | null;
 }
 
 export function getDefaultConsumptionForProduct(product: Product): {
@@ -387,6 +395,11 @@ export function calculateProductPayback(input: ProductPaybackInput): ProductPayb
       ? Number((indicativeCapexUah / annualSavingsUah).toFixed(1))
       : null;
 
+  const paybackMonths =
+    indicativeCapexUah && annualSavingsUah > 0
+      ? Math.max(1, Math.round((indicativeCapexUah / annualSavingsUah) * 12))
+      : null;
+
   return {
     safeMonthlyKwh,
     safeTariffUah,
@@ -405,6 +418,7 @@ export function calculateProductPayback(input: ProductPaybackInput): ProductPayb
     capexBasis,
     indicativeCapexUah,
     paybackYears,
+    paybackMonths,
   };
 }
 

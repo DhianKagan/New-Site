@@ -269,7 +269,7 @@ export function ProductPaybackModal({
                       {tr('Термін окупності', 'Срок окупаемости')}
                     </div>
                     <div className="font-mono text-2xl font-extrabold text-sky-300 tabular-nums">
-                      {result.paybackYears ? `~${result.paybackYears} ${tr('р.', 'г.')}` : '—'}
+                      {result.paybackMonths ? `~${result.paybackMonths} ${tr('міс.', 'мес.')}` : '—'}
                     </div>
                   </div>
 
@@ -348,7 +348,7 @@ export function ProductPaybackModal({
                   `${tr('Товар', 'Товар')}: ${title} (SKU ${product.sku})`,
                   `${tr('Споживання', 'Потребление')}: ${result.safeMonthlyKwh} ${tr('кВт·год/міс', 'кВт·ч/мес')}`,
                   `${tr('Тариф', 'Тариф')}: ${result.safeTariffUah} грн/кВт·год (${tariffType === 'business' ? tr('Бізнес 380 В', 'Бизнес 380 В') : tr('Дім / Квартира', 'Дом / Квартира')})`,
-                  `${tr('Орієнтовна економія', 'Ориентировочная экономия')}: ~${result.annualSavingsUah.toLocaleString('uk-UA')} грн/рік${result.paybackYears ? ` · ${tr('окупність', 'окупаемость')} ~${result.paybackYears} ${tr('р.', 'г.')}` : ''}`,
+                  `${tr('Орієнтовна економія', 'Ориентировочная экономия')}: ~${result.annualSavingsUah.toLocaleString('uk-UA')} грн/рік${result.paybackMonths ? ` · ${tr('окупність', 'окупаемость')} ~${result.paybackMonths} ${tr('міс.', 'мес.')}` : ''}`,
                 ].join('\n');
 
                 track({ name: 'cta_click', placement: 'section', scenario: 'solar' });

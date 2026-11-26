@@ -1,4 +1,4 @@
-import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type MouseEvent, type ReactNode } from 'react';
 import { ShoppingBag, Menu, X, PhoneCall, Send, User, AlertTriangle, RefreshCw, Home, Copy, Check, Heart } from 'lucide-react';
 import type {
   AdminAuthStatus,
@@ -24,24 +24,10 @@ import {
   type Placement,
 } from './lib/analytics.ts';
 import { reportClientError, type ClientErrorReportPayload } from './lib/errorReporting.ts';
-import { signOutFirebase } from './lib/firebaseAuth.ts';
 import { HomeView } from './components/HomeView.tsx';
-import { ShopView } from './components/ShopView.tsx';
-import { ServicesView } from './components/ServicesView.tsx';
-import { ProjectsView } from './components/ProjectsView.tsx';
-import { ContactsView } from './components/ContactsView.tsx';
-import { CrmView } from './components/CrmView.tsx';
-import { AuthPortalView } from './components/AuthPortalView.tsx';
-import { ClientCabinetView, type CabinetTab } from './components/ClientCabinetView.tsx';
-import { ProductModal } from './components/ProductModal.tsx';
-import { QuickViewModal } from './components/QuickViewModal.tsx';
-import { ProductPaybackModal } from './components/ProductPaybackModal.tsx';
-import { CaseModal } from './components/CaseModal.tsx';
-import { LeadModal } from './components/LeadModal.tsx';
-import { CartDrawer } from './components/CartDrawer.tsx';
+import type { CabinetTab } from './components/ClientCabinetView.tsx';
 import { SmartImage } from './components/SmartImage.tsx';
 import { SocialIcons } from './components/SocialIcons.tsx';
-import { InfoPage } from './components/InfoPage.tsx';
 import { VideoBackground } from './components/VideoBackground.tsx';
 import { Breadcrumbs } from './components/Breadcrumbs.tsx';
 import { OfflineIndicator, PWAInstallButton } from './components/PWAStatusUI.tsx';
@@ -67,7 +53,22 @@ import {
   writeCompareToStorage,
 } from './lib/compare.ts';
 import { CompareBar } from './components/CompareBar.tsx';
-import { CompareModal } from './components/CompareModal.tsx';
+
+const ShopView = lazy(() => import('./components/ShopView.tsx').then((m) => ({ default: m.ShopView })));
+const ServicesView = lazy(() => import('./components/ServicesView.tsx').then((m) => ({ default: m.ServicesView })));
+const ProjectsView = lazy(() => import('./components/ProjectsView.tsx').then((m) => ({ default: m.ProjectsView })));
+const ContactsView = lazy(() => import('./components/ContactsView.tsx').then((m) => ({ default: m.ContactsView })));
+const CrmView = lazy(() => import('./components/CrmView.tsx').then((m) => ({ default: m.CrmView })));
+const AuthPortalView = lazy(() => import('./components/AuthPortalView.tsx').then((m) => ({ default: m.AuthPortalView })));
+const ClientCabinetView = lazy(() => import('./components/ClientCabinetView.tsx').then((m) => ({ default: m.ClientCabinetView })));
+const InfoPage = lazy(() => import('./components/InfoPage.tsx').then((m) => ({ default: m.InfoPage })));
+const ProductModal = lazy(() => import('./components/ProductModal.tsx').then((m) => ({ default: m.ProductModal })));
+const QuickViewModal = lazy(() => import('./components/QuickViewModal.tsx').then((m) => ({ default: m.QuickViewModal })));
+const ProductPaybackModal = lazy(() => import('./components/ProductPaybackModal.tsx').then((m) => ({ default: m.ProductPaybackModal })));
+const CompareModal = lazy(() => import('./components/CompareModal.tsx').then((m) => ({ default: m.CompareModal })));
+const CaseModal = lazy(() => import('./components/CaseModal.tsx').then((m) => ({ default: m.CaseModal })));
+const LeadModal = lazy(() => import('./components/LeadModal.tsx').then((m) => ({ default: m.LeadModal })));
+const CartDrawer = lazy(() => import('./components/CartDrawer.tsx').then((m) => ({ default: m.CartDrawer })));
 
 type AppView =
   | 'home'
@@ -1071,7 +1072,7 @@ function AppContent() {
     setClientToken(null);
     setClientCustomer(null);
     setCabinetTabRequest(null);
-    void signOutFirebase();
+    void import('./lib/firebaseAuth.ts').then((m) => m.signOutFirebase());
     setSelectedProduct(null);
     setQuickViewProduct(null);
     setPaybackProduct(null);
@@ -1085,7 +1086,7 @@ function AppContent() {
 
   const handleAdminLogout = useCallback(() => {
     setAdminToken(null);
-    void signOutFirebase();
+    void import('./lib/firebaseAuth.ts').then((m) => m.signOutFirebase());
     void fetchAuthStatus();
   }, [fetchAuthStatus]);
 
@@ -1667,131 +1668,142 @@ function AppContent() {
               />
             )}
 
-            {view === 'shop' && (
-              <ShopView
-                usdUahRate={usdUahRate}
-                products={products}
-                initialCategory={shopInitialCat}
-                initialQuery={shopInitialQuery}
-                wishlistIds={wishlistIds}
-                compareIds={compareIds}
-                onCategoryChange={handleShopCategorySync}
-                onQueryChange={handleShopQuerySync}
-                onSelectProduct={handleSelectProduct}
-                onQuickViewProduct={handleQuickViewProduct}
-                onToggleWishlist={handleToggleWishlist}
-                onToggleCompare={handleToggleCompare}
-                onOpenCompare={() => setCompareModalOpen(true)}
-                onAddToCart={handleAddToCart}
-                onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
-                onCalculatePayback={setPaybackProduct}
-                onOpenCustomRequest={(topic, notes) => openLeadModal(topic, undefined, 'section', notes)}
-                onBackHome={() => navigateTo('home')}
-              />
-            )}
-
-            {view === 'services' && (
-              <ServicesView
-                usdUahRate={usdUahRate}
-                onBackHome={() => navigateTo('home')}
-                onOrderService={(topic) => openLeadModal(topic)}
-              />
-            )}
-
-            {view === 'projects' && (
-              <ProjectsView
-                projects={projects}
-                onBackHome={() => navigateTo('home')}
-                onSelectCase={setSelectedCase}
-              />
-            )}
-
-            {view === 'contacts' && (
-              <ContactsView
-                socialLinks={socialLinks}
-                onBackHome={() => navigateTo('home')}
-                onOpenLeadModal={(topic) => openLeadModal(topic)}
-              />
-            )}
-
-            {(view === 'payment-delivery' || view === 'offer') && (
-              <InfoPage
-                type={view}
-                usdUahRate={usdUahRate}
-                onBackHome={() => navigateTo('home')}
-              />
-            )}
-
-            {view === 'login' && (
-              <AuthPortalView
-                status={authStatus}
-                apiAvailable={apiAvailable}
-                initialMode={authPortalMode}
-                onAuthenticated={handleUnifiedAuthenticated}
-                onBackToStore={() => navigateTo('home')}
-              />
-            )}
-
-            {view === 'account' &&
-              (clientToken ? (
-                <ClientCabinetView
-                  clientToken={clientToken}
-                  initialCustomer={clientCustomer}
-                  products={products}
+            <Suspense
+              fallback={
+                <div className="ec-container py-14">
+                  <div className="ec-glass-plate rounded-2xl p-6 space-y-4">
+                    <div className="h-8 w-56 bg-sky-100 rounded animate-pulse" />
+                    <div className="h-56 bg-sky-50/80 rounded-2xl animate-pulse" />
+                  </div>
+                </div>
+              }
+            >
+              {view === 'shop' && (
+                <ShopView
                   usdUahRate={usdUahRate}
+                  products={products}
+                  initialCategory={shopInitialCat}
+                  initialQuery={shopInitialQuery}
                   wishlistIds={wishlistIds}
-                  requestedTab={cabinetTabRequest}
-                  refreshTrigger={cabinetRefreshTrigger}
-                  onCustomerUpdated={setClientCustomer}
-                  onToggleWishlist={handleToggleWishlist}
-                  onClearWishlist={handleClearWishlist}
+                  compareIds={compareIds}
+                  onCategoryChange={handleShopCategorySync}
+                  onQueryChange={handleShopQuerySync}
                   onSelectProduct={handleSelectProduct}
                   onQuickViewProduct={handleQuickViewProduct}
+                  onToggleWishlist={handleToggleWishlist}
+                  onToggleCompare={handleToggleCompare}
+                  onOpenCompare={() => setCompareModalOpen(true)}
                   onAddToCart={handleAddToCart}
-                  onAddManyToCart={handleAddManyToCart}
+                  onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
                   onCalculatePayback={setPaybackProduct}
-                  onOpenLeadModal={(topic, estUsd, notes) => openLeadModal(topic, estUsd, 'section', notes)}
-                  onNavigateShop={() => navigateTo('shop', 'all')}
-                  onBackToStore={() => navigateTo('home')}
-                  onLogout={handleClientLogout}
+                  onOpenCustomRequest={(topic, notes) => openLeadModal(topic, undefined, 'section', notes)}
+                  onBackHome={() => navigateTo('home')}
                 />
-              ) : (
-                <AuthPortalView
-                  status={authStatus}
-                  apiAvailable={apiAvailable}
-                  initialMode="login"
-                  onAuthenticated={handleUnifiedAuthenticated}
-                  onBackToStore={() => navigateTo('home')}
-                />
-              ))}
+              )}
 
-            {view === 'crm' &&
-              (adminToken ? (
-                <CrmView
-                  adminToken={adminToken}
-                  deals={deals}
-                  products={products}
-                  projectsList={projects}
-                  telegramConfigured={telegramConfigured}
-                  socialLinks={socialLinks}
-                  onRefreshDeals={fetchDeals}
-                  onRefreshCatalog={fetchCatalog}
-                  onRefreshProjects={fetchProjects}
-                  onSocialLinksUpdated={setSocialLinks}
-                  onAnalyticsUpdated={(cfg) => initAnalytics(cfg)}
-                  onExchangeRateUpdated={(rate) => setUsdUahRate(rate)}
-                  onLogout={handleAdminLogout}
-                  onBackToStore={() => navigateTo('home')}
+              {view === 'services' && (
+                <ServicesView
+                  usdUahRate={usdUahRate}
+                  onBackHome={() => navigateTo('home')}
+                  onOrderService={(topic) => openLeadModal(topic)}
                 />
-              ) : (
+              )}
+
+              {view === 'projects' && (
+                <ProjectsView
+                  projects={projects}
+                  onBackHome={() => navigateTo('home')}
+                  onSelectCase={setSelectedCase}
+                />
+              )}
+
+              {view === 'contacts' && (
+                <ContactsView
+                  socialLinks={socialLinks}
+                  onBackHome={() => navigateTo('home')}
+                  onOpenLeadModal={(topic) => openLeadModal(topic)}
+                />
+              )}
+
+              {(view === 'payment-delivery' || view === 'offer') && (
+                <InfoPage
+                  type={view}
+                  usdUahRate={usdUahRate}
+                  onBackHome={() => navigateTo('home')}
+                />
+              )}
+
+              {view === 'login' && (
                 <AuthPortalView
                   status={authStatus}
                   apiAvailable={apiAvailable}
-                  initialMode="login"
+                  initialMode={authPortalMode}
                   onAuthenticated={handleUnifiedAuthenticated}
                   onBackToStore={() => navigateTo('home')}
                 />
-              ))}
+              )}
+
+              {view === 'account' &&
+                (clientToken ? (
+                  <ClientCabinetView
+                    clientToken={clientToken}
+                    initialCustomer={clientCustomer}
+                    products={products}
+                    usdUahRate={usdUahRate}
+                    wishlistIds={wishlistIds}
+                    requestedTab={cabinetTabRequest}
+                    refreshTrigger={cabinetRefreshTrigger}
+                    onCustomerUpdated={setClientCustomer}
+                    onToggleWishlist={handleToggleWishlist}
+                    onClearWishlist={handleClearWishlist}
+                    onSelectProduct={handleSelectProduct}
+                    onQuickViewProduct={handleQuickViewProduct}
+                    onAddToCart={handleAddToCart}
+                    onAddManyToCart={handleAddManyToCart}
+                    onCalculatePayback={setPaybackProduct}
+                    onOpenLeadModal={(topic, estUsd, notes) => openLeadModal(topic, estUsd, 'section', notes)}
+                    onNavigateShop={() => navigateTo('shop', 'all')}
+                    onBackToStore={() => navigateTo('home')}
+                    onLogout={handleClientLogout}
+                  />
+                ) : (
+                  <AuthPortalView
+                    status={authStatus}
+                    apiAvailable={apiAvailable}
+                    initialMode="login"
+                    onAuthenticated={handleUnifiedAuthenticated}
+                    onBackToStore={() => navigateTo('home')}
+                  />
+                ))}
+
+              {view === 'crm' &&
+                (adminToken ? (
+                  <CrmView
+                    adminToken={adminToken}
+                    deals={deals}
+                    products={products}
+                    projectsList={projects}
+                    telegramConfigured={telegramConfigured}
+                    socialLinks={socialLinks}
+                    onRefreshDeals={fetchDeals}
+                    onRefreshCatalog={fetchCatalog}
+                    onRefreshProjects={fetchProjects}
+                    onSocialLinksUpdated={setSocialLinks}
+                    onAnalyticsUpdated={(cfg) => initAnalytics(cfg)}
+                    onExchangeRateUpdated={(rate) => setUsdUahRate(rate)}
+                    onLogout={handleAdminLogout}
+                    onBackToStore={() => navigateTo('home')}
+                  />
+                ) : (
+                  <AuthPortalView
+                    status={authStatus}
+                    apiAvailable={apiAvailable}
+                    initialMode="login"
+                    onAuthenticated={handleUnifiedAuthenticated}
+                    onBackToStore={() => navigateTo('home')}
+                  />
+                ))}
+            </Suspense>
           </>
         )}
       </main>
@@ -1984,102 +1996,118 @@ function AppContent() {
         </div>
       )}
 
-      {/* Modals & Cart Drawer */}
-      <CompareModal
-        open={compareModalOpen}
-        products={compareProducts}
-        usdUahRate={usdUahRate}
-        onClose={() => setCompareModalOpen(false)}
-        onRemoveProduct={handleRemoveCompare}
-        onClearAll={handleClearCompare}
-        onSelectProduct={handleSelectProduct}
-        onAddToCart={handleAddToCart}
-        onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
-        onBrowseCatalog={() => navigateTo('shop', 'all')}
-      />
+      {/* Modals & Cart Drawer (lazy loaded on interaction) */}
+      <Suspense fallback={null}>
+        {compareModalOpen && (
+          <CompareModal
+            open={compareModalOpen}
+            products={compareProducts}
+            usdUahRate={usdUahRate}
+            onClose={() => setCompareModalOpen(false)}
+            onRemoveProduct={handleRemoveCompare}
+            onClearAll={handleClearCompare}
+            onSelectProduct={handleSelectProduct}
+            onAddToCart={handleAddToCart}
+            onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+            onBrowseCatalog={() => navigateTo('shop', 'all')}
+          />
+        )}
 
-      <ProductModal
-        product={selectedProduct}
-        onClose={handleCloseProductModal}
-        onAddToCart={handleAddToCart}
-        onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
-        usdUahRate={usdUahRate}
-        clientToken={clientToken}
-        adminToken={adminToken}
-        clientCustomerName={clientCustomer?.name ?? null}
-        onRequireLogin={() => navigateTo('login', undefined, 'login')}
-        isWishlisted={selectedProduct ? wishlistIds.includes(selectedProduct.id) : false}
-        onToggleWishlist={handleToggleWishlist}
-        isCompared={selectedProduct ? compareIds.includes(selectedProduct.id) : false}
-        onToggleCompare={handleToggleCompare}
-      />
+        {selectedProduct && (
+          <ProductModal
+            product={selectedProduct}
+            onClose={handleCloseProductModal}
+            onAddToCart={handleAddToCart}
+            onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+            usdUahRate={usdUahRate}
+            clientToken={clientToken}
+            adminToken={adminToken}
+            clientCustomerName={clientCustomer?.name ?? null}
+            onRequireLogin={() => navigateTo('login', undefined, 'login')}
+            isWishlisted={wishlistIds.includes(selectedProduct.id)}
+            onToggleWishlist={handleToggleWishlist}
+            isCompared={compareIds.includes(selectedProduct.id)}
+            onToggleCompare={handleToggleCompare}
+          />
+        )}
 
-      <QuickViewModal
-        product={quickViewProduct}
-        onClose={() => setQuickViewProduct(null)}
-        onAddToCart={handleAddToCart}
-        onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
-        onOpenFullDetails={(p) => {
-          setQuickViewProduct(null);
-          handleSelectProduct(p);
-        }}
-        isWishlisted={quickViewProduct ? wishlistIds.includes(quickViewProduct.id) : false}
-        onToggleWishlist={handleToggleWishlist}
-        isCompared={quickViewProduct ? compareIds.includes(quickViewProduct.id) : false}
-        onToggleCompare={handleToggleCompare}
-        usdUahRate={usdUahRate}
-      />
+        {quickViewProduct && (
+          <QuickViewModal
+            product={quickViewProduct}
+            onClose={() => setQuickViewProduct(null)}
+            onAddToCart={handleAddToCart}
+            onRequestQuote={(p) => openLeadModal(`Розрахунок: ${p.title}`, p.price)}
+            onOpenFullDetails={(p) => {
+              setQuickViewProduct(null);
+              handleSelectProduct(p);
+            }}
+            isWishlisted={wishlistIds.includes(quickViewProduct.id)}
+            onToggleWishlist={handleToggleWishlist}
+            isCompared={compareIds.includes(quickViewProduct.id)}
+            onToggleCompare={handleToggleCompare}
+            usdUahRate={usdUahRate}
+          />
+        )}
 
-      <ProductPaybackModal
-        product={paybackProduct}
-        usdUahRate={usdUahRate}
-        onClose={() => setPaybackProduct(null)}
-        onRequestQuote={(p, summary, capexUsd) =>
-          openLeadModal(`Розрахунок окупності: ${p.title}`, capexUsd ?? p.price, 'section', summary)
-        }
-      />
+        {paybackProduct && (
+          <ProductPaybackModal
+            product={paybackProduct}
+            usdUahRate={usdUahRate}
+            onClose={() => setPaybackProduct(null)}
+            onRequestQuote={(p, summary, capexUsd) =>
+              openLeadModal(`Розрахунок окупності: ${p.title}`, capexUsd ?? p.price, 'section', summary)
+            }
+          />
+        )}
 
-      <CaseModal
-        project={selectedCase}
-        onClose={() => setSelectedCase(null)}
-        onQuote={(proj) => openLeadModal(`Схоже на кейс: ${proj.title}`)}
-      />
+        {selectedCase && (
+          <CaseModal
+            project={selectedCase}
+            onClose={() => setSelectedCase(null)}
+            onQuote={(proj) => openLeadModal(`Схоже на кейс: ${proj.title}`)}
+          />
+        )}
 
-      <LeadModal
-        open={leadModalOpen}
-        initialTopic={leadTopic}
-        initialNotes={leadNotes}
-        estimatedTotalUsd={leadEstimateUsd}
-        usdUahRate={usdUahRate}
-        isStaff={Boolean(adminToken)}
-        clientToken={clientToken}
-        clientCustomer={clientCustomer}
-        onClose={() => setLeadModalOpen(false)}
-        onCreated={() => {
-          void fetchDeals();
-          setCabinetRefreshTrigger((n) => n + 1);
-        }}
-        onOpenCrm={() => navigateTo('crm')}
-        placement={leadPlacement}
-      />
+        {leadModalOpen && (
+          <LeadModal
+            open={leadModalOpen}
+            initialTopic={leadTopic}
+            initialNotes={leadNotes}
+            estimatedTotalUsd={leadEstimateUsd}
+            usdUahRate={usdUahRate}
+            isStaff={Boolean(adminToken)}
+            clientToken={clientToken}
+            clientCustomer={clientCustomer}
+            onClose={() => setLeadModalOpen(false)}
+            onCreated={() => {
+              void fetchDeals();
+              setCabinetRefreshTrigger((n) => n + 1);
+            }}
+            onOpenCrm={() => navigateTo('crm')}
+            placement={leadPlacement}
+          />
+        )}
 
-      <CartDrawer
-        open={cartOpen}
-        items={cart}
-        isStaff={Boolean(adminToken)}
-        clientToken={clientToken}
-        clientCustomer={clientCustomer}
-        onClose={() => setCartOpen(false)}
-        onUpdateQty={handleUpdateCartQty}
-        onRemove={handleRemoveFromCart}
-        onClearCart={() => setCart([])}
-        onOrderCreated={() => {
-          void fetchDeals();
-          setCabinetRefreshTrigger((n) => n + 1);
-        }}
-        onOpenCrm={() => navigateTo('crm')}
-        usdUahRate={usdUahRate}
-      />
+        {cartOpen && (
+          <CartDrawer
+            open={cartOpen}
+            items={cart}
+            isStaff={Boolean(adminToken)}
+            clientToken={clientToken}
+            clientCustomer={clientCustomer}
+            onClose={() => setCartOpen(false)}
+            onUpdateQty={handleUpdateCartQty}
+            onRemove={handleRemoveFromCart}
+            onClearCart={() => setCart([])}
+            onOrderCreated={() => {
+              void fetchDeals();
+              setCabinetRefreshTrigger((n) => n + 1);
+            }}
+            onOpenCrm={() => navigateTo('crm')}
+            usdUahRate={usdUahRate}
+          />
+        )}
+      </Suspense>
 
       <OfflineIndicator />
     </div>

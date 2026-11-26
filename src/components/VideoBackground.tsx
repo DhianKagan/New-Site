@@ -271,8 +271,9 @@ export function VideoBackground({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastLoopSeekAtRef = useRef(0);
+  const revealTimeoutRef = useRef<number | null>(null);
   const [mediaVisible, setMediaVisible] = useState(false);
-  const [shouldRenderMedia, setShouldRenderMedia] = useState(!lazy);
+  const [shouldRenderMedia, setShouldRenderMedia] = useState(false);
 
   const youtubeId = extractYouTubeVideoId(src);
   const urlTimeRange = extractYouTubeTimeRange(src);
@@ -304,11 +305,44 @@ export function VideoBackground({
       : src;
 
   useEffect(() => {
-    if (!lazy) {
-      setShouldRenderMedia(true);
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const saveDataEnabled =
+      typeof navigator !== 'undefined' &&
+      Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+
+    if (prefersReducedMotion || saveDataEnabled) {
+      setShouldRenderMedia(false);
       return;
     }
-    if (shouldRenderMedia || typeof IntersectionObserver === 'undefined') {
+
+    if (!lazy) {
+      const win = typeof window !== 'undefined' ? window : null;
+      if (!win) return;
+      let timerId: number | null = null;
+      let idleId: number | null = null;
+      const activate = () => setShouldRenderMedia(true);
+
+      if ('requestIdleCallback' in win) {
+        idleId = (win as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(
+          activate,
+          { timeout: 1400 },
+        );
+      } else {
+        timerId = win.setTimeout(activate, 1000);
+      }
+      return () => {
+        if (idleId !== null && 'cancelIdleCallback' in win) {
+          (win as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(idleId);
+        }
+        if (timerId !== null) {
+          win.clearTimeout(timerId);
+        }
+      };
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
       setShouldRenderMedia(true);
       return;
     }
@@ -316,19 +350,46 @@ export function VideoBackground({
     const node = containerRef.current;
     if (!node) return;
 
+    let mountTimerId: number | null = null;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setShouldRenderMedia(true);
-          observer.disconnect();
+        const intersecting = entries.some((entry) => entry.isIntersecting);
+        if (intersecting) {
+          if (mountTimerId === null) {
+            mountTimerId = window.setTimeout(() => {
+              mountTimerId = null;
+              setShouldRenderMedia(true);
+            }, 260);
+          }
+        } else {
+          if (mountTimerId !== null) {
+            window.clearTimeout(mountTimerId);
+            mountTimerId = null;
+          }
+          setShouldRenderMedia(false);
+          setMediaVisible(false);
         }
       },
-      { rootMargin: '400px 0px' },
+      { rootMargin: '80px 0px' },
     );
 
     observer.observe(node);
-    return () => observer.disconnect();
-  }, [lazy, shouldRenderMedia]);
+    return () => {
+      if (mountTimerId !== null) {
+        window.clearTimeout(mountTimerId);
+      }
+      observer.disconnect();
+    };
+  }, [lazy]);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimeoutRef.current !== null) {
+        window.clearTimeout(revealTimeoutRef.current);
+        revealTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setMediaVisible(false);
@@ -476,6 +537,7 @@ export function VideoBackground({
               key={youtubeEmbedUrl}
               src={youtubeEmbedUrl}
               title="Energo Comfort solar station background video"
+              loading="lazy"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               referrerPolicy="strict-origin-when-cross-origin"
               tabIndex={-1}
@@ -490,7 +552,13 @@ export function VideoBackground({
                     win.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                   }
                 }
-                window.setTimeout(() => setMediaVisible(true), 450);
+                if (revealTimeoutRef.current !== null) {
+                  window.clearTimeout(revealTimeoutRef.current);
+                }
+                revealTimeoutRef.current = window.setTimeout(() => {
+                  revealTimeoutRef.current = null;
+                  setMediaVisible(true);
+                }, 450);
               }}
               className={`absolute top-1/2 left-1/2 border-0 pointer-events-none transition-opacity duration-1000 ease-out ${
                 mediaVisible ? 'opacity-100' : 'opacity-0'

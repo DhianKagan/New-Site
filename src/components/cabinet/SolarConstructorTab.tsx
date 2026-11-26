@@ -277,6 +277,11 @@ export function SolarConstructorTab({
     [baseCalc, matchedEquipment.panelsCount, matchedEquipment.roofAreaM2],
   );
 
+  const estimatedPaybackMonths =
+    solarKw > 0 && calc.monthlySavingsUah > 0 && matchedEquipment.estimatedEquipmentUsd > 0 && usdUahRate
+      ? Math.max(1, Math.round((matchedEquipment.estimatedEquipmentUsd * usdUahRate) / calc.monthlySavingsUah))
+      : null;
+
   function handleSendConfigToEngineer() {
     const activeSummary = loads
       .filter((l) => l.qty > 0)
@@ -286,8 +291,13 @@ export function SolarConstructorTab({
       `${tr('Об’єкт', 'Объект')}: ${tr(PRESET_CONFIGS[preset].uk, PRESET_CONFIGS[preset].ru)} (${phases} ${tr('ф', 'ф')})`,
       `${tr('Навантаження', 'Нагрузка')}: ${calc.workingKw} кВт (${tr('пік', 'пик')} ${calc.peakSurgeKw} кВт), ${calc.dailyConsumptionKwh} кВт·год/добу`,
       `${tr('Рекомендовано', 'Рекомендовано')}: ${tr('інвертор', 'инвертор')} ${calc.recommendedInverterKw} кВт, АКБ ${calc.recommendedBatteryKwh} кВт·год (${autonomyHours} год), СЕС ${solarKw} кВт (${calc.panelsCount} × ${matchedEquipment.panelWatts} Вт)`,
+      estimatedPaybackMonths
+        ? `${tr('Окупність обладнання', 'Окупаемость оборудования')}: ~${estimatedPaybackMonths} ${tr('міс.', 'мес.')}`
+        : '',
       `${tr('Прилади', 'Приборы')}: ${activeSummary}`,
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     onOpenLeadModal(
       tr(
@@ -667,6 +677,9 @@ export function SolarConstructorTab({
                 {solarKw > 0 && (
                   <span className="font-mono font-bold text-emerald-300">
                     ~{calc.monthlySavingsUah.toLocaleString('uk-UA')} {tr('грн/міс', 'грн/мес')}
+                    {estimatedPaybackMonths
+                      ? ` · ~${estimatedPaybackMonths} ${tr('міс.', 'мес.')}`
+                      : ''}
                   </span>
                 )}
               </div>
