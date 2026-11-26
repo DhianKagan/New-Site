@@ -3,10 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
+  ALLOWED_PRODUCT_CATEGORIES,
   buildBreadcrumbListJsonLd,
   buildBreadcrumbTrail,
+  buildCategoryBreadcrumbJsonLd,
+  buildProductBreadcrumbJsonLd,
   getCategoryBreadcrumbLabel,
 } from '../src/lib/breadcrumbs.ts';
+import { buildPageJsonLdDocument } from '../src/lib/seoSchema.ts';
 import type { Product, ProjectCase } from '../src/types.ts';
 
 const sampleProduct: Product = {
@@ -143,6 +147,7 @@ test('buildBreadcrumbListJsonLd generates valid Schema.org BreadcrumbList items 
   });
   const jsonLd = buildBreadcrumbListJsonLd(trail, 'https://energocomfort.shop/');
   assert.equal(jsonLd['@type'], 'BreadcrumbList');
+  assert.equal(jsonLd['@id'], 'https://energocomfort.shop/shop/deye-sun-8k#breadcrumb');
   assert.equal(jsonLd.itemListElement.length, 4);
   assert.deepEqual(
     jsonLd.itemListElement.map((el) => ({ pos: el.position, name: el.name, item: el.item })),
@@ -153,6 +158,74 @@ test('buildBreadcrumbListJsonLd generates valid Schema.org BreadcrumbList items 
       { pos: 4, name: 'Гібридний інвертор Deye 8kW', item: 'https://energocomfort.shop/shop/deye-sun-8k' },
     ],
   );
+});
+
+test('buildCategoryBreadcrumbJsonLd and buildProductBreadcrumbJsonLd generate Schema.org JSON-LD for all categories and products', () => {
+  for (const cat of ALLOWED_PRODUCT_CATEGORIES) {
+    const catSchema = buildCategoryBreadcrumbJsonLd(cat, 'https://energocomfort.shop', {
+      includeContext: true,
+    });
+    assert.equal(catSchema['@context'], 'https://schema.org');
+    assert.equal(catSchema['@type'], 'BreadcrumbList');
+    assert.equal(catSchema['@id'], `https://energocomfort.shop/shop?cat=${cat}#breadcrumb`);
+    assert.equal(catSchema.itemListElement.length, 3);
+    assert.equal(catSchema.itemListElement[0].position, 1);
+    assert.equal(catSchema.itemListElement[1].item, 'https://energocomfort.shop/shop');
+    assert.equal(catSchema.itemListElement[2].item, `https://energocomfort.shop/shop?cat=${cat}`);
+  }
+
+  const productSchema = buildProductBreadcrumbJsonLd(sampleProduct, 'https://energocomfort.shop', {
+    includeContext: true,
+    isRussian: true,
+  });
+  assert.equal(productSchema['@context'], 'https://schema.org');
+  assert.equal(productSchema['@id'], 'https://energocomfort.shop/shop/deye-sun-8k#breadcrumb');
+  assert.equal(productSchema.itemListElement[2].name, 'Инверторы');
+  assert.equal(productSchema.itemListElement[3].name, 'Гибридный инвертор Deye 8kW');
+});
+
+test('buildPageJsonLdDocument links CollectionPage and ItemPage to BreadcrumbList @id', () => {
+  const categoryDoc = buildPageJsonLdDocument({
+    view: 'shop',
+    baseUrl: 'https://energocomfort.shop',
+    canonicalUrl: 'https://energocomfort.shop/shop?cat=inverters',
+    title: 'Інвертори — Energo Comfort',
+    description: 'Каталог інверторів',
+    shopCat: 'inverters',
+    categoryProducts: [sampleProduct],
+  });
+  assert.ok(categoryDoc);
+  const collectionPage = categoryDoc['@graph'].find((n: any) => n['@type'] === 'CollectionPage') as any;
+  const catBreadcrumb = categoryDoc['@graph'].find((n: any) => n['@type'] === 'BreadcrumbList') as any;
+  assert.equal(collectionPage.breadcrumb['@id'], catBreadcrumb['@id']);
+  assert.equal(collectionPage.mainEntity['@type'], 'ItemList');
+  assert.equal(collectionPage.mainEntity.numberOfItems, 1);
+
+  const productDoc = buildPageJsonLdDocument({
+    view: 'shop',
+    baseUrl: 'https://energocomfort.shop',
+    canonicalUrl: 'https://energocomfort.shop/shop/deye-sun-8k',
+    title: 'Deye 8kW',
+    description: 'Гібридний інвертор',
+    selectedProduct: sampleProduct,
+    usdUahRate: 42,
+  });
+  assert.ok(productDoc);
+  const itemPage = productDoc['@graph'].find((n: any) => n['@type'] === 'ItemPage') as any;
+  const prodEntity = productDoc['@graph'].find((n: any) => n['@type'] === 'Product') as any;
+  const prodBreadcrumb = productDoc['@graph'].find((n: any) => n['@type'] === 'BreadcrumbList') as any;
+  assert.equal(itemPage.breadcrumb['@id'], prodBreadcrumb['@id']);
+  assert.equal(itemPage.mainEntity['@id'], prodEntity['@id']);
+  assert.equal(prodBreadcrumb.itemListElement.length, 4);
+
+  const privateDoc = buildPageJsonLdDocument({
+    view: 'crm',
+    baseUrl: 'https://energocomfort.shop',
+    canonicalUrl: 'https://energocomfort.shop/crm',
+    title: 'CRM',
+    description: '',
+  });
+  assert.equal(privateDoc, null);
 });
 
 test('App.tsx renders Breadcrumbs at the top of main and Breadcrumbs.tsx sets Schema.org microdata + aria-current', () => {

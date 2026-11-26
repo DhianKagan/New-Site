@@ -94,3 +94,38 @@ test('resolveGoogleProductCategory and resolveProductTypeLabel return valid Goog
   assert.equal(resolveGoogleProductCategory('inverters'), 'Hardware > Power & Electrical Supplies > Power Inverters');
   assert.equal(resolveProductTypeLabel('batteries'), 'Акумулятори LiFePO4');
 });
+
+test('renderRouteSeoHtml generates dynamic BreadcrumbList JSON-LD for all category query and slug routes', () => {
+  const categories = ['kits', 'inverters', 'batteries', 'panels', 'parts'] as const;
+  for (const cat of categories) {
+    const queryHtml = renderRouteSeoHtml({
+      template,
+      baseUrl: 'https://energocomfort.shop',
+      rawPath: '/shop',
+      queryCat: cat,
+      categoryProducts: [sampleProduct],
+    });
+    assert.match(queryHtml, /"@type":"CollectionPage"/);
+    assert.match(queryHtml, /"@type":"BreadcrumbList"/);
+    assert.match(queryHtml, new RegExp(`https://energocomfort\\.shop/shop\\?cat=${cat}#breadcrumb`));
+    assert.match(queryHtml, /"@type":"ItemList"/);
+
+    const slugHtml = renderRouteSeoHtml({
+      template,
+      baseUrl: 'https://energocomfort.shop',
+      rawPath: `/shop/category/${cat}`,
+    });
+    assert.match(slugHtml, new RegExp(`<link rel="canonical" href="https://energocomfort\\.shop/shop\\?cat=${cat}" />`));
+    assert.match(slugHtml, /"@type":"BreadcrumbList"/);
+  }
+
+  const missingProdHtml = renderRouteSeoHtml({
+    template,
+    baseUrl: 'https://energocomfort.shop',
+    rawPath: '/shop/non-existent-id',
+  });
+  assert.ok(missingProdHtml.includes('<link rel="canonical" href="https://energocomfort.shop/shop" />'));
+  assert.match(missingProdHtml, /"@type":"CollectionPage"/);
+  assert.match(missingProdHtml, /"@type":"BreadcrumbList"/);
+  assert.doesNotMatch(missingProdHtml, /"@type":"FAQPage"/);
+});

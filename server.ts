@@ -155,10 +155,12 @@ import {
   saveCommercialRate,
 } from './server/exchangeRate.ts';
 import {
+  extractCategorySlugFromShopPath,
   renderRouteSeoHtml,
   resolveGoogleProductCategory,
   resolveProductTypeLabel,
 } from './server/seo.ts';
+import { isValidProductCategory } from './src/lib/breadcrumbs.ts';
 import {
   buildSecurityHeaders,
   collectMissingProductionEnvWarnings,
@@ -281,10 +283,20 @@ function buildRouteSeoHtml(template: string, req: express.Request): string {
   const baseUrl = getBaseUrl(req);
   const rawPath = (req.path || '/').replace(/\/+$/, '') || '/';
   const queryCat = typeof req.query.cat === 'string' ? req.query.cat.trim() : '';
+  const querySearch = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+
   let product = null;
-  if (rawPath.startsWith('/shop/')) {
+  if (rawPath.startsWith('/shop/') && !rawPath.startsWith('/shop/category/')) {
     const prodId = decodeURIComponent(rawPath.slice('/shop/'.length).split('/')[0] || '');
     product = prodId ? getProductById(prodId) : null;
+  }
+
+  let categoryProducts = undefined;
+  if (!product && (rawPath === '/shop' || rawPath.startsWith('/shop/'))) {
+    const effectiveCat = isValidProductCategory(queryCat)
+      ? queryCat
+      : extractCategorySlugFromShopPath(rawPath);
+    categoryProducts = listProducts(effectiveCat ? { cat: effectiveCat } : undefined);
   }
 
   return renderRouteSeoHtml({
@@ -292,7 +304,9 @@ function buildRouteSeoHtml(template: string, req: express.Request): string {
     baseUrl,
     rawPath,
     queryCat,
+    querySearch,
     product,
+    categoryProducts,
     usdUahRate: getCachedActiveRateSync(),
     socialLinks: getSocialLinks(),
   });

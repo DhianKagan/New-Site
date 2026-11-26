@@ -12,7 +12,7 @@ import type {
   SocialLinksConfig,
   UnifiedAuthResult,
 } from './types.ts';
-import { COMPANY_INFO, FAQ_ITEMS, PROJECTS } from './data/siteContent.ts';
+import { COMPANY_INFO, PROJECTS } from './data/siteContent.ts';
 import {
   captureAttribution,
   initAnalytics,
@@ -25,7 +25,6 @@ import {
 } from './lib/analytics.ts';
 import { reportClientError, type ClientErrorReportPayload } from './lib/errorReporting.ts';
 import { signOutFirebase } from './lib/firebaseAuth.ts';
-import { getProductAggregateRating } from './lib/seoRating.ts';
 import { HomeView } from './components/HomeView.tsx';
 import { ShopView } from './components/ShopView.tsx';
 import { ServicesView } from './components/ServicesView.tsx';
@@ -47,10 +46,11 @@ import { VideoBackground } from './components/VideoBackground.tsx';
 import { Breadcrumbs } from './components/Breadcrumbs.tsx';
 import { OfflineIndicator, PWAInstallButton } from './components/PWAStatusUI.tsx';
 import {
-  buildBreadcrumbListJsonLd,
   buildBreadcrumbTrail,
+  isValidProductCategory,
   type BreadcrumbItem,
 } from './lib/breadcrumbs.ts';
+import { buildPageJsonLdDocument } from './lib/seoSchema.ts';
 import { formatUahFromUsd } from './lib/currency.ts';
 import { getSavedLocale, setActiveLocale, tr, type Locale } from './lib/i18n.ts';
 import {
@@ -129,9 +129,18 @@ function parseRouteFromLocation(): {
   if (pathname === '/shop') {
     return { view: 'shop', cat, searchQuery, productId: null, authMode };
   }
+  if (pathname.startsWith('/shop/category/')) {
+    const slug = decodeURIComponent(pathname.slice('/shop/category/'.length).split('/')[0] || '').trim();
+    const resolvedCat = isValidProductCategory(slug) ? slug : cat;
+    return { view: 'shop', cat: resolvedCat, searchQuery, productId: null, authMode };
+  }
   if (pathname.startsWith('/shop/')) {
     const rawId = pathname.slice('/shop/'.length).split('/')[0];
-    return { view: 'shop', cat: 'all', searchQuery: '', productId: rawId ? decodeURIComponent(rawId) : null, authMode };
+    const decoded = rawId ? decodeURIComponent(rawId) : '';
+    if (isValidProductCategory(decoded)) {
+      return { view: 'shop', cat: decoded, searchQuery, productId: null, authMode };
+    }
+    return { view: 'shop', cat: 'all', searchQuery: '', productId: decoded || null, authMode };
   }
   if (pathname === '/services') return { view: 'services', cat: 'all', searchQuery: '', productId: null, authMode };
   if (pathname === '/projects') return { view: 'projects', cat: 'all', searchQuery: '', productId: null, authMode };
@@ -847,10 +856,13 @@ function AppContent() {
     }
 
     document.title = title;
-    const canonicalPath =
-      view === 'shop' && !selectedProduct && shopInitialCat !== 'all'
-        ? `/shop?cat=${encodeURIComponent(shopInitialCat)}`
-        : window.location.pathname;
+    const canonicalPath = selectedProduct
+      ? `/shop/${encodeURIComponent(selectedProduct.id)}`
+      : view === 'shop'
+        ? shopInitialCat !== 'all'
+          ? `/shop?cat=${encodeURIComponent(shopInitialCat)}`
+          : '/shop'
+        : buildPathForRoute(view, shopInitialCat);
     const canonicalUrl = `${window.location.origin}${canonicalPath}`;
 
     const ensureMeta = (attrName: 'name' | 'property', key: string, content: string) => {
@@ -909,139 +921,42 @@ function AppContent() {
       canonicalEl.setAttribute('href', canonicalUrl);
     }
 
-    const sameAs = Object.values(socialLinks)
-      .map((v) => v.trim())
-      .filter((v) => /^https?:\/\//i.test(v));
-
-    const storeEntity = {
-      '@type': 'Store',
-      '@id': `${window.location.origin}/#organization`,
-      name: 'Energo Comfort',
-      url: window.location.origin,
-      image: `${window.location.origin}/assets/energocomfort/sto_110kw.jpg`,
-      telephone: '+380507777172',
-      email: COMPANY_INFO.email,
-      priceRange: '$$',
-      areaServed: ['Одеса', 'Одеська область', 'Україна'],
-      address: {
-        '@type': 'PostalAddress',
-        streetAddress: 'вул. Європейська 93',
-        addressLocality: 'Одеса',
-        addressRegion: 'Одеська область',
-        addressCountry: 'UA',
-      },
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: 46.4694,
-        longitude: 30.7376,
-      },
-      openingHoursSpecification: [
-        {
-          '@type': 'OpeningHoursSpecification',
-          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-          opens: '09:00',
-          closes: '18:00',
-        },
-      ],
-      ...(sameAs.length > 0 ? { sameAs } : {}),
-    };
-
-    const jsonLdEl = document.getElementById('ec-jsonld');
-    if (jsonLdEl && !isPrivateView) {
-      if (selectedProduct) {
-        const priceValidUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        jsonLdEl.textContent = JSON.stringify({
-          '@context': 'https://schema.org',
-          '@graph': [
-            {
-              '@type': 'Product',
-              name: selectedProduct.title,
-              sku: selectedProduct.sku || selectedProduct.id,
-              mpn: selectedProduct.sku || selectedProduct.id,
-              image: ogImage,
-              description,
-              brand: { '@type': 'Brand', name: selectedProduct.brand || 'Energo Comfort' },
-              aggregateRating: getProductAggregateRating(selectedProduct),
-              ...(selectedProduct.price > 0 && usdUahRate
-                ? {
-                    offers: {
-                      '@type': 'Offer',
-                      url: canonicalUrl,
-                      priceCurrency: 'UAH',
-                      price: Math.round(selectedProduct.price * usdUahRate),
-                      priceValidUntil,
-                      itemCondition: 'https://schema.org/NewCondition',
-                      availability: selectedProduct.inStock
-                        ? 'https://schema.org/InStock'
-                        : 'https://schema.org/PreOrder',
-                      seller: { '@id': `${window.location.origin}/#organization`, '@type': 'Organization', name: 'Energo Comfort' },
-                      hasMerchantReturnPolicy: {
-                        '@type': 'MerchantReturnPolicy',
-                        applicableCountry: 'UA',
-                        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
-                        merchantReturnDays: 14,
-                        returnMethod: 'https://schema.org/ReturnByMail',
-                        returnFees: 'https://schema.org/ReturnShippingFees',
-                      },
-                    },
-                  }
-                : {}),
-            },
-            buildBreadcrumbListJsonLd(breadcrumbItems, window.location.origin),
-          ],
-        });
-      } else if (view === 'home') {
-        jsonLdEl.textContent = JSON.stringify({
-          '@context': 'https://schema.org',
-          '@graph': [
-            storeEntity,
-            {
-              '@type': 'WebSite',
-              '@id': `${window.location.origin}/#website`,
-              name: 'Energo Comfort',
-              url: window.location.origin,
-              potentialAction: {
-                '@type': 'SearchAction',
-                target: `${window.location.origin}/shop?q={search_term_string}`,
-                'query-input': 'required name=search_term_string',
-              },
-            },
-            {
-              '@type': 'FAQPage',
-              mainEntity: FAQ_ITEMS.map((item) => ({
-                '@type': 'Question',
-                name: item.q,
-                acceptedAnswer: { '@type': 'Answer', text: item.a },
-              })),
-            },
-          ],
-        });
-      } else {
-        const pageTypeMap: Record<AppView, string> = {
-          home: 'WebPage',
-          shop: 'CollectionPage',
-          services: 'Service',
-          projects: 'CollectionPage',
-          contacts: 'ContactPage',
-          'payment-delivery': 'WebPage',
-          offer: 'WebPage',
-          login: 'WebPage',
-          account: 'WebPage',
-          crm: 'WebPage',
-        };
-        jsonLdEl.textContent = JSON.stringify({
-          '@context': 'https://schema.org',
-          '@graph': [
-            storeEntity,
-            {
-              '@type': pageTypeMap[view],
-              name: title,
-              description,
-              url: canonicalUrl,
-            },
-            buildBreadcrumbListJsonLd(breadcrumbItems, window.location.origin),
-          ],
-        });
+    const existingJsonLdEl = document.getElementById('ec-jsonld');
+    if (isPrivateView) {
+      existingJsonLdEl?.remove();
+    } else {
+      const categoryProducts =
+        view === 'shop' && !selectedProduct
+          ? shopInitialCat === 'all'
+            ? products
+            : products.filter((p) => p.cat === shopInitialCat)
+          : undefined;
+      const jsonLdDoc = buildPageJsonLdDocument({
+        view,
+        baseUrl: window.location.origin,
+        canonicalUrl,
+        title,
+        description,
+        shopCat: shopInitialCat,
+        searchQuery: shopInitialQuery,
+        selectedProduct,
+        selectedCase,
+        categoryProducts,
+        productImage: ogImage,
+        usdUahRate,
+        socialLinks,
+        isRussian: locale === 'ru',
+        breadcrumbItems,
+      });
+      if (jsonLdDoc) {
+        let jsonLdEl = existingJsonLdEl as HTMLScriptElement | null;
+        if (!jsonLdEl) {
+          jsonLdEl = document.createElement('script');
+          jsonLdEl.type = 'application/ld+json';
+          jsonLdEl.id = 'ec-jsonld';
+          document.head.appendChild(jsonLdEl);
+        }
+        jsonLdEl.textContent = JSON.stringify(jsonLdDoc);
       }
     }
 
@@ -1057,7 +972,7 @@ function AppContent() {
         });
       }
     }
-  }, [view, shopInitialCat, shopInitialQuery, selectedProduct, selectedCase, breadcrumbItems, products.length, projects.length, usdUahRate, locale, socialLinks, analyticsReady]);
+  }, [view, shopInitialCat, shopInitialQuery, selectedProduct, selectedCase, breadcrumbItems, products, projects.length, usdUahRate, locale, socialLinks, analyticsReady]);
 
   useEffect(() => {
     if (!analyticsReady || view === 'crm' || view === 'login' || view === 'account') return;

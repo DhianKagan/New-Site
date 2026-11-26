@@ -52,7 +52,15 @@ const VIEW_BREADCRUMB_LABELS: Record<BreadcrumbView, { uk: string; ru: string }>
   crm: { uk: 'CRM', ru: 'CRM' },
 };
 
-function isValidProductCategory(cat: string | undefined): cat is ProductCategory {
+export const ALLOWED_PRODUCT_CATEGORIES: readonly ProductCategory[] = [
+  'kits',
+  'inverters',
+  'batteries',
+  'panels',
+  'parts',
+];
+
+export function isValidProductCategory(cat: string | undefined | null): cat is ProductCategory {
   return (
     cat === 'kits' ||
     cat === 'inverters' ||
@@ -219,10 +227,24 @@ export function buildBreadcrumbTrail(input: BreadcrumbTrailInput): BreadcrumbIte
   ];
 }
 
-export function buildBreadcrumbListJsonLd(items: BreadcrumbItem[], origin: string) {
-  const cleanOrigin = origin.replace(/\/+$/, '');
+export interface BreadcrumbJsonLdOptions {
+  idUrl?: string;
+  includeContext?: boolean;
+}
+
+export function buildBreadcrumbListJsonLd(
+  items: BreadcrumbItem[],
+  origin: string,
+  options?: BreadcrumbJsonLdOptions,
+) {
+  const cleanOrigin = origin.replace(/\/+$/, '') || 'https://energocomfort.shop';
+  const lastHref = items[items.length - 1]?.href ?? '/';
+  const baseIdUrl = (options?.idUrl || `${cleanOrigin}${lastHref}`).replace(/#.*$/, '');
+
   return {
+    ...(options?.includeContext ? { '@context': 'https://schema.org' } : {}),
     '@type': 'BreadcrumbList',
+    '@id': `${baseIdUrl}#breadcrumb`,
     itemListElement: items.map((item, idx) => ({
       '@type': 'ListItem',
       position: idx + 1,
@@ -230,4 +252,41 @@ export function buildBreadcrumbListJsonLd(items: BreadcrumbItem[], origin: strin
       item: `${cleanOrigin}${item.href}`,
     })),
   };
+}
+
+export function buildCategoryBreadcrumbJsonLd(
+  cat: ProductCategory | 'all',
+  origin: string,
+  options?: { isRussian?: boolean; searchQuery?: string; includeContext?: boolean },
+) {
+  const cleanOrigin = origin.replace(/\/+$/, '') || 'https://energocomfort.shop';
+  const trail = buildBreadcrumbTrail({
+    view: 'shop',
+    shopCat: cat,
+    searchQuery: options?.searchQuery,
+    isRussian: options?.isRussian,
+  });
+  const canonicalPath = isValidProductCategory(cat) ? `/shop?cat=${encodeURIComponent(cat)}` : '/shop';
+  return buildBreadcrumbListJsonLd(trail, cleanOrigin, {
+    idUrl: `${cleanOrigin}${canonicalPath}`,
+    includeContext: options?.includeContext,
+  });
+}
+
+export function buildProductBreadcrumbJsonLd(
+  product: Product,
+  origin: string,
+  options?: { isRussian?: boolean; includeContext?: boolean },
+) {
+  const cleanOrigin = origin.replace(/\/+$/, '') || 'https://energocomfort.shop';
+  const trail = buildBreadcrumbTrail({
+    view: 'shop',
+    shopCat: isValidProductCategory(product.cat) ? product.cat : 'all',
+    selectedProduct: product,
+    isRussian: options?.isRussian,
+  });
+  return buildBreadcrumbListJsonLd(trail, cleanOrigin, {
+    idUrl: `${cleanOrigin}/shop/${encodeURIComponent(product.id)}`,
+    includeContext: options?.includeContext,
+  });
 }
