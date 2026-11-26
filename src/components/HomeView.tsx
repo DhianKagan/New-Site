@@ -143,24 +143,23 @@ export function HomeView({
     return 'apartment';
   }
 
-  const backupKits = products
-    .filter(
-      (p) =>
-        p.isKit &&
-        !p.title.toLowerCase().includes('сес') &&
-        !p.title.toLowerCase().includes('соняч') &&
-        p.price > 0,
-    )
-    .slice(0, 3);
+  const isKitProduct = (p: Product) => p.isKit || p.cat === 'kits';
+  const isSolarKitProduct = (p: Product) => {
+    const titleLower = p.title.toLowerCase();
+    return titleLower.includes('сес') || titleLower.includes('соняч');
+  };
 
-  const solarKits = products
-    .filter(
-      (p) =>
-        p.isKit &&
-        (p.title.toLowerCase().includes('сес') || p.title.toLowerCase().includes('соняч')) &&
-        p.price > 0,
-    )
-    .slice(0, 3);
+  const backupCandidates = products.filter((p) => isKitProduct(p) && !isSolarKitProduct(p));
+  const backupKits = [
+    ...backupCandidates.filter((p) => p.price > 0),
+    ...backupCandidates.filter((p) => p.price <= 0),
+  ].slice(0, 3);
+
+  const solarCandidates = products.filter((p) => isKitProduct(p) && isSolarKitProduct(p));
+  const solarKits = [
+    ...solarCandidates.filter((p) => p.price > 0),
+    ...solarCandidates.filter((p) => p.price <= 0),
+  ].slice(0, 3);
 
   const popularHardware = products
     .filter(
@@ -176,12 +175,19 @@ export function HomeView({
     showcaseTab === 'backup-kits'
       ? backupKits.length
         ? backupKits
-        : products.filter((p) => p.isKit).slice(0, 3)
+        : products.filter(isKitProduct).slice(0, 3)
       : showcaseTab === 'solar-kits'
         ? solarKits.length
           ? solarKits
-          : products.filter((p) => p.isKit).slice(0, 3)
+          : products.filter(isKitProduct).slice(0, 3)
         : popularHardware;
+
+  const showcaseGridClass =
+    activeShowcase.length === 1
+      ? 'grid grid-cols-1 max-w-md mx-auto gap-6'
+      : activeShowcase.length === 2
+        ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
+        : 'grid grid-cols-1 md:grid-cols-3 gap-6';
 
   const visibleCases = projects.filter((p) => caseSeg === 'all' || p.seg === caseSeg).slice(0, 6);
 
@@ -208,6 +214,13 @@ export function HomeView({
     indicativeCapexUah,
     paybackYears,
   } = payback;
+
+  const calcGridClass =
+    matchedCalculatorProducts.length === 1
+      ? 'grid grid-cols-1 max-w-md mx-auto gap-6'
+      : matchedCalculatorProducts.length === 2
+        ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
+        : 'grid grid-cols-1 md:grid-cols-3 gap-6';
 
   function toggleLoad(val: string) {
     setLoads((prev) => (prev.includes(val) ? prev.filter((item) => item !== val) : [...prev, val]));
@@ -831,7 +844,7 @@ export function HomeView({
                   {tr('Переглянути всі рішення →', 'Посмотреть все решения →')}
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={calcGridClass}>
                 {matchedCalculatorProducts.map((prod) => (
                   <ProductCard
                     usdUahRate={usdUahRate}
@@ -872,18 +885,18 @@ export function HomeView({
           brightness={0.54}
         />
         <div className="relative ec-container">
-          <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-6 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-            <div className="max-w-xl">
+          <div className="ec-glass-plate rounded-2xl p-6 sm:p-7 mb-6 flex flex-col gap-4">
+            <div>
               <div className="text-xs font-extrabold uppercase tracking-wide text-[#0b66b2] mb-1.5">{tr('Рішення та обладнання')}</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#07213e] mb-1.5">
                 {tr('Популярні конфігурації та комплектуючі')}
               </h2>
-              <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed">
+              <p className="text-sm text-[#1c3d5e] font-medium leading-relaxed max-w-3xl">
                 {tr('Готові комплекти з інженерним підбором під ваше навантаження, а також окремі інвертори та акумулятори зі складу в Одесі.', 'Готовые комплекты с инженерным подбором под вашу нагрузку, а также отдельные инверторы и аккумуляторы со склада в Одессе.')}
               </p>
             </div>
 
-            <div className="inline-flex flex-wrap gap-1 p-1 bg-sky-100/80 border border-sky-200/80 rounded-xl self-start lg:self-auto shrink-0">
+            <div className="inline-flex flex-wrap gap-1 p-1 bg-sky-100/80 border border-sky-200/80 rounded-xl self-start">
               <button
                 type="button"
                 onClick={() => setShowcaseTab('backup-kits')}
@@ -920,7 +933,7 @@ export function HomeView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className={showcaseGridClass}>
             {activeShowcase.map((prod) => (
               <ProductCard
                 usdUahRate={usdUahRate}

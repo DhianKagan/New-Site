@@ -255,7 +255,11 @@ export function ProductModal({
             <SmartImage
               src={product.img}
               alt={title}
-              className={`w-full h-full ${product.isKit ? 'object-cover' : 'object-contain p-6'}`}
+              className={`w-full h-full ${
+                product.isKit && product.id !== 'vysokovoltna-sistema-solax-x3-ies-p15b15'
+                  ? 'object-cover'
+                  : 'object-contain p-6'
+              }`}
             />
             {discountPct > 0 && (
               <span className="absolute top-3 left-3 px-2 py-1 rounded-md bg-rose-600 text-white font-mono text-xs font-extrabold">

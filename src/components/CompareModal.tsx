@@ -7,6 +7,7 @@ import {
   Trash2,
   CheckCircle2,
   PlusCircle,
+  Highlighter,
 } from 'lucide-react';
 import type { Product } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
@@ -52,6 +53,7 @@ export function CompareModal({
   onBrowseCatalog,
 }: CompareModalProps) {
   const [onlyDifferences, setOnlyDifferences] = useState(false);
+  const [highlightDifferences, setHighlightDifferences] = useState(true);
 
   useEffect(() => {
     if (!open) return;
@@ -192,15 +194,44 @@ export function CompareModal({
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             {products.length >= 2 && (
-              <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-sky-200 bg-white text-xs font-bold text-[#07213e] cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={onlyDifferences}
-                  onChange={(e) => setOnlyDifferences(e.target.checked)}
-                  className="w-4 h-4 accent-[#0b66b2] cursor-pointer"
-                />
-                <span>{tr('Лише відмінності', 'Только отличия')}</span>
-              </label>
+              <>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={highlightDifferences}
+                  onClick={() => setHighlightDifferences((prev) => !prev)}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b66b2] ${
+                    highlightDifferences
+                      ? 'border-amber-300 bg-amber-50 text-[#07213e] hover:bg-amber-100/80'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-[#07213e]'
+                  }`}
+                >
+                  <Highlighter
+                    className={`w-3.5 h-3.5 shrink-0 ${
+                      highlightDifferences ? 'text-[#d97706]' : 'text-slate-400'
+                    }`}
+                  />
+                  <span>{tr('Підсвітити відмінності', 'Подсветить отличия')}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`w-7 h-4 rounded-full p-0.5 flex items-center transition-colors ${
+                      highlightDifferences ? 'bg-[#f59e0b] justify-end' : 'bg-slate-300 justify-start'
+                    }`}
+                  >
+                    <span className="w-3 h-3 rounded-full bg-white shadow-xs" />
+                  </span>
+                </button>
+
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-sky-200 bg-white text-xs font-bold text-[#07213e] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={onlyDifferences}
+                    onChange={(e) => setOnlyDifferences(e.target.checked)}
+                    className="w-4 h-4 accent-[#0b66b2] cursor-pointer"
+                  />
+                  <span>{tr('Лише відмінності', 'Только отличия')}</span>
+                </label>
+              </>
             )}
 
             {products.length > 0 && (
@@ -283,10 +314,24 @@ export function CompareModal({
                       <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#0b66b2] mb-1">
                         {tr('Параметр', 'Параметр')}
                       </div>
-                      <p className="text-[11px] text-slate-500 font-medium leading-snug">
-                        {tr(
-                          'Рядки з відмінностями підсвічені блакитним',
-                          'Строки с отличиями подсвечены голубым',
+                      <p className="text-[11px] text-slate-500 font-medium leading-snug flex items-center gap-1.5">
+                        {highlightDifferences ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-[#f59e0b] shrink-0" aria-hidden="true" />
+                            <span>
+                              {tr(
+                                'Рядки з відмінностями підсвічені',
+                                'Строки с отличиями подсвечены',
+                              )}
+                            </span>
+                          </>
+                        ) : (
+                          <span>
+                            {tr(
+                              'Підсвічування відмінностей вимкнено',
+                              'Подсветка отличий выключена',
+                            )}
+                          </span>
                         )}
                       </p>
                     </th>
@@ -323,7 +368,9 @@ export function CompareModal({
                                     src={product.img}
                                     alt={title}
                                     className={`w-full h-full ${
-                                      product.isKit ? 'object-cover' : 'object-contain p-3'
+                                      product.isKit && product.id !== 'vysokovoltna-sistema-solax-x3-ies-p15b15'
+                                        ? 'object-cover'
+                                        : 'object-contain p-3'
                                     }`}
                                   />
                                 </button>
@@ -436,33 +483,50 @@ export function CompareModal({
                           {tr('Загальні параметри', 'Общие параметры')}
                         </th>
                       </tr>
-                      {visibleOverviewRows.map((row) => (
-                        <tr
-                          key={`overview-${row.label}`}
-                          className={`border-b border-slate-200/80 ${
-                            row.differs ? 'bg-sky-50/55' : 'bg-white'
-                          }`}
-                        >
-                          <th
-                            scope="row"
-                            className={`sm:sticky sm:left-0 z-10 px-4 py-2.5 text-xs font-semibold text-[#133659] border-r border-slate-200 ${
-                              row.differs ? 'bg-[#f2f8ff]' : 'bg-white'
+                      {visibleOverviewRows.map((row) => {
+                        const isHighlighted = highlightDifferences && row.differs;
+                        return (
+                          <tr
+                            key={`overview-${row.label}`}
+                            data-differs={row.differs ? 'true' : 'false'}
+                            data-highlighted={isHighlighted ? 'true' : 'false'}
+                            className={`border-b border-slate-200/80 transition-colors ${
+                              isHighlighted ? 'bg-amber-50/70' : 'bg-white'
                             }`}
                           >
-                            {row.label}
-                          </th>
-                          {row.values.map((val, idx) => (
-                            <td
-                              key={`${row.label}-${products[idx].id}`}
-                              className={`px-4 py-2.5 text-xs border-r border-slate-200/70 last:border-r-0 ${
-                                row.differs ? 'font-bold text-[#07213e]' : 'font-medium text-slate-700'
+                            <th
+                              scope="row"
+                              className={`sm:sticky sm:left-0 z-10 px-4 py-2.5 text-xs border-r border-slate-200 transition-colors ${
+                                isHighlighted
+                                  ? 'bg-[#fff8e6] font-bold text-[#07213e] shadow-[inset_4px_0_0_#f59e0b]'
+                                  : 'bg-white font-semibold text-[#133659]'
                               }`}
                             >
-                              {val}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
+                              <span className="inline-flex items-center gap-1.5">
+                                {isHighlighted && (
+                                  <>
+                                    <span className="w-2 h-2 rounded-full bg-[#f59e0b] shrink-0" aria-hidden="true" />
+                                    <span className="sr-only">{tr('Відрізняється:', 'Отличается:')} </span>
+                                  </>
+                                )}
+                                <span>{row.label}</span>
+                              </span>
+                            </th>
+                            {row.values.map((val, idx) => (
+                              <td
+                                key={`${row.label}-${products[idx].id}`}
+                                className={`px-4 py-2.5 text-xs border-r border-slate-200/70 last:border-r-0 transition-colors ${
+                                  isHighlighted
+                                    ? 'bg-amber-50/45 font-bold text-[#07213e]'
+                                    : 'font-medium text-slate-700'
+                                }`}
+                              >
+                                {val}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
                     </>
                   )}
 
@@ -504,37 +568,54 @@ export function CompareModal({
                       </td>
                     </tr>
                   ) : (
-                    visibleSpecRows.map((row) => (
-                      <tr
-                        key={`spec-${row.label}`}
-                        className={`border-b border-slate-200/80 ${
-                          row.differs ? 'bg-sky-50/55' : 'bg-white'
-                        }`}
-                      >
-                        <th
-                          scope="row"
-                          className={`sm:sticky sm:left-0 z-10 px-4 py-2.5 text-xs font-semibold text-[#133659] border-r border-slate-200 ${
-                            row.differs ? 'bg-[#f2f8ff]' : 'bg-white'
+                    visibleSpecRows.map((row) => {
+                      const isHighlighted = highlightDifferences && row.differs;
+                      return (
+                        <tr
+                          key={`spec-${row.label}`}
+                          data-differs={row.differs ? 'true' : 'false'}
+                          data-highlighted={isHighlighted ? 'true' : 'false'}
+                          className={`border-b border-slate-200/80 transition-colors ${
+                            isHighlighted ? 'bg-amber-50/70' : 'bg-white'
                           }`}
                         >
-                          {row.label}
-                        </th>
-                        {row.values.map((val, idx) => (
-                          <td
-                            key={`${row.label}-${products[idx].id}`}
-                            className={`px-4 py-2.5 text-xs border-r border-slate-200/70 last:border-r-0 ${
-                              val === '—'
-                                ? 'text-slate-400 font-normal'
-                                : row.differs
-                                  ? 'font-bold text-[#07213e]'
-                                  : 'font-medium text-slate-700'
+                          <th
+                            scope="row"
+                            className={`sm:sticky sm:left-0 z-10 px-4 py-2.5 text-xs border-r border-slate-200 transition-colors ${
+                              isHighlighted
+                                ? 'bg-[#fff8e6] font-bold text-[#07213e] shadow-[inset_4px_0_0_#f59e0b]'
+                                : 'bg-white font-semibold text-[#133659]'
                             }`}
                           >
-                            {val}
-                          </td>
-                        ))}
-                      </tr>
-                    ))
+                            <span className="inline-flex items-center gap-1.5">
+                              {isHighlighted && (
+                                <>
+                                  <span className="w-2 h-2 rounded-full bg-[#f59e0b] shrink-0" aria-hidden="true" />
+                                  <span className="sr-only">{tr('Відрізняється:', 'Отличается:')} </span>
+                                </>
+                              )}
+                              <span>{row.label}</span>
+                            </span>
+                          </th>
+                          {row.values.map((val, idx) => (
+                            <td
+                              key={`${row.label}-${products[idx].id}`}
+                              className={`px-4 py-2.5 text-xs border-r border-slate-200/70 last:border-r-0 transition-colors ${
+                                val === '—'
+                                  ? isHighlighted
+                                    ? 'bg-amber-50/35 text-slate-400 font-normal'
+                                    : 'text-slate-400 font-normal'
+                                  : isHighlighted
+                                    ? 'bg-amber-50/45 font-bold text-[#07213e]'
+                                    : 'font-medium text-slate-700'
+                              }`}
+                            >
+                              {val}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

@@ -141,3 +141,19 @@ test('buildComparisonSpecRows merges spec keys across products and detects diffe
   assert.equal(doesRowDiffer(['IP65', 'ip65']), false);
   assert.equal(doesRowDiffer(['IP65']), false);
 });
+
+test('CompareModal exposes Highlight differences switch and distinguishes varying spec rows', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const source = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'CompareModal.tsx'),
+    'utf-8',
+  );
+  assert.match(source, /const \[highlightDifferences, setHighlightDifferences\] = useState\(true\)/);
+  assert.match(source, /role="switch"/);
+  assert.match(source, /aria-checked=\{highlightDifferences\}/);
+  assert.match(source, /Підсвітити відмінності/);
+  assert.match(source, /const isHighlighted = highlightDifferences && row\.differs/);
+  assert.match(source, /data-highlighted=\{isHighlighted \? 'true' : 'false'\}/);
+});
+

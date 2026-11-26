@@ -60,6 +60,8 @@ export function ProductCard({
     ? tr('Прибрати з порівняння', 'Убрать из сравнения')
     : tr('Додати до порівняння', 'Добавить к сравнению');
 
+  const useCoverImage = product.isKit && product.id !== 'vysokovoltna-sistema-solax-x3-ies-p15b15';
+
   return (
     <article
       style={style}
@@ -68,7 +70,7 @@ export function ProductCard({
         className,
       )}
     >
-      <div className="relative h-52 w-full bg-white/90 border-b border-sky-100 overflow-hidden group">
+      <div className="relative h-52 w-full bg-white/95 border-b border-sky-100 overflow-hidden group">
         <button
           type="button"
           onClick={() => onSelect(product)}
@@ -77,9 +79,9 @@ export function ProductCard({
         >
           <SmartImage
             src={product.img}
-            alt={product.title}
+            alt={localizedTitle}
             className={`w-full h-full transition-transform duration-200 group-hover:scale-[1.02] ${
-              product.isKit ? 'object-cover' : 'object-contain p-4'
+              useCoverImage ? 'object-cover' : 'object-contain p-3.5'
             }`}
           />
         </button>
@@ -199,7 +201,9 @@ export function ProductCard({
                 }`}
               >
                 {product.isKit
-                  ? tr('Інженерний підбір')
+                  ? product.inStock
+                    ? tr('Інженерний підбір', 'Подбор инженера')
+                    : tr('Під замовлення · Підбір інженера', 'Под заказ · Подбор инженера')
                   : product.inStock
                     ? tr('В наявності · Одеса')
                     : tr('Під замовлення')}
@@ -213,7 +217,7 @@ export function ProductCard({
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-[#061c36] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
-                У кошик
+                {tr('У кошик', 'В корзину')}
               </button>
             ) : (
               <button
@@ -221,7 +225,7 @@ export function ProductCard({
                 onClick={() => onRequestQuote(product)}
                 className="inline-flex items-center gap-1 px-3.5 py-2 rounded-lg bg-[#0b66b2] hover:bg-[#08508e] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
-                Розрахунок
+                {tr('Розрахунок', 'Расчёт')}
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             )}
