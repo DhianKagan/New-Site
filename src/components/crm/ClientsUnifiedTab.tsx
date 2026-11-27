@@ -1,18 +1,21 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useNotification } from '@refinedev/core';
 import {
   createColumnHelper,
+  createPaginatedRowModel,
   createSortedRowModel,
   flexRender,
+  rowPaginationFeature,
   rowSortingFeature,
   sortFn_alphanumeric,
   sortFn_basic,
   sortFn_datetime,
   tableFeatures,
   useTable,
+  type PaginationState,
   type SortingState,
 } from '@tanstack/react-table';
 import {
-  ArrowUpDown,
   Building2,
   CheckSquare,
   Eye,
@@ -49,6 +52,7 @@ import { Card } from '../ui/card.tsx';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog.tsx';
 import { Input } from '../ui/input.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table.tsx';
+import { SortDirectionIcon, TablePagination } from './TablePagination.tsx';
 
 interface ClientsUnifiedTabProps {
   customers: CrmCustomer[];
@@ -59,6 +63,12 @@ interface ClientsUnifiedTabProps {
   onRefreshContacts: () => Promise<void>;
   onRefreshTasks: () => Promise<void>;
   onOpenDeal: (deal: Deal) => void;
+  onCreateDealForClient?: (prefill: {
+    customerName: string;
+    phone: string;
+    city: string;
+    customerEmail: string;
+  }) => void;
 }
 
 type UnifiedFilter = 'all' | 'with_account' | 'crm_only' | 'b2b' | 'b2c' | 'blocked';
@@ -90,6 +100,8 @@ interface ContactDetailPayload {
 const unifiedTableFeatures = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
+  rowPaginationFeature,
+  paginatedRowModel: createPaginatedRowModel(),
   sortFns: {
     alphanumeric: sortFn_alphanumeric,
     basic: sortFn_basic,
@@ -121,11 +133,14 @@ export function ClientsUnifiedTab({
   onRefreshContacts,
   onRefreshTasks,
   onOpenDeal,
+  onCreateDealForClient,
 }: ClientsUnifiedTabProps) {
+  const { open: notify } = useNotification();
   const isAdmin = currentUser?.role === 'admin';
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<UnifiedFilter>('all');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updatedAt', desc: true }]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
   const [actionMsg, setActionMsg] = useState('');
   const [actionErr, setActionErr] = useState('');
 
@@ -166,6 +181,10 @@ export function ClientsUnifiedTab({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDue, setNewTaskDue] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [query, filter]);
 
   // Merge Contacts + Customer Accounts into one unified list (deduping by email or phone)
   const unifiedRows = useMemo<UnifiedClientRow[]>(() => {
@@ -277,7 +296,7 @@ export function ClientsUnifiedTab({
       if (row.contact) requests.push(authFetch(`/api/crm/contacts/${row.contact.id}`));
 
       const responses = await Promise.all(requests);
-      let nextDeals: Deal[] = [];
+      const nextDeals: Deal[] = [];
       let nextTasks: CrmTask[] = [];
       let nextNotes: CrmNote[] = [];
       const seenDealIds = new Set<number>();
@@ -397,11 +416,11 @@ export function ClientsUnifiedTab({
       }
       setAccountModalOpen(false);
       await refreshAll();
-      setActionMsg(
-        editingCustomer
-          ? tr(`Акаунт «${data.customer.name}» оновлено`, `Аккаунт «${data.customer.name}» обновлён`)
-          : tr(`Створено акаунт кабінету «${data.customer.name}»`, `Создан аккаунт кабинета «${data.customer.name}»`),
-      );
+      const msgText = editingCustomer
+        ? tr(`Акаунт «${data.customer.name}» оновлено`, `Аккаунт «${data.customer.name}» обновлён`)
+        : tr(`Створено акаунт кабінету «${data.customer.name}»`, `Создан аккаунт кабинета «${data.customer.name}»`);
+      setActionMsg(msgText);
+      notify?.({ type: 'success', message: msgText });
     } catch {
       setAccountErr(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
     } finally {
@@ -421,17 +440,21 @@ export function ClientsUnifiedTab({
       });
       if (!resp.ok) {
         const data = (await resp.json().catch(() => ({}))) as { error?: string };
-        setActionErr(data.error || tr('Не вдалося змінити статус', 'Не удалось изменить статус'));
+        const errText = data.error || tr('Не вдалося змінити статус', 'Не удалось изменить статус');
+        setActionErr(errText);
+        notify?.({ type: 'error', message: errText });
         return;
       }
       await refreshAll();
-      setActionMsg(
-        cust.active
-          ? tr(`Доступ «${cust.name}» заблоковано`, `Доступ «${cust.name}» заблокирован`)
-          : tr(`Доступ «${cust.name}» розблоковано`, `Доступ «${cust.name}» разблокирован`),
-      );
+      const msgText = cust.active
+        ? tr(`Доступ «${cust.name}» заблоковано`, `Доступ «${cust.name}» заблокирован`)
+        : tr(`Доступ «${cust.name}» розблоковано`, `Доступ «${cust.name}» разблокирован`);
+      setActionMsg(msgText);
+      notify?.({ type: 'success', message: msgText });
     } catch {
-      setActionErr(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
+      const errText = tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером');
+      setActionErr(errText);
+      notify?.({ type: 'error', message: errText });
     }
   }
 
@@ -443,15 +466,21 @@ export function ClientsUnifiedTab({
       const resp = await authFetch(`/api/crm/customers/${cust.id}`, { method: 'DELETE' });
       if (!resp.ok) {
         const data = (await resp.json().catch(() => ({}))) as { error?: string };
-        setActionErr(data.error || tr('Не вдалося видалити акаунт', 'Не удалось удалить аккаунт'));
+        const errText = data.error || tr('Не вдалося видалити акаунт', 'Не удалось удалить аккаунт');
+        setActionErr(errText);
+        notify?.({ type: 'error', message: errText });
         return;
       }
       setConfirmDeleteCustId(null);
       if (detailRow?.customer?.id === cust.id) setDetailRow(null);
       await refreshAll();
-      setActionMsg(tr(`Акаунт «${cust.name}» видалено`, `Аккаунт «${cust.name}» удалён`));
+      const msgText = tr(`Акаунт «${cust.name}» видалено`, `Аккаунт «${cust.name}» удалён`);
+      setActionMsg(msgText);
+      notify?.({ type: 'success', message: msgText });
     } catch {
-      setActionErr(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
+      const errText = tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером');
+      setActionErr(errText);
+      notify?.({ type: 'error', message: errText });
     }
   }
 
@@ -508,11 +537,11 @@ export function ClientsUnifiedTab({
       }
       setContactModalOpen(false);
       await refreshAll();
-      setActionMsg(
-        editingContact
-          ? tr(`Контакт «${data.contact.name}» оновлено`, `Контакт «${data.contact.name}» обновлён`)
-          : tr(`Додано контакт «${data.contact.name}»`, `Добавлен контакт «${data.contact.name}»`),
-      );
+      const msgText = editingContact
+        ? tr(`Контакт «${data.contact.name}» оновлено`, `Контакт «${data.contact.name}» обновлён`)
+        : tr(`Додано контакт «${data.contact.name}»`, `Добавлен контакт «${data.contact.name}»`);
+      setActionMsg(msgText);
+      notify?.({ type: 'success', message: msgText });
     } catch {
       setContactErr(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
     } finally {
@@ -523,55 +552,82 @@ export function ClientsUnifiedTab({
   async function handleAddNote(e: FormEvent) {
     e.preventDefault();
     if (!detailRow?.contact || !newNoteBody.trim()) return;
-    const resp = await authFetch('/api/crm/notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contactId: detailRow.contact.id, body: newNoteBody.trim() }),
-    });
-    if (resp.ok) {
+    try {
+      const resp = await authFetch('/api/crm/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId: detailRow.contact.id, body: newNoteBody.trim() }),
+      });
+      if (!resp.ok) {
+        notify?.({ type: 'error', message: tr('Не вдалося додати нотатку', 'Не удалось добавить заметку') });
+        return;
+      }
       setNewNoteBody('');
       await openUnifiedDetail(detailRow);
+      notify?.({ type: 'success', message: tr('Нотатку додано', 'Заметка добавлена') });
+    } catch {
+      notify?.({ type: 'error', message: tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером') });
     }
   }
 
   async function handleDeleteNote(noteId: number) {
     if (!detailRow?.contact) return;
-    const resp = await authFetch(`/api/crm/notes/${noteId}`, { method: 'DELETE' });
-    if (resp.ok) {
+    try {
+      const resp = await authFetch(`/api/crm/notes/${noteId}`, { method: 'DELETE' });
+      if (!resp.ok) {
+        notify?.({ type: 'error', message: tr('Не вдалося видалити нотатку', 'Не удалось удалить заметку') });
+        return;
+      }
       await openUnifiedDetail(detailRow);
+      notify?.({ type: 'success', message: tr('Нотатку видалено', 'Заметка удалена') });
+    } catch {
+      notify?.({ type: 'error', message: tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером') });
     }
   }
 
   async function handleAddTask(e: FormEvent) {
     e.preventDefault();
     if (!detailRow?.contact || !newTaskTitle.trim()) return;
-    const resp = await authFetch('/api/crm/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contactId: detailRow.contact.id,
-        title: newTaskTitle.trim(),
-        priority: newTaskPriority,
-        dueDate: newTaskDue,
-      }),
-    });
-    if (resp.ok) {
+    try {
+      const resp = await authFetch('/api/crm/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactId: detailRow.contact.id,
+          title: newTaskTitle.trim(),
+          priority: newTaskPriority,
+          dueDate: newTaskDue,
+        }),
+      });
+      if (!resp.ok) {
+        notify?.({ type: 'error', message: tr('Не вдалося створити задачу', 'Не удалось создать задачу') });
+        return;
+      }
       setNewTaskTitle('');
       setNewTaskDue('');
       await Promise.all([openUnifiedDetail(detailRow), onRefreshTasks(), onRefreshContacts()]);
+      notify?.({ type: 'success', message: tr('Задачу по клієнту створено', 'Задача по клиенту создана') });
+    } catch {
+      notify?.({ type: 'error', message: tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером') });
     }
   }
 
   async function handleToggleTaskDone(task: CrmTask) {
     if (!detailRow) return;
     const nextStatus = task.status === 'done' ? 'todo' : 'done';
-    const resp = await authFetch(`/api/crm/tasks/${task.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: nextStatus }),
-    });
-    if (resp.ok) {
+    try {
+      const resp = await authFetch(`/api/crm/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!resp.ok) {
+        notify?.({ type: 'error', message: tr('Не вдалося оновити задачу', 'Не удалось обновить задачу') });
+        return;
+      }
       await Promise.all([openUnifiedDetail(detailRow), onRefreshTasks(), onRefreshContacts()]);
+    } catch {
+      notify?.({ type: 'error', message: tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером') });
     }
   }
 
@@ -584,7 +640,7 @@ export function ClientsUnifiedTab({
             const row = info.row.original;
             return (
               <div>
-                <div className="font-bold text-[#0d1f33] flex flex-wrap items-center gap-1.5">
+                <div className="font-bold text-[15px] text-[#0d1f33] flex flex-wrap items-center gap-2">
                   <span>{row.name}</span>
                   {row.segment && (
                     <Badge variant={row.segment === 'b2b' ? 'dark' : 'info'}>{row.segment.toUpperCase()}</Badge>
@@ -597,16 +653,16 @@ export function ClientsUnifiedTab({
                     </Badge>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-600 mt-0.5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 mt-1">
                   {row.company && (
-                    <span className="inline-flex items-center gap-1">
-                      <Building2 className="w-3 h-3 text-slate-400" />
+                    <span className="inline-flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-slate-400" />
                       {row.company}
                     </span>
                   )}
                   {row.email && (
-                    <span className="inline-flex items-center gap-1">
-                      <Mail className="w-3 h-3 text-[#1769aa]" />
+                    <span className="inline-flex items-center gap-1.5">
+                      <Mail className="w-4 h-4 text-[#1769aa]" />
                       {row.email}
                     </span>
                   )}
@@ -620,17 +676,17 @@ export function ClientsUnifiedTab({
           cell: (info) => {
             const row = info.row.original;
             return (
-              <div className="space-y-0.5 text-[11px]">
+              <div className="space-y-1 text-sm">
                 {row.phone ? (
-                  <div className="font-mono font-semibold text-[#0d1f33] inline-flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-slate-400" />
+                  <div className="font-mono font-semibold text-[#0d1f33] inline-flex items-center gap-1.5">
+                    <Phone className="w-4 h-4 text-slate-400" />
                     {row.phone}
                   </div>
                 ) : (
                   <div className="text-slate-400 italic">{tr('Телефон не вказано', 'Телефон не указан')}</div>
                 )}
-                <div className="text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-400" />
+                <div className="text-slate-500 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-slate-400" />
                   {row.city || 'Одеса'}
                 </div>
               </div>
@@ -642,7 +698,7 @@ export function ClientsUnifiedTab({
           cell: (info) => {
             const row = info.row.original;
             return (
-              <div className="text-[11px] space-y-0.5">
+              <div className="text-sm space-y-0.5">
                 <div className="font-mono font-bold text-[#0d1f33] tabular-nums">
                   {row.dealsCount} {tr('угод', 'сделок')}
                 </div>
@@ -657,13 +713,13 @@ export function ClientsUnifiedTab({
           header: () => <span>{tr('Задачі', 'Задачи')}</span>,
           cell: (info) => {
             const val = info.getValue();
-            return val > 0 ? <Badge variant="warning">{val}</Badge> : <span className="text-slate-400 text-xs">0</span>;
+            return val > 0 ? <Badge variant="warning">{val}</Badge> : <span className="text-slate-400 text-[15px]">0</span>;
           },
         }),
         columnHelper.accessor('updatedAt', {
           header: () => <span>{tr('Оновлено', 'Обновлено')}</span>,
           cell: (info) => (
-            <span className="text-slate-500 text-[11px] whitespace-nowrap">
+            <span className="text-slate-500 text-sm whitespace-nowrap tabular-nums">
               {new Date(info.getValue()).toLocaleDateString('uk-UA')}
             </span>
           ),
@@ -676,47 +732,48 @@ export function ClientsUnifiedTab({
     features: unifiedTableFeatures,
     data: filteredRows,
     columns,
-    state: { sorting },
+    state: { sorting, pagination },
     onSortingChange: setSorting,
+    onPaginationChange: setPagination,
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Усього в базі', 'Всего в базе')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{stats.total}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('Усього в базі', 'Всего в базе')}</div>
+          <div className="font-mono text-3xl font-extrabold text-[#0d1f33] mt-1.5 tabular-nums leading-none">{stats.total}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('З акаунтом кабінету', 'С аккаунтом кабинета')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#1769aa] mt-1 tabular-nums">{stats.accounts}</div>
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('З акаунтом кабінету', 'С аккаунтом кабинета')}</div>
+          <div className="font-mono text-3xl font-extrabold text-[#1769aa] mt-1.5 tabular-nums leading-none">{stats.accounts}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Бізнес-клієнти (B2B)', 'Бизнес-клиенты (B2B)')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#169374] mt-1 tabular-nums">{stats.b2b}</div>
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('Бізнес-клієнти (B2B)', 'Бизнес-клиенты (B2B)')}</div>
+          <div className="font-mono text-3xl font-extrabold text-[#169374] mt-1.5 tabular-nums leading-none">{stats.b2b}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Відкритих задач', 'Открытых задач')}</div>
-          <div className="font-mono text-2xl font-extrabold text-amber-600 mt-1 tabular-nums">{stats.openTasks}</div>
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('Відкритих задач', 'Открытых задач')}</div>
+          <div className="font-mono text-3xl font-extrabold text-amber-600 mt-1.5 tabular-nums leading-none">{stats.openTasks}</div>
         </Card>
       </div>
 
       {/* Toolbar */}
-      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
-          <div className="relative flex-1 min-w-[210px] max-w-sm">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={tr('Пошук за ім’ям, Email, телефоном, компанією...', 'Поиск по имени, Email, телефону, компании…')}
-              className="pl-8"
+              className="pl-10"
             />
           </div>
 
-          <div className="inline-flex flex-wrap rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+          <div className="inline-flex flex-wrap rounded-lg border border-slate-200 p-1 bg-slate-100">
             {(
               [
                 ['all', tr('Усі', 'Все')],
@@ -731,8 +788,8 @@ export function ClientsUnifiedTab({
                 key={key}
                 type="button"
                 onClick={() => setFilter(key)}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-                  filter === key ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-500 hover:text-[#0d1f33]'
+                className={`px-3.5 py-2 rounded-md text-sm font-bold transition-colors cursor-pointer ${
+                  filter === key ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
                 {label}
@@ -741,14 +798,14 @@ export function ClientsUnifiedTab({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => openNewContactModal()}>
-            <Plus className="w-3.5 h-3.5" />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button type="button" variant="outline" onClick={() => openNewContactModal()}>
+            <Plus className="w-4 h-4" />
             {tr('Контакт CRM', 'Контакт CRM')}
           </Button>
           {isAdmin && (
-            <Button type="button" variant="primary" size="sm" onClick={() => openCreateAccountModal()}>
-              <UserCheck className="w-3.5 h-3.5" />
+            <Button type="button" variant="primary" onClick={() => openCreateAccountModal()}>
+              <UserCheck className="w-4 h-4" />
               {tr('Акаунт кабінету', 'Аккаунт кабинета')}
             </Button>
           )}
@@ -756,12 +813,12 @@ export function ClientsUnifiedTab({
       </Card>
 
       {actionMsg && (
-        <div className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
+        <div className="px-5 py-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[15px] font-semibold text-emerald-800">
           {actionMsg}
         </div>
       )}
       {actionErr && (
-        <div className="px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700" role="alert">
+        <div className="px-5 py-3.5 rounded-xl bg-red-50 border border-red-200 text-[15px] font-semibold text-red-700" role="alert">
           {actionErr}
         </div>
       )}
@@ -777,10 +834,10 @@ export function ClientsUnifiedTab({
                     <button
                       type="button"
                       onClick={header.column.getToggleSortingHandler()}
-                      className="inline-flex items-center gap-1 hover:text-[#0d1f33] cursor-pointer"
+                      className="inline-flex items-center gap-1.5 hover:text-[#0d1f33] cursor-pointer"
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
-                      <ArrowUpDown className="w-3 h-3 opacity-60" />
+                      <SortDirectionIcon sorted={header.column.getIsSorted()} />
                     </button>
                   </TableHead>
                 ))}
@@ -813,9 +870,28 @@ export function ClientsUnifiedTab({
                         onClick={() => void openUnifiedDetail(item)}
                         title={tr('Картка клієнта 360', 'Карточка клиента 360')}
                       >
-                        <Eye className="w-3 h-3" />
+                        <Eye className="w-3.5 h-3.5" />
                         360°
                       </Button>
+
+                      {onCreateDealForClient && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            onCreateDealForClient({
+                              customerName: item.name,
+                              phone: item.phone,
+                              city: item.city,
+                              customerEmail: item.email,
+                            })
+                          }
+                          title={tr('Створити угоду для клієнта', 'Создать сделку для клиента')}
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#1769aa]" />
+                        </Button>
+                      )}
 
                       {ct && (
                         <Button
@@ -825,7 +901,7 @@ export function ClientsUnifiedTab({
                           onClick={() => openEditContactModal(ct)}
                           title={tr('Редагувати контакт CRM', 'Редактировать контакт CRM')}
                         >
-                          <Pencil className="w-3 h-3" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </Button>
                       )}
 
@@ -838,7 +914,7 @@ export function ClientsUnifiedTab({
                             onClick={() => openEditAccountModal(cust)}
                             title={tr('Керування акаунтом кабінету', 'Управление аккаунтом кабинета')}
                           >
-                            <KeyRound className="w-3 h-3 text-[#1769aa]" />
+                            <KeyRound className="w-3.5 h-3.5 text-[#1769aa]" />
                           </Button>
                           <Button
                             type="button"
@@ -852,9 +928,9 @@ export function ClientsUnifiedTab({
                             }
                           >
                             {cust.active ? (
-                              <UserX className="w-3.5 h-3.5 text-amber-600" />
+                              <UserX className="w-4 h-4 text-amber-600" />
                             ) : (
-                              <UserCheck className="w-3.5 h-3.5 text-[#169374]" />
+                              <UserCheck className="w-4 h-4 text-[#169374]" />
                             )}
                           </Button>
                           {isConfirmingDelete ? (
@@ -884,7 +960,7 @@ export function ClientsUnifiedTab({
                               onClick={() => setConfirmDeleteCustId(cust.id)}
                               title={tr('Видалити акаунт кабінету', 'Удалить аккаунт кабинета')}
                             >
-                              <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                              <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
                           )}
                         </>
@@ -897,14 +973,27 @@ export function ClientsUnifiedTab({
           </TableBody>
         </Table>
         {filteredRows.length === 0 && (
-          <div className="p-8 text-center text-xs text-slate-400">
+          <div className="p-12 text-center text-[15px] text-slate-400">
             {tr('Клієнтів і контактів за вибраним фільтром не знайдено', 'Клиенты и контакты по выбранному фильтру не найдены')}
           </div>
         )}
+        <TablePagination
+          pageIndex={pagination.pageIndex}
+          pageSize={pagination.pageSize}
+          pageCount={table.getPageCount()}
+          totalRows={table.getRowCount()}
+          canPreviousPage={table.getCanPreviousPage()}
+          canNextPage={table.getCanNextPage()}
+          onPreviousPage={() => table.previousPage()}
+          onNextPage={() => table.nextPage()}
+          onPageIndexChange={(idx) => table.setPageIndex(idx)}
+          onPageSizeChange={(size) => table.setPageSize(size)}
+          pageSizeOptions={[15, 25, 50, 100]}
+        />
       </Card>
 
-      <div className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
-        <Shield className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
+      <div className="px-5 py-4 rounded-xl bg-white/95 border border-slate-200 text-sm text-slate-600 flex items-start gap-3">
+        <Shield className="w-4.5 h-4.5 text-[#1769aa] shrink-0 mt-0.5" />
         <div>
           <strong className="text-[#0d1f33]">{tr('Єдина база клієнтів і контактів:', 'Единая база клиентов и контактов:')}</strong>{' '}
           {isAdmin
@@ -921,7 +1010,7 @@ export function ClientsUnifiedTab({
 
       {/* Create / Edit Cabinet Account Dialog (Admin) */}
       <Dialog open={accountModalOpen} onOpenChange={setAccountModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {editingCustomer
@@ -933,25 +1022,25 @@ export function ClientsUnifiedTab({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveAccount} className="p-5 space-y-3.5 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <form onSubmit={handleSaveAccount} className="p-7 space-y-5 text-[15px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="acc-name" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="acc-name" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Ім’я *', 'Имя *')}
                 </label>
                 <Input id="acc-name" required value={aName} onChange={(e) => setAName(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="acc-email" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="acc-email" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   Email *
                 </label>
                 <Input id="acc-email" type="email" required value={aEmail} onChange={(e) => setAEmail(e.target.value)} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="acc-phone" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="acc-phone" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Телефон')}
                 </label>
                 <Input
@@ -964,7 +1053,7 @@ export function ClientsUnifiedTab({
                 />
               </div>
               <div>
-                <label htmlFor="acc-city" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="acc-city" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Місто')}
                 </label>
                 <Input id="acc-city" value={aCity} onChange={(e) => setACity(e.target.value)} />
@@ -972,8 +1061,8 @@ export function ClientsUnifiedTab({
             </div>
 
             <div>
-              <label htmlFor="acc-pass" className="block font-bold text-[#0d1f33] mb-1 inline-flex items-center gap-1">
-                <KeyRound className="w-3.5 h-3.5 text-[#1769aa]" />
+              <label htmlFor="acc-pass" className="block text-sm font-bold text-[#0d1f33] mb-2 inline-flex items-center gap-1.5">
+                <KeyRound className="w-4 h-4 text-[#1769aa]" />
                 {editingCustomer
                   ? tr('Новий пароль (необов’язково)', 'Новый пароль (необязательно)')
                   : tr('Пароль (необов’язково, якщо вхід через Google)', 'Пароль (необязательно, если вход через Google)')}
@@ -987,25 +1076,25 @@ export function ClientsUnifiedTab({
               />
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-              <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <label className="inline-flex items-center gap-2.5 font-bold text-[#0d1f33] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={aActive}
                   onChange={(e) => setAActive(e.target.checked)}
-                  className="accent-[#169374]"
+                  className="w-4.5 h-4.5 accent-[#169374]"
                 />
                 {tr('Акаунт активний (дозволено вхід у кабінет)', 'Аккаунт активен (разрешён вход в кабинет)')}
               </label>
             </div>
 
             {accountErr && (
-              <div className="text-xs font-bold text-red-600" role="alert">
+              <div className="text-[15px] font-bold text-red-600" role="alert">
                 {accountErr}
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-3">
               <Button type="button" variant="outline" onClick={() => setAccountModalOpen(false)}>
                 {tr('Скасувати')}
               </Button>
@@ -1019,7 +1108,7 @@ export function ClientsUnifiedTab({
 
       {/* Create / Edit CRM Contact Dialog */}
       <Dialog open={contactModalOpen} onOpenChange={setContactModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {editingContact ? tr('Редагувати контакт', 'Редактировать контакт') : tr('Додати контакт CRM', 'Добавить контакт CRM')}
@@ -1028,16 +1117,16 @@ export function ClientsUnifiedTab({
               {tr('Клієнт прив’язується до угод і задач за номером телефону', 'Клиент связывается со сделками и задачами по телефону')}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveContact} className="p-5 space-y-3 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <form onSubmit={handleSaveContact} className="p-7 space-y-5 text-[15px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="uc-name" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="uc-name" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Ім’я *', 'Имя *')}
                 </label>
                 <Input id="uc-name" required value={cName} onChange={(e) => setCName(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="uc-phone" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="uc-phone" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Телефон *', 'Телефон *')}
                 </label>
                 <Input
@@ -1049,36 +1138,36 @@ export function ClientsUnifiedTab({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="uc-company" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="uc-company" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Компанія / Об’єкт', 'Компания / Объект')}
                 </label>
                 <Input id="uc-company" value={cCompany} onChange={(e) => setCCompany(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="uc-email" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="uc-email" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   Email
                 </label>
                 <Input id="uc-email" type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label htmlFor="uc-city" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="uc-city" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Місто')}
                 </label>
                 <Input id="uc-city" value={cCity} onChange={(e) => setCCity(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="uc-channel" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="uc-channel" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Канал зв’язку')}
                 </label>
                 <select
                   id="uc-channel"
                   value={cChannel}
                   onChange={(e) => setCChannel(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs"
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px]"
                 >
                   <option value="Telegram">Telegram</option>
                   <option value="Viber">Viber</option>
@@ -1086,14 +1175,14 @@ export function ClientsUnifiedTab({
                 </select>
               </div>
               <div>
-                <label htmlFor="uc-segment" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="uc-segment" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Сегмент', 'Сегмент')}
                 </label>
                 <select
                   id="uc-segment"
                   value={cSegment}
                   onChange={(e) => setCSegment(e.target.value as ContactSegment)}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-bold"
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-bold"
                 >
                   <option value="b2c">B2C ({tr('Дім')})</option>
                   <option value="b2b">B2B ({tr('Бізнес')})</option>
@@ -1102,12 +1191,12 @@ export function ClientsUnifiedTab({
             </div>
 
             {contactErr && (
-              <div className="text-xs font-bold text-red-600" role="alert">
+              <div className="text-[15px] font-bold text-red-600" role="alert">
                 {contactErr}
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-3">
               <Button type="button" variant="outline" onClick={() => setContactModalOpen(false)}>
                 {tr('Скасувати')}
               </Button>
@@ -1121,12 +1210,12 @@ export function ClientsUnifiedTab({
 
       {/* Unified Client 360 Detail Dialog */}
       <Dialog open={Boolean(detailRow)} onOpenChange={(open) => !open && setDetailRow(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl">
           {detailRow && (
             <>
               <DialogHeader>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Users className="w-4 h-4 text-[#1769aa]" />
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Users className="w-5 h-5 text-[#1769aa]" />
                   <DialogTitle>{detailRow.name}</DialogTitle>
                   {detailRow.segment && (
                     <Badge variant={detailRow.segment === 'b2b' ? 'dark' : 'info'}>
@@ -1139,16 +1228,16 @@ export function ClientsUnifiedTab({
                     </Badge>
                   )}
                 </div>
-                <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1.5">
                   {detailRow.phone && (
-                    <span className="inline-flex items-center gap-1 font-mono text-[#0d1f33] font-semibold">
-                      <Phone className="w-3 h-3 text-[#1769aa]" />
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[#0d1f33] font-semibold">
+                      <Phone className="w-4 h-4 text-[#1769aa]" />
                       {detailRow.phone}
                     </span>
                   )}
                   {detailRow.email && (
-                    <span className="inline-flex items-center gap-1">
-                      <Mail className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1.5">
+                      <Mail className="w-4 h-4" />
                       {detailRow.email}
                     </span>
                   )}
@@ -1157,15 +1246,15 @@ export function ClientsUnifiedTab({
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-5 space-y-5 text-xs max-h-[75vh] overflow-y-auto">
+              <div className="p-7 space-y-6 text-[15px] max-h-[78vh] overflow-y-auto">
                 {detailErr && (
-                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
+                  <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
                     {detailErr}
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                  <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex flex-wrap gap-5">
                     <span>
                       {tr('Угод', 'Сделок')}: <strong className="font-mono">{detailDeals.length}</strong>
                     </span>
@@ -1182,6 +1271,27 @@ export function ClientsUnifiedTab({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {onCreateDealForClient && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="accent"
+                        onClick={() => {
+                          const r = detailRow;
+                          setDetailRow(null);
+                          onCreateDealForClient({
+                            customerName: r.name,
+                            phone: r.phone,
+                            city: r.city,
+                            customerEmail: r.email,
+                          });
+                        }}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        {tr('Нова угода', 'Новая сделка')}
+                      </Button>
+                    )}
+
                     {detailRow.contact ? (
                       <Button
                         type="button"
@@ -1193,7 +1303,7 @@ export function ClientsUnifiedTab({
                           openEditContactModal(ct);
                         }}
                       >
-                        <Pencil className="w-3 h-3" />
+                        <Pencil className="w-3.5 h-3.5" />
                         {tr('Контакт CRM', 'Контакт CRM')}
                       </Button>
                     ) : (
@@ -1208,7 +1318,7 @@ export function ClientsUnifiedTab({
                             openNewContactModal(r);
                           }}
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3.5 h-3.5" />
                           {tr('Додати у CRM-контакти', 'Добавить в CRM-контакты')}
                         </Button>
                       )
@@ -1226,7 +1336,7 @@ export function ClientsUnifiedTab({
                             openEditAccountModal(cust);
                           }}
                         >
-                          <KeyRound className="w-3 h-3" />
+                          <KeyRound className="w-3.5 h-3.5" />
                           {tr('Акаунт кабінету', 'Аккаунт кабинета')}
                         </Button>
                       ) : (
@@ -1240,7 +1350,7 @@ export function ClientsUnifiedTab({
                             openCreateAccountModal(r);
                           }}
                         >
-                          <UserCheck className="w-3 h-3" />
+                          <UserCheck className="w-3.5 h-3.5" />
                           {tr('Створити акаунт кабінету', 'Создать аккаунт кабинета')}
                         </Button>
                       ))}
@@ -1249,8 +1359,8 @@ export function ClientsUnifiedTab({
 
                 {/* Linked Deals */}
                 <div>
-                  <h4 className="font-extrabold text-[#0d1f33] mb-2 flex items-center gap-1.5">
-                    <ShoppingBag className="w-3.5 h-3.5 text-[#1769aa]" />
+                  <h4 className="font-extrabold text-[#0d1f33] mb-2.5 flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-[#1769aa]" />
                     {tr('Історія угод та замовлень', 'История сделок и заказов')}
                   </h4>
                   {loadingDetail ? (
@@ -1258,7 +1368,7 @@ export function ClientsUnifiedTab({
                   ) : detailDeals.length === 0 ? (
                     <div className="text-slate-400">{tr('Поки немає пов’язаних угод', 'Связанных сделок пока нет')}</div>
                   ) : (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {detailDeals.map((d) => (
                         <button
                           key={d.id}
@@ -1267,13 +1377,13 @@ export function ClientsUnifiedTab({
                             setDetailRow(null);
                             onOpenDeal(d);
                           }}
-                          className="w-full text-left px-3 py-2 rounded-lg border border-slate-200 hover:border-[#1769aa] bg-slate-50 flex items-center justify-between gap-2 cursor-pointer"
+                          className="w-full text-left px-3.5 py-2.5 rounded-lg border border-slate-200 hover:border-[#1769aa] bg-slate-50 flex items-center justify-between gap-2 cursor-pointer"
                         >
                           <div className="min-w-0">
                             <span className="font-mono font-bold text-[#0d1f33] mr-2">{d.dealNumber}</span>
                             <span className="text-slate-700 truncate">{d.topic}</span>
                           </div>
-                          <span className="font-mono font-bold text-[#1769aa] shrink-0">
+                          <span className="font-mono font-bold text-[#1769aa] shrink-0 tabular-nums">
                             {d.totalUsd > 0 ? `$${d.totalUsd.toLocaleString('uk-UA')}` : d.stage}
                           </span>
                         </button>
@@ -1286,55 +1396,55 @@ export function ClientsUnifiedTab({
                 {detailRow.contact && (
                   <>
                     <div>
-                      <h4 className="font-extrabold text-[#0d1f33] mb-2 flex items-center gap-1.5">
-                        <CheckSquare className="w-3.5 h-3.5 text-[#1769aa]" />
+                      <h4 className="font-extrabold text-[#0d1f33] mb-2.5 flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4 text-[#1769aa]" />
                         {tr('Задачі по клієнту', 'Задачи по клиенту')}
                       </h4>
-                      <form onSubmit={handleAddTask} className="flex flex-wrap gap-2 mb-2.5">
+                      <form onSubmit={handleAddTask} className="flex flex-wrap gap-2 mb-3">
                         <Input
                           value={newTaskTitle}
                           onChange={(e) => setNewTaskTitle(e.target.value)}
                           placeholder={tr('Нова задача (напр. Надіслати КП)...', 'Новая задача…')}
-                          className="flex-1 min-w-[180px]"
+                          className="flex-1 min-w-[200px]"
                         />
                         <Input
                           type="date"
                           value={newTaskDue}
                           onChange={(e) => setNewTaskDue(e.target.value)}
-                          className="w-36"
+                          className="w-40"
                         />
                         <select
                           value={newTaskPriority}
                           onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
-                          className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold"
+                          className="h-11 rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold"
                         >
                           <option value="low">{tr('Низький', 'Низкий')}</option>
                           <option value="medium">{tr('Середній', 'Средний')}</option>
                           <option value="high">{tr('Терміново', 'Срочно')}</option>
                         </select>
                         <Button type="submit" size="default" variant="primary">
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-4 h-4" />
                         </Button>
                       </form>
-                      <div className="space-y-1.5">
+                      <div className="space-y-2.5">
                         {detailTasks.map((t) => (
                           <div
                             key={t.id}
-                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white"
+                            className="flex items-center justify-between gap-2 px-4 py-3 rounded-lg border border-slate-200 bg-white"
                           >
-                            <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                            <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
                               <input
                                 type="checkbox"
                                 checked={t.status === 'done'}
                                 onChange={() => void handleToggleTaskDone(t)}
-                                className="accent-[#169374]"
+                                className="w-4.5 h-4.5 accent-[#169374]"
                               />
                               <span className={t.status === 'done' ? 'line-through text-slate-400' : 'font-semibold text-[#0d1f33]'}>
                                 {t.title}
                               </span>
                             </label>
                             <div className="flex items-center gap-2 shrink-0">
-                              {t.dueDate && <span className="font-mono text-[11px] text-slate-500">{t.dueDate}</span>}
+                              {t.dueDate && <span className="font-mono text-sm text-slate-500">{t.dueDate}</span>}
                               <Badge variant={t.priority === 'high' ? 'danger' : 'default'}>{t.priority}</Badge>
                             </div>
                           </div>
@@ -1343,11 +1453,11 @@ export function ClientsUnifiedTab({
                     </div>
 
                     <div>
-                      <h4 className="font-extrabold text-[#0d1f33] mb-2 flex items-center gap-1.5">
-                        <MessageSquarePlus className="w-3.5 h-3.5 text-[#1769aa]" />
+                      <h4 className="font-extrabold text-[#0d1f33] mb-3 flex items-center gap-2">
+                        <MessageSquarePlus className="w-4.5 h-4.5 text-[#1769aa]" />
                         {tr('Нотатки та історія спілкування', 'Заметки и история общения')}
                       </h4>
-                      <form onSubmit={handleAddNote} className="flex gap-2 mb-3">
+                      <form onSubmit={handleAddNote} className="flex gap-2.5 mb-3">
                         <Input
                           value={newNoteBody}
                           onChange={(e) => setNewNoteBody(e.target.value)}
@@ -1358,17 +1468,17 @@ export function ClientsUnifiedTab({
                           {tr('Додати', 'Добавить')}
                         </Button>
                       </form>
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                      <div className="space-y-2.5 max-h-56 overflow-y-auto">
                         {detailNotes.length === 0 ? (
                           <div className="text-slate-400">{tr('Нотаток ще немає', 'Заметок пока нет')}</div>
                         ) : (
                           detailNotes.map((n) => (
                             <div
                               key={n.id}
-                              className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-start justify-between gap-2"
+                              className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-start justify-between gap-2"
                             >
                               <div>
-                                <div className="text-[11px] text-slate-500 mb-0.5">
+                                <div className="text-sm text-slate-500 mb-1">
                                   <strong className="text-[#0d1f33]">{n.author}</strong> ·{' '}
                                   {new Date(n.createdAt).toLocaleString('uk-UA')}
                                 </div>
@@ -1380,7 +1490,7 @@ export function ClientsUnifiedTab({
                                 aria-label={tr('Видалити нотатку', 'Удалить заметку')}
                                 className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           ))

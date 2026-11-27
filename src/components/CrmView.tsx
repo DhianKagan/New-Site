@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Refine,
   useCreate,
@@ -20,7 +19,6 @@ import {
   Banknote,
   BriefcaseBusiness,
   ChartNoAxesCombined,
-  Check,
   CheckSquare,
   ChevronRight,
   Database,
@@ -40,6 +38,7 @@ import {
   Table2,
   Trash2,
   Upload,
+  UserCheck,
   UserCog,
   Users,
   X,
@@ -70,6 +69,8 @@ import type {
 } from '../types.ts';
 import { SmartImage } from './SmartImage.tsx';
 import { SocialChannelIcon, SocialIcons } from './SocialIcons.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog.tsx';
+import { CatalogDataTable, type CatalogStockFilter } from './crm/CatalogDataTable.tsx';
 import { DealsDataTable } from './crm/DealsDataTable.tsx';
 import { CreateDealModal } from './crm/CreateDealModal.tsx';
 import { DealOrderDetailsModal } from './crm/DealOrderDetailsModal.tsx';
@@ -355,6 +356,7 @@ function CrmWorkspace({
   const [loadingExchangeRate, setLoadingExchangeRate] = useState(false);
   const [dealQuery, setDealQuery] = useState('');
   const [dealTypeFilter, setDealTypeFilter] = useState<'all' | 'order' | 'lead'>('all');
+  const [dealAssigneeFilter, setDealAssigneeFilter] = useState<string>('all');
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [refreshingCrm, setRefreshingCrm] = useState(false);
   const [draggedDealId, setDraggedDealId] = useState<number | null>(null);
@@ -363,6 +365,12 @@ function CrmWorkspace({
   const [createDealOpen, setCreateDealOpen] = useState(false);
   const [createDealType, setCreateDealType] = useState<DealType>('lead');
   const [createDealStage, setCreateDealStage] = useState<DealStage>('new');
+  const [createDealClientPrefill, setCreateDealClientPrefill] = useState<{
+    customerName: string;
+    phone: string;
+    city: string;
+    customerEmail: string;
+  } | null>(null);
 
   function navigateToTab(tab: CrmTabId) {
     setCrmTab(tab);
@@ -370,6 +378,7 @@ function CrmWorkspace({
   }
 
   function openCreateDealModal(type: DealType, stage: DealStage = 'new') {
+    setCreateDealClientPrefill(null);
     setCreateDealType(type);
     setCreateDealStage(stage);
     setCreateDealOpen(true);
@@ -378,7 +387,7 @@ function CrmWorkspace({
   // Catalog Manager state
   const [catQuery, setCatQuery] = useState('');
   const [catFilter, setCatFilter] = useState<'all' | ProductCategory>('all');
-  const [showAllProducts, setShowAllProducts] = useState(false);
+  const [catStockFilter, setCatStockFilter] = useState<CatalogStockFilter>('all');
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickPrice, setQuickPrice] = useState('');
@@ -456,6 +465,9 @@ function CrmWorkspace({
   const [clearingErrors, setClearingErrors] = useState(false);
 
   // Projects / Case Studies Editor state
+  const [projQuery, setProjQuery] = useState('');
+  const [projSegFilter, setProjSegFilter] = useState<'all' | 'b2b' | 'b2c'>('all');
+  const [confirmDeleteProjectId, setConfirmDeleteProjectId] = useState<string | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [projSeg, setProjSeg] = useState<'b2b' | 'b2c'>('b2c');
@@ -753,10 +765,17 @@ function CrmWorkspace({
     });
   }, [deals, dealQuery, dealTypeFilter]);
 
+  const kanbanDeals = useMemo(() => {
+    if (dealAssigneeFilter === 'all') return filteredDeals;
+    return filteredDeals.filter((d) => d.assignee === dealAssigneeFilter);
+  }, [filteredDeals, dealAssigneeFilter]);
+
   const catalogMatches = useMemo(() => {
     const q = catQuery.trim().toLowerCase();
     return products.filter((p) => {
       if (catFilter !== 'all' && p.cat !== catFilter) return false;
+      if (catStockFilter === 'in_stock' && !p.inStock) return false;
+      if (catStockFilter === 'on_order' && p.inStock) return false;
       if (!q) return true;
       return (
         p.title.toLowerCase().includes(q) ||
@@ -764,11 +783,21 @@ function CrmWorkspace({
         p.brand.toLowerCase().includes(q)
       );
     });
-  }, [products, catQuery, catFilter]);
+  }, [products, catQuery, catFilter, catStockFilter]);
 
-  const filteredProducts = useMemo(() => {
-    return showAllProducts ? catalogMatches : catalogMatches.slice(0, 60);
-  }, [catalogMatches, showAllProducts]);
+  const filteredProjects = useMemo(() => {
+    const q = projQuery.trim().toLowerCase();
+    return projectsList.filter((proj) => {
+      if (projSegFilter !== 'all' && proj.seg !== projSegFilter) return false;
+      if (!q) return true;
+      return (
+        proj.title.toLowerCase().includes(q) ||
+        proj.tag.toLowerCase().includes(q) ||
+        proj.specs.toLowerCase().includes(q) ||
+        proj.task.toLowerCase().includes(q)
+      );
+    });
+  }, [projectsList, projQuery, projSegFilter]);
 
   async function handlePatchDeal(dealId: number, patch: DealPatchPayload) {
     try {
@@ -1481,25 +1510,25 @@ function CrmWorkspace({
   }, [menuSections, crmTab]);
 
   return (
-    <div className="relative overflow-hidden isolate min-h-screen py-8">
+    <div className="relative overflow-hidden isolate min-h-screen py-7 sm:py-9">
       <VideoBackground position="absolute" tone="light" tint="slate" start={48} end={59} />
-      <div className="relative max-w-[1260px] mx-auto px-5 space-y-6">
+      <div className="relative max-w-[1680px] mx-auto px-5 sm:px-8 lg:px-10 space-y-7">
         {/* Header Bar */}
-        <div className="bg-white/95 backdrop-blur-md border border-white/25 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+        <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-6 sm:p-7 flex flex-wrap items-center justify-between gap-5 shadow-sm">
           <div>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-[#1769aa] mb-1">
-              <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+            <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-[#1769aa] mb-2">
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
               <span>Energo Comfort</span>
-              <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               <span>CRM</span>
-              <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="text-[#0d1f33]">{activeTabLabel}</span>
               {currentUser && (
                 <button
                   type="button"
                   onClick={() => navigateToTab('staff')}
                   title={tr('Перейти до свого профілю', 'Перейти к своему профилю')}
-                  className="ml-1 inline-flex items-center gap-1 rounded-md bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-[#0d1f33] cursor-pointer transition-colors whitespace-nowrap"
+                  className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-3 py-1.5 text-sm font-bold text-[#0d1f33] cursor-pointer transition-colors whitespace-nowrap"
                 >
                   {currentUser.name} ({currentUser.email || `@${currentUser.login}`}) ·{' '}
                   <span className="text-[#1769aa]">
@@ -1514,79 +1543,79 @@ function CrmWorkspace({
                 </button>
               )}
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#0d1f33]">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0d1f33] tracking-tight">
               Energo Comfort — CRM
             </h1>
-            <p className="text-xs text-[#52657a] mt-0.5">
+            <p className="text-[15px] text-[#52657a] mt-1">
               {tr('Замовлення, клієнти, задачі, каталог і управління даними', 'Заказы, клиенты, задачи, каталог и управление данными')}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => void refreshWorkspace()}
               disabled={refreshingCrm}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer disabled:opacity-60 whitespace-nowrap"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[15px] font-bold text-[#0d1f33] cursor-pointer disabled:opacity-60 whitespace-nowrap"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshingCrm ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshingCrm ? 'animate-spin' : ''}`} />
               {refreshingCrm ? tr('Оновлюємо…', 'Обновляем…') : tr('Оновити дані', 'Обновить данные')}
             </button>
             <button
               type="button"
               onClick={onBackToStore}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[15px] font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-4 h-4" />
               {tr('Повернутися на вітрину', 'Вернуться в магазин')}
             </button>
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] text-white text-[15px] font-bold cursor-pointer whitespace-nowrap"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4" />
               {tr('Вийти')}
             </button>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-[11px] font-bold text-slate-500">{tr('Усього активних угод')}</div>
-            <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{metrics.total}</div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-5">
+          <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="text-sm font-bold text-slate-500">{tr('Усього активних угод')}</div>
+            <div className="font-mono text-3xl sm:text-[34px] font-extrabold text-[#0d1f33] mt-2 tabular-nums leading-none">{metrics.total}</div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-[11px] font-bold text-slate-500">{tr('Нових заявок до обробки')}</div>
-            <div className="font-mono text-2xl font-extrabold text-[#1769aa] mt-1 tabular-nums">{metrics.newCount}</div>
+          <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="text-sm font-bold text-slate-500">{tr('Нових заявок до обробки')}</div>
+            <div className="font-mono text-3xl sm:text-[34px] font-extrabold text-[#1769aa] mt-2 tabular-nums leading-none">{metrics.newCount}</div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-[11px] font-bold text-slate-500">{tr('Клієнти в базі', 'Клиенты в базе')}</div>
-            <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{metrics.contactsCount}</div>
+          <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="text-sm font-bold text-slate-500">{tr('Клієнти в базі', 'Клиенты в базе')}</div>
+            <div className="font-mono text-3xl sm:text-[34px] font-extrabold text-[#0d1f33] mt-2 tabular-nums leading-none">{metrics.contactsCount}</div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-[11px] font-bold text-slate-500">{tr('Відкритих задач', 'Открытых задач')}</div>
-            <div className="font-mono text-2xl font-extrabold text-amber-600 mt-1 tabular-nums">{metrics.openTasksCount}</div>
+          <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="text-sm font-bold text-slate-500">{tr('Відкритих задач', 'Открытых задач')}</div>
+            <div className="font-mono text-3xl sm:text-[34px] font-extrabold text-amber-600 mt-2 tabular-nums leading-none">{metrics.openTasksCount}</div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4 col-span-2 lg:col-span-1">
-            <div className="text-[11px] font-bold text-slate-500">{tr('Сума у воронці')}</div>
-            <div className="font-mono text-2xl font-extrabold text-[#169374] mt-1 tabular-nums">
+          <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm col-span-2 lg:col-span-1">
+            <div className="text-sm font-bold text-slate-500">{tr('Сума у воронці')}</div>
+            <div className="font-mono text-3xl sm:text-[34px] font-extrabold text-[#169374] mt-2 tabular-nums leading-none">
               ${metrics.pipelineUsd.toLocaleString('uk-UA')}
             </div>
           </div>
         </div>
 
         {/* Organized Sidebar Navigation (Refine useMenu) + Workspace Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-5 items-start">
-          <aside aria-label={tr('Навігація CRM')} className="bg-white border border-slate-200 rounded-2xl p-3 lg:sticky lg:top-4 shadow-2xs">
-            <nav className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[296px_1fr] gap-7 items-start">
+          <aside aria-label={tr('Навігація CRM')} className="bg-white/95 border border-slate-200/90 rounded-2xl p-4 sm:p-5 lg:sticky lg:top-4 shadow-sm">
+            <nav className="space-y-6">
               {menuSections.map((section) => (
                 <div key={section.id}>
-                  <div className="px-2.5 mb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <div className="px-3.5 mb-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-400">
                     {tr(section.labelUk, section.labelRu)}
                   </div>
-                  <div className="flex flex-wrap lg:flex-col gap-1">
+                  <div className="flex flex-wrap lg:flex-col gap-1.5">
                     {section.entries.map(({ item, meta, tabId, badge }) => {
                       const active = crmTab === tabId;
                       const Icon = TAB_ICONS[tabId] || LayoutDashboard;
@@ -1596,19 +1625,19 @@ function CrmWorkspace({
                           key={item.key || item.name}
                           type="button"
                           onClick={() => navigateToTab(tabId)}
-                          className={`inline-flex lg:w-full items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                          className={`inline-flex lg:w-full items-center justify-between gap-3 px-4 py-3 rounded-xl text-[15px] font-bold transition-colors cursor-pointer ${
                             active
-                              ? 'bg-[#0d1f33] text-white shadow-2xs'
+                              ? 'bg-[#0d1f33] text-white shadow-sm'
                               : 'text-slate-600 hover:bg-slate-100 hover:text-[#0d1f33]'
                           }`}
                         >
-                          <span className="inline-flex items-center gap-2 min-w-0 truncate">
-                            <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-[#f59e0b]' : 'text-slate-400'}`} />
+                          <span className="inline-flex items-center gap-3 min-w-0 truncate">
+                            <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-[#f59e0b]' : 'text-slate-400'}`} />
                             <span className="truncate">{label}</span>
                           </span>
                           {badge !== null && (
                             <span
-                              className={`font-mono text-[10px] px-1.5 py-0.5 rounded-md tabular-nums shrink-0 ${
+                              className={`font-mono text-sm px-2.5 py-0.5 rounded-md tabular-nums shrink-0 ${
                                 active ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'
                               }`}
                             >
@@ -1624,62 +1653,73 @@ function CrmWorkspace({
             </nav>
           </aside>
 
-          <div className="min-w-0 space-y-5">
+          <div className="min-w-0 space-y-6">
             {dealActionMsg && (
-              <div className="px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-semibold text-[#1769aa]">
+              <div className="px-5 py-3.5 rounded-xl bg-sky-50 border border-sky-200 text-[15px] font-semibold text-[#1769aa]">
                 {dealActionMsg}
               </div>
             )}
 
             {/* TAB 1: KANBAN PIPELINE */}
             {crmTab === 'pipeline' && (
-              <div className="space-y-4">
-                <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-xs text-slate-600">
-                    {tr('Перетягніть картку в інший стовпець, щоб змінити етап', 'Перетащите карточку в другой столбец, чтобы изменить этап')}
+              <div className="space-y-5">
+                <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+                  <div className="text-[15px] text-slate-600">
+                    {tr('Перетягніть картку або оберіть етап безпосередньо в картці', 'Перетащите карточку или выберите этап прямо в карточке')}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
                         type="search"
                         value={dealQuery}
                         onChange={(e) => setDealQuery(e.target.value)}
                         placeholder={tr('Пошук за номером, телефоном, клієнтом...')}
-                        className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56"
+                        className="h-11 pl-10 pr-3.5 rounded-lg border border-slate-300 bg-white text-[15px] w-72"
                       />
                     </div>
                     <select
                       value={dealTypeFilter}
                       onChange={(e) => setDealTypeFilter(e.target.value as 'all' | 'order' | 'lead')}
-                      className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white font-semibold"
+                      className="h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] bg-white font-semibold text-[#0d1f33]"
                     >
-                      <option value="all">{tr('Усі')}</option>
+                      <option value="all">{tr('Усі типи', 'Все типы')}</option>
                       <option value="lead">{tr('Інженерні ліди')}</option>
-                      <option value="order">{tr('Замовлень із кошика')}</option>
+                      <option value="order">{tr('Замовлення з кошика')}</option>
+                    </select>
+                    <select
+                      value={dealAssigneeFilter}
+                      onChange={(e) => setDealAssigneeFilter(e.target.value)}
+                      className="h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] bg-white font-semibold text-[#0d1f33]"
+                    >
+                      <option value="all">{tr('Усі відповідальні', 'Все ответственные')}</option>
+                      {assigneeOptions.map((a) => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
                     </select>
                     <button
                       type="button"
                       onClick={() => openCreateDealModal('lead')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+                      className="inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[15px] font-bold cursor-pointer whitespace-nowrap"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-4 h-4" />
                       {tr('Нова угода', 'Новая сделка')}
                     </button>
                     <button
                       type="button"
                       onClick={() => openCreateDealModal('order')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs font-bold cursor-pointer whitespace-nowrap"
+                      className="inline-flex items-center gap-2 h-11 px-5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 text-[15px] font-bold cursor-pointer whitespace-nowrap"
                     >
-                      <Plus className="w-3.5 h-3.5 text-amber-700" />
+                      <Plus className="w-4 h-4 text-amber-700" />
                       {tr('Нове замовлення', 'Новый заказ')}
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:flex xl:flex-row gap-5 xl:overflow-x-auto pb-3 items-stretch">
                   {STAGES.map((stage) => {
-                    const stageDeals = filteredDeals.filter((d) => d.stage === stage.id);
+                    const stageDeals = kanbanDeals.filter((d) => d.stage === stage.id);
+                    const stageSumUsd = stageDeals.reduce((sum, d) => sum + d.totalUsd, 0);
                     const isDropOver = dropTargetStage === stage.id;
                     return (
                       <div
@@ -1697,14 +1737,19 @@ function CrmWorkspace({
                             void handlePatchDeal(draggedDealId, { stage: stage.id });
                           }
                         }}
-                        className={`rounded-xl border p-3 space-y-2.5 min-h-[280px] transition-colors ${
-                          isDropOver ? 'border-[#1769aa] bg-sky-50/70' : 'border-slate-200 bg-white'
+                        className={`rounded-2xl border p-4 space-y-3.5 min-h-[340px] xl:min-w-[300px] xl:flex-1 transition-colors shadow-sm ${
+                          isDropOver ? 'border-[#1769aa] bg-sky-50/80' : 'border-slate-200/90 bg-white/95'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
-                          <span className={`text-xs font-extrabold ${stage.colorClass}`}>{tr(stage.label)}</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 tabular-nums">
+                        <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
+                          <div>
+                            <div className={`text-[15px] font-extrabold ${stage.colorClass}`}>{tr(stage.label)}</div>
+                            <div className="font-mono text-sm font-bold text-slate-500 mt-1 tabular-nums">
+                              ${stageSumUsd.toLocaleString('uk-UA')}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono text-sm font-bold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 tabular-nums">
                               {stageDeals.length}
                             </span>
                             <button
@@ -1712,19 +1757,19 @@ function CrmWorkspace({
                               onClick={() => openCreateDealModal('lead', stage.id)}
                               title={tr('Створити угоду на цьому етапі', 'Создать сделку на этом этапе')}
                               aria-label={tr('Створити угоду на цьому етапі', 'Создать сделку на этом этапе')}
-                              className="w-6 h-6 rounded-md border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-[#1769aa]/40 text-slate-500 hover:text-[#1769aa] flex items-center justify-center cursor-pointer transition-colors"
+                              className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-[#1769aa]/40 text-slate-500 hover:text-[#1769aa] flex items-center justify-center cursor-pointer transition-colors"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
 
                         {stageDeals.length === 0 ? (
-                          <div className="py-10 text-center text-[11px] text-slate-400">
+                          <div className="py-12 text-center text-sm text-slate-400">
                             {tr('Немає угод на цьому етапі')}
                           </div>
                         ) : (
-                          <div className="space-y-2.5">
+                          <div className="space-y-3">
                             {stageDeals.map((d) => (
                               <div
                                 key={d.id}
@@ -1735,27 +1780,51 @@ function CrmWorkspace({
                                   setDropTargetStage(null);
                                 }}
                                 onClick={() => setSelectedDeal(d)}
-                                className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-[#1769aa] transition-all cursor-pointer space-y-1.5"
+                                className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-[#1769aa] transition-all cursor-pointer space-y-2.5"
                               >
-                                <div className="flex items-center justify-between gap-1 text-[10.5px]">
+                                <div className="flex items-center justify-between gap-2 text-sm">
                                   <span className="font-mono font-bold text-[#1769aa]">{d.dealNumber}</span>
                                   <span
-                                    className={`px-1.5 py-0.5 rounded font-bold ${
+                                    className={`px-2.5 py-0.5 rounded-md text-xs font-bold ${
                                       d.type === 'order' ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-[#1769aa]'
                                     }`}
                                   >
                                     {d.type === 'order' ? tr('Кошик') : tr('Лід')}
                                   </span>
                                 </div>
-                                <div className="text-xs font-bold text-[#0d1f33] line-clamp-2">{d.topic}</div>
-                                <div className="text-[11px] text-slate-600 truncate">
+                                <div className="text-[15px] font-bold text-[#0d1f33] line-clamp-2 leading-snug">{d.topic}</div>
+                                <div className="text-sm text-slate-600 truncate">
                                   {d.customerName} · <span className="font-mono">{d.phone}</span>
                                 </div>
-                                <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/70 text-[11px]">
-                                  <span className="text-slate-500 truncate">{d.city}</span>
-                                  <span className="font-mono font-bold text-[#0d1f33] tabular-nums">
+                                {d.assignee && (
+                                  <div className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600">
+                                    <UserCheck className="w-4 h-4 text-[#1769aa] shrink-0" />
+                                    <span className="truncate">{d.assignee}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-200/70 text-sm">
+                                  <span className="text-slate-500 truncate">{d.city || '—'}</span>
+                                  <span className="font-mono text-base font-bold text-[#0d1f33] tabular-nums shrink-0">
                                     {d.totalUsd > 0 ? `$${d.totalUsd.toLocaleString('uk-UA')}` : '—'}
                                   </span>
+                                </div>
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                >
+                                  <select
+                                    value={d.stage}
+                                    disabled={savingDeal}
+                                    aria-label={tr('Етап угоди', 'Этап сделки')}
+                                    onChange={(e) => void handlePatchDeal(d.id, { stage: e.target.value as DealStage })}
+                                    className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 cursor-pointer"
+                                  >
+                                    {STAGES.map((st) => (
+                                      <option key={st.id} value={st.id}>
+                                        {tr(st.label)}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
                               </div>
                             ))}
@@ -1773,6 +1842,7 @@ function CrmWorkspace({
               <DealsDataTable
                 deals={filteredDeals}
                 stages={STAGES}
+                assignees={assigneeOptions}
                 dealQuery={dealQuery}
                 onDealQueryChange={setDealQuery}
                 dealTypeFilter={dealTypeFilter}
@@ -1794,6 +1864,12 @@ function CrmWorkspace({
                 onRefreshContacts={refreshContacts}
                 onRefreshTasks={refreshTasks}
                 onOpenDeal={(d) => setSelectedDeal(d)}
+                onCreateDealForClient={(prefill) => {
+                  setCreateDealClientPrefill(prefill);
+                  setCreateDealType('lead');
+                  setCreateDealStage('new');
+                  setCreateDealOpen(true);
+                }}
               />
             )}
 
@@ -1842,266 +1918,52 @@ function CrmWorkspace({
               />
             )}
 
-            {/* TAB 3: CATALOG MANAGER */}
+            {/* TAB 3: CATALOG MANAGER (TanStack Table v9) */}
             {crmTab === 'catalog' && (
               <div className="space-y-4">
-                <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2 flex-1">
-                    <div className="relative flex-1 min-w-[210px] max-w-sm">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="search"
-                        value={catQuery}
-                        onChange={(e) => setCatQuery(e.target.value)}
-                        placeholder={tr('Пошук товару, SKU або бренду...', 'Поиск товара, SKU или бренда...')}
-                        className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 text-xs"
-                      />
-                    </div>
-                    <select
-                      value={catFilter}
-                      onChange={(e) => setCatFilter(e.target.value as 'all' | ProductCategory)}
-                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white font-semibold"
-                    >
-                      <option value="all">{tr('Усі товари')}</option>
-                      <option value="kits">{tr('Готові рішення')}</option>
-                      <option value="inverters">{tr('Інвертори')}</option>
-                      <option value="batteries">{tr('Акумулятори')}</option>
-                      <option value="panels">{tr('Сонячні панелі')}</option>
-                      <option value="parts">{tr('Комплектуючі')}</option>
-                    </select>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={openCreateProductModal}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Додати товар
-                  </button>
-                </div>
-
                 {catalogMsg && (
-                  <div className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#169374]">
+                  <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-semibold text-[#169374]">
                     {catalogMsg}
                   </div>
                 )}
 
-                <PerformanceProfiler id="CrmView.CatalogProductList" itemCount={filteredProducts.length}>
-                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500">
-                            <th className="py-2.5 px-4">{tr('Фото / SKU', 'Фото / SKU')}</th>
-                            <th className="py-2.5 px-4">{tr('Товар та категорія', 'Товар и категория')}</th>
-                            <th className="py-2.5 px-4">{tr('Бренд')}</th>
-                            <th className="py-2.5 px-4">{tr('Наявність', 'Наличие')}</th>
-                            <th className="py-2.5 px-4 text-right">{tr('Ціна USD', 'Цена USD')}</th>
-                            <th className="py-2.5 px-4 text-right">{tr('Дії')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-xs">
-                          {filteredProducts.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} className="py-10 text-center text-slate-500">
-                                За вашим запитом товарів не знайдено
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredProducts.map((p) => {
-                              const catNames: Record<ProductCategory, string> = {
-                                kits: 'Готові рішення',
-                                inverters: 'Інвертори',
-                                batteries: 'Акумулятори',
-                                panels: 'Сонячні панелі',
-                                parts: 'Комплектуючі',
-                              };
-                              const isQuick = quickEditId === p.id;
-                              const isBusy = savingQuickId === p.id;
-                              return (
-                                <tr key={p.id} className="hover:bg-slate-50/80">
-                                  <td className="py-2.5 px-4 whitespace-nowrap">
-                                    <div className="flex items-center gap-2.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => openEditProductModal(p)}
-                                        title={tr('Змінити фото та характеристики', 'Изменить фото и характеристики')}
-                                        className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center hover:border-[#1769aa] cursor-pointer"
-                                      >
-                                        <SmartImage
-                                          src={p.img}
-                                          alt={p.title}
-                                          className="w-full h-full object-contain"
-                                        />
-                                      </button>
-                                      <span className="font-mono text-[11px] text-slate-500">{p.sku}</span>
-                                    </div>
-                                  </td>
-                                  <td className="py-2.5 px-4 max-w-md">
-                                    {isQuick ? (
-                                      <input
-                                        type="text"
-                                        value={quickTitle}
-                                        onChange={(e) => setQuickTitle(e.target.value)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') void saveQuickEdit(p);
-                                          if (e.key === 'Escape') setQuickEditId(null);
-                                        }}
-                                        className="w-full px-2.5 py-1.5 rounded border border-[#1769aa] text-xs font-semibold text-[#0d1f33] bg-white"
-                                      />
-                                    ) : (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={() => openEditProductModal(p)}
-                                          className="font-semibold text-[#0d1f33] hover:text-[#1769aa] text-left line-clamp-1 cursor-pointer"
-                                        >
-                                          {p.title}
-                                        </button>
-                                        <div className="text-[11px] text-slate-500 mt-0.5">
-                                          {catNames[p.cat]}
-                                          {p.specs.length > 0 ? ` · ${p.specs.length} хар-к` : ''}
-                                        </div>
-                                      </>
-                                    )}
-                                  </td>
-                                  <td className="py-2.5 px-4 text-slate-600 whitespace-nowrap">{p.brand}</td>
-                                  <td className="py-2.5 px-4 whitespace-nowrap">
-                                    {isQuick ? (
-                                      <label className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={quickInStock}
-                                          onChange={(e) => setQuickInStock(e.target.checked)}
-                                        />
-                                        В наявності
-                                      </label>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        disabled={isBusy}
-                                        onClick={() => void handleToggleStockQuick(p)}
-                                        title={tr('Натисніть, щоб швидко перемкнути наявність', 'Нажмите, чтобы быстро изменить наличие')}
-                                        className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
-                                          p.inStock
-                                            ? 'bg-emerald-50 border-emerald-200 text-[#169374] hover:bg-emerald-100'
-                                            : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
-                                        }`}
-                                      >
-                                        {p.statusLabel || (p.inStock ? 'В наявності' : 'Під замовлення')}
-                                      </button>
-                                    )}
-                                  </td>
-                                  <td className="py-2.5 px-4 text-right font-mono font-bold tabular-nums whitespace-nowrap">
-                                    {isQuick ? (
-                                      <div className="inline-flex items-center gap-1">
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          value={quickPrice}
-                                          onChange={(e) => setQuickPrice(e.target.value)}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') void saveQuickEdit(p);
-                                            if (e.key === 'Escape') setQuickEditId(null);
-                                          }}
-                                          placeholder={tr('Ціна', 'Цена')}
-                                          className="w-20 px-2 py-1 rounded border border-[#1769aa] text-right font-mono text-xs bg-white"
-                                        />
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          value={quickOldPrice}
-                                          onChange={(e) => setQuickOldPrice(e.target.value)}
-                                          placeholder={tr('Стара', 'Старая')}
-                                          title={tr('Стара ціна (закреслена)', 'Старая цена (зачёркнута)')}
-                                          className="w-16 px-2 py-1 rounded border border-slate-300 text-right font-mono text-[11px] text-slate-500 bg-white"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div>{p.price > 0 ? `$${p.price.toLocaleString('uk-UA')}` : 'За запитом'}</div>
-                                        {p.oldPrice > p.price && (
-                                          <div className="text-[10px] text-slate-400 line-through font-normal">
-                                            ${p.oldPrice.toLocaleString('uk-UA')}
-                                          </div>
-                                        )}
-                                      </>
-                                    )}
-                                  </td>
-                                  <td className="py-2.5 px-4 text-right whitespace-nowrap">
-                                    {isQuick ? (
-                                      <div className="inline-flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          disabled={isBusy}
-                                          onClick={() => void saveQuickEdit(p)}
-                                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#169374] hover:bg-[#127a60] text-white text-xs font-bold cursor-pointer"
-                                        >
-                                          <Check className="w-3 h-3" />
-                                          Ок
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => setQuickEditId(null)}
-                                          className="px-2 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-600 cursor-pointer"
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div className="inline-flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          onClick={() => startQuickEdit(p)}
-                                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
-                                        >
-                                          Швидко
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => openEditProductModal(p)}
-                                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#1769aa]/30 bg-sky-50/50 hover:bg-sky-50 text-xs font-bold text-[#1769aa] cursor-pointer"
-                                        >
-                                          <Pencil className="w-3 h-3" />
-                                          Фото / Картка
-                                        </button>
-                                      </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {catalogMatches.length > 60 && (
-                      <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <span className="text-slate-500">
-                          Показано {filteredProducts.length} з {catalogMatches.length} позицій
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowAllProducts((v) => !v)}
-                          className="font-bold text-[#1769aa] hover:underline cursor-pointer"
-                        >
-                          {showAllProducts ? 'Згорнути до 60' : `Показати всі (${catalogMatches.length})`}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <PerformanceProfiler id="CrmView.CatalogProductList" itemCount={catalogMatches.length}>
+                  <CatalogDataTable
+                    products={catalogMatches}
+                    catQuery={catQuery}
+                    onCatQueryChange={setCatQuery}
+                    catFilter={catFilter}
+                    onCatFilterChange={setCatFilter}
+                    stockFilter={catStockFilter}
+                    onStockFilterChange={setCatStockFilter}
+                    quickEditId={quickEditId}
+                    quickTitle={quickTitle}
+                    quickPrice={quickPrice}
+                    quickOldPrice={quickOldPrice}
+                    quickInStock={quickInStock}
+                    savingQuickId={savingQuickId}
+                    onQuickTitleChange={setQuickTitle}
+                    onQuickPriceChange={setQuickPrice}
+                    onQuickOldPriceChange={setQuickOldPrice}
+                    onQuickInStockChange={setQuickInStock}
+                    onStartQuickEdit={startQuickEdit}
+                    onCancelQuickEdit={() => setQuickEditId(null)}
+                    onSaveQuickEdit={(p) => void saveQuickEdit(p)}
+                    onToggleStockQuick={(p) => void handleToggleStockQuick(p)}
+                    onOpenEditModal={openEditProductModal}
+                    onOpenCreateModal={openCreateProductModal}
+                  />
                 </PerformanceProfiler>
 
                 {/* Storage & Change Persistence Info Bar */}
                 {storageInfo && (
-                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs">
-                    <div className="space-y-1">
-                      <div className="font-extrabold text-[#0d1f33] flex items-center gap-1.5">
-                        <HardDrive className="w-3.5 h-3.5 text-[#169374]" />
+                  <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 text-[15px] shadow-sm">
+                    <div className="space-y-1.5">
+                      <div className="font-extrabold text-[#0d1f33] flex items-center gap-2">
+                        <HardDrive className="w-4.5 h-4.5 text-[#169374]" />
                         Де зберігаються фото та зміни: <code className="font-mono text-[#1769aa]">{storageInfo.dataDir}</code>
                       </div>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-sm text-slate-500">
                         БД ({storageInfo.dbPath}, {Math.round(storageInfo.dbSizeBytes / 1024)} КБ) та завантажені фото ({storageInfo.uploadsCount} файлів у{' '}
                         <code className="font-mono">/uploads</code>) зберігаються на S3 Bucket / Railway Volume — початковий сід не перезаписує ваші правки.
                       </p>
@@ -2111,9 +1973,9 @@ function CrmWorkspace({
                         type="button"
                         onClick={() => void handleDownloadBackup()}
                         disabled={downloadingBackup}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap"
+                        className="inline-flex items-center gap-2 h-11 px-5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[15px] font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap"
                       >
-                        <Database className="w-3.5 h-3.5 text-[#1769aa]" />
+                        <Database className="w-4 h-4 text-[#1769aa]" />
                         {downloadingBackup ? 'Готуємо бекап...' : 'Завантажити бекап БД (.json)'}
                       </button>
                     )}
@@ -2124,289 +1986,354 @@ function CrmWorkspace({
 
             {/* TAB 3B: COMPLETED PROJECTS EDITOR */}
             {crmTab === 'projects' && (
-              <div className="space-y-5">
-                <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-6">
+                <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 shadow-sm">
                   <div>
-                    <h2 className="text-base font-extrabold text-[#0d1f33]">
-                      Редактор реалізованих об’єктів ({projectsList.length})
+                    <h2 className="text-xl font-extrabold text-[#0d1f33]">
+                      {tr(`Редактор реалізованих об’єктів (${projectsList.length})`, `Редактор реализованных объектов (${projectsList.length})`)}
                     </h2>
-                    <p className="text-xs text-[#52657a] mt-0.5">
-                      Нові об’єкти та зміни миттєво з’являються на головній сторінці й у розділі «Проєкти». Завантажені фото
-                      зберігаються на Railway Volume.
+                    <p className="text-[15px] text-[#52657a] mt-1">
+                      {tr(
+                        'Нові об’єкти та зміни миттєво з’являються на головній сторінці й у розділі «Проєкти». Завантажені фото зберігаються на Railway Volume.',
+                        'Новые объекты и изменения сразу появляются на главной странице и в разделе «Проекты». Загруженные фото хранятся на Railway Volume.',
+                      )}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (showProjectForm && !editingProjectId) {
-                        setShowProjectForm(false);
-                      } else {
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="search"
+                        value={projQuery}
+                        onChange={(e) => setProjQuery(e.target.value)}
+                        placeholder={tr('Пошук об’єкта або локації...', 'Поиск объекта или локации...')}
+                        className="h-11 pl-10 pr-3.5 rounded-lg border border-slate-300 bg-white text-[15px] w-64"
+                      />
+                    </div>
+                    <select
+                      value={projSegFilter}
+                      onChange={(e) => setProjSegFilter(e.target.value as 'all' | 'b2b' | 'b2c')}
+                      className="h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] bg-white font-semibold text-[#0d1f33]"
+                    >
+                      <option value="all">{tr('Усі сегменти', 'Все сегменты')}</option>
+                      <option value="b2c">{tr('Для дому B2C', 'Для дома B2C')}</option>
+                      <option value="b2b">{tr('Для бізнесу B2B', 'Для бизнеса B2B')}</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
                         resetProjectForm();
                         setProjectFormMsg('');
                         setShowProjectForm(true);
-                      }
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer whitespace-nowrap"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    {showProjectForm && !editingProjectId ? 'Згорнути форму' : 'Додати новий об’єкт'}
-                  </button>
+                      }}
+                      className="inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[15px] font-bold cursor-pointer whitespace-nowrap"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {tr('Додати новий об’єкт', 'Добавить новый объект')}
+                    </button>
+                  </div>
                 </div>
 
                 {projectFormMsg && (
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-[#169374]">
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-[15px] font-bold text-[#169374]">
                     {projectFormMsg}
                   </div>
                 )}
-
-                {showProjectForm && (
-                  <form
-                    onSubmit={handleSaveProject}
-                    className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 shadow-2xs"
-                  >
-                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                      <h3 className="text-sm font-extrabold text-[#0d1f33]">
-                        {editingProjectId ? 'Редагувати об’єкт портфоліо' : 'Новий реалізований об’єкт'}
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProjectForm(false);
-                          resetProjectForm();
-                        }}
-                        className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                      <div>
-                        <label className="block font-bold text-slate-600 mb-1">Сегмент</label>
-                        <select
-                          value={projSeg}
-                          onChange={(e) => setProjSeg(e.target.value as 'b2b' | 'b2c')}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
-                        >
-                          <option value="b2c">Для дому B2C</option>
-                          <option value="b2b">Для бізнесу B2B</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-600 mb-1">Локація / тег</label>
-                        <input
-                          type="text"
-                          value={projTag}
-                          onChange={(e) => setProjTag(e.target.value)}
-                          placeholder="B2C · Одеса"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block font-bold text-slate-600 mb-1">Назва об’єкта *</label>
-                        <input
-                          type="text"
-                          required
-                          value={projTitle}
-                          onChange={(e) => setProjTitle(e.target.value)}
-                          placeholder="Приватний будинок у Чорноморську"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block font-bold text-slate-600 mb-1">Ключові параметри</label>
-                        <input
-                          type="text"
-                          value={projSpecs}
-                          onChange={(e) => setProjSpecs(e.target.value)}
-                          placeholder="PV 10 кВт · Гібрид Deye 8 кВт · АКБ 15 кВт·год"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                        />
-                      </div>
-                      <div className="sm:col-span-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                        <label className="block font-bold text-slate-600">Фото об’єкта (завантаження на сервер або URL)</label>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <div className="w-20 h-14 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0">
-                            <SmartImage src={projImg} alt={projTitle || 'Об’єкт'} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-[200px] space-y-2">
-                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer">
-                              <Upload className="w-3.5 h-3.5 text-[#1769aa]" />
-                              {uploadingPhoto ? 'Завантажуємо...' : 'Завантажити фото (JPG/PNG/WebP)'}
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                className="hidden"
-                                disabled={uploadingPhoto}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) void handleUploadProjectPhoto(file);
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
-                            <input
-                              type="text"
-                              value={projImg}
-                              onChange={(e) => setProjImg(e.target.value)}
-                              placeholder="/assets/energocomfort/house_6kw.png"
-                              className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px] bg-white"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block font-bold text-slate-600 mb-1">Задача</label>
-                        <textarea rows={2} value={projTask} onChange={(e) => setProjTask(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300" />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block font-bold text-slate-600 mb-1">Інженерне рішення</label>
-                        <textarea rows={2} value={projSolution} onChange={(e) => setProjSolution(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300" />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block font-bold text-slate-600 mb-1">Результат</label>
-                        <textarea rows={2} value={projResult} onChange={(e) => setProjResult(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300" />
-                      </div>
-                    </div>
-
-                    {projectFormErr && <div className="text-xs font-semibold text-red-600">{projectFormErr}</div>}
-
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <button
-                        type="submit"
-                        disabled={savingProject}
-                        className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
-                      >
-                        {savingProject ? 'Зберігаємо...' : editingProjectId ? 'Зберегти зміни об’єкта' : 'Додати об’єкт'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProjectForm(false);
-                          resetProjectForm();
-                        }}
-                        className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 cursor-pointer"
-                      >
-                        Скасувати
-                      </button>
-                    </div>
-                  </form>
+                {projectFormErr && !showProjectForm && (
+                  <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-[15px] font-bold text-red-700">
+                    {projectFormErr}
+                  </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {projectsList.map((proj) => (
-                    <div key={proj.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col">
-                      <div className="relative h-40 bg-[#0d1f33]">
-                        <SmartImage src={proj.img} alt={proj.title} className="w-full h-full object-cover" />
-                        <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/80 to-transparent text-[11px] font-bold text-white">
-                          {proj.tag}
-                        </div>
-                      </div>
-                      <div className="p-4 flex-1 flex flex-col justify-between gap-3 text-xs">
+                <Dialog
+                  open={showProjectForm}
+                  onOpenChange={(isOpen) => {
+                    if (!isOpen) {
+                      setShowProjectForm(false);
+                      resetProjectForm();
+                    }
+                  }}
+                >
+                  <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingProjectId
+                          ? tr('Редагувати об’єкт портфоліо', 'Редактировать объект портфолио')
+                          : tr('Новий реалізований об’єкт', 'Новый реализованный объект')}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {tr('Заповніть параметри, фото та результат впровадження', 'Заполните параметры, фото и результат внедрения')}
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleSaveProject} className="p-7 space-y-5 text-[15px]">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <h3 className="text-sm font-extrabold text-[#0d1f33] mb-1">{proj.title}</h3>
-                          <div className="font-mono text-[11px] text-[#1769aa] mb-1.5">{proj.specs}</div>
-                          <p className="text-slate-600 line-clamp-2">{proj.task}</p>
+                          <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Сегмент', 'Сегмент')}</label>
+                          <select
+                            value={projSeg}
+                            onChange={(e) => setProjSeg(e.target.value as 'b2b' | 'b2c')}
+                            className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px] font-semibold text-[#0d1f33]"
+                          >
+                            <option value="b2c">{tr('Для дому B2C', 'Для дома B2C')}</option>
+                            <option value="b2b">{tr('Для бізнесу B2B', 'Для бизнеса B2B')}</option>
+                          </select>
                         </div>
-                        <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
-                          <button
-                            type="button"
-                            onClick={() => startEditProject(proj)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-bold text-[#0d1f33] cursor-pointer"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            Редагувати
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteProject(proj.id, proj.title)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 font-bold text-red-700 cursor-pointer"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Видалити
-                          </button>
+                        <div>
+                          <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Локація / тег', 'Локация / тег')}</label>
+                          <input
+                            type="text"
+                            value={projTag}
+                            onChange={(e) => setProjTag(e.target.value)}
+                            placeholder="B2C · Одеса"
+                            className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px]"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Назва об’єкта *', 'Название объекта *')}</label>
+                          <input
+                            type="text"
+                            required
+                            value={projTitle}
+                            onChange={(e) => setProjTitle(e.target.value)}
+                            placeholder="Приватний будинок у Чорноморську"
+                            className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] font-semibold"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Ключові параметри', 'Ключевые параметры')}</label>
+                          <input
+                            type="text"
+                            value={projSpecs}
+                            onChange={(e) => setProjSpecs(e.target.value)}
+                            placeholder="PV 10 кВт · Гібрид Deye 8 кВт · АКБ 15 кВт·год"
+                            className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-[15px]"
+                          />
+                        </div>
+                        <div className="sm:col-span-2 p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                          <label className="block text-sm font-bold text-slate-600">
+                            {tr('Фото об’єкта (завантаження на сервер або URL)', 'Фото объекта (загрузка на сервер или URL)')}
+                          </label>
+                          <div className="flex flex-wrap items-center gap-4">
+                            <div className="w-28 h-20 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0">
+                              <SmartImage src={projImg} alt={projTitle || 'Об’єкт'} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-[220px] space-y-2.5">
+                              <label className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-sm font-bold text-[#0d1f33] cursor-pointer">
+                                <Upload className="w-4 h-4 text-[#1769aa]" />
+                                {uploadingPhoto ? tr('Завантажуємо...', 'Загружаем...') : tr('Завантажити фото (JPG/PNG/WebP)', 'Загрузить фото (JPG/PNG/WebP)')}
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  className="hidden"
+                                  disabled={uploadingPhoto}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) void handleUploadProjectPhoto(file);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                              <input
+                                type="text"
+                                value={projImg}
+                                onChange={(e) => setProjImg(e.target.value)}
+                                placeholder="/assets/energocomfort/house_6kw.png"
+                                className="w-full h-10 px-3.5 rounded-lg border border-slate-300 font-mono text-sm bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Задача', 'Задача')}</label>
+                          <textarea rows={2} value={projTask} onChange={(e) => setProjTask(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-slate-300 text-[15px]" />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Інженерне рішення', 'Инженерное решение')}</label>
+                          <textarea rows={2} value={projSolution} onChange={(e) => setProjSolution(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-slate-300 text-[15px]" />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Результат', 'Результат')}</label>
+                          <textarea rows={2} value={projResult} onChange={(e) => setProjResult(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-slate-300 text-[15px]" />
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+
+                      {projectFormErr && <div className="text-[15px] font-semibold text-red-600">{projectFormErr}</div>}
+
+                      <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProjectForm(false);
+                            resetProjectForm();
+                          }}
+                          className="h-11 px-5 rounded-lg border border-slate-300 text-[15px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        >
+                          {tr('Скасувати', 'Отмена')}
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={savingProject}
+                          className="h-11 px-6 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold cursor-pointer"
+                        >
+                          {savingProject
+                            ? tr('Зберігаємо...', 'Сохраняем...')
+                            : editingProjectId
+                              ? tr('Зберегти зміни об’єкта', 'Сохранить изменения объекта')
+                              : tr('Додати об’єкт', 'Добавить объект')}
+                        </button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+
+                {filteredProjects.length === 0 ? (
+                  <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-12 text-center text-[15px] text-slate-500 shadow-sm">
+                    {tr('Об’єктів за заданим фільтром не знайдено', 'Объектов по заданному фильтру не найдено')}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredProjects.map((proj) => {
+                      const confirmingDelete = confirmDeleteProjectId === proj.id;
+                      return (
+                        <div key={proj.id} className="bg-white/95 border border-slate-200/90 rounded-2xl overflow-hidden flex flex-col shadow-sm">
+                          <div className="relative h-48 bg-[#0d1f33]">
+                            <SmartImage src={proj.img} alt={proj.title} className="w-full h-full object-cover" />
+                            <div className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-black/85 to-transparent text-sm font-bold text-white flex items-center justify-between gap-2">
+                              <span>{proj.tag}</span>
+                              <span className="uppercase px-2.5 py-0.5 rounded bg-white/15 text-xs">{proj.seg}</span>
+                            </div>
+                          </div>
+                          <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between gap-4 text-[15px]">
+                            <div>
+                              <h3 className="text-lg font-extrabold text-[#0d1f33] mb-2 leading-snug">{proj.title}</h3>
+                              <div className="font-mono text-sm font-semibold text-[#1769aa] mb-2.5">{proj.specs}</div>
+                              <p className="text-[15px] text-slate-600 line-clamp-2">{proj.task}</p>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3.5 border-t border-slate-100">
+                              <button
+                                type="button"
+                                onClick={() => startEditProject(proj)}
+                                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm font-bold text-[#0d1f33] cursor-pointer"
+                              >
+                                <Pencil className="w-4 h-4" />
+                                {tr('Редагувати', 'Редактировать')}
+                              </button>
+                              {confirmingDelete ? (
+                                <div className="inline-flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setConfirmDeleteProjectId(null);
+                                      void handleDeleteProject(proj.id, proj.title);
+                                    }}
+                                    className="h-10 px-3.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold cursor-pointer"
+                                  >
+                                    {tr('Підтвердити', 'Подтвердить')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteProjectId(null)}
+                                    className="h-10 px-3 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 cursor-pointer"
+                                  >
+                                    {tr('Ні', 'Нет')}
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteProjectId(proj.id)}
+                                  className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-sm font-bold text-red-700 cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  {tr('Видалити', 'Удалить')}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
             {/* TAB 4: ANALYTICS & PIXELS (ADMIN ONLY) */}
             {crmTab === 'analytics' && isAdmin && (
-              <div className="space-y-5">
-                <form onSubmit={handleSaveAnalytics} className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div className="space-y-6">
+                <form onSubmit={handleSaveAnalytics} className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 sm:p-7 space-y-5 shadow-sm">
                   <div>
-                    <h2 className="text-base font-extrabold text-[#0d1f33]">Meta Pixel, Google Analytics 4 (GA4) та GTM</h2>
-                    <p className="text-xs text-[#52657a] mt-0.5">
+                    <h2 className="text-xl font-extrabold text-[#0d1f33]">Meta Pixel, Google Analytics 4 (GA4) та GTM</h2>
+                    <p className="text-[15px] text-[#52657a] mt-1">
                       Скрипти підключаються на вітрині автоматично, а ключові конверсії (`Lead`, `Purchase`, `AddToCart`) дублюються у локальний журнал.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-[15px]">
                     <div>
-                      <label className="block font-bold text-[#0d1f33] mb-1">Meta (Facebook) Pixel ID</label>
+                      <label className="block text-sm font-bold text-[#0d1f33] mb-2">Meta (Facebook) Pixel ID</label>
                       <input
                         type="text"
                         value={metaPixelId}
                         onChange={(e) => setMetaPixelId(e.target.value)}
                         placeholder="123456789012345"
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                        className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-[15px]"
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-[#0d1f33] mb-1">GA4 Measurement ID</label>
+                      <label className="block text-sm font-bold text-[#0d1f33] mb-2">GA4 Measurement ID</label>
                       <input
                         type="text"
                         value={ga4MeasurementId}
                         onChange={(e) => setGa4MeasurementId(e.target.value)}
                         placeholder="G-XXXXXXXXXX"
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                        className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-[15px]"
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-[#0d1f33] mb-1">Google Tag Manager ID</label>
+                      <label className="block text-sm font-bold text-[#0d1f33] mb-2">Google Tag Manager ID</label>
                       <input
                         type="text"
                         value={gtmContainerId}
                         onChange={(e) => setGtmContainerId(e.target.value)}
                         placeholder="GTM-XXXXXXX"
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                        className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-[15px]"
                       />
                     </div>
                   </div>
 
-                  <label className="inline-flex items-center gap-2 text-xs font-bold text-[#0d1f33] cursor-pointer">
+                  <label className="inline-flex items-center gap-2.5 text-[15px] font-bold text-[#0d1f33] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={analyticsEnabled}
                       onChange={(e) => setAnalyticsEnabled(e.target.checked)}
+                      className="w-4.5 h-4.5 accent-[#1769aa]"
                     />
                     Активувати збір аналітики та відправлення подій на вітрині
                   </label>
 
-                  {analyticsErr && <div className="text-xs font-semibold text-red-600">{analyticsErr}</div>}
-                  {analyticsMsg && <div className="text-xs font-semibold text-[#169374]">{analyticsMsg}</div>}
+                  {analyticsErr && <div className="text-[15px] font-semibold text-red-600">{analyticsErr}</div>}
+                  {analyticsMsg && <div className="text-[15px] font-semibold text-[#169374]">{analyticsMsg}</div>}
 
                   <div>
                     <button
                       type="submit"
                       disabled={savingAnalytics}
-                      className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                      className="h-11 px-6 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold cursor-pointer"
                     >
                       {savingAnalytics ? 'Зберігаємо...' : 'Зберегти налаштування аналітики'}
                     </button>
                   </div>
                 </form>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
-                    <div className="text-[11px] font-bold text-[#1769aa]">Meta Pixel + Catalog DPA</div>
-                    <div className="text-sm font-extrabold text-[#0d1f33]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 space-y-2.5 shadow-sm">
+                    <div className="text-sm font-bold text-[#1769aa]">Meta Pixel + Catalog DPA</div>
+                    <div className="text-lg font-extrabold text-[#0d1f33]">
                       {/^\d{8,20}$/.test(metaPixelId) ? 'Активний та синхронізований' : 'Вкажіть Meta Pixel ID'}
                     </div>
-                    <p className="text-[11px] text-[#52657a]">
+                    <p className="text-sm text-[#52657a] leading-relaxed">
                       IDs (`content_ids`) збігаються з{' '}
                       <a href="/feed.xml" target="_blank" rel="noopener noreferrer" className="font-mono text-[#1769aa] underline">
                         /feed.xml
@@ -2414,66 +2341,66 @@ function CrmWorkspace({
                       у UAH з дедуплікацією `eventID`.
                     </p>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
-                    <div className="text-[11px] font-bold text-[#1769aa]">GA4 & GTM Ecommerce</div>
-                    <div className="text-sm font-extrabold text-[#0d1f33]">
+                  <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 space-y-2.5 shadow-sm">
+                    <div className="text-sm font-bold text-[#1769aa]">GA4 & GTM Ecommerce</div>
+                    <div className="text-lg font-extrabold text-[#0d1f33]">
                       {/^G-[A-Z0-9]{4,20}$/i.test(ga4MeasurementId) || /^GTM-[A-Z0-9]{4,20}$/i.test(gtmContainerId)
                         ? 'Повна воронка (`items[]`)'
                         : 'Очікує GA4 / GTM ID'}
                     </div>
-                    <p className="text-[11px] text-[#52657a]">
+                    <p className="text-sm text-[#52657a] leading-relaxed">
                       Трекінг: `view_item_list`, `search`, `view_item`, `add_to_cart`, `begin_checkout`, `purchase`, `generate_lead`, `calculator_used`.
                     </p>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
-                    <div className="text-[11px] font-bold text-[#1769aa]">UTM / Click-ID Атрибуція</div>
-                    <div className="text-sm font-extrabold text-[#0d1f33]">
+                  <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 space-y-2.5 shadow-sm">
+                    <div className="text-sm font-bold text-[#1769aa]">UTM / Click-ID Атрибуція</div>
+                    <div className="text-lg font-extrabold text-[#0d1f33]">
                       {recentEvents.filter((ev) => ['generate_lead', 'purchase', 'lead_submit'].includes(ev.eventName)).length} конверсій у буфері
                     </div>
-                    <p className="text-[11px] text-[#52657a]">
+                    <p className="text-sm text-[#52657a] leading-relaxed">
                       `utm_*`, `fbclid`, `gclid`, `ttclid` зберігаються у сесії й автоматично записуються в картку угоди CRM.
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+                <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 sm:p-7 space-y-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-extrabold text-[#0d1f33] flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-[#1769aa]" />
+                    <h3 className="text-lg font-extrabold text-[#0d1f33] flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-[#1769aa]" />
                       Останні події конверсій ({recentEvents.length})
                     </h3>
                     <button
                       type="button"
                       onClick={() => void loadAnalytics()}
-                      className="text-xs font-bold text-[#1769aa] hover:underline cursor-pointer"
+                      className="text-[15px] font-bold text-[#1769aa] hover:underline cursor-pointer"
                     >
                       Оновити журнал
                     </button>
                   </div>
-                  <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                    <table className="w-full text-left border-collapse text-xs">
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-left border-collapse text-[15px]">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500">
-                          <th className="py-2 px-3">Подія</th>
-                          <th className="py-2 px-3">Meta / GA4</th>
-                          <th className="py-2 px-3">Дані</th>
-                          <th className="py-2 px-3">Час</th>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-sm font-bold text-slate-600">
+                          <th className="py-3.5 px-4">Подія</th>
+                          <th className="py-3.5 px-4">Meta / GA4</th>
+                          <th className="py-3.5 px-4">Дані</th>
+                          <th className="py-3.5 px-4">Час</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {recentEvents.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="py-6 text-center text-slate-400">Подій ще не зафіксовано</td>
+                            <td colSpan={4} className="py-10 text-center text-slate-400">Подій ще не зафіксовано</td>
                           </tr>
                         ) : (
                           recentEvents.map((ev) => (
-                            <tr key={ev.id}>
-                              <td className="py-2 px-3 font-mono font-bold text-[#0d1f33]">{ev.eventName}</td>
-                              <td className="py-2 px-3 font-mono text-[11px] text-slate-600">{ev.metaEvent} / {ev.ga4Event}</td>
-                              <td className="py-2 px-3 font-mono text-[11px] text-slate-500 max-w-md truncate">
+                            <tr key={ev.id} className="hover:bg-slate-50/70">
+                              <td className="py-3.5 px-4 font-mono text-sm font-bold text-[#0d1f33]">{ev.eventName}</td>
+                              <td className="py-3.5 px-4 font-mono text-sm text-slate-600">{ev.metaEvent} / {ev.ga4Event}</td>
+                              <td className="py-3.5 px-4 font-mono text-sm text-slate-500 max-w-md truncate">
                                 {JSON.stringify(ev.payload)}
                               </td>
-                              <td className="py-2 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                              <td className="py-3.5 px-4 font-mono text-sm text-slate-500 whitespace-nowrap tabular-nums">
                                 {new Date(ev.createdAt).toLocaleString('uk-UA')}
                               </td>
                             </tr>
@@ -2488,43 +2415,43 @@ function CrmWorkspace({
 
             {/* TAB 5: SOCIAL LINKS, TELEGRAM BOT & SEO / XML FEEDS */}
             {crmTab === 'social' && (
-              <div className="space-y-5">
-                <form onSubmit={handleSaveSocialLinks} className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+              <div className="space-y-6">
+                <form onSubmit={handleSaveSocialLinks} className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 sm:p-7 space-y-5 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
-                        <Share2 className="w-4 h-4 text-[#1769aa]" />
+                      <h2 className="text-xl font-extrabold text-[#0d1f33] flex items-center gap-2">
+                        <Share2 className="w-5 h-5 text-[#1769aa]" />
                         {tr('Соціальні мережі в шапці та футері сайту', 'Социальные сети в шапке и футере сайта')}
                       </h2>
-                      <p className="text-xs text-[#52657a] mt-0.5">
+                      <p className="text-[15px] text-[#52657a] mt-1">
                         {tr(
                           'Налаштуйте посилання на Instagram, YouTube, TikTok, Viber, Telegram і Facebook. Порожні поля автоматично приховуються з вітрини.',
                           'Настройте ссылки на Instagram, YouTube, TikTok, Viber, Telegram и Facebook. Пустые поля автоматически скрываются на сайте.',
                         )}
                       </p>
                     </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-[#0d1f33] tabular-nums">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 border border-slate-200 px-3.5 py-2 text-sm font-bold text-[#0d1f33] tabular-nums">
                       {tr('Активних каналів:', 'Активных каналов:')} {SOCIAL_CHANNELS.filter((ch) => Boolean(safeSocialHref(socialPreviewLinks[ch.key], ch.key))).length}/{SOCIAL_CHANNELS.length}
                     </span>
                   </div>
 
                   {/* Live Header & Footer Icon Previews */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
-                    <div className="rounded-lg bg-[#0d1f33] px-3.5 py-2.5 flex items-center justify-between gap-3">
-                      <span className="text-[11px] font-bold text-slate-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="rounded-lg bg-[#0d1f33] px-4 py-3.5 flex items-center justify-between gap-3">
+                      <span className="text-sm font-bold text-slate-300">
                         {tr('Попередній перегляд: шапка', 'Предпросмотр: шапка')}
                       </span>
                       <SocialIcons links={socialPreviewLinks} variant="header" />
                     </div>
-                    <div className="rounded-lg bg-[#081421] px-3.5 py-2.5 flex items-center justify-between gap-3">
-                      <span className="text-[11px] font-bold text-slate-300">
+                    <div className="rounded-lg bg-[#081421] px-4 py-3.5 flex items-center justify-between gap-3">
+                      <span className="text-sm font-bold text-slate-300">
                         {tr('Попередній перегляд: футер', 'Предпросмотр: футер')}
                       </span>
                       <SocialIcons links={socialPreviewLinks} variant="footer" />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-[15px]">
                     {SOCIAL_CHANNELS.map((channel) => {
                       const rawValue = socialForm[channel.key];
                       const valid = isValidSocialUrl(channel.key, rawValue);
@@ -2534,7 +2461,7 @@ function CrmWorkspace({
                       return (
                         <div
                           key={channel.key}
-                          className={`rounded-xl border p-3.5 space-y-2 transition-colors ${
+                          className={`rounded-xl border p-5 space-y-3 transition-colors ${
                             !valid
                               ? 'border-red-300 bg-red-50/40'
                               : isActive
@@ -2545,16 +2472,16 @@ function CrmWorkspace({
                           <div className="flex items-center justify-between gap-2">
                             <label
                               htmlFor={`social-input-${channel.key}`}
-                              className="inline-flex items-center gap-2 font-extrabold text-[#0d1f33]"
+                              className="inline-flex items-center gap-2.5 text-[15px] font-extrabold text-[#0d1f33]"
                             >
-                              <span className="w-6 h-6 rounded-md bg-slate-100 text-[#0d1f33] inline-flex items-center justify-center">
-                                <SocialChannelIcon channel={channel.key} className="w-3.5 h-3.5" />
+                              <span className="w-8 h-8 rounded-md bg-slate-100 text-[#0d1f33] inline-flex items-center justify-center">
+                                <SocialChannelIcon channel={channel.key} className="w-4 h-4" />
                               </span>
                               <span>{channel.label}</span>
                             </label>
                             <div className="flex items-center gap-1.5">
                               <span
-                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                className={`px-3 py-1 rounded-md text-xs font-bold ${
                                   !valid
                                     ? 'bg-red-100 text-red-700'
                                     : isActive
@@ -2571,7 +2498,7 @@ function CrmWorkspace({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             <input
                               id={`social-input-${channel.key}`}
                               type="text"
@@ -2584,7 +2511,7 @@ function CrmWorkspace({
                               }}
                               placeholder={channel.placeholder}
                               aria-invalid={!valid}
-                              className={`w-full px-3 py-2 rounded-lg border font-mono text-xs bg-white focus:outline-none focus:ring-2 ${
+                              className={`w-full h-11 px-3.5 rounded-lg border font-mono text-sm bg-white focus:outline-none focus:ring-2 ${
                                 valid
                                   ? 'border-slate-300 focus:ring-[#1769aa]/25 focus:border-[#1769aa]'
                                   : 'border-red-400 focus:ring-red-200 focus:border-red-500'
@@ -2600,9 +2527,9 @@ function CrmWorkspace({
                                 }}
                                 title={tr('Очистити поле', 'Очистить поле')}
                                 aria-label={tr(`Очистити ${channel.label}`, `Очистить ${channel.label}`)}
-                                className="w-8 h-8 shrink-0 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 hover:text-red-600 inline-flex items-center justify-center cursor-pointer"
+                                className="w-11 h-11 shrink-0 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 hover:text-red-600 inline-flex items-center justify-center cursor-pointer"
                               >
-                                <X className="w-3.5 h-3.5" />
+                                <X className="w-4 h-4" />
                               </button>
                             )}
                             {previewHref && (
@@ -2612,14 +2539,14 @@ function CrmWorkspace({
                                 rel={previewHref.startsWith('http') ? 'noopener noreferrer' : undefined}
                                 title={tr(`Відкрити ${channel.label}`, `Открыть ${channel.label}`)}
                                 aria-label={tr(`Відкрити ${channel.label}`, `Открыть ${channel.label}`)}
-                                className="w-8 h-8 shrink-0 rounded-lg border border-slate-200 bg-white hover:bg-sky-50 text-[#1769aa] inline-flex items-center justify-center"
+                                className="w-11 h-11 shrink-0 rounded-lg border border-slate-200 bg-white hover:bg-sky-50 text-[#1769aa] inline-flex items-center justify-center"
                               >
-                                <ExternalLink className="w-3.5 h-3.5" />
+                                <ExternalLink className="w-4 h-4" />
                               </a>
                             )}
                           </div>
 
-                          <div className="text-[11px] text-[#52657a]">
+                          <div className="text-sm text-[#52657a]">
                             {tr(channel.hintUk, channel.hintRu)}
                           </div>
                         </div>
@@ -2627,14 +2554,14 @@ function CrmWorkspace({
                     })}
                   </div>
 
-                  {socialErr && <div className="text-xs font-semibold text-red-600">{socialErr}</div>}
-                  {socialMsg && <div className="text-xs font-semibold text-[#169374]">{socialMsg}</div>}
+                  {socialErr && <div className="text-[15px] font-semibold text-red-600">{socialErr}</div>}
+                  {socialMsg && <div className="text-[15px] font-semibold text-[#169374]">{socialMsg}</div>}
 
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       type="submit"
                       disabled={savingSocial}
-                      className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+                      className="h-11 px-6 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold cursor-pointer"
                     >
                       {savingSocial ? tr('Зберігаємо…', 'Сохраняем…') : tr('Зберегти соцмережі', 'Сохранить соцсети')}
                     </button>
@@ -2646,7 +2573,7 @@ function CrmWorkspace({
                           setSocialErr('');
                           setSocialMsg('');
                         }}
-                        className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#0d1f33] text-xs font-bold cursor-pointer"
+                        className="h-11 px-5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#0d1f33] text-[15px] font-bold cursor-pointer"
                       >
                         {tr('Скасувати зміни', 'Отменить изменения')}
                       </button>
@@ -2655,14 +2582,14 @@ function CrmWorkspace({
                 </form>
 
                 {/* Telegram Bot & Webhook Setup */}
-                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 sm:p-7 space-y-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
-                        <Send className="w-4 h-4 text-[#1769aa]" />
+                      <h3 className="text-xl font-extrabold text-[#0d1f33] flex items-center gap-2">
+                        <Send className="w-5 h-5 text-[#1769aa]" />
                         {tr('Інтеграція Telegram-бота та Webhook', 'Интеграция Telegram-бота и Webhook')}
                       </h3>
-                      <p className="text-xs text-[#52657a] mt-0.5">
+                      <p className="text-[15px] text-[#52657a] mt-1">
                         {tr('Статус змінних оточення:', 'Статус переменных окружения:')}{' '}
                         <strong className={telegramConfigured ? 'text-[#169374]' : 'text-amber-700'}>
                           {telegramConfigured
@@ -2674,24 +2601,24 @@ function CrmWorkspace({
                     <button
                       type="button"
                       onClick={() => void handleTestTelegram()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
+                      className="inline-flex items-center gap-2 h-11 px-5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[15px] font-bold text-[#0d1f33] cursor-pointer"
                     >
-                      <Send className="w-3.5 h-3.5 text-[#1769aa]" />
+                      <Send className="w-4 h-4 text-[#1769aa]" />
                       {tr('Надіслати тест у чат', 'Отправить тест в чат')}
                     </button>
                   </div>
 
                   {tgResult && (
-                    <div className="px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-[#0d1f33]">
+                    <div className="px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 text-[15px] font-semibold text-[#0d1f33]">
                       {tgResult}
                     </div>
                   )}
 
                   {isAdmin && (
                     <>
-                      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end pt-2 border-t border-slate-100">
+                      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end pt-4 border-t border-slate-100">
                         <div className="flex-1">
-                          <label className="block text-xs font-bold text-[#0d1f33] mb-1">
+                          <label className="block text-sm font-bold text-[#0d1f33] mb-2">
                             {tr('HTTPS-адреса Telegram Webhook', 'HTTPS-адрес Telegram Webhook')}
                           </label>
                           <input
@@ -2699,67 +2626,67 @@ function CrmWorkspace({
                             value={webhookUrlInput}
                             onChange={(e) => setWebhookUrlInput(e.target.value)}
                             placeholder="https://energocomfort.shop/api/telegram/webhook"
-                            className="w-full px-3.5 py-2 rounded-lg border border-slate-300 font-mono text-xs"
+                            className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-sm"
                           />
                         </div>
                         <button
                           type="button"
                           onClick={() => void handleSetupTelegramWebhook()}
                           disabled={settingWebhook}
-                          className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+                          className="h-11 px-6 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold whitespace-nowrap cursor-pointer"
                         >
                           {settingWebhook ? tr('Підключаємо...', 'Подключаем...') : tr('Зареєструвати Webhook', 'Зарегистрировать Webhook')}
                         </button>
                       </div>
 
                       {webhookStatus && (
-                        <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                        <div className="text-sm font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
                           Поточний Webhook: {webhookStatus.url || 'не встановлено'} · Черга оновлень: {webhookStatus.pendingUpdateCount}
                           {webhookStatus.lastErrorMessage ? ` · Помилка: ${webhookStatus.lastErrorMessage}` : ''}
                         </div>
                       )}
-                      {webhookErr && <div className="text-xs font-semibold text-red-600">{webhookErr}</div>}
-                      {webhookMsg && <div className="text-xs font-semibold text-[#169374]">{webhookMsg}</div>}
+                      {webhookErr && <div className="text-[15px] font-semibold text-red-600">{webhookErr}</div>}
+                      {webhookMsg && <div className="text-[15px] font-semibold text-[#169374]">{webhookMsg}</div>}
                     </>
                   )}
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-6 sm:p-7 space-y-5 shadow-sm">
                   <div>
-                    <h3 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-[#1769aa]" />
+                    <h3 className="text-xl font-extrabold text-[#0d1f33] flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-[#1769aa]" />
                       SEO-файли та товарні фіди для Google Shopping / Meta Catalog
                     </h3>
-                    <p className="text-xs text-[#52657a] mt-0.5">
+                    <p className="text-[15px] text-[#52657a] mt-1">
                       Генеруються автоматично з актуальної бази товарів за встановленим комерційним курсом.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-[15px]">
                     {[
                       { path: '/sitemap.xml', title: 'Sitemap XML (Google Search Console)' },
                       { path: '/feed.xml', title: 'Google / Meta Merchant Feed (RSS 2.0)' },
                       { path: '/robots.txt', title: 'Robots.txt (правила індексації)' },
                     ].map((item) => (
-                      <div key={item.path} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                      <div key={item.path} className="p-5 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
                         <div className="font-bold text-[#0d1f33]">{item.title}</div>
-                        <div className="font-mono text-[11px] text-[#1769aa] truncate">{item.path}</div>
-                        <div className="flex items-center gap-2">
+                        <div className="font-mono text-sm text-[#1769aa] truncate">{item.path}</div>
+                        <div className="flex items-center gap-2.5">
                           <button
                             type="button"
                             onClick={() => void copyFeedUrl(item.path, item.path)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-100 font-bold text-[#0d1f33] cursor-pointer"
+                            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer"
                           >
-                            <Link2 className="w-3 h-3" />
+                            <Link2 className="w-4 h-4" />
                             {copiedFeed === item.path ? 'Скопійовано!' : 'Копіювати URL'}
                           </button>
                           <a
                             href={item.path}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-100 font-bold text-[#1769aa]"
+                            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#1769aa]"
                           >
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-4 h-4" />
                             Відкрити
                           </a>
                         </div>
@@ -2825,319 +2752,303 @@ function CrmWorkspace({
         onDeleteDeal={handleDeleteDeal}
       />
 
-      {/* Product Card Editor Modal (Create & Full Edit) */}
-      {productModalOpen &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
-            onClick={() => setProductModalOpen(false)}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div
-              className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
-                <div>
-                  <div className="font-mono text-[11px] font-bold text-[#1769aa]">
-                    {editingProdId ? `Редагування картки · ${prodSku || editingProdId}` : 'Нова картка товару'}
-                  </div>
-                  <h3 className="text-base font-extrabold text-[#0d1f33]">
-                    {editingProdId ? prodTitle || 'Товар каталогу' : 'Додати позицію в каталог'}
-                  </h3>
+      {/* Product Card Editor Modal (Radix Dialog: Create & Full Edit) */}
+      <Dialog open={productModalOpen} onOpenChange={setProductModalOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <div className="font-mono text-sm font-bold text-[#1769aa] mb-1">
+              {editingProdId ? `Редагування картки · ${prodSku || editingProdId}` : 'Нова картка товару'}
+            </div>
+            <DialogTitle>
+              {editingProdId ? prodTitle || 'Товар каталогу' : 'Додати позицію в каталог'}
+            </DialogTitle>
+            <DialogDescription>
+              {tr('Ціна, наявність, фото та технічні характеристики одразу оновлюються на вітрині', 'Цена, наличие, фото и технические характеристики сразу обновляются на витрине')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveProductModal} className="p-7 space-y-5 text-[15px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Назва товару *', 'Название товара *')}</label>
+                <input
+                  type="text"
+                  required
+                  value={prodTitle}
+                  onChange={(e) => setProdTitle(e.target.value)}
+                  placeholder={tr('Наприклад, Гібридний інвертор Deye SUN-8K-SG01LP1-EU', 'Например, гибридный инвертор Deye SUN-8K-SG01LP1-EU')}
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] font-semibold text-[#0d1f33]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-2">SKU (артикул)</label>
+                <input
+                  type="text"
+                  value={prodSku}
+                  onChange={(e) => setProdSku(e.target.value)}
+                  placeholder="10999"
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-[15px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Бренд')}</label>
+                <input
+                  type="text"
+                  value={prodBrand}
+                  onChange={(e) => setProdBrand(e.target.value)}
+                  placeholder="Deye"
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Категорія', 'Категория')}</label>
+                <select
+                  value={prodCat}
+                  onChange={(e) => {
+                    const nextCat = e.target.value as ProductCategory;
+                    setProdCat(nextCat);
+                    if (nextCat === 'kits') setProdIsKit(true);
+                  }}
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px] font-semibold"
+                >
+                  <option value="kits">{tr('Готові рішення')}</option>
+                  <option value="inverters">{tr('Інвертори')}</option>
+                  <option value="batteries">{tr('Акумулятори')}</option>
+                  <option value="panels">{tr('Сонячні панелі')}</option>
+                  <option value="parts">{tr('Комплектуючі')}</option>
+                </select>
+              </div>
+
+              <div className="flex items-end pb-2.5">
+                <label className="inline-flex items-center gap-2.5 text-[15px] font-semibold text-[#0d1f33] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={prodIsKit}
+                    onChange={(e) => setProdIsKit(e.target.checked)}
+                    className="w-4.5 h-4.5 accent-[#1769aa]"
+                  />
+                  Показувати в блоці «Готові рішення»
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Ціна (USD, 0 = «За запитом»)', 'Цена (USD, 0 = «По запросу»)')}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={prodPrice}
+                  onChange={(e) => setProdPrice(e.target.value)}
+                  placeholder="1250"
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-[15px] font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Стара ціна (USD, закреслена)', 'Старая цена (USD, зачёркнутая)')}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={prodOldPrice}
+                  onChange={(e) => setProdOldPrice(e.target.value)}
+                  placeholder="0"
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-[15px]"
+                />
+              </div>
+
+              <div className="flex items-center">
+                <label className="inline-flex items-center gap-2.5 text-[15px] font-semibold text-[#0d1f33] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={prodInStock}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setProdInStock(checked);
+                      setProdStatusLabel(checked ? 'в наявності' : 'під замовлення');
+                    }}
+                    className="w-4.5 h-4.5 accent-[#1769aa]"
+                  />
+                  Товар у наявності на складі
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-600 mb-2">{tr('Текст статусу наявності', 'Текст статуса наличия')}</label>
+                <input
+                  type="text"
+                  value={prodStatusLabel}
+                  onChange={(e) => setProdStatusLabel(e.target.value)}
+                  placeholder="в наявності"
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px]"
+                />
+              </div>
+            </div>
+
+            {/* Photo Upload + Preview */}
+            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <label className="block text-sm font-bold text-slate-600">{tr('Фото товару (завантаження на сервер або URL)', 'Фото товара (загрузка на сервер или URL)')}</label>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="w-24 h-24 rounded-xl border border-slate-200 bg-white overflow-hidden shrink-0 flex items-center justify-center">
+                  <SmartImage
+                    key={prodImg}
+                    src={prodImg}
+                    alt={prodTitle || 'Товар'}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
+                <div className="flex-1 min-w-[220px] space-y-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-sm font-bold text-[#0d1f33] cursor-pointer">
+                      <Upload className="w-4 h-4 text-[#1769aa]" />
+                      {uploadingProdPhoto ? 'Завантажуємо...' : 'Завантажити фото (JPG/PNG/WebP)'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={uploadingProdPhoto}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleUploadProductPhoto(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    value={prodImg}
+                    onChange={(e) => setProdImg(e.target.value)}
+                    placeholder="/uploads/... або https://..."
+                    className="w-full h-10 px-3.5 rounded-lg border border-slate-300 font-mono text-sm bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Specs Key-Value Editor */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-slate-600">Технічні характеристики</label>
+                <button
+                  type="button"
+                  onClick={() => setProdSpecs((prev) => [...prev, ['', '']])}
+                  className="text-[15px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                >
+                  + Додати рядок
+                </button>
+              </div>
+              <div className="space-y-2.5">
+                {prodSpecs.map(([k, v], idx) => (
+                  <div key={idx} className="flex items-center gap-2.5">
+                    <input
+                      type="text"
+                      value={k}
+                      onChange={(e) =>
+                        setProdSpecs((prev) =>
+                          prev.map((row, i) => (i === idx ? [e.target.value, row[1]] : row)),
+                        )
+                      }
+                      placeholder="Параметр (напр. Потужність)"
+                      className="flex-1 h-10 px-3.5 rounded-lg border border-slate-300 text-[15px]"
+                    />
+                    <input
+                      type="text"
+                      value={v}
+                      onChange={(e) =>
+                        setProdSpecs((prev) =>
+                          prev.map((row, i) => (i === idx ? [row[0], e.target.value] : row)),
+                        )
+                      }
+                      placeholder="Значення (напр. 8 кВт)"
+                      className="flex-1 h-10 px-3.5 rounded-lg border border-slate-300 text-[15px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setProdSpecs((prev) => prev.filter((_, i) => i !== idx))}
+                      aria-label="Видалити характеристику"
+                      className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-600 mb-2">Опис товару</label>
+              <textarea
+                rows={3}
+                value={prodDescription}
+                onChange={(e) => setProdDescription(e.target.value)}
+                placeholder="Детальний опис, сумісність, гарантія..."
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 text-[15px]"
+              />
+            </div>
+
+            {prodModalErr && <div className="text-[15px] font-semibold text-red-600">{prodModalErr}</div>}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
+              <div>
+                {editingProdId &&
+                  (confirmDeleteProd ? (
+                    <div className="inline-flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        disabled={savingProduct}
+                        onClick={() => void handleDeleteProduct(editingProdId, prodTitle)}
+                        className="h-11 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[15px] font-bold cursor-pointer"
+                      >
+                        Підтвердити видалення
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteProd(false)}
+                        className="text-[15px] font-semibold text-slate-500 cursor-pointer"
+                      >
+                        Скасувати
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteProd(true)}
+                      className="inline-flex items-center gap-1.5 text-[15px] font-bold text-red-600 hover:underline cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Видалити товар
+                    </button>
+                  ))}
+              </div>
+
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setProductModalOpen(false)}
-                  className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center cursor-pointer"
+                  className="h-11 px-5 rounded-lg border border-slate-300 text-[15px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  Скасувати
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProduct}
+                  className="h-11 px-6 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold cursor-pointer"
+                >
+                  {savingProduct ? 'Зберігаємо...' : editingProdId ? 'Зберегти зміни' : 'Створити товар'}
                 </button>
               </div>
-
-              <form onSubmit={handleSaveProductModal} className="p-6 space-y-4 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div className="sm:col-span-2">
-                    <label className="block font-bold text-slate-600 mb-1">{tr('Назва товару *', 'Название товара *')}</label>
-                    <input
-                      type="text"
-                      required
-                      value={prodTitle}
-                      onChange={(e) => setProdTitle(e.target.value)}
-                      placeholder={tr('Наприклад, Гібридний інвертор Deye SUN-8K-SG01LP1-EU', 'Например, гибридный инвертор Deye SUN-8K-SG01LP1-EU')}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-[#0d1f33]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-600 mb-1">SKU (артикул)</label>
-                    <input
-                      type="text"
-                      value={prodSku}
-                      onChange={(e) => setProdSku(e.target.value)}
-                      placeholder="10999"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-600 mb-1">{tr('Бренд')}</label>
-                    <input
-                      type="text"
-                      value={prodBrand}
-                      onChange={(e) => setProdBrand(e.target.value)}
-                      placeholder="Deye"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-600 mb-1">{tr('Категорія', 'Категория')}</label>
-                    <select
-                      value={prodCat}
-                      onChange={(e) => {
-                        const nextCat = e.target.value as ProductCategory;
-                        setProdCat(nextCat);
-                        if (nextCat === 'kits') setProdIsKit(true);
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
-                    >
-                      <option value="kits">{tr('Готові рішення')}</option>
-                      <option value="inverters">{tr('Інвертори')}</option>
-                      <option value="batteries">{tr('Акумулятори')}</option>
-                      <option value="panels">{tr('Сонячні панелі')}</option>
-                      <option value="parts">{tr('Комплектуючі')}</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-end pb-1.5">
-                    <label className="inline-flex items-center gap-2 font-semibold text-[#0d1f33] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={prodIsKit}
-                        onChange={(e) => setProdIsKit(e.target.checked)}
-                      />
-                      Показувати в блоці «Готові рішення»
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-600 mb-1">{tr('Ціна (USD, 0 = «За запитом»)', 'Цена (USD, 0 = «По запросу»)')}</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={prodPrice}
-                      onChange={(e) => setProdPrice(e.target.value)}
-                      placeholder="1250"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-600 mb-1">{tr('Стара ціна (USD, закреслена)', 'Старая цена (USD, зачёркнутая)')}</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={prodOldPrice}
-                      onChange={(e) => setProdOldPrice(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                    />
-                  </div>
-
-                  <div className="flex items-center">
-                    <label className="inline-flex items-center gap-2 font-semibold text-[#0d1f33] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={prodInStock}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setProdInStock(checked);
-                          setProdStatusLabel(checked ? 'в наявності' : 'під замовлення');
-                        }}
-                      />
-                      Товар у наявності на складі
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-600 mb-1">{tr('Текст статусу наявності', 'Текст статуса наличия')}</label>
-                    <input
-                      type="text"
-                      value={prodStatusLabel}
-                      onChange={(e) => setProdStatusLabel(e.target.value)}
-                      placeholder="в наявності"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Photo Upload + Preview */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                  <label className="block font-bold text-slate-600">{tr('Фото товару (завантаження на сервер або URL)', 'Фото товара (загрузка на сервер или URL)')}</label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="w-16 h-16 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0 flex items-center justify-center">
-                      <SmartImage
-                        key={prodImg}
-                        src={prodImg}
-                        alt={prodTitle || 'Товар'}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-[200px] space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer">
-                          <Upload className="w-3.5 h-3.5 text-[#1769aa]" />
-                          {uploadingProdPhoto ? 'Завантажуємо...' : 'Завантажити фото (JPG/PNG/WebP)'}
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="hidden"
-                            disabled={uploadingProdPhoto}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) void handleUploadProductPhoto(file);
-                              e.target.value = '';
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <input
-                        type="text"
-                        value={prodImg}
-                        onChange={(e) => setProdImg(e.target.value)}
-                        placeholder="/uploads/... або https://..."
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px] bg-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Specs Key-Value Editor */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="font-bold text-slate-600">Технічні характеристики</label>
-                    <button
-                      type="button"
-                      onClick={() => setProdSpecs((prev) => [...prev, ['', '']])}
-                      className="text-xs font-bold text-[#1769aa] hover:underline cursor-pointer"
-                    >
-                      + Додати рядок
-                    </button>
-                  </div>
-                  <div className="space-y-1.5">
-                    {prodSpecs.map(([k, v], idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={k}
-                          onChange={(e) =>
-                            setProdSpecs((prev) =>
-                              prev.map((row, i) => (i === idx ? [e.target.value, row[1]] : row)),
-                            )
-                          }
-                          placeholder="Параметр (напр. Потужність)"
-                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
-                        />
-                        <input
-                          type="text"
-                          value={v}
-                          onChange={(e) =>
-                            setProdSpecs((prev) =>
-                              prev.map((row, i) => (i === idx ? [row[0], e.target.value] : row)),
-                            )
-                          }
-                          placeholder="Значення (напр. 8 кВт)"
-                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setProdSpecs((prev) => prev.filter((_, i) => i !== idx))}
-                          aria-label="Видалити характеристику"
-                          className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-600 mb-1">Опис товару</label>
-                  <textarea
-                    rows={3}
-                    value={prodDescription}
-                    onChange={(e) => setProdDescription(e.target.value)}
-                    placeholder="Детальний опис, сумісність, гарантія..."
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300"
-                  />
-                </div>
-
-                {prodModalErr && <div className="text-xs font-semibold text-red-600">{prodModalErr}</div>}
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
-                  <div>
-                    {editingProdId &&
-                      (confirmDeleteProd ? (
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={savingProduct}
-                            onClick={() => void handleDeleteProduct(editingProdId, prodTitle)}
-                            className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer"
-                          >
-                            Підтвердити видалення
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteProd(false)}
-                            className="text-xs font-semibold text-slate-500 cursor-pointer"
-                          >
-                            Скасувати
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmDeleteProd(true)}
-                          className="inline-flex items-center gap-1 text-xs font-bold text-red-600 hover:underline cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Видалити товар
-                        </button>
-                      ))}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setProductModalOpen(false)}
-                      className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 cursor-pointer"
-                    >
-                      Скасувати
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingProduct}
-                      className="px-5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
-                    >
-                      {savingProduct ? 'Зберігаємо...' : editingProdId ? 'Зберегти зміни' : 'Створити товар'}
-                    </button>
-                  </div>
-                </div>
-              </form>
             </div>
-          </div>,
-          document.body,
-        )}
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <CreateDealModal
         open={createDealOpen}
         initialType={createDealType}
         initialStage={createDealStage}
+        initialClient={createDealClientPrefill}
         stages={STAGES}
         products={products}
         contacts={contacts}
@@ -3146,7 +3057,10 @@ function CrmWorkspace({
         defaultAssignee={currentUser?.assigneeLabel || currentUser?.name || ''}
         telegramConfigured={telegramConfigured}
         authFetch={authFetch}
-        onClose={() => setCreateDealOpen(false)}
+        onClose={() => {
+          setCreateDealOpen(false);
+          setCreateDealClientPrefill(null);
+        }}
         onCreated={async (createdDeal) => {
           await Promise.all([syncDealsWithParent(), refreshContacts(), refreshCustomers()]);
           const msg =

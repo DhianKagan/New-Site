@@ -1,17 +1,20 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useNotification } from '@refinedev/core';
 import {
   createColumnHelper,
+  createPaginatedRowModel,
   createSortedRowModel,
   flexRender,
+  rowPaginationFeature,
   rowSortingFeature,
   sortFn_alphanumeric,
   sortFn_basic,
   tableFeatures,
   useTable,
+  type PaginationState,
   type SortingState,
 } from '@tanstack/react-table';
 import {
-  ArrowUpDown,
   Crown,
   KeyRound,
   Mail,
@@ -32,6 +35,7 @@ import { Card } from '../ui/card.tsx';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog.tsx';
 import { Input } from '../ui/input.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table.tsx';
+import { SortDirectionIcon, TablePagination } from './TablePagination.tsx';
 
 interface StaffTabProps {
   staff: StaffUser[];
@@ -48,6 +52,8 @@ interface StaffTabProps {
 const staffTableFeatures = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
+  rowPaginationFeature,
+  paginatedRowModel: createPaginatedRowModel(),
   sortFns: {
     alphanumeric: sortFn_alphanumeric,
     basic: sortFn_basic,
@@ -74,11 +80,14 @@ export function StaffTab({
   onRefreshDeals,
   onRefreshTasks,
 }: StaffTabProps) {
+  const { open: notify } = useNotification();
   const isAdmin = currentUser?.role === 'admin';
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | StaffRole>('all');
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
   const [actionMsg, setActionMsg] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<StaffUser | null>(null);
@@ -93,6 +102,10 @@ export function StaffTab({
   const [fPassword, setFPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [formErr, setFormErr] = useState('');
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [query, roleFilter]);
 
   const selfMember = useMemo(
     () => (currentUser?.userId ? staff.find((m) => m.id === currentUser.userId) ?? null : null),
@@ -233,11 +246,11 @@ export function StaffTab({
         onRefreshDeals(),
         onRefreshTasks(),
       ]);
-      setActionMsg(
-        editingMember
-          ? tr(`Профіль «${data.member.name}» оновлено`, `Профиль «${data.member.name}» обновлён`)
-          : tr(`Додано користувача «${data.member.name}» (${data.member.email || data.member.login})`, `Добавлен пользователь «${data.member.name}»`),
-      );
+      const successText = editingMember
+        ? tr(`Профіль «${data.member.name}» оновлено`, `Профиль «${data.member.name}» обновлён`)
+        : tr(`Додано користувача «${data.member.name}» (${data.member.email || data.member.login})`, `Добавлен пользователь «${data.member.name}»`);
+      setActionMsg(successText);
+      notify?.({ type: 'success', message: successText });
     } catch {
       setFormErr(tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером'));
     } finally {
@@ -248,30 +261,51 @@ export function StaffTab({
   async function handleToggleActive(m: StaffUser) {
     if (!isAdmin) return;
     setActionMsg('');
-    const resp = await authFetch(`/api/crm/staff/${m.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: !m.active }),
-    });
-    const data = (await resp.json()) as { error?: string };
-    if (!resp.ok) {
-      setActionMsg(data.error || tr('Не вдалося змінити статус', 'Не удалось изменить статус'));
-      return;
+    try {
+      const resp = await authFetch(`/api/crm/staff/${m.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !m.active }),
+      });
+      const data = (await resp.json().catch(() => ({}))) as { error?: string };
+      if (!resp.ok) {
+        const errText = data.error || tr('Не вдалося змінити статус', 'Не удалось изменить статус');
+        setActionMsg(errText);
+        notify?.({ type: 'error', message: errText });
+        return;
+      }
+      await onRefreshStaff();
+      notify?.({
+        type: 'success',
+        message: m.active
+          ? tr(`Співробітника «${m.name}» вимкнено`, `Сотрудник «${m.name}» отключён`)
+          : tr(`Співробітника «${m.name}» активовано`, `Сотрудник «${m.name}» активирован`),
+      });
+    } catch {
+      notify?.({ type: 'error', message: tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером') });
     }
-    await onRefreshStaff();
   }
 
   async function handleDeleteMember(m: StaffUser) {
     if (!isAdmin) return;
     setActionMsg('');
-    const resp = await authFetch(`/api/crm/staff/${m.id}`, { method: 'DELETE' });
-    const data = (await resp.json()) as { error?: string };
-    if (!resp.ok) {
-      setActionMsg(data.error || tr('Не вдалося видалити користувача', 'Не удалось удалить пользователя'));
-      return;
+    try {
+      const resp = await authFetch(`/api/crm/staff/${m.id}`, { method: 'DELETE' });
+      const data = (await resp.json().catch(() => ({}))) as { error?: string };
+      if (!resp.ok) {
+        const errText = data.error || tr('Не вдалося видалити користувача', 'Не удалось удалить пользователя');
+        setActionMsg(errText);
+        notify?.({ type: 'error', message: errText });
+        return;
+      }
+      setConfirmDeleteId(null);
+      await onRefreshStaff();
+      const msgText = tr(`Користувача «${m.name}» видалено`, `Пользователь «${m.name}» удалён`);
+      setActionMsg(msgText);
+      notify?.({ type: 'success', message: msgText });
+    } catch {
+      notify?.({ type: 'error', message: tr('Помилка з’єднання із сервером', 'Ошибка соединения с сервером') });
     }
-    await onRefreshStaff();
-    setActionMsg(tr(`Користувача «${m.name}» видалено`, `Пользователь «${m.name}» удалён`));
   }
 
   const columns = useMemo(
@@ -285,17 +319,17 @@ export function StaffTab({
             const isMaster = m.login === 'admin';
             return (
               <div>
-                <div className="font-bold text-[#0d1f33] flex flex-wrap items-center gap-1.5">
+                <div className="font-bold text-[15px] text-[#0d1f33] flex flex-wrap items-center gap-2">
                   <span>{m.name}</span>
                   {isMaster && (
                     <Badge variant="dark" className="gap-1">
-                      <Crown className="w-3 h-3 text-amber-400" />
+                      <Crown className="w-3.5 h-3.5 text-amber-400" />
                       {tr('Майстер', 'Мастер')}
                     </Badge>
                   )}
                   {isSelf && <Badge variant="info">{tr('Ви', 'Вы')}</Badge>}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
+                <div className="text-sm text-slate-500 mt-0.5">
                   {m.position} · <span className="font-mono text-slate-600">{m.assigneeLabel}</span>
                 </div>
               </div>
@@ -307,10 +341,10 @@ export function StaffTab({
           cell: (info) => {
             const m = info.row.original;
             return (
-              <div className="space-y-0.5 text-[11px]">
+              <div className="space-y-1 text-sm">
                 {m.email ? (
-                  <div className="font-semibold text-[#0d1f33] inline-flex items-center gap-1">
-                    <Mail className="w-3 h-3 text-[#1769aa]" />
+                  <div className="font-semibold text-[#0d1f33] inline-flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-[#1769aa]" />
                     {m.email}
                   </div>
                 ) : (
@@ -321,8 +355,8 @@ export function StaffTab({
                   </div>
                 )}
                 {m.phone && (
-                  <div className="text-slate-500 flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-slate-400" />
+                  <div className="text-slate-500 flex items-center gap-1.5">
+                    <Phone className="w-4 h-4 text-slate-400" />
                     {m.phone}
                   </div>
                 )}
@@ -346,9 +380,9 @@ export function StaffTab({
             }
             if (m.login === 'admin') {
               return (
-                <div className="flex flex-wrap items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <Badge variant="dark" className="gap-1">
-                    <KeyRound className="w-3 h-3 text-amber-400" />
+                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
                     {tr('Майстер-вхід (admin)', 'Мастер-вход (admin)')}
                   </Badge>
                   {m.email && <Badge variant="info">Google</Badge>}
@@ -359,14 +393,14 @@ export function StaffTab({
               return <Badge variant="default">{tr('Без входу (лише виконавець)', 'Без входа (только исполнитель)')}</Badge>;
             }
             return m.email ? (
-              <div className="flex flex-wrap items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <Badge variant="success" className="gap-1">
-                  <Mail className="w-3 h-3" />
+                  <Mail className="w-3.5 h-3.5" />
                   Google
                 </Badge>
                 {m.hasPassword && (
                   <Badge variant="info" className="gap-1">
-                    <KeyRound className="w-3 h-3" />
+                    <KeyRound className="w-3.5 h-3.5" />
                     {tr('Пароль', 'Пароль')}
                   </Badge>
                 )}
@@ -382,7 +416,7 @@ export function StaffTab({
           cell: (info) => {
             const w = workloadByLabel.get(info.row.original.assigneeLabel) ?? { deals: 0, openTasks: 0 };
             return (
-              <div className="text-[11px] font-mono tabular-nums text-slate-600">
+              <div className="text-sm font-mono tabular-nums text-slate-600">
                 <span>
                   {tr('Угод', 'Сделок')}: <strong className="text-[#0d1f33]">{w.deals}</strong>
                 </span>
@@ -404,50 +438,65 @@ export function StaffTab({
             const canEditThisRow = isAdmin || isSelf;
             if (!canEditThisRow) {
               return (
-                <div className="text-right text-[11px] text-slate-400">
+                <div className="text-right text-sm text-slate-400">
                   {tr('Тільки перегляд', 'Только просмотр')}
                 </div>
               );
             }
             return (
               <div className="flex items-center justify-end gap-1.5">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => openEditModal(m)}
                   title={
                     isSelf && !isAdmin
                       ? tr('Редагувати свій профіль', 'Редактировать свой профиль')
                       : tr('Редагувати профіль і Email', 'Редактировать профиль и Email')
                   }
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
                 >
-                  <Pencil className="w-3 h-3 text-[#1769aa]" />
+                  <Pencil className="w-3.5 h-3.5 text-[#1769aa]" />
                   {isSelf && !isAdmin
                     ? tr('Мій профіль', 'Мой профиль')
                     : !m.email && !isMaster
                       ? tr('Прив’язати Email', 'Привязать Email')
                       : tr('Змінити', 'Изменить')}
-                </button>
+                </Button>
                 {isAdmin && !isSelf && !isMaster && (
                   <>
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => void handleToggleActive(m)}
                       title={m.active ? tr('Деактивувати', 'Деактивировать') : tr('Активувати', 'Активировать')}
                       aria-label={m.active ? tr('Деактивувати користувача') : tr('Активувати користувача')}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-[#0d1f33] cursor-pointer"
                     >
-                      {m.active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5 text-[#169374]" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteMember(m)}
-                      title={tr('Видалити', 'Удалить')}
-                      aria-label={`${tr('Видалити', 'Удалить')} ${m.name}`}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      {m.active ? <UserX className="w-4 h-4 text-amber-600" /> : <UserCheck className="w-4 h-4 text-[#169374]" />}
+                    </Button>
+                    {confirmDeleteId === m.id ? (
+                      <div className="inline-flex items-center gap-1">
+                        <Button type="button" variant="destructive" size="sm" onClick={() => void handleDeleteMember(m)}>
+                          {tr('Так', 'Да')}
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => setConfirmDeleteId(null)}>
+                          {tr('Ні', 'Нет')}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConfirmDeleteId(m.id)}
+                        title={tr('Видалити', 'Удалить')}
+                        aria-label={`${tr('Видалити', 'Удалить')} ${m.name}`}
+                        className="hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -455,57 +504,58 @@ export function StaffTab({
           },
         }),
       ]),
-    [currentUser?.userId, isAdmin, workloadByLabel],
+    [currentUser?.userId, isAdmin, workloadByLabel, confirmDeleteId],
   );
 
   const table = useTable({
     features: staffTableFeatures,
     data: filteredStaff,
     columns,
-    state: { sorting },
+    state: { sorting, pagination },
     onSortingChange: setSorting,
+    onPaginationChange: setPagination,
   });
 
   const activeGoogleLoginCount = staff.filter((m) => m.active && m.canLogin && Boolean(m.email)).length;
   const activeCount = staff.filter((m) => m.active).length;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Усього користувачів', 'Всего пользователей')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">{staff.length}</div>
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('Усього користувачів', 'Всего пользователей')}</div>
+          <div className="font-mono text-3xl font-extrabold text-[#0d1f33] mt-1.5 tabular-nums leading-none">{staff.length}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Активні виконавці', 'Активные исполнители')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#169374] mt-1 tabular-nums">{activeCount}</div>
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('Активні виконавці', 'Активные исполнители')}</div>
+          <div className="font-mono text-3xl font-extrabold text-[#169374] mt-1.5 tabular-nums leading-none">{activeCount}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Прив’язані до Google Email', 'Привязаны к Google Email')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#1769aa] mt-1 tabular-nums">{activeGoogleLoginCount}</div>
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('Прив’язані до Google Email', 'Привязаны к Google Email')}</div>
+          <div className="font-mono text-3xl font-extrabold text-[#1769aa] mt-1.5 tabular-nums leading-none">{activeGoogleLoginCount}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] font-bold text-slate-500">{tr('Адміністратори', 'Администраторы')}</div>
-          <div className="font-mono text-2xl font-extrabold text-[#0d1f33] mt-1 tabular-nums">
+        <Card className="p-5">
+          <div className="text-sm font-bold text-slate-500">{tr('Адміністратори', 'Администраторы')}</div>
+          <div className="font-mono text-3xl font-extrabold text-[#0d1f33] mt-1.5 tabular-nums leading-none">
             {staff.filter((m) => m.role === 'admin' && m.active).length}
           </div>
         </Card>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={tr('Пошук за ім’ям, Email, посадою...', 'Поиск по имени, Email, должности...')}
-              className="pl-8 w-64"
+              className="pl-10 w-80"
               aria-label={tr('Пошук користувачів', 'Поиск пользователей')}
             />
           </div>
-          <div className="inline-flex flex-wrap p-1 bg-slate-200/70 rounded-lg">
+          <div className="inline-flex flex-wrap p-1 bg-slate-100 border border-slate-200 rounded-lg">
             {(
               [
                 ['all', tr('Усі')],
@@ -519,8 +569,8 @@ export function StaffTab({
                 key={r}
                 type="button"
                 onClick={() => setRoleFilter(r)}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold cursor-pointer ${
-                  roleFilter === r ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600'
+                className={`px-3.5 py-2 rounded-md text-sm font-bold cursor-pointer transition-colors ${
+                  roleFilter === r ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
                 {label}
@@ -529,24 +579,24 @@ export function StaffTab({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {selfMember && (
             <Button type="button" variant="outline" onClick={() => openEditModal(selfMember)}>
-              <Pencil className="w-3.5 h-3.5 text-[#1769aa]" />
+              <Pencil className="w-4 h-4 text-[#1769aa]" />
               {tr('Мій профіль', 'Мой профиль')}
             </Button>
           )}
           {isAdmin && (
             <Button type="button" variant="primary" onClick={openCreateModal}>
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
               {tr('Додати користувача', 'Добавить пользователя')}
             </Button>
           )}
         </div>
-      </div>
+      </Card>
 
       {actionMsg && (
-        <div className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#169374]">
+        <div className="px-5 py-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[15px] font-semibold text-[#169374]">
           {actionMsg}
         </div>
       )}
@@ -564,10 +614,10 @@ export function StaffTab({
                       <button
                         type="button"
                         onClick={header.column.getToggleSortingHandler()}
-                        className="inline-flex items-center gap-1 hover:text-[#0d1f33] cursor-pointer"
+                        className="inline-flex items-center gap-1.5 hover:text-[#0d1f33] cursor-pointer"
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        <ArrowUpDown className="w-3 h-3 opacity-50" />
+                        <SortDirectionIcon sorted={header.column.getIsSorted()} />
                       </button>
                     )}
                   </TableHead>
@@ -588,14 +638,27 @@ export function StaffTab({
           </TableBody>
         </Table>
         {filteredStaff.length === 0 && (
-          <div className="p-8 text-center text-xs text-slate-400">
+          <div className="p-12 text-center text-[15px] text-slate-400">
             {tr('Користувачів за вибраним фільтром не знайдено', 'Пользователи по выбранному фильтру не найдены')}
           </div>
         )}
+        <TablePagination
+          pageIndex={pagination.pageIndex}
+          pageSize={pagination.pageSize}
+          pageCount={table.getPageCount()}
+          totalRows={table.getRowCount()}
+          canPreviousPage={table.getCanPreviousPage()}
+          canNextPage={table.getCanNextPage()}
+          onPreviousPage={() => table.previousPage()}
+          onNextPage={() => table.nextPage()}
+          onPageIndexChange={(idx) => table.setPageIndex(idx)}
+          onPageSizeChange={(size) => table.setPageSize(size)}
+          pageSizeOptions={[15, 25, 50]}
+        />
       </Card>
 
-      <div className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
-        <Shield className="w-4 h-4 text-[#1769aa] shrink-0 mt-0.5" />
+      <div className="px-5 py-4 rounded-xl bg-white/95 border border-slate-200 text-sm text-slate-600 flex items-start gap-3">
+        <Shield className="w-4.5 h-4.5 text-[#1769aa] shrink-0 mt-0.5" />
         <div>
           <strong className="text-[#0d1f33]">{tr('Як працює вхід за Email:', 'Как работает вход по Email:')}</strong>{' '}
           {isAdmin
@@ -612,7 +675,7 @@ export function StaffTab({
 
       {/* Create / Edit Staff Account Dialog */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {editingMember
@@ -634,10 +697,10 @@ export function StaffTab({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveMember} className="p-5 space-y-3.5 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <form onSubmit={handleSaveMember} className="p-7 space-y-5 text-[15px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="staff-name" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="staff-name" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Ім’я та прізвище *', 'Имя и фамилия *')}
                 </label>
                 <Input
@@ -649,7 +712,7 @@ export function StaffTab({
                 />
               </div>
               <div>
-                <label htmlFor="staff-position" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="staff-position" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Посада *', 'Должность *')}
                 </label>
                 <Input
@@ -662,9 +725,9 @@ export function StaffTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="staff-email" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="staff-email" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Email (Google акаунт)', 'Email (Google аккаунт)')}
                   {fCanLogin && !editingIsMaster ? ' *' : ''}
                 </label>
@@ -680,7 +743,7 @@ export function StaffTab({
                 />
               </div>
               <div>
-                <label htmlFor="staff-phone" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="staff-phone" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Телефон')}
                 </label>
                 <Input
@@ -692,9 +755,9 @@ export function StaffTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="staff-role" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="staff-role" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Роль доступу', 'Роль доступа')}
                 </label>
                 <select
@@ -702,7 +765,7 @@ export function StaffTab({
                   value={fRole}
                   disabled={!isAdmin || editingIsMaster}
                   onChange={(e) => setFRole(e.target.value as StaffRole)}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold disabled:bg-slate-100 disabled:text-slate-500"
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold disabled:bg-slate-100 disabled:text-slate-500"
                 >
                   <option value="admin">{tr('Адміністратор (повний доступ)', 'Администратор (полный доступ)')}</option>
                   <option value="manager">{tr('Менеджер (угоди, задачі, каталог)', 'Менеджер (сделки, задачи, каталог)')}</option>
@@ -711,7 +774,7 @@ export function StaffTab({
                 </select>
               </div>
               <div>
-                <label htmlFor="staff-label" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="staff-label" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {tr('Мітка в задачах і воронці', 'Метка в задачах и воронке')}
                 </label>
                 <Input
@@ -727,7 +790,7 @@ export function StaffTab({
 
             {isAdmin && !editingIsMaster && (
               <div>
-                <label htmlFor="staff-password" className="block font-bold text-[#0d1f33] mb-1">
+                <label htmlFor="staff-password" className="block text-sm font-bold text-[#0d1f33] mb-2">
                   {editingMember?.hasPassword
                     ? tr('Новий пароль (опціонально, залиште порожнім щоб не змінювати)', 'Новый пароль (опционально, оставьте пустым чтобы не менять)')
                     : tr('Пароль для входу по Email (опціонально, мін. 6 символів)', 'Пароль для входа по Email (опционально, мин. 6 символов)')}
@@ -744,15 +807,15 @@ export function StaffTab({
               </div>
             )}
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-[15px]">
               {isAdmin && !editingIsMaster ? (
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-5">
                   <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={fActive}
                       onChange={(e) => setFActive(e.target.checked)}
-                      className="accent-[#169374]"
+                      className="w-4.5 h-4.5 accent-[#169374]"
                     />
                     {tr('Активний у списках відповідальних', 'Активен в списках ответственных')}
                   </label>
@@ -761,13 +824,13 @@ export function StaffTab({
                       type="checkbox"
                       checked={fCanLogin}
                       onChange={(e) => setFCanLogin(e.target.checked)}
-                      className="accent-[#1769aa]"
+                      className="w-4.5 h-4.5 accent-[#1769aa]"
                     />
                     {tr('Дозволити вхід у CRM за Email', 'Разрешить вход в CRM по Email')}
                   </label>
                 </div>
               ) : (
-                <div className="text-[11px] text-slate-500">
+                <div className="text-sm text-slate-500">
                   {editingIsMaster
                     ? tr(
                         'Майстер-акаунт admin може входити за паролем, заданим при налаштуванні, або за прив’язаним Google Email.',
@@ -782,12 +845,12 @@ export function StaffTab({
             </div>
 
             {formErr && (
-              <div className="text-xs font-bold text-red-600" role="alert">
+              <div className="text-[15px] font-bold text-red-600" role="alert">
                 {formErr}
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-3">
               <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                 {tr('Скасувати')}
               </Button>

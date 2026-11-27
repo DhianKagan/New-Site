@@ -329,57 +329,57 @@ export function DealOrderDetailsModal({
       aria-labelledby="deal-order-details-title"
     >
       <div
-        className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-2xl border border-slate-200 w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50 sticky top-0 z-10">
-          <div className="min-w-0 space-y-1.5">
+        <div className="px-7 py-5 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50 sticky top-0 z-10">
+          <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => void handleCopy(deal.dealNumber, 'deal')}
                 title={tr('Скопіювати номер', 'Скопировать номер')}
-                className="inline-flex items-center gap-1 font-mono text-xs font-extrabold text-[#1769aa] hover:text-[#12568c] cursor-pointer"
+                className="inline-flex items-center gap-1.5 font-mono text-[15px] font-extrabold text-[#1769aa] hover:text-[#12568c] cursor-pointer"
               >
                 <span>{deal.dealNumber}</span>
-                {copiedKey === 'deal' ? <Check className="w-3 h-3 text-[#169374]" /> : <Copy className="w-3 h-3 opacity-60" />}
+                {copiedKey === 'deal' ? <Check className="w-4 h-4 text-[#169374]" /> : <Copy className="w-4 h-4 opacity-60" />}
               </button>
 
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-bold ${
                   dealTypeInput === 'order' ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-[#1769aa]'
                 }`}
               >
-                {dealTypeInput === 'order' ? <ShoppingBag className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+                {dealTypeInput === 'order' ? <ShoppingBag className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
                 {dealTypeInput === 'order' ? tr('Замовлення', 'Заказ') : tr('Угода / Лід', 'Сделка / Лид')}
               </span>
 
               {stageInfo && (
-                <span className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-white border border-slate-200 ${stageInfo.colorClass}`}>
+                <span className={`px-3 py-1 rounded-md text-sm font-bold bg-white border border-slate-200 ${stageInfo.colorClass}`}>
                   {tr(stageInfo.label)}
                 </span>
               )}
 
               {deal.telegramSent && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 border border-emerald-200 text-[#169374]">
-                  <Send className="w-2.5 h-2.5" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-bold bg-emerald-50 border border-emerald-200 text-[#169374]">
+                  <Send className="w-3.5 h-3.5" />
                   Telegram
                 </span>
               )}
             </div>
 
-            <h3 id="deal-order-details-title" className="text-base font-extrabold text-[#0d1f33] leading-snug">
+            <h3 id="deal-order-details-title" className="text-xl font-extrabold text-[#0d1f33] leading-snug">
               {topicInput || deal.topic}
             </h3>
 
-            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
-              <span className="inline-flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+              <span className="inline-flex items-center gap-1.5 tabular-nums">
+                <Calendar className="w-4 h-4" />
                 {tr('Створено:', 'Создано:')} {new Date(deal.createdAt).toLocaleString('uk-UA')}
               </span>
               {deal.updatedAt !== deal.createdAt && (
-                <span>
+                <span className="tabular-nums">
                   {tr('Оновлено:', 'Обновлено:')} {new Date(deal.updatedAt).toLocaleString('uk-UA')}
                 </span>
               )}
@@ -391,73 +391,73 @@ export function DealOrderDetailsModal({
             disabled={saving}
             onClick={onClose}
             aria-label={tr('Закрити', 'Закрыть')}
-            className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] shrink-0 cursor-pointer"
+            className="w-10 h-10 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] shrink-0 cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5 text-xs">
+        <div className="p-7 space-y-6 text-[15px]">
           {/* Customer Contact & Main Info Card */}
-          <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-3">
+          <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-5 space-y-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h4 className="font-extrabold text-[#0d1f33] inline-flex items-center gap-1.5">
+              <h4 className="font-extrabold text-[#0d1f33] inline-flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-[#1769aa]" />
                 {tr('Контактні дані клієнта та параметри', 'Контактные данные клиента и параметры')}
               </h4>
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
                 {linkedContact && (
-                  <span className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[10.5px] font-bold text-slate-700 uppercase">
+                  <span className="px-2.5 py-1 rounded bg-white border border-slate-200 text-xs font-bold text-slate-700">
                     {linkedContact.segment}
                   </span>
                 )}
                 {linkedCustomer && (
-                  <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[10.5px] font-bold text-[#169374]">
+                  <span className="px-2.5 py-1 rounded bg-emerald-50 border border-emerald-200 text-xs font-bold text-[#169374]">
                     {tr('Кабінет клієнта', 'Кабинет клиента')}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => setEditingMeta((v) => !v)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-[11px] font-bold text-[#1769aa] cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-sm font-bold text-[#1769aa] cursor-pointer"
                 >
-                  <Pencil className="w-3 h-3" />
+                  <Pencil className="w-3.5 h-3.5" />
                   {editingMeta ? tr('Згорнути поля', 'Свернуть поля') : tr('Редагувати', 'Редактировать')}
                 </button>
               </div>
             </div>
 
             {editingMeta ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div className="sm:col-span-2 grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-200/60 border border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="sm:col-span-2 grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-slate-200/60 border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setDealTypeInput('lead')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-extrabold cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg font-extrabold cursor-pointer ${
                       dealTypeInput === 'lead'
                         ? 'bg-white text-[#1769aa] shadow-xs border border-sky-200'
                         : 'text-slate-600'
                     }`}
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-4 h-4" />
                     <span>{tr('Угода / Лід', 'Сделка / Лид')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDealTypeInput('order')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-extrabold cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg font-extrabold cursor-pointer ${
                       dealTypeInput === 'order'
                         ? 'bg-white text-[#0d1f33] shadow-xs border border-amber-300'
                         : 'text-slate-600'
                     }`}
                   >
-                    <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
+                    <ShoppingBag className="w-4 h-4 text-amber-600" />
                     <span>{tr('Замовлення обладнання', 'Заказ оборудования')}</span>
                   </button>
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label htmlFor="detail-deal-topic" className="block font-bold text-slate-600 mb-1">
+                  <label htmlFor="detail-deal-topic" className="block text-sm font-bold text-slate-600 mb-1.5">
                     {tr('Назва / Тема *', 'Название / Тема *')}
                   </label>
                   <input
@@ -465,12 +465,12 @@ export function DealOrderDetailsModal({
                     type="text"
                     value={topicInput}
                     onChange={(e) => setTopicInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-[#0d1f33]"
+                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="detail-deal-name" className="block font-bold text-slate-600 mb-1">
+                  <label htmlFor="detail-deal-name" className="block text-sm font-bold text-slate-600 mb-1.5">
                     {tr('Ім’я клієнта / Компанія *', 'Имя клиента / Компания *')}
                   </label>
                   <input
@@ -478,12 +478,12 @@ export function DealOrderDetailsModal({
                     type="text"
                     value={customerNameInput}
                     onChange={(e) => setCustomerNameInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-[#0d1f33]"
+                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="detail-deal-phone" className="block font-bold text-slate-600 mb-1">
+                  <label htmlFor="detail-deal-phone" className="block text-sm font-bold text-slate-600 mb-1.5">
                     {tr('Телефон *', 'Телефон *')}
                   </label>
                   <input
@@ -491,12 +491,12 @@ export function DealOrderDetailsModal({
                     type="tel"
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(formatUaPhone(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono font-semibold text-[#0d1f33]"
+                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-mono font-semibold text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="detail-deal-email" className="block font-bold text-slate-600 mb-1">
+                  <label htmlFor="detail-deal-email" className="block text-sm font-bold text-slate-600 mb-1.5">
                     Email
                   </label>
                   <input
@@ -505,12 +505,12 @@ export function DealOrderDetailsModal({
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="client@example.com"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-[#0d1f33]"
+                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="detail-deal-city" className="block font-bold text-slate-600 mb-1">
+                  <label htmlFor="detail-deal-city" className="block text-sm font-bold text-slate-600 mb-1.5">
                     {tr('Місто / Об’єкт', 'Город / Объект')}
                   </label>
                   <input
@@ -518,19 +518,19 @@ export function DealOrderDetailsModal({
                     type="text"
                     value={cityInput}
                     onChange={(e) => setCityInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white"
+                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px]"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="detail-deal-channel" className="block font-bold text-slate-600 mb-1">
+                  <label htmlFor="detail-deal-channel" className="block text-sm font-bold text-slate-600 mb-1.5">
                     {tr('Канал звернення', 'Канал обращения')}
                   </label>
                   <select
                     id="detail-deal-channel"
                     value={channelInput}
                     onChange={(e) => setChannelInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                   >
                     {DEAL_CHANNEL_OPTIONS.map((ch) => (
                       <option key={ch.value} value={ch.value}>
@@ -544,14 +544,14 @@ export function DealOrderDetailsModal({
                 </div>
 
                 <div>
-                  <label htmlFor="detail-deal-task-type" className="block font-bold text-slate-600 mb-1">
+                  <label htmlFor="detail-deal-task-type" className="block text-sm font-bold text-slate-600 mb-1.5">
                     {tr('Тип задачі / напрямок', 'Тип задачи / направление')}
                   </label>
                   <select
                     id="detail-deal-task-type"
                     value={taskTypeInput}
                     onChange={(e) => setTaskTypeInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                   >
                     {DEAL_TASK_PRESETS.map((preset) => (
                       <option key={preset.value} value={preset.value}>
@@ -565,40 +565,40 @@ export function DealOrderDetailsModal({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="bg-white rounded-lg border border-slate-200/80 p-3 space-y-1">
-                  <div className="text-[11px] text-slate-500">{tr('Клієнт')}</div>
-                  <div className="font-extrabold text-[#0d1f33] text-sm">{customerNameInput}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg border border-slate-200/80 p-4 space-y-1.5">
+                  <div className="text-sm text-slate-500">{tr('Клієнт')}</div>
+                  <div className="font-extrabold text-[#0d1f33] text-base">{customerNameInput}</div>
                   {contactCompany && contactCompany !== customerNameInput && (
-                    <div className="text-[11px] text-slate-600 inline-flex items-center gap-1">
-                      <Building2 className="w-3 h-3 text-slate-400" />
+                    <div className="text-sm text-slate-600 inline-flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
                       {contactCompany}
                     </div>
                   )}
                   {typeof linkedContact?.dealsCount === 'number' && linkedContact.dealsCount > 1 && (
-                    <div className="text-[11px] text-[#1769aa] font-semibold">
+                    <div className="text-sm text-[#1769aa] font-semibold">
                       {tr('Усього угод з клієнтом:', 'Всего сделок с клиентом:')} {linkedContact.dealsCount}
                     </div>
                   )}
                 </div>
 
-                <div className="bg-white rounded-lg border border-slate-200/80 p-3 space-y-1.5">
-                  <div className="text-[11px] text-slate-500">{tr('Телефон та Email', 'Телефон и Email')}</div>
+                <div className="bg-white rounded-lg border border-slate-200/80 p-4 space-y-2">
+                  <div className="text-sm text-slate-500">{tr('Телефон та Email', 'Телефон и Email')}</div>
                   <div className="flex items-center justify-between gap-2">
                     <a
                       href={`tel:${phoneInput.replace(/[^\d+]/g, '')}`}
                       className="inline-flex items-center gap-1.5 font-mono font-bold text-[#1769aa] hover:underline"
                     >
-                      <Phone className="w-3.5 h-3.5" />
+                      <Phone className="w-4 h-4" />
                       {phoneInput || deal.phone}
                     </a>
                     <button
                       type="button"
                       onClick={() => void handleCopy(phoneInput || deal.phone, 'phone')}
                       title={tr('Скопіювати телефон', 'Скопировать телефон')}
-                      className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-[#0d1f33] cursor-pointer"
+                      className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-[#0d1f33] cursor-pointer"
                     >
-                      {copiedKey === 'phone' ? <Check className="w-3.5 h-3.5 text-[#169374]" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedKey === 'phone' ? <Check className="w-4 h-4 text-[#169374]" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
                   {emailInput ? (
@@ -606,29 +606,29 @@ export function DealOrderDetailsModal({
                       href={`mailto:${emailInput}`}
                       className="inline-flex items-center gap-1.5 text-slate-700 hover:text-[#1769aa] hover:underline break-all"
                     >
-                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                       {emailInput}
                     </a>
                   ) : (
-                    <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
-                      <Mail className="w-3.5 h-3.5 shrink-0" />
+                    <div className="inline-flex items-center gap-1.5 text-sm text-slate-400">
+                      <Mail className="w-4 h-4 shrink-0" />
                       {tr('Email не вказано', 'Email не указан')}
                     </div>
                   )}
                 </div>
 
-                <div className="bg-white rounded-lg border border-slate-200/80 p-3 flex items-center gap-2.5">
+                <div className="bg-white rounded-lg border border-slate-200/80 p-4 flex items-center gap-3">
                   <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                   <div>
-                    <div className="text-[11px] text-slate-500">{tr('Місто / Об’єкт')}</div>
+                    <div className="text-sm text-slate-500">{tr('Місто / Об’єкт')}</div>
                     <div className="font-semibold text-[#0d1f33]">{cityInput || 'Одеса'}</div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg border border-slate-200/80 p-3 flex items-center gap-2.5">
+                <div className="bg-white rounded-lg border border-slate-200/80 p-4 flex items-center gap-3">
                   <MessageSquare className="w-4 h-4 text-slate-400 shrink-0" />
                   <div>
-                    <div className="text-[11px] text-slate-500">{tr('Канал зв’язку та тип', 'Канал связи и тип')}</div>
+                    <div className="text-sm text-slate-500">{tr('Канал зв’язку та тип', 'Канал связи и тип')}</div>
                     <div className="font-semibold text-[#0d1f33]">
                       {channelInput}
                       {taskTypeInput ? ` · ${taskTypeInput}` : ''}
@@ -641,35 +641,35 @@ export function DealOrderDetailsModal({
 
           {/* Ordered Items Breakdown & Editor (unified for orders and leads) */}
           <section className="rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-              <h4 className="font-extrabold text-[#0d1f33] inline-flex items-center gap-1.5">
+            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="font-extrabold text-[#0d1f33] inline-flex items-center gap-2">
                 <Package className="w-4 h-4 text-[#1769aa]" />
                 {dealTypeInput === 'order'
                   ? tr('Склад замовлення та розбивка товарів', 'Состав заказа и разбивка товаров')
                   : tr('Обладнання з каталогу по угоді', 'Оборудование из каталога по сделке')}
               </h4>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 {itemsInput.length > 0 && (
-                  <span className="font-mono text-[11px] font-bold text-slate-600 tabular-nums">
+                  <span className="font-mono text-sm font-bold text-slate-600 tabular-nums">
                     {itemsInput.length} {tr('поз.', 'поз.')} · {totalUnits} {tr('шт.', 'шт.')}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => setEditingItems((v) => !v)}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-[11px] font-bold text-[#1769aa] cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-sm font-bold text-[#1769aa] cursor-pointer"
                 >
-                  <PackagePlus className="w-3 h-3" />
+                  <PackagePlus className="w-3.5 h-3.5" />
                   {editingItems ? tr('Готово', 'Готово') : tr('Змінити склад', 'Изменить состав')}
                 </button>
               </div>
             </div>
 
             {editingItems && (
-              <div className="p-3.5 bg-slate-50/70 border-b border-slate-200 space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
+              <div className="p-4 bg-slate-50/70 border-b border-slate-200 space-y-3">
+                <div className="flex items-center justify-between gap-3">
                   <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="search"
                       value={productQuery}
@@ -679,13 +679,13 @@ export function DealOrderDetailsModal({
                         setShowProductCatalog(true);
                       }}
                       placeholder={tr('Додати товар за назвою, брендом або SKU...', 'Добавить товар по названию, бренду или SKU...')}
-                      className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                      className="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 bg-white text-[15px]"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowProductCatalog((v) => !v)}
-                    className="text-[11px] font-bold text-[#1769aa] hover:underline whitespace-nowrap cursor-pointer"
+                    className="text-sm font-bold text-[#1769aa] hover:underline whitespace-nowrap cursor-pointer"
                   >
                     {showProductCatalog ? <ChevronUp className="w-4 h-4 inline" /> : <ChevronDown className="w-4 h-4 inline" />}
                     {' '}
@@ -694,9 +694,9 @@ export function DealOrderDetailsModal({
                 </div>
 
                 {(showProductCatalog || productQuery.trim().length > 0) && (
-                  <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                  <div className="max-h-52 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
                     {matchingProducts.length === 0 ? (
-                      <div className="p-3 text-center text-slate-500">
+                      <div className="p-4 text-center text-slate-500">
                         {tr('Нічого не знайдено за цим запитом', 'Ничего не найдено по этому запросу')}
                       </div>
                     ) : (
@@ -705,15 +705,15 @@ export function DealOrderDetailsModal({
                           key={p.id}
                           type="button"
                           onClick={() => addCatalogItem(p)}
-                          className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-sky-50/70 cursor-pointer"
+                          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 text-left hover:bg-sky-50/70 cursor-pointer"
                         >
                           <div className="min-w-0">
                             <div className="font-semibold text-[#0d1f33] truncate">{localizeCatalogText(p.title)}</div>
-                            <div className="text-[11px] text-slate-500">
+                            <div className="text-sm text-slate-500">
                               SKU {p.sku} · {p.brand}
                             </div>
                           </div>
-                          <span className="font-mono font-bold text-[#1769aa] shrink-0">
+                          <span className="font-mono font-bold text-[#1769aa] shrink-0 tabular-nums">
                             +${p.price.toLocaleString('uk-UA')}
                           </span>
                         </button>
@@ -725,7 +725,7 @@ export function DealOrderDetailsModal({
             )}
 
             {itemsInput.length === 0 ? (
-              <div className="p-4 text-slate-500 text-center bg-white">
+              <div className="p-5 text-slate-500 text-center bg-white">
                 {tr(
                   'Позиції з каталогу не додані (розрахунок ведеться за погодженою сумою).',
                   'Позиции из каталога не добавлены (расчёт ведётся по согласованной сумме).',
@@ -738,9 +738,9 @@ export function DealOrderDetailsModal({
                     const prod = productMap.get(item.productId);
                     const lineTotal = item.price * item.qty;
                     return (
-                      <div key={item.productId} className="p-3.5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-11 h-11 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center">
+                      <div key={item.productId} className="p-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center">
                             {prod?.img ? (
                               <SmartImage
                                 src={prod.img}
@@ -748,14 +748,14 @@ export function DealOrderDetailsModal({
                                 className="w-full h-full object-contain"
                               />
                             ) : (
-                              <Package className="w-4 h-4 text-slate-400" />
+                              <Package className="w-5 h-5 text-slate-400" />
                             )}
                           </div>
                           <div className="min-w-0">
                             <div className="font-bold text-[#0d1f33] leading-snug">
                               {localizeCatalogText(item.title)}
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-500">
                               <span className="font-mono">SKU {item.sku}</span>
                               {prod?.brand && <span>· {prod.brand}</span>}
                               {prod && (
@@ -768,14 +768,14 @@ export function DealOrderDetailsModal({
                         </div>
 
                         {editingItems ? (
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-2.5 shrink-0">
                             <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50">
                               <button
                                 type="button"
                                 onClick={() => updateItemQty(item.productId, item.qty - 1)}
-                                className="p-1 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
+                                className="p-2 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
                               >
-                                <Minus className="w-3 h-3" />
+                                <Minus className="w-3.5 h-3.5" />
                               </button>
                               <input
                                 type="number"
@@ -783,26 +783,26 @@ export function DealOrderDetailsModal({
                                 max={99}
                                 value={item.qty}
                                 onChange={(e) => updateItemQty(item.productId, Number(e.target.value) || 1)}
-                                className="w-9 text-center font-mono font-bold text-xs bg-transparent focus:outline-none"
+                                className="w-11 text-center font-mono font-bold text-sm bg-transparent focus:outline-none"
                               />
                               <button
                                 type="button"
                                 onClick={() => updateItemQty(item.productId, item.qty + 1)}
-                                className="p-1 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
+                                className="p-2 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
                               >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                            <span className="font-mono font-bold text-[#0d1f33] w-16 text-right tabular-nums">
+                            <span className="font-mono font-bold text-[#0d1f33] w-20 text-right tabular-nums">
                               ${lineTotal.toLocaleString('uk-UA')}
                             </span>
                             <button
                               type="button"
                               onClick={() => updateItemQty(item.productId, 0)}
                               aria-label={tr('Видалити позицію', 'Удалить позицию')}
-                              className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         ) : (
@@ -810,7 +810,7 @@ export function DealOrderDetailsModal({
                             <div className="font-mono font-extrabold text-[#0d1f33] tabular-nums">
                               ${lineTotal.toLocaleString('uk-UA')}
                             </div>
-                            <div className="font-mono text-[11px] text-slate-500 tabular-nums">
+                            <div className="font-mono text-sm text-slate-500 tabular-nums">
                               {item.qty} × ${item.price.toLocaleString('uk-UA')}
                             </div>
                           </div>
@@ -820,10 +820,10 @@ export function DealOrderDetailsModal({
                   })}
                 </div>
 
-                <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 space-y-1">
+                <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between text-slate-600">
                     <span>{tr('Сума за позиціями каталогу', 'Сумма по позициям каталога')}</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <span className="font-mono font-bold tabular-nums">
                         ${itemsSubtotalUsd.toLocaleString('uk-UA')}
                       </span>
@@ -831,7 +831,7 @@ export function DealOrderDetailsModal({
                         <button
                           type="button"
                           onClick={() => setTotalInput(String(itemsSubtotalUsd))}
-                          className="text-[10.5px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                          className="text-sm font-bold text-[#1769aa] hover:underline cursor-pointer"
                         >
                           {tr('Застосувати до суми', 'Применить к сумме')}
                         </button>
@@ -847,7 +847,7 @@ export function DealOrderDetailsModal({
                       </span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-sm font-extrabold text-[#0d1f33] pt-1 border-t border-slate-200/70">
+                  <div className="flex items-center justify-between text-base font-extrabold text-[#0d1f33] pt-2 border-t border-slate-200/70">
                     <span>{tr('Разом до оплати', 'Итого к оплате')}</span>
                     <span className="font-mono text-[#169374] tabular-nums">
                       ${parsedTotal.toLocaleString('uk-UA')}
@@ -859,25 +859,25 @@ export function DealOrderDetailsModal({
           </section>
 
           {/* Critical Loads (unified view & edit) */}
-          <section className="rounded-xl border border-slate-200 p-3.5 bg-slate-50/60 space-y-2.5">
+          <section className="rounded-xl border border-slate-200 p-4 bg-slate-50/60 space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-bold text-[#0d1f33] inline-flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-[#1769aa]" />
+              <div className="font-bold text-[#0d1f33] inline-flex items-center gap-2">
+                <Zap className="w-4 h-4 text-[#1769aa]" />
                 {tr('Критичні прилади')}
               </div>
               <button
                 type="button"
                 onClick={() => setEditingLoads((v) => !v)}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-[11px] font-bold text-[#1769aa] cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-sm font-bold text-[#1769aa] cursor-pointer"
               >
-                <Pencil className="w-3 h-3" />
+                <Pencil className="w-3.5 h-3.5" />
                 {editingLoads ? tr('Готово', 'Готово') : tr('Змінити', 'Изменить')}
               </button>
             </div>
 
             {editingLoads ? (
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
                   {CRITICAL_LOAD_PRESETS.map((preset) => {
                     const selected = loadsInput.includes(preset.value);
                     return (
@@ -885,7 +885,7 @@ export function DealOrderDetailsModal({
                         key={preset.value}
                         type="button"
                         onClick={() => toggleLoad(preset.value)}
-                        className={`px-2.5 py-1 rounded-md border font-semibold transition-colors cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg border text-sm font-semibold transition-colors cursor-pointer ${
                           selected
                             ? 'bg-[#1769aa] border-[#1769aa] text-white'
                             : 'bg-white border-slate-200 text-[#0d1f33] hover:border-[#1769aa]'
@@ -902,10 +902,10 @@ export function DealOrderDetailsModal({
                         key={custom}
                         type="button"
                         onClick={() => toggleLoad(custom)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#1769aa] border border-[#1769aa] text-white font-semibold cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1769aa] border border-[#1769aa] text-white text-sm font-semibold cursor-pointer"
                       >
                         <span>{custom}</span>
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     ))}
                 </div>
@@ -921,30 +921,30 @@ export function DealOrderDetailsModal({
                       }
                     }}
                     placeholder={tr('Свій прилад (напр. Тепловий насос)', 'Свой прибор (напр. Тепловой насос)')}
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                    className="flex-1 h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px]"
                   />
                   <button
                     type="button"
                     onClick={handleAddCustomLoad}
-                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-bold text-[#0d1f33] cursor-pointer"
+                    className="h-11 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer"
                   >
                     + {tr('Додати', 'Добавить')}
                   </button>
                 </div>
               </div>
             ) : loadsInput.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {loadsInput.map((load) => (
                   <span
                     key={load}
-                    className="px-2.5 py-1 rounded-md bg-white border border-slate-200 text-[#0d1f33] font-semibold"
+                    className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm text-[#0d1f33] font-semibold"
                   >
                     {load}
                   </span>
                 ))}
               </div>
             ) : (
-              <div className="text-[11px] text-slate-400">
+              <div className="text-sm text-slate-400">
                 {tr('Критичні прилади не вказані — натисніть «Змінити», щоб додати.', 'Критические приборы не указаны — нажмите «Изменить», чтобы добавить.')}
               </div>
             )}
@@ -952,21 +952,21 @@ export function DealOrderDetailsModal({
 
           {/* Linked Tasks Preview */}
           {dealTasks.length > 0 && (
-            <section className="rounded-xl border border-slate-200 p-3.5 bg-slate-50/60 space-y-2">
-              <div className="font-bold text-slate-600 inline-flex items-center gap-1.5">
-                <CheckSquare className="w-3.5 h-3.5 text-[#1769aa]" />
+            <section className="rounded-xl border border-slate-200 p-4 bg-slate-50/60 space-y-2.5">
+              <div className="font-bold text-slate-600 inline-flex items-center gap-2">
+                <CheckSquare className="w-4 h-4 text-[#1769aa]" />
                 {tr('Пов’язані задачі', 'Связанные задачи')} ({dealTasks.length})
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {dealTasks.map((t) => (
                   <div
                     key={t.id}
-                    className="px-3 py-2 rounded-lg bg-white border border-slate-200/80 flex items-center justify-between gap-2"
+                    className="px-3.5 py-2.5 rounded-lg bg-white border border-slate-200/80 flex items-center justify-between gap-2"
                   >
                     <span className={t.status === 'done' ? 'line-through text-slate-400' : 'font-semibold text-[#0d1f33]'}>
                       {t.title}
                     </span>
-                    <span className="text-[11px] text-slate-500 whitespace-nowrap">
+                    <span className="text-sm text-slate-500 whitespace-nowrap tabular-nums">
                       {t.assignee}
                       {t.dueDate ? ` · ${t.dueDate}` : ''}
                     </span>
@@ -977,10 +977,10 @@ export function DealOrderDetailsModal({
           )}
 
           {/* Stage, Assignee, Budget & Notes Management */}
-          <section className="space-y-3.5 pt-1 border-t border-slate-200">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <section className="space-y-4 pt-2 border-t border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="detail-deal-stage" className="block font-bold text-slate-600 mb-1">
+                <label htmlFor="detail-deal-stage" className="block text-sm font-bold text-slate-600 mb-1.5">
                   {tr('Етап воронки')}
                 </label>
                 <select
@@ -988,7 +988,7 @@ export function DealOrderDetailsModal({
                   value={deal.stage}
                   disabled={saving}
                   onChange={(e) => void onPatchDeal(deal.id, { stage: e.target.value as DealStage })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                 >
                   {stages.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -998,7 +998,7 @@ export function DealOrderDetailsModal({
                 </select>
               </div>
               <div>
-                <label htmlFor="detail-deal-assignee" className="block font-bold text-slate-600 mb-1">
+                <label htmlFor="detail-deal-assignee" className="block text-sm font-bold text-slate-600 mb-1.5">
                   {tr('Відповідальний')}
                 </label>
                 <select
@@ -1006,7 +1006,7 @@ export function DealOrderDetailsModal({
                   value={deal.assignee}
                   disabled={saving}
                   onChange={(e) => void onPatchDeal(deal.id, { assignee: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                 >
                   {assignees.map((a) => (
                     <option key={a} value={a}>
@@ -1021,7 +1021,7 @@ export function DealOrderDetailsModal({
             </div>
 
             <div>
-              <label htmlFor="detail-deal-total" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="detail-deal-total" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Бюджет / Сума угоди (USD)')}
               </label>
               <input
@@ -1030,12 +1030,12 @@ export function DealOrderDetailsModal({
                 min="0"
                 value={totalInput}
                 onChange={(e) => setTotalInput(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-bold"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono font-bold text-[15px]"
               />
             </div>
 
             <div>
-              <label htmlFor="detail-deal-notes" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="detail-deal-notes" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Нотатки інженера / менеджера')}
               </label>
               <textarea
@@ -1044,21 +1044,21 @@ export function DealOrderDetailsModal({
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
                 placeholder={tr('Додайте нотатку по об’єкту...')}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 text-[15px]"
               />
             </div>
           </section>
 
           {validationErr && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm font-semibold text-red-700">
               {validationErr}
             </div>
           )}
 
           {/* Footer Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
-            <div className="inline-flex items-center gap-1.5 text-slate-500">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#169374]" />
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
+            <div className="inline-flex items-center gap-2 text-sm text-slate-500">
+              <CheckCircle2 className="w-4 h-4 text-[#169374]" />
               <span>
                 {saving
                   ? tr('Зберігаємо зміни...', 'Сохраняем изменения...')
@@ -1068,33 +1068,33 @@ export function DealOrderDetailsModal({
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               {hasUnsavedChanges && (
                 <button
                   type="button"
                   disabled={saving}
                   onClick={() => void handleSaveDetails()}
-                  className="px-3.5 py-1.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white font-bold cursor-pointer disabled:opacity-60"
+                  className="h-11 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[15px] font-bold cursor-pointer disabled:opacity-60"
                 >
                   {tr('Зберегти зміни', 'Сохранить изменения')}
                 </button>
               )}
 
               {confirmDelete ? (
-                <div className="inline-flex items-center gap-2">
+                <div className="inline-flex items-center gap-2.5">
                   <button
                     type="button"
                     disabled={saving}
                     onClick={() => void onDeleteDeal(deal.id)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer"
+                    className="h-11 inline-flex items-center gap-2 px-5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[15px] font-bold cursor-pointer"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                     {tr('Підтвердити видалення', 'Подтвердить удаление')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(false)}
-                    className="text-slate-500 font-semibold hover:underline cursor-pointer"
+                    className="text-slate-600 text-[15px] font-semibold hover:underline cursor-pointer"
                   >
                     {tr('Скасувати')}
                   </button>
@@ -1103,9 +1103,9 @@ export function DealOrderDetailsModal({
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(true)}
-                  className="inline-flex items-center gap-1 text-red-600 font-bold hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-red-600 text-[15px] font-bold hover:underline cursor-pointer"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                   {tr('Видалити угоду')}
                 </button>
               )}

@@ -23,6 +23,12 @@ interface CreateDealModalProps {
   open: boolean;
   initialType: DealType;
   initialStage?: DealStage;
+  initialClient?: {
+    customerName: string;
+    phone: string;
+    city: string;
+    customerEmail: string;
+  } | null;
   stages: Array<{ id: DealStage; label: string; colorClass: string }>;
   products: Product[];
   contacts: Contact[];
@@ -53,6 +59,7 @@ export function CreateDealModal({
   open,
   initialType,
   initialStage,
+  initialClient,
   stages,
   products,
   contacts,
@@ -119,10 +126,10 @@ export function CreateDealModal({
     setSelectedClientKey('');
     setLinkedContactId(null);
     setLinkedCustomerId(null);
-    setCustomerName('');
-    setPhone('');
-    setCustomerEmail('');
-    setCity('Одеса');
+    setCustomerName(initialClient?.customerName || '');
+    setPhone(initialClient?.phone ? formatUaPhone(initialClient.phone) : '');
+    setCustomerEmail(initialClient?.customerEmail || '');
+    setCity(initialClient?.city || 'Одеса');
     setChannel('CRM (вручну)');
     setTopic('');
     setTaskType(initialType === 'order' ? DEFAULT_ORDER_TASK_TYPE : DEFAULT_LEAD_TASK_TYPE);
@@ -139,7 +146,7 @@ export function CreateDealModal({
     setSendTelegram(false);
     setSaving(false);
     setErr('');
-  }, [open, initialType, initialStage, creatableStages, assignees, defaultAssignee]);
+  }, [open, initialType, initialStage, initialClient, creatableStages, assignees, defaultAssignee]);
 
   useEffect(() => {
     if (!open) return;
@@ -369,16 +376,16 @@ export function CreateDealModal({
       aria-labelledby="create-deal-modal-title"
     >
       <div
-        className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-2xl border border-slate-200 w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
+        <div className="px-7 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
           <div>
-            <div className="font-mono text-[11px] font-bold text-[#1769aa]">
+            <div className="font-mono text-sm font-bold text-[#1769aa]">
               {tr('Новий запис у CRM · Energo Comfort', 'Новая запись в CRM · Energo Comfort')}
             </div>
-            <h3 id="create-deal-modal-title" className="text-base font-extrabold text-[#0d1f33]">
+            <h3 id="create-deal-modal-title" className="text-xl font-extrabold text-[#0d1f33] mt-0.5">
               {dealType === 'order'
                 ? tr('Створити замовлення обладнання', 'Создать заказ оборудования')
                 : tr('Створити нову угоду (лід)', 'Создать новую сделку (лид)')}
@@ -389,19 +396,19 @@ export function CreateDealModal({
             disabled={saving}
             onClick={onClose}
             aria-label={tr('Закрити', 'Закрыть')}
-            className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] cursor-pointer"
+            className="w-10 h-10 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs">
+        <form onSubmit={handleSubmit} className="p-7 space-y-6 text-[15px]">
           {/* Type Switcher */}
-          <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
+          <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-slate-100 border border-slate-200">
             <button
               type="button"
               onClick={() => handleSwitchType('lead')}
-              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-extrabold transition-all cursor-pointer ${
                 dealType === 'lead'
                   ? 'bg-white text-[#1769aa] shadow-xs border border-sky-200'
                   : 'text-slate-600 hover:text-[#0d1f33]'
@@ -413,7 +420,7 @@ export function CreateDealModal({
             <button
               type="button"
               onClick={() => handleSwitchType('order')}
-              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg font-extrabold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-extrabold transition-all cursor-pointer ${
                 dealType === 'order'
                   ? 'bg-white text-[#0d1f33] shadow-xs border border-amber-300'
                   : 'text-slate-600 hover:text-[#0d1f33]'
@@ -426,17 +433,17 @@ export function CreateDealModal({
 
           {/* Existing Client Quick Picker */}
           {clientOptions.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
               <div className="flex items-center justify-between gap-2">
-                <label htmlFor="crm-existing-client" className="font-bold text-slate-700 inline-flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5 text-[#1769aa]" />
+                <label htmlFor="crm-existing-client" className="text-sm font-bold text-slate-700 inline-flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-[#1769aa]" />
                   {tr('Обрати існуючого клієнта з бази (необов’язково)', 'Выбрать существующего клиента из базы (необязательно)')}
                 </label>
                 {selectedClientKey && (
                   <button
                     type="button"
                     onClick={() => handleSelectExistingClient('')}
-                    className="text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                    className="text-sm font-bold text-[#1769aa] hover:underline cursor-pointer"
                   >
                     {tr('Очистити вибір', 'Сбросить выбор')}
                   </button>
@@ -446,7 +453,7 @@ export function CreateDealModal({
                 id="crm-existing-client"
                 value={selectedClientKey}
                 onChange={(e) => handleSelectExistingClient(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
               >
                 <option value="">
                   {tr('— Новий клієнт (ввести вручну нижче) —', '— Новый клиент (ввести вручную ниже) —')}
@@ -461,9 +468,9 @@ export function CreateDealModal({
           )}
 
           {/* Client Info (Unified across leads & orders) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="crm-deal-customer-name" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-customer-name" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Ім’я клієнта / Компанія *', 'Имя клиента / Компания *')}
               </label>
               <input
@@ -473,12 +480,12 @@ export function CreateDealModal({
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder={tr('Наприклад, Ігор Мельник або ТОВ «Енерго»', 'Например, Игорь Мельник или ООО «Энерго»')}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-semibold text-[15px] text-[#0d1f33]"
               />
             </div>
 
             <div>
-              <label htmlFor="crm-deal-phone" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-phone" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Телефон *', 'Телефон *')}
               </label>
               <input
@@ -488,12 +495,12 @@ export function CreateDealModal({
                 value={phone}
                 onChange={(e) => setPhone(formatUaPhone(e.target.value))}
                 placeholder="+380 50 777 71 72"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-semibold text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono font-semibold text-[15px] text-[#0d1f33]"
               />
             </div>
 
             <div>
-              <label htmlFor="crm-deal-email" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-email" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Email клієнта (необов’язково)', 'Email клиента (необязательно)')}
               </label>
               <input
@@ -502,12 +509,12 @@ export function CreateDealModal({
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="client@example.com"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] text-[#0d1f33]"
               />
             </div>
 
             <div>
-              <label htmlFor="crm-deal-city" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-city" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Місто / Об’єкт', 'Город / Объект')}
               </label>
               <input
@@ -516,19 +523,19 @@ export function CreateDealModal({
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder={tr('Одеса, Таїрова', 'Одесса, Таирова')}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px]"
               />
             </div>
 
             <div>
-              <label htmlFor="crm-deal-channel" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-channel" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Канал звернення', 'Канал обращения')}
               </label>
               <select
                 id="crm-deal-channel"
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
               >
                 {DEAL_CHANNEL_OPTIONS.map((ch) => (
                   <option key={ch.value} value={ch.value}>
@@ -539,14 +546,14 @@ export function CreateDealModal({
             </div>
 
             <div>
-              <label htmlFor="crm-deal-stage" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-stage" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Етап воронки', 'Этап воронки')}
               </label>
               <select
                 id="crm-deal-stage"
                 value={stage}
                 onChange={(e) => setStage(e.target.value as DealStage)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
               >
                 {creatableStages.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -557,14 +564,14 @@ export function CreateDealModal({
             </div>
 
             <div>
-              <label htmlFor="crm-deal-assignee" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-assignee" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Відповідальний менеджер / інженер', 'Ответственный менеджер / инженер')}
               </label>
               <select
                 id="crm-deal-assignee"
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
               >
                 {assignees.map((a) => (
                   <option key={a} value={a}>
@@ -576,14 +583,14 @@ export function CreateDealModal({
             </div>
 
             <div>
-              <label htmlFor="crm-deal-task-type" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-task-type" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Тип задачі / напрямок', 'Тип задачи / направление')}
               </label>
               <select
                 id="crm-deal-task-type"
                 value={taskType}
                 onChange={(e) => setTaskType(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
               >
                 {DEAL_TASK_PRESETS.map((preset) => (
                   <option key={preset.value} value={preset.value}>
@@ -597,7 +604,7 @@ export function CreateDealModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="crm-deal-topic" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-topic" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {dealType === 'lead'
                   ? tr('Назва / Тема угоди *', 'Название / Тема сделки *')
                   : tr('Назва замовлення (необов’язково)', 'Название заказа (необязательно)')}
@@ -614,13 +621,13 @@ export function CreateDealModal({
                       ? tr(`Замовлення обладнання (${orderItems.length} поз.)`, `Заказ оборудования (${orderItems.length} поз.)`)
                       : tr('Наприклад, Комплект інвертор + АКБ зі складу', 'Например, Комплект инвертор + АКБ со склада')
                 }
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-semibold text-[15px] text-[#0d1f33]"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <label htmlFor="crm-deal-total" className="font-bold text-slate-600">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <label htmlFor="crm-deal-total" className="text-sm font-bold text-slate-600">
                   {dealType === 'order'
                     ? tr('Підсумкова сума (USD)', 'Итоговая сумма (USD)')
                     : tr('Орієнтовний бюджет / Сума угоди (USD)', 'Ориентировочный бюджет / Сумма сделки (USD)')}
@@ -632,7 +639,7 @@ export function CreateDealModal({
                       setTotalEditedManually(false);
                       setManualTotal(String(catalogSubtotalUsd));
                     }}
-                    className="text-[10.5px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                    className="text-sm font-bold text-[#1769aa] hover:underline cursor-pointer"
                   >
                     {tr(`За каталогом ($${catalogSubtotalUsd})`, `По каталогу ($${catalogSubtotalUsd})`)}
                   </button>
@@ -649,7 +656,7 @@ export function CreateDealModal({
                   setManualTotal(e.target.value);
                 }}
                 placeholder={catalogSubtotalUsd > 0 ? String(catalogSubtotalUsd) : '3500'}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-bold text-[#0d1f33]"
+                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono font-bold text-[15px] text-[#0d1f33]"
               />
             </div>
           </div>
@@ -659,18 +666,18 @@ export function CreateDealModal({
             <button
               type="button"
               onClick={() => setShowItemsForLead(true)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 text-[#1769aa] font-bold flex items-center justify-between cursor-pointer transition-colors"
+              className="w-full px-4 py-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 text-[#1769aa] font-bold flex items-center justify-between cursor-pointer transition-colors"
             >
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-2">
                 <PackagePlus className="w-4 h-4" />
                 {tr('Додати обладнання з каталогу до угоди (необов’язково)', 'Добавить оборудование из каталога к сделке (необязательно)')}
               </span>
               <ChevronDown className="w-4 h-4" />
             </button>
           ) : (
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-bold text-[#0d1f33] inline-flex items-center gap-1.5">
+                <span className="font-bold text-[#0d1f33] inline-flex items-center gap-2">
                   <PackagePlus className="w-4 h-4 text-[#1769aa]" />
                   {tr('Товари з каталогу', 'Товары из каталога')} ({products.length})
                 </span>
@@ -678,7 +685,7 @@ export function CreateDealModal({
                   <button
                     type="button"
                     onClick={() => setShowProductCatalog((v) => !v)}
-                    className="text-[11px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                    className="text-sm font-bold text-[#1769aa] hover:underline cursor-pointer"
                   >
                     {showProductCatalog
                       ? tr('Приховати підбір', 'Скрыть подбор')
@@ -688,9 +695,9 @@ export function CreateDealModal({
                     <button
                       type="button"
                       onClick={() => setShowItemsForLead(false)}
-                      className="text-[11px] text-slate-500 hover:text-[#0d1f33] inline-flex items-center gap-0.5 cursor-pointer"
+                      className="text-sm text-slate-500 hover:text-[#0d1f33] inline-flex items-center gap-1 cursor-pointer"
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <ChevronUp className="w-4 h-4" />
                       {tr('Згорнути', 'Свернуть')}
                     </button>
                   )}
@@ -698,7 +705,7 @@ export function CreateDealModal({
               </div>
 
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="search"
                   value={productQuery}
@@ -708,14 +715,14 @@ export function CreateDealModal({
                     setShowProductCatalog(true);
                   }}
                   placeholder={tr('Пошук за моделлю, потужністю або SKU (напр. Deye, 10018)...', 'Поиск по модели, мощности или SKU (напр. Deye, 10018)...')}
-                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 bg-white text-xs"
+                  className="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 bg-white text-[15px]"
                 />
               </div>
 
               {(showProductCatalog || productQuery.trim().length > 0) && (
-                <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
                   {matchingProducts.length === 0 ? (
-                    <div className="p-3 text-center text-slate-500">
+                    <div className="p-4 text-center text-slate-500">
                       {tr('Нічого не знайдено за цим запитом', 'Ничего не найдено по этому запросу')}
                     </div>
                   ) : (
@@ -724,25 +731,25 @@ export function CreateDealModal({
                         key={p.id}
                         type="button"
                         onClick={() => addProductToOrder(p)}
-                        className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-sky-50/70 transition-colors cursor-pointer"
+                        className="w-full px-4 py-2.5 flex items-center justify-between gap-2 text-left hover:bg-sky-50/70 transition-colors cursor-pointer"
                       >
                         <div className="min-w-0">
                           <div className="font-semibold text-[#0d1f33] truncate">
                             {localizeCatalogText(p.title)}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-sm text-slate-500">
                             SKU {p.sku} · {p.brand} ·{' '}
                             <span className={p.inStock ? 'text-[#169374] font-semibold' : 'text-amber-700'}>
                               {p.inStock ? tr('в наявності', 'в наличии') : tr('під замовлення', 'под заказ')}
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2.5 shrink-0">
                           <span className="font-mono font-bold text-[#0d1f33] tabular-nums">
                             {p.price > 0 ? `$${p.price.toLocaleString('uk-UA')}` : tr('За запитом', 'По запросу')}
                           </span>
-                          <span className="inline-flex items-center gap-0.5 px-2 py-1 rounded bg-[#1769aa] text-white text-[11px] font-bold">
-                            <Plus className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#1769aa] text-white text-sm font-bold">
+                            <Plus className="w-3.5 h-3.5" />
                             {tr('Додати', 'Добавить')}
                           </span>
                         </div>
@@ -755,25 +762,25 @@ export function CreateDealModal({
               {orderItems.length > 0 && (
                 <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
                   {orderItems.map(({ product, qty }) => (
-                    <div key={product.id} className="px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                    <div key={product.id} className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="font-semibold text-[#0d1f33] truncate">
                           {localizeCatalogText(product.title)}
                         </div>
-                        <div className="font-mono text-[11px] text-slate-500">
+                        <div className="font-mono text-sm text-slate-500">
                           SKU {product.sku} · ${product.price.toLocaleString('uk-UA')} / {tr('шт.', 'шт.')}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2.5 shrink-0">
                         <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50">
                           <button
                             type="button"
                             onClick={() => updateOrderItemQty(product.id, qty - 1)}
                             aria-label={tr('Зменшити кількість', 'Уменьшить количество')}
-                            className="p-1.5 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
+                            className="p-2 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-3.5 h-3.5" />
                           </button>
                           <input
                             type="number"
@@ -781,20 +788,20 @@ export function CreateDealModal({
                             max={99}
                             value={qty}
                             onChange={(e) => updateOrderItemQty(product.id, Number(e.target.value) || 1)}
-                            className="w-10 text-center font-mono font-bold text-xs bg-transparent focus:outline-none"
+                            className="w-11 text-center font-mono font-bold text-sm bg-transparent focus:outline-none"
                             aria-label={tr('Кількість товару', 'Количество товара')}
                           />
                           <button
                             type="button"
                             onClick={() => updateOrderItemQty(product.id, qty + 1)}
                             aria-label={tr('Збільшити кількість', 'Увеличить количество')}
-                            className="p-1.5 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
+                            className="p-2 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
-                        <span className="font-mono font-bold text-[#0d1f33] w-16 text-right tabular-nums">
+                        <span className="font-mono font-bold text-[#0d1f33] w-20 text-right tabular-nums">
                           ${(product.price * qty).toLocaleString('uk-UA')}
                         </span>
 
@@ -802,14 +809,14 @@ export function CreateDealModal({
                           type="button"
                           onClick={() => updateOrderItemQty(product.id, 0)}
                           aria-label={tr('Видалити позицію', 'Удалить позицию')}
-                          className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   ))}
-                  <div className="px-3 py-2 bg-slate-50 flex items-center justify-between text-xs font-bold">
+                  <div className="px-4 py-2.5 bg-slate-50 flex items-center justify-between text-sm font-bold">
                     <span className="text-slate-600">
                       {tr('Сума обраних товарів', 'Сумма выбранных товаров')} ({orderItems.length} {tr('поз.', 'поз.')})
                     </span>
@@ -827,34 +834,34 @@ export function CreateDealModal({
             <button
               type="button"
               onClick={() => setShowLoadsForOrder(true)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 text-[#1769aa] font-bold flex items-center justify-between cursor-pointer transition-colors"
+              className="w-full px-4 py-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 text-[#1769aa] font-bold flex items-center justify-between cursor-pointer transition-colors"
             >
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-2">
                 <Zap className="w-4 h-4" />
                 {tr('Додати критичні прилади об’єкта (необов’язково)', 'Добавить критические приборы объекта (необязательно)')}
               </span>
               <ChevronDown className="w-4 h-4" />
             </button>
           ) : (
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-bold text-[#0d1f33] inline-flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-[#1769aa]" />
+                <span className="font-bold text-[#0d1f33] inline-flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-[#1769aa]" />
                   {tr('Критичні прилади (резервне навантаження)', 'Критические приборы (резервная нагрузка)')}
                 </span>
                 {dealType === 'order' && loads.length === 0 && (
                   <button
                     type="button"
                     onClick={() => setShowLoadsForOrder(false)}
-                    className="text-[11px] text-slate-500 hover:text-[#0d1f33] inline-flex items-center gap-0.5 cursor-pointer"
+                    className="text-sm text-slate-500 hover:text-[#0d1f33] inline-flex items-center gap-1 cursor-pointer"
                   >
-                    <ChevronUp className="w-3.5 h-3.5" />
+                    <ChevronUp className="w-4 h-4" />
                     {tr('Згорнути', 'Свернуть')}
                   </button>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {CRITICAL_LOAD_PRESETS.map((preset) => {
                   const selected = loads.includes(preset.value);
                   return (
@@ -862,7 +869,7 @@ export function CreateDealModal({
                       key={preset.value}
                       type="button"
                       onClick={() => toggleLoad(preset.value)}
-                      className={`px-2.5 py-1 rounded-md border font-semibold transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg border text-sm font-semibold transition-colors cursor-pointer ${
                         selected
                           ? 'bg-[#1769aa] border-[#1769aa] text-white'
                           : 'bg-white border-slate-200 text-[#0d1f33] hover:border-[#1769aa]'
@@ -879,10 +886,10 @@ export function CreateDealModal({
                       key={custom}
                       type="button"
                       onClick={() => toggleLoad(custom)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#1769aa] border border-[#1769aa] text-white font-semibold cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1769aa] border border-[#1769aa] text-white text-sm font-semibold cursor-pointer"
                     >
                       <span>{custom}</span>
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   ))}
               </div>
@@ -899,12 +906,12 @@ export function CreateDealModal({
                     }
                   }}
                   placeholder={tr('Свій прилад (напр. Тепловий насос 5 кВт)', 'Свой прибор (напр. Тепловой насос 5 кВт)')}
-                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                  className="flex-1 h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px]"
                 />
                 <button
                   type="button"
                   onClick={handleAddCustomLoad}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-bold text-[#0d1f33] cursor-pointer"
+                  className="h-11 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer"
                 >
                   + {tr('Додати', 'Добавить')}
                 </button>
@@ -913,9 +920,9 @@ export function CreateDealModal({
           )}
 
           {/* Notes + Telegram */}
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             <div>
-              <label htmlFor="crm-deal-notes" className="block font-bold text-slate-600 mb-1">
+              <label htmlFor="crm-deal-notes" className="block text-sm font-bold text-slate-600 mb-1.5">
                 {tr('Нотатка інженера / менеджера', 'Заметка инженера / менеджера')}
               </label>
               <textarea
@@ -924,16 +931,17 @@ export function CreateDealModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={tr('Деталі по об’єкту, умови доставки чи оплати, домовленості...', 'Детали по объекту, условия доставки или оплаты, договорённости...')}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300"
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 text-[15px]"
               />
             </div>
 
             {telegramConfigured && (
-              <label className="inline-flex items-center gap-2 font-semibold text-slate-700 cursor-pointer">
+              <label className="inline-flex items-center gap-2.5 font-semibold text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={sendTelegram}
                   onChange={(e) => setSendTelegram(e.target.checked)}
+                  className="w-4.5 h-4.5 accent-[#1769aa]"
                 />
                 {tr('Надіслати сповіщення про новий запис у Telegram', 'Отправить уведомление о новой записи в Telegram')}
               </label>
@@ -941,27 +949,27 @@ export function CreateDealModal({
           </div>
 
           {err && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-[15px] font-semibold text-red-700">
               {err}
             </div>
           )}
 
           {/* Footer */}
-          <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               disabled={saving}
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              className="h-11 px-5 rounded-lg border border-slate-300 text-[15px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
               {tr('Скасувати', 'Отмена')}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
+              className="h-11 inline-flex items-center gap-2 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
               {saving
                 ? tr('Зберігаємо...', 'Сохраняем...')
                 : dealType === 'order'

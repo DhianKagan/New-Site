@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
 import {
   ArrowRightLeft,
   Check,
@@ -20,7 +19,6 @@ import {
   Search,
   Trash2,
   Upload,
-  X,
 } from 'lucide-react';
 import type {
   LocalVolumeFileItem,
@@ -32,6 +30,7 @@ import type {
 import { tr } from '../../lib/i18n.ts';
 import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog.tsx';
 import { Input } from '../ui/input.tsx';
 
 interface S3BucketManagerProps {
@@ -398,12 +397,12 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
   return (
     <div className="space-y-4">
       {/* Storage Overview Header */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Cloud className="w-4 h-4 text-[#1769aa]" />
-              <h2 className="text-base font-extrabold text-[#0d1f33]">
+              <Cloud className="w-5 h-5 text-[#1769aa]" />
+              <h2 className="text-lg font-extrabold text-[#0d1f33]">
                 {tr('Менеджер S3 Bucket та локального Volume', 'Менеджер S3 Bucket и локального Volume')}
               </h2>
               {overview && (
@@ -417,7 +416,7 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
               )}
             </div>
             {overview && (
-              <p className="text-xs text-[#52657a] mt-1">
+              <p className="text-sm text-[#52657a] mt-1.5">
                 {overview.s3Configured ? (
                   <>
                     Бакет: <code className="font-mono text-[#0d1f33]">{overview.bucket}</code> · Endpoint:{' '}
@@ -437,7 +436,7 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {overview?.s3Configured && overview.localFilesCount > 0 && (
               <Button
                 type="button"
@@ -446,7 +445,7 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                 disabled={migrating}
                 onClick={() => void handleMigrateVolumeToS3()}
               >
-                <ArrowRightLeft className={`w-3.5 h-3.5 ${migrating ? 'animate-spin' : ''}`} />
+                <ArrowRightLeft className={`w-4 h-4 ${migrating ? 'animate-spin' : ''}`} />
                 {migrating
                   ? tr('Переносимо...', 'Переносим...')
                   : tr(`Перенести Volume → S3 (${overview.localFilesCount})`, `Перенести Volume → S3 (${overview.localFilesCount})`)}
@@ -463,89 +462,89 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                 if (overview?.s3Configured) void loadS3Objects(prefix);
               }}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingOverview || loadingS3 || loadingVolume ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loadingOverview || loadingS3 || loadingVolume ? 'animate-spin' : ''}`} />
               {tr('Оновити', 'Обновить')}
             </Button>
           </div>
         </div>
 
         {overview?.s3Error && (
-          <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
+          <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-sm font-semibold text-amber-800">
             Помилка S3: {overview.s3Error}
           </div>
         )}
 
         {migrateResult && (
-          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-sm space-y-1.5">
             <div className="font-bold text-[#0d1f33]">
               Результат синхронізації Volume → S3: завантажено {migrateResult.uploaded}, пропущено{' '}
               {migrateResult.skippedExisting}, помилок {migrateResult.failed}
             </div>
-            <div className="text-[11px] text-slate-500">
+            <div className="text-sm text-slate-500">
               Локальні файли на Volume збережено як резерв (сервер віддає їх автоматично при недоступності бакета).
             </div>
           </div>
         )}
 
         {/* Storage Switcher Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
             <button
               type="button"
               onClick={() => setActiveStorageTab('s3')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-bold cursor-pointer ${
                 activeStorageTab === 's3' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600'
               }`}
             >
-              <Cloud className="w-3.5 h-3.5 text-[#1769aa]" />
+              <Cloud className="w-4 h-4 text-[#1769aa]" />
               S3 Bucket {s3Data?.configured ? `(${s3Data.objects.length})` : ''}
             </button>
             <button
               type="button"
               onClick={() => setActiveStorageTab('volume')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-bold cursor-pointer ${
                 activeStorageTab === 'volume' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600'
               }`}
             >
-              <HardDrive className="w-3.5 h-3.5 text-[#169374]" />
+              <HardDrive className="w-4 h-4 text-[#169374]" />
               {tr('Локальний Volume', 'Локальный Volume')} ({overview?.localFilesCount ?? volumeFiles.length})
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={tr('Фільтр файлів...', 'Фильтр файлов...')}
-                className="pl-8 h-8 text-xs w-48"
+                className="pl-9 h-10 text-sm w-56"
               />
             </div>
 
             {activeStorageTab === 's3' && (
-              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
                   aria-label="Таблиця"
-                  className={`p-1.5 rounded cursor-pointer ${viewMode === 'list' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-500'}`}
+                  className={`p-2 rounded cursor-pointer ${viewMode === 'list' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-500'}`}
                 >
-                  <List className="w-3.5 h-3.5" />
+                  <List className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
                   aria-label="Сітка"
-                  className={`p-1.5 rounded cursor-pointer ${viewMode === 'grid' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-500'}`}
+                  className={`p-2 rounded cursor-pointer ${viewMode === 'grid' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-500'}`}
                 >
-                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <LayoutGrid className="w-4 h-4" />
                 </button>
               </div>
             )}
 
-            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-xs font-bold cursor-pointer">
-              <Upload className="w-3.5 h-3.5" />
+            <label className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-sm font-bold cursor-pointer">
+              <Upload className="w-4 h-4" />
               {uploading
                 ? tr('Завантаження...', 'Загрузка...')
                 : activeStorageTab === 's3'
@@ -568,12 +567,12 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
       </div>
 
       {s3Err && (
-        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+        <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-sm font-semibold text-red-700">
           {s3Err}
         </div>
       )}
       {s3Msg && (
-        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#169374]">
+        <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-sm font-semibold text-[#169374]">
           {s3Msg}
         </div>
       )}
@@ -581,8 +580,8 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
       {/* S3 Explorer View */}
       {activeStorageTab === 's3' ? (
         !overview?.s3Configured ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-6 text-xs space-y-2">
-            <div className="font-extrabold text-sm text-[#0d1f33]">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 text-sm space-y-2.5">
+            <div className="font-extrabold text-base text-[#0d1f33]">
               S3 Bucket ще не підключено у змінних оточення
             </div>
             <p className="text-slate-600 leading-relaxed">
@@ -594,9 +593,9 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
             </p>
           </div>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3.5">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
             {/* Breadcrumbs & Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 text-sm">
               <div className="flex flex-wrap items-center gap-1 font-mono">
                 {breadcrumbs.map((b, i) => (
                   <span key={b.prefix || 'root'} className="inline-flex items-center gap-1">
@@ -654,13 +653,13 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                   setNewFolderInput('');
                   setShowNewFolder(false);
                 }}
-                className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs"
+                className="flex flex-wrap items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-lg p-3.5 text-sm"
               >
                 <Input
                   value={newFolderInput}
                   onChange={(e) => setNewFolderInput(e.target.value)}
                   placeholder="uploads або backups/2026"
-                  className="w-56 h-8 text-xs font-mono bg-white"
+                  className="w-64 h-10 text-sm font-mono bg-white"
                 />
                 <Button type="submit" variant="primary" size="sm">
                   Відкрити префікс
@@ -668,7 +667,7 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                 <button
                   type="button"
                   onClick={() => setPrefix('uploads/')}
-                  className="px-2 py-1 rounded border border-slate-200 bg-white font-mono text-[11px] text-[#1769aa] cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-mono text-sm text-[#1769aa] cursor-pointer"
                 >
                   uploads/
                 </button>
@@ -685,9 +684,9 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                       key={folderPrefix}
                       type="button"
                       onClick={() => setPrefix(folderPrefix)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-200 text-xs font-mono font-bold text-[#0d1f33] cursor-pointer"
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-200 text-sm font-mono font-bold text-[#0d1f33] cursor-pointer"
                     >
-                      <Folder className="w-3.5 h-3.5 text-amber-500" />
+                      <Folder className="w-4 h-4 text-amber-500" />
                       {shortName}/
                     </button>
                   );
@@ -697,21 +696,21 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
 
             {/* Objects Grid or Table */}
             {loadingS3 ? (
-              <div className="py-10 text-center text-xs text-slate-400">
+              <div className="py-12 text-center text-sm text-slate-400">
                 {tr('Завантаження об’єктів S3...', 'Загрузка объектов S3...')}
               </div>
             ) : filteredS3Objects.length === 0 ? (
-              <div className="py-10 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+              <div className="py-12 text-center text-sm text-slate-400 border border-dashed border-slate-200 rounded-xl">
                 {tr('У цьому префіксі немає об’єктів. Завантажте файли або перенесіть з Volume.', 'В этом префиксе нет объектов.')}
               </div>
             ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
                 {filteredS3Objects.map((obj) => {
                   const checked = selectedKeys.has(obj.key);
                   return (
                     <div
                       key={obj.key}
-                      className={`rounded-xl border p-2.5 flex flex-col justify-between gap-2 text-xs transition-colors ${
+                      className={`rounded-xl border p-3 flex flex-col justify-between gap-2.5 text-sm transition-colors ${
                         checked ? 'border-[#1769aa] bg-sky-50/40' : 'border-slate-200 bg-white'
                       }`}
                     >
@@ -727,8 +726,9 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                               return next;
                             });
                           }}
+                          className="w-4 h-4 accent-[#1769aa]"
                         />
-                        <span className="font-mono text-[10px] text-slate-500">{formatBytes(obj.size)}</span>
+                        <span className="font-mono text-xs text-slate-500 tabular-nums">{formatBytes(obj.size)}</span>
                       </div>
 
                       <button
@@ -743,28 +743,28 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                             isImage: obj.isImage,
                           })
                         }
-                        className="h-24 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer hover:border-sky-200"
+                        className="h-28 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer hover:border-sky-200"
                       >
                         {obj.isImage && obj.publicUrl.startsWith('/uploads/') ? (
                           <img src={obj.publicUrl} alt={obj.fileName} className="w-full h-full object-contain" loading="lazy" />
                         ) : obj.isImage ? (
-                          <ImageIcon className="w-7 h-7 text-[#1769aa]" />
+                          <ImageIcon className="w-8 h-8 text-[#1769aa]" />
                         ) : obj.fileName.endsWith('.json') ? (
-                          <FileCode2 className="w-7 h-7 text-amber-600" />
+                          <FileCode2 className="w-8 h-8 text-amber-600" />
                         ) : (
-                          <FileText className="w-7 h-7 text-slate-400" />
+                          <FileText className="w-8 h-8 text-slate-400" />
                         )}
                       </button>
 
-                      <div className="space-y-1">
-                        <div className="font-mono font-bold text-[11px] text-[#0d1f33] truncate" title={obj.key}>
+                      <div className="space-y-1.5">
+                        <div className="font-mono font-bold text-sm text-[#0d1f33] truncate" title={obj.key}>
                           {obj.fileName}
                         </div>
                         <div className="flex items-center justify-between gap-1">
                           <button
                             type="button"
                             onClick={() => void copyUrl(obj.publicUrl, obj.key)}
-                            className="text-[10.5px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                            className="text-xs font-bold text-[#1769aa] hover:underline cursor-pointer"
                           >
                             {copiedKey === obj.key ? 'Скопійовано' : 'URL'}
                           </button>
@@ -775,18 +775,18 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                                 setRenameTarget(obj);
                                 setRenameNewKey(obj.key);
                               }}
-                              className="p-1 text-slate-500 hover:text-[#0d1f33] cursor-pointer"
+                              className="p-1.5 text-slate-500 hover:text-[#0d1f33] cursor-pointer"
                               title="Перейменувати"
                             >
-                              <Pencil className="w-3 h-3" />
+                              <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => void handleDeleteS3([obj.key])}
-                              className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-red-600 cursor-pointer"
                               title="Видалити"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -797,10 +797,10 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
               </div>
             ) : (
               <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500">
-                      <th className="py-2 px-2.5 w-8">
+                    <tr className="bg-slate-50 border-b border-slate-200 text-sm font-bold text-slate-600">
+                      <th className="py-3 px-3.5 w-10">
                         <input
                           type="checkbox"
                           checked={
@@ -814,19 +814,20 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                               setSelectedKeys(new Set());
                             }
                           }}
+                          className="w-4 h-4 accent-[#1769aa]"
                         />
                       </th>
-                      <th className="py-2 px-3">Ключ / Ім’я файлу</th>
-                      <th className="py-2 px-3">Тип</th>
-                      <th className="py-2 px-3">Розмір</th>
-                      <th className="py-2 px-3">Оновлено</th>
-                      <th className="py-2 px-3 text-right">Дії</th>
+                      <th className="py-3 px-3.5">Ключ / Ім’я файлу</th>
+                      <th className="py-3 px-3.5">Тип</th>
+                      <th className="py-3 px-3.5">Розмір</th>
+                      <th className="py-3 px-3.5">Оновлено</th>
+                      <th className="py-3 px-3.5 text-right">Дії</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredS3Objects.map((obj) => (
                       <tr key={obj.key} className="hover:bg-slate-50">
-                        <td className="py-2 px-2.5">
+                        <td className="py-3 px-3.5">
                           <input
                             type="checkbox"
                             checked={selectedKeys.has(obj.key)}
@@ -838,18 +839,19 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                                 return next;
                               });
                             }}
+                            className="w-4 h-4 accent-[#1769aa]"
                           />
                         </td>
-                        <td className="py-2 px-3 font-mono font-bold text-[#0d1f33] max-w-xs truncate" title={obj.key}>
+                        <td className="py-3 px-3.5 font-mono font-bold text-[#0d1f33] max-w-xs truncate" title={obj.key}>
                           {obj.key}
                         </td>
-                        <td className="py-2 px-3 font-mono text-[11px] text-slate-500">{obj.contentTypeGuess}</td>
-                        <td className="py-2 px-3 font-mono text-[11px] tabular-nums">{formatBytes(obj.size)}</td>
-                        <td className="py-2 px-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                        <td className="py-3 px-3.5 font-mono text-sm text-slate-500">{obj.contentTypeGuess}</td>
+                        <td className="py-3 px-3.5 font-mono text-sm tabular-nums">{formatBytes(obj.size)}</td>
+                        <td className="py-3 px-3.5 font-mono text-sm text-slate-500 whitespace-nowrap tabular-nums">
                           {obj.lastModified ? new Date(obj.lastModified).toLocaleString('uk-UA') : '—'}
                         </td>
-                        <td className="py-2 px-3 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1">
+                        <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
                             <button
                               type="button"
                               disabled={loadingPreview}
@@ -863,18 +865,18 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                                   isImage: obj.isImage,
                                 })
                               }
-                              className="p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
+                              className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
                               title="Переглянути"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <Eye className="w-4 h-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => void copyUrl(obj.publicUrl, obj.key)}
-                              className="p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#1769aa] cursor-pointer"
+                              className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#1769aa] cursor-pointer"
                               title="Копіювати URL"
                             >
-                              {copiedKey === obj.key ? <Check className="w-3.5 h-3.5 text-[#169374]" /> : <Copy className="w-3.5 h-3.5" />}
+                              {copiedKey === obj.key ? <Check className="w-4 h-4 text-[#169374]" /> : <Copy className="w-4 h-4" />}
                             </button>
                             <button
                               type="button"
@@ -884,10 +886,10 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                                   obj.fileName,
                                 )
                               }
-                              className="p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
+                              className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
                               title="Завантажити"
                             >
-                              <Download className="w-3.5 h-3.5" />
+                              <Download className="w-4 h-4" />
                             </button>
                             <button
                               type="button"
@@ -895,18 +897,18 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                                 setRenameTarget(obj);
                                 setRenameNewKey(obj.key);
                               }}
-                              className="p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
+                              className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
                               title="Перейменувати / перемістити"
                             >
-                              <Pencil className="w-3.5 h-3.5" />
+                              <Pencil className="w-4 h-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => void handleDeleteS3([obj.key])}
-                              className="p-1.5 rounded border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer"
+                              className="p-2 rounded border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer"
                               title="Видалити"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -920,8 +922,8 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
         )
       ) : (
         /* Local Volume Reserve View */
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 text-xs">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 text-sm">
             <div className="text-slate-600">
               Директорія: <code className="font-mono font-bold text-[#0d1f33]">{overview?.localUploadsDir}</code> ·{' '}
               <strong>{filteredVolumeFiles.length}</strong> файлів ·{' '}
@@ -934,24 +936,24 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                 size="sm"
                 onClick={() => void handleDeleteVolume(Array.from(selectedVolumeFiles))}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
                 {tr(`Видалити (${selectedVolumeFiles.size})`, `Удалить (${selectedVolumeFiles.size})`)}
               </Button>
             )}
           </div>
 
           {loadingVolume ? (
-            <div className="py-10 text-center text-xs text-slate-400">Завантаження файлів Volume...</div>
+            <div className="py-12 text-center text-sm text-slate-400">Завантаження файлів Volume...</div>
           ) : filteredVolumeFiles.length === 0 ? (
-            <div className="py-10 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+            <div className="py-12 text-center text-sm text-slate-400 border border-dashed border-slate-200 rounded-xl">
               На локальному Volume поки немає завантажених файлів.
             </div>
           ) : (
             <div className="overflow-x-auto border border-slate-200 rounded-lg">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500">
-                    <th className="py-2 px-2.5 w-8">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-sm font-bold text-slate-600">
+                    <th className="py-3 px-3.5 w-10">
                       <input
                         type="checkbox"
                         checked={
@@ -965,18 +967,19 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                             setSelectedVolumeFiles(new Set());
                           }
                         }}
+                        className="w-4 h-4 accent-[#1769aa]"
                       />
                     </th>
-                    <th className="py-2 px-3">Файл</th>
-                    <th className="py-2 px-3">Розмір</th>
-                    <th className="py-2 px-3">Змінено</th>
-                    <th className="py-2 px-3 text-right">Дії</th>
+                    <th className="py-3 px-3.5">Файл</th>
+                    <th className="py-3 px-3.5">Розмір</th>
+                    <th className="py-3 px-3.5">Змінено</th>
+                    <th className="py-3 px-3.5 text-right">Дії</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredVolumeFiles.map((f) => (
                     <tr key={f.fileName} className="hover:bg-slate-50">
-                      <td className="py-2 px-2.5">
+                      <td className="py-3 px-3.5">
                         <input
                           type="checkbox"
                           checked={selectedVolumeFiles.has(f.fileName)}
@@ -988,15 +991,16 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                               return next;
                             });
                           }}
+                          className="w-4 h-4 accent-[#1769aa]"
                         />
                       </td>
-                      <td className="py-2 px-3 font-mono font-bold text-[#0d1f33]">{f.fileName}</td>
-                      <td className="py-2 px-3 font-mono text-[11px]">{formatBytes(f.size)}</td>
-                      <td className="py-2 px-3 font-mono text-[11px] text-slate-500">
+                      <td className="py-3 px-3.5 font-mono font-bold text-[#0d1f33]">{f.fileName}</td>
+                      <td className="py-3 px-3.5 font-mono text-sm tabular-nums">{formatBytes(f.size)}</td>
+                      <td className="py-3 px-3.5 font-mono text-sm text-slate-500 tabular-nums">
                         {new Date(f.modifiedAt).toLocaleString('uk-UA')}
                       </td>
-                      <td className="py-2 px-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={() =>
@@ -1009,18 +1013,18 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                                 isImage: f.isImage,
                               })
                             }
-                            className="p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
+                            className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
                             title="Переглянути"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => void copyUrl(f.url, f.fileName)}
-                            className="p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#1769aa] cursor-pointer"
+                            className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#1769aa] cursor-pointer"
                             title="Копіювати URL"
                           >
-                            {copiedKey === f.fileName ? <Check className="w-3.5 h-3.5 text-[#169374]" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copiedKey === f.fileName ? <Check className="w-4 h-4 text-[#169374]" /> : <Copy className="w-4 h-4" />}
                           </button>
                           <button
                             type="button"
@@ -1030,18 +1034,18 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                                 f.fileName,
                               )
                             }
-                            className="p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
+                            className="p-2 rounded border border-slate-200 bg-white hover:bg-slate-100 text-[#0d1f33] cursor-pointer"
                             title="Завантажити"
                           >
-                            <Download className="w-3.5 h-3.5" />
+                            <Download className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => void handleDeleteVolume([f.fileName])}
-                            className="p-1.5 rounded border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer"
+                            className="p-2 rounded border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer"
                             title="Видалити"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1054,94 +1058,59 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
         </div>
       )}
 
-      {/* Rename Modal (Portaled to document.body at z-[60]) */}
-      {renameTarget &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
-            onClick={() => setRenameTarget(null)}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div
-              className="bg-white rounded-2xl border border-slate-200 w-full max-w-md shadow-2xl p-6 space-y-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-extrabold text-[#0d1f33]">
-                  {tr('Перейменувати / перемістити об’єкт S3', 'Переименовать / переместить объект S3')}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setRenameTarget(null)}
-                  className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <form onSubmit={handleRenameSubmit} className="space-y-3 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-600 mb-1">Новий ключ (шлях у бакеті)</label>
-                  <Input
-                    value={renameNewKey}
-                    onChange={(e) => setRenameNewKey(e.target.value)}
-                    className="font-mono text-xs"
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRenameTarget(null)}>
-                    Скасувати
-                  </Button>
-                  <Button type="submit" variant="primary" size="sm" disabled={renaming}>
-                    {renaming ? 'Зберігаємо...' : 'Застосувати'}
-                  </Button>
-                </div>
-              </form>
+      {/* Rename S3 Object Dialog */}
+      <Dialog open={Boolean(renameTarget)} onOpenChange={(open) => !open && setRenameTarget(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              {tr('Перейменувати / перемістити об’єкт S3', 'Переименовать / переместить объект S3')}
+            </DialogTitle>
+            <DialogDescription>{renameTarget?.key}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRenameSubmit} className="p-7 space-y-5 text-[15px]">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Новий ключ (шлях у бакеті)</label>
+              <Input
+                value={renameNewKey}
+                onChange={(e) => setRenameNewKey(e.target.value)}
+                className="font-mono text-sm"
+              />
             </div>
-          </div>,
-          document.body,
-        )}
+            <div className="flex justify-end gap-2.5">
+              <Button type="button" variant="outline" onClick={() => setRenameTarget(null)}>
+                Скасувати
+              </Button>
+              <Button type="submit" variant="primary" disabled={renaming}>
+                {renaming ? 'Зберігаємо...' : 'Застосувати'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Secure File Preview Modal */}
-      {previewMeta &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[60] bg-[#081421]/75 backdrop-blur-xs flex items-center justify-center p-4"
-            onClick={() => setPreviewMeta(null)}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div
-              className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0">
-                <div className="min-w-0">
-                  <div className="text-xs font-extrabold text-[#0d1f33] truncate">{previewMeta.title}</div>
-                  <div className="font-mono text-[11px] text-slate-500 truncate">{previewMeta.subtitle}</div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
+      {/* Secure File Preview Dialog */}
+      <Dialog open={Boolean(previewMeta)} onOpenChange={(open) => !open && setPreviewMeta(null)}>
+        <DialogContent className="max-w-4xl">
+          {previewMeta && (
+            <>
+              <DialogHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2 pr-8">
+                  <div className="min-w-0">
+                    <DialogTitle className="truncate">{previewMeta.title}</DialogTitle>
+                    <DialogDescription className="font-mono text-sm truncate">{previewMeta.subtitle}</DialogDescription>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => void downloadAuthenticatedFile(previewMeta.downloadUrl, previewMeta.fileName)}
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                     Завантажити
                   </Button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMeta(null)}
-                    className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
-              </div>
-              <div className="p-5">
+              </DialogHeader>
+              <div className="p-7">
                 {previewMeta.isImage ? (
                   <img
                     src={previewMeta.blobUrl}
@@ -1149,19 +1118,19 @@ export function S3BucketManager({ authFetch }: S3BucketManagerProps) {
                     className="max-h-[65vh] mx-auto rounded-lg object-contain bg-slate-50 border border-slate-200"
                   />
                 ) : previewMeta.textContent !== undefined ? (
-                  <pre className="p-3 rounded-lg bg-slate-50 border border-slate-200 font-mono text-[11px] max-h-[65vh] overflow-auto whitespace-pre-wrap">
+                  <pre className="p-4 rounded-lg bg-slate-50 border border-slate-200 font-mono text-sm max-h-[65vh] overflow-auto whitespace-pre-wrap">
                     {previewMeta.textContent}
                   </pre>
                 ) : (
-                  <div className="py-10 text-center text-xs text-slate-600">
+                  <div className="py-12 text-center text-[15px] text-slate-600">
                     Попередній перегляд недоступний для цього формату — скористайтесь кнопкою «Завантажити».
                   </div>
                 )}
               </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

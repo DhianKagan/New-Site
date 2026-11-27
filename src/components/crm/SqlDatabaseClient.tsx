@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   ArrowDown,
@@ -36,6 +35,7 @@ import type {
 import { tr } from '../../lib/i18n.ts';
 import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog.tsx';
 import { Input } from '../ui/input.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table.tsx';
 
@@ -515,12 +515,12 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
   return (
     <div className="space-y-4">
       {/* Database Connection & KPI Strip */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <Database className="w-4 h-4 text-[#1769aa]" />
-              <h2 className="text-base font-extrabold text-[#0d1f33]">
+              <Database className="w-5 h-5 text-[#1769aa]" />
+              <h2 className="text-lg font-extrabold text-[#0d1f33]">
                 {tr('SQL-клієнт бази даних', 'SQL-клиент базы данных')}
               </h2>
               {overview && (
@@ -530,33 +530,33 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
               )}
             </div>
             {overview && (
-              <p className="text-xs text-[#52657a]">
+              <p className="text-sm text-[#52657a]">
                 <span className="font-mono font-bold text-[#0d1f33]">{overview.databaseName}</span> · {overview.hostLabel} ·{' '}
                 {overview.version}
               </p>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
               <button
                 type="button"
                 onClick={() => setSubMode('browser')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-bold transition-colors cursor-pointer ${
                   subMode === 'browser' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
-                <Table2 className="w-3.5 h-3.5 text-[#1769aa]" />
+                <Table2 className="w-4 h-4 text-[#1769aa]" />
                 {tr('Таблиці та редактор', 'Таблицы и редактор')}
               </button>
               <button
                 type="button"
                 onClick={() => setSubMode('console')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-bold transition-colors cursor-pointer ${
                   subMode === 'console' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
-                <Code2 className="w-3.5 h-3.5 text-[#169374]" />
+                <Code2 className="w-4 h-4 text-[#169374]" />
                 {tr('SQL-консоль', 'SQL-консоль')}
               </button>
             </div>
@@ -571,64 +571,64 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
               }}
               disabled={loadingOverview || loadingRows}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingOverview || loadingRows ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loadingOverview || loadingRows ? 'animate-spin' : ''}`} />
               {tr('Оновити', 'Обновить')}
             </Button>
           </div>
         </div>
 
         {overview && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
-              <div className="text-[11px] font-bold text-slate-500">{tr('Таблиць у схемі')}</div>
-              <div className="font-mono text-base font-extrabold text-[#0d1f33] mt-0.5">{overview.tables.length}</div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <div className="text-sm font-bold text-slate-500">{tr('Таблиць у схемі')}</div>
+              <div className="font-mono text-lg font-extrabold text-[#0d1f33] mt-1 tabular-nums">{overview.tables.length}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
-              <div className="text-[11px] font-bold text-slate-500">{tr('Загалом записів')}</div>
-              <div className="font-mono text-base font-extrabold text-[#1769aa] mt-0.5">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <div className="text-sm font-bold text-slate-500">{tr('Загалом записів')}</div>
+              <div className="font-mono text-lg font-extrabold text-[#1769aa] mt-1 tabular-nums">
                 {totalRowsAcrossTables.toLocaleString('uk-UA')}
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
-              <div className="text-[11px] font-bold text-slate-500">{tr('Розмір БД')}</div>
-              <div className="font-mono text-base font-extrabold text-[#169374] mt-0.5">{formatBytes(overview.sizeBytes)}</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <div className="text-sm font-bold text-slate-500">{tr('Розмір БД')}</div>
+              <div className="font-mono text-lg font-extrabold text-[#169374] mt-1 tabular-nums">{formatBytes(overview.sizeBytes)}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
-              <div className="text-[11px] font-bold text-slate-500">{tr('Активні сесії PG')}</div>
-              <div className="font-mono text-base font-extrabold text-[#0d1f33] mt-0.5">{overview.activeConnections}</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <div className="text-sm font-bold text-slate-500">{tr('Активні сесії PG')}</div>
+              <div className="font-mono text-lg font-extrabold text-[#0d1f33] mt-1 tabular-nums">{overview.activeConnections}</div>
             </div>
           </div>
         )}
 
         {overviewErr && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+          <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-sm font-semibold text-red-700">
             {overviewErr}
           </div>
         )}
       </div>
 
       {/* Main Two-Column Workbench */}
-      <div className="grid grid-cols-1 xl:grid-cols-[270px_1fr] gap-4 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5 items-start">
         {/* Left Schema Explorer */}
-        <aside className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5">
+        <aside className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               value={tableSearch}
               onChange={(e) => setTableSearch(e.target.value)}
               placeholder={tr('Пошук таблиці або колонки...', 'Поиск таблицы или колонки...')}
-              className="pl-8 h-8 text-xs"
+              className="pl-9 h-10 text-sm"
             />
           </div>
 
-          <div className="space-y-1 max-h-[560px] overflow-y-auto pr-0.5">
+          <div className="space-y-1 max-h-[600px] overflow-y-auto pr-0.5">
             {filteredTables.map((t) => {
               const isSelected = selectedTable === t.name;
               const isExpanded = expandedSchemaTable === t.name;
               return (
                 <div key={t.name} className="rounded-lg border border-transparent">
                   <div
-                    className={`flex items-center justify-between gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors ${
+                    className={`flex items-center justify-between gap-1.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
                       isSelected
                         ? 'bg-[#0d1f33] text-white'
                         : 'hover:bg-slate-100 text-[#0d1f33]'
@@ -640,7 +640,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                       className="p-0.5 rounded hover:bg-white/10 cursor-pointer shrink-0"
                       aria-label={tr('Показати колонки')}
                     >
-                      {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronTree className="w-3.5 h-3.5" />}
+                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronTree className="w-4 h-4" />}
                     </button>
                     <button
                       type="button"
@@ -658,7 +658,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                       {t.name}
                     </button>
                     <span
-                      className={`font-mono text-[10px] px-1.5 py-0.5 rounded tabular-nums shrink-0 ${
+                      className={`font-mono text-xs px-2 py-0.5 rounded tabular-nums shrink-0 ${
                         isSelected ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'
                       }`}
                     >
@@ -667,7 +667,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                   </div>
 
                   {isExpanded && (
-                    <div className="ml-4 pl-2 border-l border-slate-200 py-1 space-y-0.5">
+                    <div className="ml-4 pl-2.5 border-l border-slate-200 py-1.5 space-y-0.5">
                       {t.columns.map((c) => (
                         <button
                           key={c.name}
@@ -677,15 +677,15 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                               setSqlText((prev) => `${prev}${prev.endsWith(' ') || prev.endsWith('\n') ? '' : ' '}${c.name}`);
                             }
                           }}
-                          className="w-full flex items-center justify-between gap-1.5 px-1.5 py-0.5 rounded hover:bg-slate-50 text-[11px] text-left cursor-pointer"
+                          className="w-full flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-slate-50 text-xs text-left cursor-pointer"
                           title={`${c.name} (${c.dataType})${c.foreignKey ? ` → ${c.foreignKey.table}.${c.foreignKey.column}` : ''}`}
                         >
                           <span className="inline-flex items-center gap-1 min-w-0 truncate font-mono text-slate-700">
-                            {c.isPrimaryKey && <KeyRound className="w-2.5 h-2.5 text-amber-500 shrink-0" />}
-                            {c.foreignKey && <Link2 className="w-2.5 h-2.5 text-[#1769aa] shrink-0" />}
+                            {c.isPrimaryKey && <KeyRound className="w-3 h-3 text-amber-500 shrink-0" />}
+                            {c.foreignKey && <Link2 className="w-3 h-3 text-[#1769aa] shrink-0" />}
                             <span className="truncate">{c.name}</span>
                           </span>
-                          <span className="font-mono text-[9.5px] text-slate-400 shrink-0">{c.udtName}</span>
+                          <span className="font-mono text-[11px] text-slate-400 shrink-0">{c.udtName}</span>
                         </button>
                       ))}
                     </div>
@@ -699,19 +699,19 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
         {/* Right Workspace: Table Data Browser OR SQL Console */}
         <div className="min-w-0 space-y-4">
           {subMode === 'browser' ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3.5">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
               {/* Table Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-mono text-sm font-extrabold text-[#0d1f33]">{selectedTable}</h3>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h3 className="font-mono text-base font-extrabold text-[#0d1f33]">{selectedTable}</h3>
                     {activeTableMeta && (
-                      <span className="font-mono text-[11px] text-slate-500">
+                      <span className="font-mono text-sm text-slate-500">
                         {formatBytes(activeTableMeta.totalBytes)} · PK: {activeTableMeta.primaryKey.join(', ') || '—'}
                       </span>
                     )}
                     {rowsData && (
-                      <span className="font-mono text-[11px] text-[#169374]">
+                      <span className="font-mono text-sm text-[#169374]">
                         {rowsData.executionMs} ms
                       </span>
                     )}
@@ -731,24 +731,24 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         void handleDeleteRows(pks);
                       }}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                       {tr(`Видалити (${selectedRowKeys.size})`, `Удалить (${selectedRowKeys.size})`)}
                     </Button>
                   )}
 
                   {rowsData?.writable && (
                     <Button type="button" variant="primary" size="sm" onClick={openCreateModal}>
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-4 h-4" />
                       {tr('Додати рядок', 'Добавить строку')}
                     </Button>
                   )}
 
                   <Button type="button" variant="outline" size="sm" onClick={() => void handleExportTable('csv')}>
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                     CSV
                   </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => void handleExportTable('json')}>
-                    <FileJson className="w-3.5 h-3.5" />
+                    <FileJson className="w-4 h-4" />
                     JSON
                   </Button>
                 </div>
@@ -761,27 +761,27 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                   setAppliedSearch(searchInput.trim());
                   setPage(1);
                 }}
-                className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2.5"
+                className="flex flex-wrap items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-lg p-3.5"
               >
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <div className="relative flex-1 min-w-[220px]">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder={tr('Пошук по всіх колонках...', 'Поиск по всем колонкам...')}
-                    className="pl-8 h-8 text-xs bg-white"
+                    className="pl-9 h-10 text-sm bg-white"
                   />
                 </div>
 
-                <div className="inline-flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <div className="inline-flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-slate-400" />
                   <select
                     value={filterCol}
                     onChange={(e) => {
                       setFilterCol(e.target.value);
                       setPage(1);
                     }}
-                    className="h-8 px-2 rounded-lg border border-slate-300 bg-white text-xs font-mono text-[#0d1f33]"
+                    className="h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm font-mono text-[#0d1f33]"
                   >
                     <option value="">{tr('Колонка фільтра', 'Колонка фильтра')}</option>
                     {(rowsData?.columns ?? activeTableMeta?.columns ?? []).map((c) => (
@@ -798,7 +798,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         setPage(1);
                       }}
                       placeholder={tr('Значення...', 'Значение...')}
-                      className="w-36 h-8 text-xs bg-white"
+                      className="w-44 h-10 text-sm bg-white"
                     />
                   )}
                 </div>
@@ -820,31 +820,31 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                       setPage(1);
                     }}
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                     {tr('Скинути', 'Сбросить')}
                   </Button>
                 )}
               </form>
 
               {rowsErr && (
-                <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+                <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-sm font-semibold text-red-700">
                   {rowsErr}
                 </div>
               )}
               {rowsMsg && (
-                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-[#169374]">
+                <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-sm font-semibold text-[#169374]">
                   {rowsMsg}
                 </div>
               )}
 
               {/* Data Table */}
               <div className="border border-slate-200 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto max-h-[540px]">
+                <div className="overflow-x-auto max-h-[560px]">
                   <Table>
                     <TableHeader className="bg-slate-50 sticky top-0 z-10">
                       <TableRow>
                         {rowsData?.writable && (
-                          <TableHead className="w-9 px-2">
+                          <TableHead className="w-10 px-3">
                             <input
                               type="checkbox"
                               checked={
@@ -861,25 +861,26 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                                   setSelectedRowKeys(new Set());
                                 }
                               }}
+                              className="w-4 h-4 accent-[#1769aa]"
                               aria-label={tr('Вибрати всі рядки')}
                             />
                           </TableHead>
                         )}
-                        <TableHead className="w-20 text-right">{tr('Дії', 'Действия')}</TableHead>
+                        <TableHead className="w-24 text-right">{tr('Дії', 'Действия')}</TableHead>
                         {(rowsData?.columns ?? []).map((col) => (
                           <TableHead key={col.name} className="whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => toggleSort(col.name)}
-                              className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-[#0d1f33] hover:text-[#1769aa] cursor-pointer"
+                              className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-[#0d1f33] hover:text-[#1769aa] cursor-pointer"
                             >
-                              {col.isPrimaryKey && <KeyRound className="w-3 h-3 text-amber-500" />}
+                              {col.isPrimaryKey && <KeyRound className="w-3.5 h-3.5 text-amber-500" />}
                               <span>{col.name}</span>
                               {sortBy === col.name &&
                                 (sortDir === 'asc' ? (
-                                  <ArrowUp className="w-3 h-3 text-[#1769aa]" />
+                                  <ArrowUp className="w-3.5 h-3.5 text-[#1769aa]" />
                                 ) : (
-                                  <ArrowDown className="w-3 h-3 text-[#1769aa]" />
+                                  <ArrowDown className="w-3.5 h-3.5 text-[#1769aa]" />
                                 ))}
                             </button>
                           </TableHead>
@@ -891,7 +892,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         <TableRow>
                           <TableCell
                             colSpan={(rowsData?.columns.length ?? 4) + 2}
-                            className="py-10 text-center text-xs text-slate-400"
+                            className="py-10 text-center text-sm text-slate-400"
                           >
                             {tr('Завантаження рядків...', 'Загрузка строк...')}
                           </TableCell>
@@ -900,7 +901,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         <TableRow>
                           <TableCell
                             colSpan={(rowsData?.columns.length ?? 4) + 2}
-                            className="py-10 text-center text-xs text-slate-400"
+                            className="py-10 text-center text-sm text-slate-400"
                           >
                             {tr('Записів не знайдено', 'Записи не найдены')}
                           </TableCell>
@@ -915,7 +916,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                           return (
                             <TableRow key={pkKey} className={isChecked ? 'bg-sky-50/70' : undefined}>
                               {rowsData.writable && (
-                                <TableCell className="px-2">
+                                <TableCell className="px-3">
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
@@ -927,18 +928,19 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                                         return next;
                                       });
                                     }}
+                                    className="w-4 h-4 accent-[#1769aa]"
                                   />
                                 </TableCell>
                               )}
                               <TableCell className="whitespace-nowrap">
-                                <div className="inline-flex items-center gap-1">
+                                <div className="inline-flex items-center gap-1.5">
                                   <button
                                     type="button"
                                     onClick={() => openEditModal(row)}
                                     title={rowsData.writable ? tr('Редагувати') : tr('Перегляд')}
-                                    className="p-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-[#1769aa] cursor-pointer"
+                                    className="p-2 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-[#1769aa] cursor-pointer"
                                   >
-                                    <Pencil className="w-3 h-3" />
+                                    <Pencil className="w-3.5 h-3.5" />
                                   </button>
                                   {rowsData.writable && (
                                     <button
@@ -947,9 +949,9 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                                         void handleDeleteRows([extractPkObject(row, rowsData.primaryKey)])
                                       }
                                       title={tr('Видалити рядок')}
-                                      className="p-1.5 rounded-md border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer"
+                                      className="p-2 rounded-md border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer"
                                     >
-                                      <Trash2 className="w-3 h-3" />
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                 </div>
@@ -961,13 +963,13 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                                 return (
                                   <TableCell
                                     key={col.name}
-                                    className="max-w-[240px] truncate font-mono text-[11px]"
+                                    className="max-w-[260px] truncate font-mono text-sm"
                                     title={text}
                                   >
                                     {isNull ? (
                                       <span className="italic text-slate-400">NULL</span>
                                     ) : isJsonLikeColumn(col) ? (
-                                      <span className="inline-block max-w-[220px] truncate rounded bg-slate-100 px-1.5 py-0.5 text-[10.5px] text-slate-700">
+                                      <span className="inline-block max-w-[240px] truncate rounded bg-slate-100 px-2.5 py-1 text-xs text-slate-700">
                                         {text}
                                       </span>
                                     ) : (
@@ -987,29 +989,29 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
 
               {/* Pagination Footer */}
               {rowsData && (
-                <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
                   <div>
                     {tr('Показано', 'Показано')}{' '}
-                    <strong className="font-mono text-[#0d1f33]">{rowsData.rows.length}</strong>{' '}
+                    <strong className="font-mono text-[#0d1f33] tabular-nums">{rowsData.rows.length}</strong>{' '}
                     {tr('із', 'из')}{' '}
-                    <strong className="font-mono text-[#0d1f33]">{rowsData.total}</strong>
+                    <strong className="font-mono text-[#0d1f33] tabular-nums">{rowsData.total}</strong>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     <select
                       value={limit}
                       onChange={(e) => {
                         setLimit(Number(e.target.value));
                         setPage(1);
                       }}
-                      className="h-8 px-2 rounded-lg border border-slate-300 bg-white font-mono text-xs"
+                      className="h-10 px-3 rounded-lg border border-slate-300 bg-white font-mono text-sm"
                     >
                       <option value={25}>25 / стор.</option>
                       <option value={50}>50 / стор.</option>
                       <option value={100}>100 / стор.</option>
                     </select>
 
-                    <div className="inline-flex items-center gap-1">
+                    <div className="inline-flex items-center gap-1.5">
                       <Button
                         type="button"
                         variant="outline"
@@ -1017,9 +1019,9 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         disabled={page <= 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                       >
-                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <ChevronLeft className="w-4 h-4" />
                       </Button>
-                      <span className="px-2 font-mono font-bold text-[#0d1f33]">
+                      <span className="px-2.5 font-mono font-bold text-[#0d1f33] tabular-nums">
                         {page} / {totalPages}
                       </span>
                       <Button
@@ -1029,7 +1031,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         disabled={page >= totalPages}
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       >
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -1038,10 +1040,10 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
             </div>
           ) : (
             /* Interactive SQL Console */
-            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-500 mr-1">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-slate-500 mr-1">
                     {tr('Шаблони:', 'Шаблоны:')}
                   </span>
                   {SQL_TEMPLATES.map((tpl) => (
@@ -1049,34 +1051,35 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                       key={tpl.label}
                       type="button"
                       onClick={() => setSqlText(tpl.sql)}
-                      className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-[#0d1f33] cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer"
                     >
                       {tpl.label}
                     </button>
                   ))}
                 </div>
 
-                <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-xs font-bold cursor-pointer">
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-sm font-bold cursor-pointer">
                   <input
                     type="checkbox"
                     checked={allowWrite}
                     onChange={(e) => setAllowWrite(e.target.checked)}
+                    className="w-4 h-4 accent-[#1769aa]"
                   />
                   {allowWrite ? (
-                    <span className="inline-flex items-center gap-1 text-amber-700">
-                      <AlertTriangle className="w-3.5 h-3.5" />
+                    <span className="inline-flex items-center gap-1.5 text-amber-700">
+                      <AlertTriangle className="w-4 h-4" />
                       Write Mode (INSERT/UPDATE/DELETE)
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[#169374]">
-                      <ShieldCheck className="w-3.5 h-3.5" />
+                    <span className="inline-flex items-center gap-1.5 text-[#169374]">
+                      <ShieldCheck className="w-4 h-4" />
                       Read-Only (SELECT)
                     </span>
                   )}
                 </label>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <textarea
                   rows={7}
                   value={sqlText}
@@ -1089,10 +1092,10 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                   }}
                   spellCheck={false}
                   placeholder="SELECT * FROM deals LIMIT 20;"
-                  className="w-full rounded-xl border border-slate-300 bg-[#0d1f33] text-sky-100 font-mono text-xs p-3.5 focus:outline-none focus:ring-2 focus:ring-[#1769aa]"
+                  className="w-full rounded-xl border border-slate-300 bg-[#0d1f33] text-sky-100 font-mono text-sm p-4 focus:outline-none focus:ring-2 focus:ring-[#1769aa]"
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-sm text-slate-500">
                     {tr('Підказка: Ctrl+Enter / Cmd+Enter — виконати запит. Ліміт виводу — 500 рядків, таймаут — 10 сек.', 'Подсказка: Ctrl+Enter / Cmd+Enter — выполнить запрос. Лимит вывода — 500 строк, таймаут — 10 сек.')}
                   </span>
                   <div className="flex items-center gap-2">
@@ -1103,7 +1106,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                       disabled={runningQuery}
                       onClick={() => void handleRunSql()}
                     >
-                      <Play className="w-3.5 h-3.5" />
+                      <Play className="w-4 h-4" />
                       {runningQuery ? tr('Виконується...', 'Выполняется...') : tr('Виконати SQL', 'Выполнить SQL')}
                     </Button>
                   </div>
@@ -1111,33 +1114,33 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
               </div>
 
               {queryErr && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-mono text-red-700 whitespace-pre-wrap">
+                <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-sm font-mono text-red-700 whitespace-pre-wrap">
                   {queryErr}
                 </div>
               )}
 
               {queryResult && (
-                <div className="space-y-2.5 border-t border-slate-200 pt-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="space-y-3 border-t border-slate-200 pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <Badge variant={queryResult.readOnly ? 'info' : 'warning'}>
                         {queryResult.command}
                       </Badge>
-                      <span className="font-mono font-bold text-[#0d1f33]">
+                      <span className="font-mono font-bold text-[#0d1f33] tabular-nums">
                         {queryResult.rowCount} {tr('рядків')}
                       </span>
-                      <span className="font-mono text-[#169374]">{queryResult.durationMs} ms</span>
+                      <span className="font-mono text-[#169374] tabular-nums">{queryResult.durationMs} ms</span>
                       {queryResult.truncated && (
                         <Badge variant="warning">{tr('Показано перші 500 рядків')}</Badge>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                    <div className="flex items-center gap-2">
+                      <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
                         <button
                           type="button"
                           onClick={() => setResultViewMode('table')}
-                          className={`px-2 py-1 rounded text-[11px] font-bold cursor-pointer ${
+                          className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
                             resultViewMode === 'table' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-500'
                           }`}
                         >
@@ -1146,7 +1149,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         <button
                           type="button"
                           onClick={() => setResultViewMode('json')}
-                          className={`px-2 py-1 rounded text-[11px] font-bold cursor-pointer ${
+                          className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer ${
                             resultViewMode === 'json' ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-500'
                           }`}
                         >
@@ -1154,18 +1157,18 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         </button>
                       </div>
                       <Button type="button" variant="outline" size="sm" onClick={() => exportQueryResult('csv')}>
-                        <Download className="w-3 h-3" />
+                        <Download className="w-3.5 h-3.5" />
                         CSV
                       </Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => exportQueryResult('json')}>
-                        <FileJson className="w-3 h-3" />
+                        <FileJson className="w-3.5 h-3.5" />
                         JSON
                       </Button>
                     </div>
                   </div>
 
                   {resultViewMode === 'json' ? (
-                    <pre className="rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[11px] text-[#0d1f33] max-h-96 overflow-auto">
+                    <pre className="rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-[#0d1f33] max-h-96 overflow-auto">
                       {JSON.stringify(queryResult.rows, null, 2)}
                     </pre>
                   ) : (
@@ -1174,7 +1177,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         <TableHeader className="bg-slate-50 sticky top-0">
                           <TableRow>
                             {queryResult.columns.map((c) => (
-                              <TableHead key={c} className="font-mono text-[11px] whitespace-nowrap">
+                              <TableHead key={c} className="font-mono text-xs whitespace-nowrap">
                                 {c}
                               </TableHead>
                             ))}
@@ -1185,7 +1188,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                             <TableRow>
                               <TableCell
                                 colSpan={Math.max(1, queryResult.columns.length)}
-                                className="py-6 text-center text-xs text-slate-400"
+                                className="py-8 text-center text-sm text-slate-400"
                               >
                                 {tr('Команда виконана без результуючих рядків')}
                               </TableCell>
@@ -1198,7 +1201,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                                   return (
                                     <TableCell
                                       key={c}
-                                      className="max-w-[260px] truncate font-mono text-[11px]"
+                                      className="max-w-[260px] truncate font-mono text-sm"
                                       title={preview}
                                     >
                                       {r[c] === null ? (
@@ -1221,18 +1224,18 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
 
               {/* Session Query History */}
               {queryHistory.length > 0 && (
-                <div className="border-t border-slate-100 pt-3 space-y-1.5">
-                  <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
-                    <History className="w-3.5 h-3.5" />
+                <div className="border-t border-slate-100 pt-4 space-y-2">
+                  <div className="text-sm font-bold text-slate-500 flex items-center gap-1.5">
+                    <History className="w-4 h-4" />
                     {tr('Історія запитів сесії', 'История запросов сессии')}
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {queryHistory.map((h) => (
                       <button
                         key={h.id}
                         type="button"
                         onClick={() => setSqlText(h.sql)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono cursor-pointer max-w-[280px] ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono cursor-pointer max-w-[300px] ${
                           h.ok
                             ? 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-[#0d1f33]'
                             : 'border-red-200 bg-red-50 text-red-700'
@@ -1241,7 +1244,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                       >
                         <span className="font-bold">{h.command}</span>
                         <span className="truncate">{h.sql.replace(/\s+/g, ' ')}</span>
-                        {h.ok && <span className="text-slate-400 shrink-0">{h.durationMs}ms</span>}
+                        {h.ok && <span className="text-slate-400 shrink-0 tabular-nums">{h.durationMs}ms</span>}
                       </button>
                     ))}
                   </div>
@@ -1252,44 +1255,28 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
         </div>
       </div>
 
-      {/* Create / Edit Row Modal (Portaled to document.body at z-[60]) */}
-      {rowModalMode &&
-        rowsData &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
-            onClick={() => setRowModalMode(null)}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div
-              className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
-                <div>
-                  <div className="font-mono text-[11px] font-bold text-[#1769aa]">
-                    {rowsData.table} · {rowModalMode === 'create' ? 'INSERT' : rowsData.writable ? 'UPDATE' : 'VIEW'}
-                  </div>
-                  <h3 className="text-base font-extrabold text-[#0d1f33]">
-                    {rowModalMode === 'create'
-                      ? tr('Новий рядок у таблиці', 'Новая строка в таблице')
-                      : rowsData.writable
-                        ? tr('Редагування рядка', 'Редактирование строки')
-                        : tr('Перегляд запису (тільки читання)', 'Просмотр записи (только чтение)')}
-                  </h3>
+      {/* Create / Edit Row Dialog */}
+      <Dialog open={Boolean(rowModalMode && rowsData)} onOpenChange={(open) => !open && setRowModalMode(null)}>
+        <DialogContent className="max-w-3xl">
+          {rowModalMode && rowsData && (
+            <>
+              <DialogHeader>
+                <div className="font-mono text-sm font-bold text-[#1769aa] mb-0.5">
+                  {rowsData.table} · {rowModalMode === 'create' ? 'INSERT' : rowsData.writable ? 'UPDATE' : 'VIEW'}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setRowModalMode(null)}
-                  className="w-8 h-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+                <DialogTitle>
+                  {rowModalMode === 'create'
+                    ? tr('Новий рядок у таблиці', 'Новая строка в таблице')
+                    : rowsData.writable
+                      ? tr('Редагування рядка', 'Редактирование строки')
+                      : tr('Перегляд запису (тільки читання)', 'Просмотр записи (только чтение)')}
+                </DialogTitle>
+                <DialogDescription>
+                  {tr('Поля таблиці та значення колонок', 'Поля таблицы и значения колонок')}
+                </DialogDescription>
+              </DialogHeader>
 
-              <form onSubmit={handleSaveRowModal} className="p-6 space-y-3.5 text-xs">
+              <form onSubmit={handleSaveRowModal} className="p-7 space-y-5 text-[15px]">
                 {rowsData.columns.map((col) => {
                   const isReadOnlyField =
                     !rowsData.writable ||
@@ -1301,22 +1288,22 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                   const isLong = isLongTextColumn(col);
 
                   return (
-                    <div key={col.name} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 space-y-1.5">
+                    <div key={col.name} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-1.5 font-mono">
-                          {col.isPrimaryKey && <KeyRound className="w-3 h-3 text-amber-500" />}
-                          <span className="font-bold text-[#0d1f33]">{col.name}</span>
-                          <span className="text-[10.5px] text-slate-500">{col.dataType}</span>
+                        <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
+                          {col.isPrimaryKey && <KeyRound className="w-4 h-4 text-amber-500" />}
+                          <span className="font-bold text-[#0d1f33] text-[15px]">{col.name}</span>
+                          <span className="text-sm text-slate-500">{col.dataType}</span>
                           {col.foreignKey && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] text-[#1769aa]">
-                              <Link2 className="w-2.5 h-2.5" />
+                            <span className="inline-flex items-center gap-1 text-sm text-[#1769aa]">
+                              <Link2 className="w-3.5 h-3.5" />
                               {col.foreignKey.table}.{col.foreignKey.column}
                             </span>
                           )}
                           {isAutoSkip && <Badge variant="info">AUTO</Badge>}
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           {isJson && !isNull && !isReadOnlyField && (
                             <button
                               type="button"
@@ -1328,19 +1315,20 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                                   // keep current text
                                 }
                               }}
-                              className="text-[10.5px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                              className="text-sm font-bold text-[#1769aa] hover:underline cursor-pointer"
                             >
                               Форматувати JSON
                             </button>
                           )}
                           {col.nullable && !isReadOnlyField && (
-                            <label className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 cursor-pointer">
+                            <label className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-600 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={isNull}
                                 onChange={(e) =>
                                   setNullFlags((prev) => ({ ...prev, [col.name]: e.target.checked }))
                                 }
+                                className="w-4.5 h-4.5 accent-[#1769aa]"
                               />
                               NULL
                             </label>
@@ -1357,7 +1345,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                             setFormValues((prev) => ({ ...prev, [col.name]: e.target.value }))
                           }
                           placeholder={isNull ? 'NULL' : isAutoSkip ? 'Згенерується автоматично' : ''}
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs disabled:bg-slate-100 disabled:text-slate-500"
+                          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-mono text-sm disabled:bg-slate-100 disabled:text-slate-500"
                         />
                       ) : (
                         <input
@@ -1368,7 +1356,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                             setFormValues((prev) => ({ ...prev, [col.name]: e.target.value }))
                           }
                           placeholder={isNull ? 'NULL' : isAutoSkip ? 'Згенерується автоматично' : ''}
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs disabled:bg-slate-100 disabled:text-slate-500"
+                          className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 font-mono text-sm disabled:bg-slate-100 disabled:text-slate-500"
                         />
                       )}
                     </div>
@@ -1376,17 +1364,17 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                 })}
 
                 {rowModalErr && (
-                  <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+                  <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-[15px] font-semibold text-red-700">
                     {rowModalErr}
                   </div>
                 )}
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setRowModalMode(null)}>
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                  <Button type="button" variant="outline" onClick={() => setRowModalMode(null)}>
                     {tr('Закрити', 'Закрыть')}
                   </Button>
                   {rowsData.writable && (
-                    <Button type="submit" variant="primary" size="sm" disabled={savingRow}>
+                    <Button type="submit" variant="primary" disabled={savingRow}>
                       {savingRow
                         ? tr('Зберігаємо...', 'Сохраняем...')
                         : rowModalMode === 'create'
@@ -1396,10 +1384,10 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                   )}
                 </div>
               </form>
-            </div>
-          </div>,
-          document.body,
-        )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -60,7 +60,7 @@ export function CrmToastViewport({
           <div
             key={toast.id}
             role="status"
-            className={`pointer-events-auto rounded-xl border px-3.5 py-2.5 shadow-lg bg-white flex items-start gap-2.5 text-xs ${
+            className={`pointer-events-auto rounded-xl border px-4 py-3.5 shadow-lg bg-white flex items-start gap-3 text-[15px] ${
               isError
                 ? 'border-red-200 text-red-900'
                 : isProgress
@@ -70,26 +70,26 @@ export function CrmToastViewport({
           >
             <span className="mt-0.5 shrink-0">
               {isError ? (
-                <AlertCircle className="w-4 h-4 text-red-600" />
+                <AlertCircle className="w-5 h-5 text-red-600" />
               ) : isProgress ? (
-                <Loader2 className="w-4 h-4 text-[#1769aa] animate-spin" />
+                <Loader2 className="w-5 h-5 text-[#1769aa] animate-spin" />
               ) : (
-                <CheckCircle2 className="w-4 h-4 text-[#169374]" />
+                <CheckCircle2 className="w-5 h-5 text-[#169374]" />
               )}
             </span>
             <div className="min-w-0 flex-1">
               <div className="font-bold leading-snug">{toast.message}</div>
               {toast.description && (
-                <div className="text-[11px] text-slate-600 mt-0.5 break-words">{toast.description}</div>
+                <div className="text-sm text-slate-600 mt-1 break-words">{toast.description}</div>
               )}
             </div>
             <button
               type="button"
               onClick={() => onDismiss(toast.id)}
               aria-label="Закрити сповіщення"
-              className="text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer shrink-0"
+              className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer shrink-0"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         );
