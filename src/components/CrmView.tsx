@@ -654,17 +654,12 @@ export function CrmView({
     }
     setUploadingProdPhoto(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result ?? ''));
-        reader.onerror = () => reject(new Error('Не вдалося прочитати файл'));
-        reader.readAsDataURL(file);
-      });
+      const formData = new FormData();
+      formData.append('file', file);
 
       const resp = await authFetch('/api/crm/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataUrl }),
+        body: formData,
       });
       const data = (await resp.json()) as { url?: string; error?: string };
       if (!resp.ok || !data.url) {
@@ -880,11 +875,11 @@ export function CrmView({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `energocomfort-backup-${new Date().toISOString().slice(0, 10)}.db`;
+      a.download = `energocomfort-backup-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setBackupErr('Помилка завантаження бекапу SQLite');
+      setBackupErr('Помилка завантаження бекапу бази даних');
     } finally {
       setDownloadingBackup(false);
     }
@@ -1022,16 +1017,11 @@ export function CrmView({
     }
     setUploadingPhoto(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result ?? ''));
-        reader.onerror = () => reject(new Error('Не вдалося прочитати файл'));
-        reader.readAsDataURL(file);
-      });
+      const formData = new FormData();
+      formData.append('file', file);
       const resp = await authFetch('/api/crm/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataUrl }),
+        body: formData,
       });
       const data = (await resp.json()) as { url?: string; error?: string };
       if (!resp.ok || !data.url) {

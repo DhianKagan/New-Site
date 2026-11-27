@@ -220,6 +220,8 @@ export interface AdminAuthStatus {
   configured: boolean;
   mode: 'setup' | 'login';
   googleEnabled?: boolean;
+  setupTokenRequired?: boolean;
+  setupTokenConfigured?: boolean;
 }
 
 export interface CustomerProfile {

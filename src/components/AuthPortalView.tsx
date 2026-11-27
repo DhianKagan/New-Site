@@ -37,6 +37,8 @@ export function AuthPortalView({
   const [regCity, setRegCity] = useState('Одеса');
   const [setupName, setSetupName] = useState('Головний адміністратор');
   const [setupEmail, setSetupEmail] = useState('');
+  const [setupToken, setSetupToken] = useState('');
+  const [showSetupToken, setShowSetupToken] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [copiedPwd, setCopiedPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +80,7 @@ export function AuthPortalView({
     setUnauthorizedHost('');
     setPassword('');
     setConfirmPassword('');
+    setSetupToken('');
   }
 
   function handleGenerateSetupPassword() {
@@ -161,6 +164,10 @@ export function AuthPortalView({
     setIsLockedOut(false);
 
     if (isSetup) {
+      if (!setupToken.trim()) {
+        setError(tr('Введіть одноразовий токен налаштування (ADMIN_SETUP_TOKEN)', 'Введите одноразовый токен настройки (ADMIN_SETUP_TOKEN)'));
+        return;
+      }
       if (password.length < 6) {
         setError(tr('Пароль має містити щонайменше 6 символів', 'Пароль должен содержать минимум 6 символов'));
         return;
@@ -227,9 +234,14 @@ export function AuthPortalView({
               password,
             };
 
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (isSetup && setupToken.trim()) {
+        headers['X-Setup-Token'] = setupToken.trim();
+      }
+
       const resp = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       });
       const data = (await resp.json()) as Partial<UnifiedAuthResult> & { error?: string };
@@ -241,6 +253,7 @@ export function AuthPortalView({
 
       setPassword('');
       setConfirmPassword('');
+      setSetupToken('');
       onAuthenticated({
         accountType: data.accountType,
         token: data.token,
@@ -442,6 +455,41 @@ export function AuthPortalView({
                     className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
                   />
                 </div>
+              </div>
+              <div>
+                <label htmlFor="portal-setup-token" className="block text-[11px] font-bold text-[#0d1f33] mb-1">
+                  {tr('Одноразовий токен налаштування (ADMIN_SETUP_TOKEN)', 'Одноразовый токен настройки (ADMIN_SETUP_TOKEN)')}
+                </label>
+                <div className="relative">
+                  <input
+                    id="portal-setup-token"
+                    name="setupToken"
+                    type={showSetupToken ? 'text' : 'password'}
+                    required
+                    autoComplete="one-time-code"
+                    value={setupToken}
+                    onChange={(e) => setSetupToken(e.target.value)}
+                    placeholder="ADMIN_SETUP_TOKEN"
+                    disabled={!apiAvailable || submitting || googleSubmitting}
+                    className="w-full pl-3 pr-9 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-mono focus:outline-none focus:border-[#1769aa]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSetupToken((v) => !v)}
+                    aria-label={showSetupToken ? tr('Сховати токен', 'Скрыть токен') : tr('Показати токен', 'Показать токен')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0d1f33] p-0.5 cursor-pointer"
+                  >
+                    {showSetupToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                {status.setupTokenConfigured === false && (
+                  <p className="mt-1.5 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
+                    {tr(
+                      'Змінну оточення ADMIN_SETUP_TOKEN ще не задано на сервері.',
+                      'Переменная окружения ADMIN_SETUP_TOKEN ещё не задана на сервере.',
+                    )}
+                  </p>
+                )}
               </div>
             </div>
           ) : isRegister ? (

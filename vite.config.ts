@@ -203,16 +203,30 @@ export default defineConfig(() => {
       },
     ],
     resolve: {
+      dedupe: ['react', 'react-dom'],
       alias: {
         '@': path.resolve(projectDir, '.'),
       },
     },
     optimizeDeps: {
       include: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
         'three',
         'three/addons/controls/OrbitControls.js',
         'three/addons/environments/RoomEnvironment.js',
         'lucide-react',
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-slot',
+        '@tanstack/react-table',
+        'class-variance-authority',
+        'clsx',
+        'tailwind-merge',
+        'firebase/app',
+        'firebase/auth',
       ],
     },
     build: {

@@ -1,10 +1,15 @@
-import { getSetting, setSetting } from './db.ts';
+import { getSetting, isDatabaseConfigured, setSetting } from './db.ts';
+import { isRedisConfigured, redisGetJson, redisSetJson } from './redis.ts';
 
 const COMMERCIAL_RATE_KEY = 'commercial_usd_uah_rate';
 const COMMERCIAL_UPDATED_AT_KEY = 'commercial_usd_uah_updated_at';
 const COMMERCIAL_UPDATED_BY_KEY = 'commercial_usd_uah_updated_by';
 
+const REDIS_COMMERCIAL_RATE_KEY = 'ec:v1:exchange_rate:commercial';
+const REDIS_MARKET_RATE_KEY = 'ec:v1:exchange_rate:market_7km';
+const COMMERCIAL_CACHE_TTL_SEC = 300;
 const MARKET_CACHE_TTL_MS = 10 * 60 * 1000;
+const MARKET_CACHE_TTL_SEC = Math.round(MARKET_CACHE_TTL_MS / 1000);
 
 export interface CommercialRateInfo {
   rate: number | null;
@@ -27,6 +32,7 @@ export interface Market7kmRateInfo {
 }
 
 let cachedMarketRate: { info: Market7kmRateInfo; fetchedAtMs: number } | null = null;
+let lastKnownCommercialRate: number | null = null;
 
 function parseValidRate(raw: string | undefined | null): number | null {
   if (!raw) return null;
@@ -35,25 +41,55 @@ function parseValidRate(raw: string | undefined | null): number | null {
   return Math.round(num * 100) / 100;
 }
 
-export function getStoredCommercialRate(): CommercialRateInfo {
-  const rate = parseValidRate(getSetting(COMMERCIAL_RATE_KEY));
-  const updatedAt = (getSetting(COMMERCIAL_UPDATED_AT_KEY) ?? '').trim();
-  const updatedBy = (getSetting(COMMERCIAL_UPDATED_BY_KEY) ?? '').trim();
-  return { rate, updatedAt, updatedBy };
+export async function getStoredCommercialRate(): Promise<CommercialRateInfo> {
+  if (!isDatabaseConfigured()) {
+    return { rate: null, updatedAt: '', updatedBy: '' };
+  }
+  if (isRedisConfigured()) {
+    const cached = await redisGetJson<CommercialRateInfo>(REDIS_COMMERCIAL_RATE_KEY);
+    if (cached && (cached.rate === null || typeof cached.rate === 'number')) {
+      lastKnownCommercialRate = cached.rate;
+      return cached;
+    }
+  }
+
+  const [rateRaw, updatedAtRaw, updatedByRaw] = await Promise.all([
+    getSetting(COMMERCIAL_RATE_KEY),
+    getSetting(COMMERCIAL_UPDATED_AT_KEY),
+    getSetting(COMMERCIAL_UPDATED_BY_KEY),
+  ]);
+  const rate = parseValidRate(rateRaw);
+  lastKnownCommercialRate = rate;
+  const info: CommercialRateInfo = {
+    rate,
+    updatedAt: (updatedAtRaw ?? '').trim(),
+    updatedBy: (updatedByRaw ?? '').trim(),
+  };
+  if (isRedisConfigured()) {
+    await redisSetJson(REDIS_COMMERCIAL_RATE_KEY, info, COMMERCIAL_CACHE_TTL_SEC);
+  }
+  return info;
 }
 
-export function saveCommercialRate(rate: number, updatedBy: string): CommercialRateInfo {
+export async function saveCommercialRate(rate: number, updatedBy: string): Promise<CommercialRateInfo> {
   const cleanRate = Math.round(Number(rate) * 100) / 100;
   const now = new Date().toISOString();
   const actor = updatedBy.trim() || 'CRM';
-  setSetting(COMMERCIAL_RATE_KEY, cleanRate.toFixed(2));
-  setSetting(COMMERCIAL_UPDATED_AT_KEY, now);
-  setSetting(COMMERCIAL_UPDATED_BY_KEY, actor);
-  return {
+  await Promise.all([
+    setSetting(COMMERCIAL_RATE_KEY, cleanRate.toFixed(2)),
+    setSetting(COMMERCIAL_UPDATED_AT_KEY, now),
+    setSetting(COMMERCIAL_UPDATED_BY_KEY, actor),
+  ]);
+  lastKnownCommercialRate = cleanRate;
+  const info: CommercialRateInfo = {
     rate: cleanRate,
     updatedAt: now,
     updatedBy: actor,
   };
+  if (isRedisConfigured()) {
+    await redisSetJson(REDIS_COMMERCIAL_RATE_KEY, info, COMMERCIAL_CACHE_TTL_SEC);
+  }
+  return info;
 }
 
 async function fetchOdessaWholesaleRate(): Promise<{ buy: number; sell: number } | null> {
@@ -90,8 +126,16 @@ async function fetchMinfinOdessaRate(): Promise<{ buy: number; sell: number } | 
 
 export async function getMarket7kmRate(forceRefresh = false): Promise<Market7kmRateInfo> {
   const nowMs = Date.now();
-  if (!forceRefresh && cachedMarketRate && nowMs - cachedMarketRate.fetchedAtMs < MARKET_CACHE_TTL_MS) {
-    return cachedMarketRate.info;
+  if (!forceRefresh) {
+    if (isRedisConfigured()) {
+      const redisHit = await redisGetJson<{ info: Market7kmRateInfo; fetchedAtMs: number }>(REDIS_MARKET_RATE_KEY);
+      if (redisHit?.info && nowMs - Number(redisHit.fetchedAtMs || 0) < MARKET_CACHE_TTL_MS) {
+        cachedMarketRate = redisHit;
+        return redisHit.info;
+      }
+    } else if (cachedMarketRate && nowMs - cachedMarketRate.fetchedAtMs < MARKET_CACHE_TTL_MS) {
+      return cachedMarketRate.info;
+    }
   }
 
   const [wholesaleRes, minfinRes] = await Promise.allSettled([
@@ -122,6 +166,9 @@ export async function getMarket7kmRate(forceRefresh = false): Promise<Market7kmR
       fetchedAt: new Date().toISOString(),
     };
     cachedMarketRate = { info, fetchedAtMs: nowMs };
+    if (isRedisConfigured()) {
+      await redisSetJson(REDIS_MARKET_RATE_KEY, cachedMarketRate, MARKET_CACHE_TTL_SEC);
+    }
     return info;
   }
 
@@ -147,12 +194,12 @@ export async function getMarket7kmRate(forceRefresh = false): Promise<Market7kmR
 }
 
 export async function getActiveStorefrontRate(): Promise<{
-  rate: number;
+  rate: number | null;
   updatedAt: string;
   updatedBy: string;
-  source: 'commercial' | 'market_fallback';
+  source: 'commercial' | 'market_fallback' | 'unavailable';
 }> {
-  const stored = getStoredCommercialRate();
+  const stored = await getStoredCommercialRate();
   if (stored.rate !== null) {
     return {
       rate: stored.rate,
@@ -172,12 +219,20 @@ export async function getActiveStorefrontRate(): Promise<{
     };
   }
 
+  if (!isDatabaseConfigured()) {
+    return {
+      rate: null,
+      updatedAt: '',
+      updatedBy: '',
+      source: 'unavailable',
+    };
+  }
+
   throw new Error('Комерційний курс ще не встановлено в CRM');
 }
 
 export function getCachedActiveRateSync(): number | null {
-  const stored = getStoredCommercialRate();
-  if (stored.rate !== null) return stored.rate;
+  if (lastKnownCommercialRate !== null) return lastKnownCommercialRate;
   if (cachedMarketRate?.info.available && cachedMarketRate.info.sell) {
     return cachedMarketRate.info.sell;
   }

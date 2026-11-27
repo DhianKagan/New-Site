@@ -9,9 +9,11 @@ import {
   verifySessionToken,
 } from '../server/auth.ts';
 import {
+  closeDatabasePool,
   createProductReviewRecord,
   deleteProductReviewRecord,
   getProductReviewById,
+  initDatabase,
   listPublishedProductReviews,
   updateProductReviewRecord,
 } from '../server/db.ts';
@@ -190,68 +192,75 @@ test('filterAndSortProductReviews supports date and rating sorting plus star fil
   );
 });
 
-test('server productReviewBodySchema and SQLite product_reviews CRUD work end-to-end', () => {
-  assert.equal(PRODUCT_REVIEW_ID_REGEX.test('ses-solax-5kw-t-bat-5-3kwh-trina-bifacial'), true);
-  assert.equal(PRODUCT_REVIEW_ID_REGEX.test('../etc/passwd'), false);
+test(
+  'server productReviewBodySchema and Postgres product_reviews CRUD work end-to-end',
+  { skip: !process.env.DATABASE_URL ? 'DATABASE_URL not set' : false },
+  async () => {
+    assert.equal(PRODUCT_REVIEW_ID_REGEX.test('ses-solax-5kw-t-bat-5-3kwh-trina-bifacial'), true);
+    assert.equal(PRODUCT_REVIEW_ID_REGEX.test('../etc/passwd'), false);
 
-  const badBody = productReviewBodySchema.safeParse({
-    authorName: 'А',
-    rating: 6,
-    comment: 'Ок',
-  });
-  assert.equal(badBody.success, false);
+    const badBody = productReviewBodySchema.safeParse({
+      authorName: 'А',
+      rating: 6,
+      comment: 'Ок',
+    });
+    assert.equal(badBody.success, false);
 
-  const validBody = productReviewBodySchema.safeParse({
-    authorName: '  Олександр К.  ',
-    rating: 5,
-    comment: '  Стабільно працює в резерві.  ',
-  });
-  assert.equal(validBody.success, true);
-
-  const testProductId = `__test_product_${Date.now()}`;
-  let createdId = '';
-  try {
-    const created = createProductReviewRecord({
-      productId: testProductId,
-      authorUid: 'google_uid_test_1',
-      authorName: 'Олександр К.',
+    const validBody = productReviewBodySchema.safeParse({
+      authorName: '  Олександр К.  ',
       rating: 5,
-      comment: 'Стабільно працює в резерві.',
+      comment: '  Стабільно працює в резерві.  ',
     });
-    createdId = created.id;
-    assert.equal(created.productId, testProductId);
-    assert.equal(created.authorUid, 'google_uid_test_1');
-    assert.equal(created.rating, 5);
-    assert.equal(created.status, 'published');
+    assert.equal(validBody.success, true);
 
-    const fetched = getProductReviewById(created.id);
-    assert.ok(fetched);
-    assert.equal(fetched.comment, 'Стабільно працює в резерві.');
+    await initDatabase();
+    const testProductId = `__test_product_${Date.now()}`;
+    let createdId = '';
+    try {
+      const created = await createProductReviewRecord({
+        productId: testProductId,
+        authorUid: 'google_uid_test_1',
+        authorName: 'Олександр К.',
+        rating: 5,
+        comment: 'Стабільно працює в резерві.',
+      });
+      createdId = created.id;
+      assert.equal(created.productId, testProductId);
+      assert.equal(created.authorUid, 'google_uid_test_1');
+      assert.equal(created.rating, 5);
+      assert.equal(created.status, 'published');
 
-    const listBefore = listPublishedProductReviews(testProductId);
-    assert.equal(listBefore.length, 1);
+      const fetched = await getProductReviewById(created.id);
+      assert.ok(fetched);
+      assert.equal(fetched.comment, 'Стабільно працює в резерві.');
 
-    const updated = updateProductReviewRecord(created.id, {
-      authorName: 'Олександр Кириленко',
-      rating: 4,
-      comment: 'Оновлений відгук після місяця роботи.',
-    });
-    assert.ok(updated);
-    assert.equal(updated.rating, 4);
-    assert.equal(updated.authorName, 'Олександр Кириленко');
+      const listBefore = await listPublishedProductReviews(testProductId);
+      assert.equal(listBefore.length, 1);
 
-    const deleted = deleteProductReviewRecord(created.id);
-    assert.equal(deleted, true);
-    createdId = '';
+      const updated = await updateProductReviewRecord(created.id, {
+        authorName: 'Олександр Кириленко',
+        rating: 4,
+        comment: 'Оновлений відгук після місяця роботи.',
+      });
+      assert.ok(updated);
+      assert.equal(updated.rating, 4);
+      assert.equal(updated.authorName, 'Олександр Кириленко');
 
-    assert.equal(getProductReviewById(created.id), null);
-    assert.equal(listPublishedProductReviews(testProductId).length, 0);
-  } finally {
-    if (createdId) {
-      deleteProductReviewRecord(createdId);
+      const deleted = await deleteProductReviewRecord(created.id);
+      assert.equal(deleted, true);
+      const removedId = created.id;
+      createdId = '';
+
+      assert.equal(await getProductReviewById(removedId), null);
+      assert.equal((await listPublishedProductReviews(testProductId)).length, 0);
+    } finally {
+      if (createdId) {
+        await deleteProductReviewRecord(createdId).catch(() => undefined);
+      }
+      await closeDatabasePool();
     }
-  }
-});
+  },
+);
 
 test('review auth accepts valid clientToken and adminToken sessions and rejects invalid tokens', () => {
   const clientToken = createClientSessionToken({

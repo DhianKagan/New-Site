@@ -79,6 +79,38 @@ export function verifyTelegramWebhookSecret(
   return { ok: true };
 }
 
+export type AdminSetupTokenResult =
+  | { ok: true }
+  | { ok: false; status: 503; error: string }
+  | { ok: false; status: 403; error: string };
+
+export function verifyAdminSetupToken(
+  expectedToken: string | undefined,
+  providedToken: string | undefined,
+): AdminSetupTokenResult {
+  const expected = expectedToken?.trim() || '';
+  if (!expected) {
+    return {
+      ok: false,
+      status: 503,
+      error: 'Задайте ADMIN_SETUP_TOKEN у змінних оточення сервера для первинного налаштування адміністратора',
+    };
+  }
+
+  const provided = typeof providedToken === 'string' ? providedToken.trim() : '';
+  const providedHash = crypto.createHash('sha256').update(provided).digest();
+  const expectedHash = crypto.createHash('sha256').update(expected).digest();
+  if (!provided || !crypto.timingSafeEqual(providedHash, expectedHash)) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Невірний або відсутній одноразовий токен налаштування (X-Setup-Token)',
+    };
+  }
+
+  return { ok: true };
+}
+
 export function resolveTrustedRequestHost(
   headerHost: string | undefined,
   queryHost: string | undefined,

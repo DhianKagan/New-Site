@@ -492,121 +492,160 @@ test('ShopView uses kit-normalized category helpers for tabs and filtering', asy
   assert.match(shopViewSource, /matchesProductCategory\(p,\s*cat\)/);
 });
 
-test('reconcileSeedCatalogOnStartup migrates legacy kits, backfills empty SKUs, adds new seed items, and respects later admin deletions', async () => {
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const { DatabaseSync } = await import('node:sqlite');
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ec-seed-reconcile-'));
-  process.env.DATA_DIR = tempDir;
+test(
+  'reconcileSeedCatalogOnStartup migrates legacy kits, backfills empty SKUs, adds new seed items, and respects later admin deletions',
+  { skip: !process.env.DATABASE_URL ? 'DATABASE_URL not set' : false },
+  async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const { eq, inArray } = await import('drizzle-orm');
+    const schema = await import('../server/schema.ts');
+    const {
+      closeDatabasePool,
+      getDb,
+      getSetting,
+      initDatabase,
+      reconcileSeedCatalogOnStartup,
+      setSetting,
+    } = await import('../server/db.ts');
 
-  try {
-    const { reconcileSeedCatalogOnStartup } = await import('../server/db.ts');
-    const dbPath = path.join(tempDir, 'test.db');
-    const db = new DatabaseSync(dbPath);
-    db.exec(`
-      CREATE TABLE products (
-        id TEXT PRIMARY KEY,
-        sku TEXT NOT NULL,
-        title TEXT NOT NULL,
-        cat TEXT NOT NULL,
-        raw_cats_json TEXT NOT NULL DEFAULT '[]',
-        brand TEXT NOT NULL,
-        is_kit INTEGER NOT NULL DEFAULT 0,
-        price INTEGER NOT NULL DEFAULT 0,
-        old_price INTEGER NOT NULL DEFAULT 0,
-        in_stock INTEGER NOT NULL DEFAULT 1,
-        status_label TEXT NOT NULL DEFAULT 'в наявності',
-        img TEXT NOT NULL DEFAULT '',
-        specs_json TEXT NOT NULL DEFAULT '[]',
-        description TEXT NOT NULL DEFAULT '',
-        source_url TEXT NOT NULL DEFAULT '',
-        updated_at TEXT NOT NULL
-      );
-      CREATE TABLE settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `);
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ec-seed-reconcile-'));
+    const suffix = Date.now().toString(36);
+    const legacyId = `kit-legacy-${suffix}`;
+    const newItemId = `new-seed-item-${suffix}`;
+    let previousSyncedSetting: string | null = null;
+    let hadSyncedSetting = false;
 
-    // Simulate legacy Railway volume state: kit stored as 'parts' with empty SKU, plus custom admin price
-    db.prepare(`
-      INSERT INTO products (id, sku, title, cat, brand, is_kit, price, old_price, in_stock, status_label, img, updated_at)
-      VALUES ('kit-legacy', '', 'Custom Admin Title', 'parts', 'Deye', 1, 4200, 0, 1, 'в наявності', '', '2026-01-01T00:00:00Z')
-    `).run();
+    try {
+      await initDatabase();
+      const db = getDb();
+      previousSyncedSetting = await getSetting('catalog_seed_synced_ids_v1');
+      hadSyncedSetting = previousSyncedSetting !== null;
 
-    const seedPath = path.join(tempDir, 'seed.json');
-    fs.writeFileSync(
-      seedPath,
-      JSON.stringify([
-        {
-          id: 'kit-legacy',
-          sku: '8389',
-          title: 'Seed Kit Title',
-          cat: 'kits',
-          rawCats: ['Готові рішення'],
+      await db
+        .insert(schema.productsTable)
+        .values({
+          id: legacyId,
+          sku: '',
+          title: 'Custom Admin Title',
+          cat: 'parts',
+          rawCatsJson: '[]',
           brand: 'Deye',
-          isKit: true,
-          price: 3999,
+          isKit: 1,
+          price: 4200,
           oldPrice: 0,
-          inStock: true,
+          inStock: 1,
           statusLabel: 'в наявності',
-          img: '/assets/products/kit.jpg',
-          specs: [],
+          img: '',
+          specsJson: '[]',
           description: '',
           sourceUrl: '',
-        },
-        {
-          id: 'new-seed-item',
-          sku: '4136',
-          title: 'New Battery',
-          cat: 'batteries',
-          rawCats: ['Акумулятори'],
-          brand: 'Felicity',
-          isKit: false,
-          price: 1200,
-          oldPrice: 0,
-          inStock: true,
-          statusLabel: 'в наявності',
-          img: '/assets/products/bat.png',
-          specs: [],
-          description: '',
-          sourceUrl: '',
-        },
-      ]),
-      'utf-8',
-    );
+          updatedAt: '2026-01-01T00:00:00Z',
+        })
+        .onConflictDoNothing();
 
-    reconcileSeedCatalogOnStartup(db, seedPath);
+      const seedPath = path.join(tempDir, 'seed.json');
+      fs.writeFileSync(
+        seedPath,
+        JSON.stringify([
+          {
+            id: legacyId,
+            sku: '8389',
+            title: 'Seed Kit Title',
+            cat: 'kits',
+            rawCats: ['Готові рішення'],
+            brand: 'Deye',
+            isKit: true,
+            price: 3999,
+            oldPrice: 0,
+            inStock: true,
+            statusLabel: 'в наявності',
+            img: '/assets/products/kit.jpg',
+            specs: [],
+            description: '',
+            sourceUrl: '',
+          },
+          {
+            id: newItemId,
+            sku: '4136',
+            title: 'New Battery',
+            cat: 'batteries',
+            rawCats: ['Акумулятори'],
+            brand: 'Felicity',
+            isKit: false,
+            price: 1200,
+            oldPrice: 0,
+            inStock: true,
+            statusLabel: 'в наявності',
+            img: '/assets/products/bat.png',
+            specs: [],
+            description: '',
+            sourceUrl: '',
+          },
+        ]),
+        'utf-8',
+      );
 
-    const migratedKit = db
-      .prepare('SELECT sku, title, cat, price, img FROM products WHERE id = ?')
-      .get('kit-legacy') as { sku: string; title: string; cat: string; price: number; img: string };
-    assert.equal(migratedKit.cat, 'kits');
-    assert.equal(migratedKit.sku, '8389');
-    assert.equal(migratedKit.img, '/assets/products/kit.jpg');
-    // Preserves admin-edited title & price
-    assert.equal(migratedKit.title, 'Custom Admin Title');
-    assert.equal(migratedKit.price, 4200);
+      await reconcileSeedCatalogOnStartup(seedPath);
 
-    const insertedNew = db
-      .prepare('SELECT id, sku, cat FROM products WHERE id = ?')
-      .get('new-seed-item') as { id: string; sku: string; cat: string } | undefined;
-    assert.equal(insertedNew?.sku, '4136');
-    assert.equal(insertedNew?.cat, 'batteries');
+      const [migratedKit] = await db
+        .select({
+          sku: schema.productsTable.sku,
+          title: schema.productsTable.title,
+          cat: schema.productsTable.cat,
+          price: schema.productsTable.price,
+          img: schema.productsTable.img,
+        })
+        .from(schema.productsTable)
+        .where(eq(schema.productsTable.id, legacyId))
+        .limit(1);
 
-    // If admin deletes the already-synced item, subsequent restarts must not resurrect it
-    db.prepare('DELETE FROM products WHERE id = ?').run('new-seed-item');
-    reconcileSeedCatalogOnStartup(db, seedPath);
-    const afterDelete = db.prepare('SELECT id FROM products WHERE id = ?').get('new-seed-item');
-    assert.equal(afterDelete, undefined);
+      assert.ok(migratedKit);
+      assert.equal(migratedKit.cat, 'kits');
+      assert.equal(migratedKit.sku, '8389');
+      assert.equal(migratedKit.img, '/assets/products/kit.jpg');
+      // Preserves admin-edited title & price
+      assert.equal(migratedKit.title, 'Custom Admin Title');
+      assert.equal(migratedKit.price, 4200);
 
-    db.close();
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
-  }
-});
+      const [insertedNew] = await db
+        .select({
+          id: schema.productsTable.id,
+          sku: schema.productsTable.sku,
+          cat: schema.productsTable.cat,
+        })
+        .from(schema.productsTable)
+        .where(eq(schema.productsTable.id, newItemId))
+        .limit(1);
+
+      assert.equal(insertedNew?.sku, '4136');
+      assert.equal(insertedNew?.cat, 'batteries');
+
+      // If admin deletes the already-synced item, subsequent restarts must not resurrect it
+      await db.delete(schema.productsTable).where(eq(schema.productsTable.id, newItemId));
+      await reconcileSeedCatalogOnStartup(seedPath);
+      const [afterDelete] = await db
+        .select({ id: schema.productsTable.id })
+        .from(schema.productsTable)
+        .where(eq(schema.productsTable.id, newItemId))
+        .limit(1);
+      assert.equal(afterDelete, undefined);
+    } finally {
+      try {
+        const db = getDb();
+        await db.delete(schema.productsTable).where(inArray(schema.productsTable.id, [legacyId, newItemId]));
+        if (hadSyncedSetting && previousSyncedSetting !== null) {
+          await setSetting('catalog_seed_synced_ids_v1', previousSyncedSetting);
+        }
+      } catch {
+        // ignore cleanup errors if connection was unavailable
+      }
+      await closeDatabasePool();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  },
+);
 
 
 

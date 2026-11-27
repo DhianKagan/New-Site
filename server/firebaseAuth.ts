@@ -112,10 +112,10 @@ function getEnvDomainRules(): FirebaseDomainRule[] {
   return parseDomainRulesFromString(raw);
 }
 
-function getDbDomainRules(): FirebaseDomainRule[] {
-  const raw = getSetting(DB_FIREBASE_DOMAINS_KEY);
-  if (!raw) return [];
+async function getDbDomainRules(): Promise<FirebaseDomainRule[]> {
   try {
+    const raw = await getSetting(DB_FIREBASE_DOMAINS_KEY);
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
     const candidateRules: FirebaseDomainRule[] = [];
@@ -141,18 +141,19 @@ function shouldUseHostAsAuthDomain(): boolean {
   return raw === 'true' || raw === '1' || raw === 'yes';
 }
 
-export function getRuntimeFirebaseWebConfig(requestHost: string): FirebaseRuntimeWebConfig {
+export async function getRuntimeFirebaseWebConfig(requestHost: string): Promise<FirebaseRuntimeWebConfig> {
+  const dbRules = await getDbDomainRules();
   return resolveFirebaseWebConfigForHost({
     requestHost: normalizeHost(requestHost),
     baseConfig: getBaseFirebaseWebConfig(),
     envRules: [...getFileDomainRules(), ...getEnvDomainRules()],
-    dbRules: getDbDomainRules(),
+    dbRules,
     appUrl: process.env.APP_URL,
     useHostAsAuthDomain: shouldUseHostAsAuthDomain(),
   });
 }
 
-export function getFirebaseDomainAdminState(): {
+export async function getFirebaseDomainAdminState(): Promise<{
   envRules: FirebaseDomainRule[];
   dbRules: FirebaseDomainRule[];
   effectiveRules: FirebaseDomainRule[];
@@ -163,10 +164,10 @@ export function getFirebaseDomainAdminState(): {
     hasAppId: boolean;
   };
   useHostAsAuthDomain: boolean;
-} {
+}> {
   const base = getBaseFirebaseWebConfig();
   const envRules = sanitizeDomainRules([...getFileDomainRules(), ...getEnvDomainRules()]);
-  const dbRules = getDbDomainRules();
+  const dbRules = await getDbDomainRules();
   return {
     envRules,
     dbRules,
@@ -181,17 +182,18 @@ export function getFirebaseDomainAdminState(): {
   };
 }
 
-export function saveFirebaseDomainRules(rules: FirebaseDomainRule[]): FirebaseDomainRule[] {
+export async function saveFirebaseDomainRules(rules: FirebaseDomainRule[]): Promise<FirebaseDomainRule[]> {
   const sanitized = sanitizeDomainRules(rules);
-  setSetting(DB_FIREBASE_DOMAINS_KEY, JSON.stringify(sanitized));
+  await setSetting(DB_FIREBASE_DOMAINS_KEY, JSON.stringify(sanitized));
   return sanitized;
 }
 
-function getAllConfiguredProjectIds(): string[] {
+async function getAllConfiguredProjectIds(): Promise<string[]> {
   const ids = new Set<string>();
   const base = getBaseFirebaseWebConfig();
   if (base.projectId) ids.add(base.projectId);
-  for (const rule of [...getFileDomainRules(), ...getEnvDomainRules(), ...getDbDomainRules()]) {
+  const dbRules = await getDbDomainRules();
+  for (const rule of [...getFileDomainRules(), ...getEnvDomainRules(), ...dbRules]) {
     if (rule.projectId) ids.add(rule.projectId);
   }
   return Array.from(ids);
@@ -204,14 +206,15 @@ function getOrCreateAdminAppForProject(projectId: string): App {
   return initializeApp({ projectId }, appName);
 }
 
-export function isFirebaseAuthConfigured(): boolean {
-  return getAllConfiguredProjectIds().length > 0;
+export async function isFirebaseAuthConfigured(): Promise<boolean> {
+  const ids = await getAllConfiguredProjectIds();
+  return ids.length > 0;
 }
 
 export async function verifyFirebaseGoogleToken(
   idToken: string,
 ): Promise<{ uid: string; email: string; name: string } | null> {
-  const projectIds = getAllConfiguredProjectIds();
+  const projectIds = await getAllConfiguredProjectIds();
   if (projectIds.length === 0) return null;
 
   for (const projectId of projectIds) {

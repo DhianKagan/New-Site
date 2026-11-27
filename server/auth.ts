@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import type { NextFunction, Request, Response } from 'express';
 import type { ClientSessionUser, CrmSessionUser, StaffRole } from '../src/types.ts';
+import { logger } from './logger.ts';
+import { getRedisClient } from './redis.ts';
 
 const EPHEMERAL_SECRET = crypto.randomBytes(32).toString('hex');
 const VALID_ROLES = new Set<StaffRole>(['admin', 'manager', 'engineer', 'installer']);
@@ -53,11 +55,46 @@ interface BruteBucket {
   lockedUntil: number;
 }
 
-export interface LoginBruteForceGuard {
-  check: (ip: string, identifier?: string) => { allowed: true } | { allowed: false; retryAfterSec: number };
-  recordFailure: (ip: string, identifier?: string) => { locked: boolean; retryAfterSec: number; remainingAttempts: number };
-  recordSuccess: (ip: string, identifier?: string) => void;
+export interface RedisLikeForGuard {
+  eval: (script: string, numkeys: number, ...args: (string | number)[]) => Promise<unknown>;
+  pttl: (key: string) => Promise<number>;
+  del: (...keys: string[]) => Promise<number>;
 }
+
+export interface LoginBruteForceGuard {
+  check: (ip: string, identifier?: string) => Promise<{ allowed: true } | { allowed: false; retryAfterSec: number }>;
+  recordFailure: (
+    ip: string,
+    identifier?: string,
+  ) => Promise<{ locked: boolean; retryAfterSec: number; remainingAttempts: number }>;
+  recordSuccess: (ip: string, identifier?: string) => Promise<void>;
+}
+
+const BRUTE_FORCE_RECORD_LUA = `
+local countKey = KEYS[1]
+local lockKey = KEYS[2]
+local windowMs = tonumber(ARGV[1])
+local lockMs = tonumber(ARGV[2])
+local maxAttempts = tonumber(ARGV[3])
+
+local lockTtl = redis.call('PTTL', lockKey)
+if lockTtl and lockTtl > 0 then
+  return { 1, lockTtl, 0 }
+end
+
+local count = redis.call('INCR', countKey)
+if count == 1 then
+  redis.call('PEXPIRE', countKey, windowMs)
+end
+
+if count >= maxAttempts then
+  redis.call('SET', lockKey, '1', 'PX', lockMs)
+  redis.call('DEL', countKey)
+  return { 1, lockMs, 0 }
+end
+
+return { 0, 0, maxAttempts - count }
+`;
 
 export function createLoginBruteForceGuard(options?: {
   windowMs?: number;
@@ -65,16 +102,24 @@ export function createLoginBruteForceGuard(options?: {
   maxAttemptsPerPair?: number;
   maxAttemptsPerIdentifier?: number;
   maxAttemptsPerIp?: number;
+  keyPrefix?: string;
+  redis?: RedisLikeForGuard | null;
 }): LoginBruteForceGuard {
   const windowMs = options?.windowMs ?? 15 * 60_000;
   const lockDurationMs = options?.lockDurationMs ?? 15 * 60_000;
   const maxAttemptsPerPair = options?.maxAttemptsPerPair ?? 5;
   const maxAttemptsPerIdentifier = options?.maxAttemptsPerIdentifier ?? 8;
   const maxAttemptsPerIp = options?.maxAttemptsPerIp ?? 12;
+  const keyPrefix = options?.keyPrefix ?? 'ec:v1:bf';
 
   const pairBuckets = new Map<string, BruteBucket>();
   const idBuckets = new Map<string, BruteBucket>();
   const ipBuckets = new Map<string, BruteBucket>();
+
+  function resolveRedis(): RedisLikeForGuard | null {
+    if (options?.redis !== undefined) return options.redis;
+    return getRedisClient();
+  }
 
   function pruneMap(map: Map<string, BruteBucket>, now: number) {
     if (map.size < 2000) return;
@@ -100,7 +145,12 @@ export function createLoginBruteForceGuard(options?: {
     return Math.max(1, Math.ceil((bucket.lockedUntil - now) / 1000));
   }
 
-  function bumpBucket(map: Map<string, BruteBucket>, key: string, maxAttempts: number, now: number): { locked: boolean; retryAfterSec: number; remaining: number } {
+  function bumpBucket(
+    map: Map<string, BruteBucket>,
+    key: string,
+    maxAttempts: number,
+    now: number,
+  ): { locked: boolean; retryAfterSec: number; remaining: number } {
     pruneMap(map, now);
     let bucket = map.get(key);
     if (!bucket || (bucket.lockedUntil <= now && now - bucket.windowStart > windowMs)) {
@@ -131,35 +181,124 @@ export function createLoginBruteForceGuard(options?: {
     };
   }
 
+  async function redisBumpBucket(
+    redis: RedisLikeForGuard,
+    bucketKey: string,
+    maxAttempts: number,
+  ): Promise<{ locked: boolean; retryAfterSec: number; remaining: number }> {
+    const countKey = `${keyPrefix}:cnt:${bucketKey}`;
+    const lockKey = `${keyPrefix}:lock:${bucketKey}`;
+    const res = (await redis.eval(
+      BRUTE_FORCE_RECORD_LUA,
+      2,
+      countKey,
+      lockKey,
+      windowMs,
+      lockDurationMs,
+      maxAttempts,
+    )) as [number, number, number];
+    const locked = Number(res?.[0] ?? 0) === 1;
+    const ttlMs = Number(res?.[1] ?? 0);
+    const remaining = Math.max(0, Number(res?.[2] ?? 0));
+    return {
+      locked,
+      retryAfterSec: locked ? Math.max(1, Math.ceil(ttlMs / 1000)) : 0,
+      remaining,
+    };
+  }
+
   return {
-    check(ip: string, identifier?: string) {
-      const now = Date.now();
+    async check(ip: string, identifier?: string) {
       const { ipKey, idKey, pairKey } = keysFor(ip, identifier);
+      const redis = resolveRedis();
+      if (redis) {
+        try {
+          const lockKeys = [
+            `${keyPrefix}:lock:${ipKey}`,
+            ...(idKey ? [`${keyPrefix}:lock:${idKey}`] : []),
+            ...(pairKey ? [`${keyPrefix}:lock:${pairKey}`] : []),
+          ];
+          const ttls = await Promise.all(lockKeys.map((k) => redis.pttl(k)));
+          const maxTtlMs = Math.max(0, ...ttls.map((v) => Number(v) || 0));
+          if (maxTtlMs > 0) {
+            return { allowed: false as const, retryAfterSec: Math.max(1, Math.ceil(maxTtlMs / 1000)) };
+          }
+          return { allowed: true as const };
+        } catch (err) {
+          logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Redis brute-force check failed, falling back to in-memory');
+        }
+      }
+
+      const now = Date.now();
       const retryAfterSec = Math.max(
         remainingLockSec(ipBuckets.get(ipKey), now),
         idKey ? remainingLockSec(idBuckets.get(idKey), now) : 0,
         pairKey ? remainingLockSec(pairBuckets.get(pairKey), now) : 0,
       );
       if (retryAfterSec > 0) {
-        return { allowed: false, retryAfterSec };
+        return { allowed: false as const, retryAfterSec };
       }
-      return { allowed: true };
+      return { allowed: true as const };
     },
 
-    recordFailure(ip: string, identifier?: string) {
-      const now = Date.now();
+    async recordFailure(ip: string, identifier?: string) {
       const { ipKey, idKey, pairKey } = keysFor(ip, identifier);
+      const redis = resolveRedis();
+      if (redis) {
+        try {
+          const [ipRes, idRes, pairRes] = await Promise.all([
+            redisBumpBucket(redis, ipKey, maxAttemptsPerIp),
+            idKey
+              ? redisBumpBucket(redis, idKey, maxAttemptsPerIdentifier)
+              : Promise.resolve({ locked: false, retryAfterSec: 0, remaining: maxAttemptsPerPair }),
+            pairKey
+              ? redisBumpBucket(redis, pairKey, maxAttemptsPerPair)
+              : Promise.resolve({ locked: false, retryAfterSec: 0, remaining: maxAttemptsPerPair }),
+          ]);
+          const locked = ipRes.locked || idRes.locked || pairRes.locked;
+          const retryAfterSec = Math.max(ipRes.retryAfterSec, idRes.retryAfterSec, pairRes.retryAfterSec);
+          const remainingAttempts = Math.min(ipRes.remaining, idRes.remaining, pairRes.remaining);
+          return { locked, retryAfterSec, remainingAttempts };
+        } catch (err) {
+          logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Redis brute-force recordFailure failed, falling back to in-memory');
+        }
+      }
+
+      const now = Date.now();
       const ipRes = bumpBucket(ipBuckets, ipKey, maxAttemptsPerIp, now);
-      const idRes = idKey ? bumpBucket(idBuckets, idKey, maxAttemptsPerIdentifier, now) : { locked: false, retryAfterSec: 0, remaining: maxAttemptsPerPair };
-      const pairRes = pairKey ? bumpBucket(pairBuckets, pairKey, maxAttemptsPerPair, now) : { locked: false, retryAfterSec: 0, remaining: maxAttemptsPerPair };
+      const idRes = idKey
+        ? bumpBucket(idBuckets, idKey, maxAttemptsPerIdentifier, now)
+        : { locked: false, retryAfterSec: 0, remaining: maxAttemptsPerPair };
+      const pairRes = pairKey
+        ? bumpBucket(pairBuckets, pairKey, maxAttemptsPerPair, now)
+        : { locked: false, retryAfterSec: 0, remaining: maxAttemptsPerPair };
       const locked = ipRes.locked || idRes.locked || pairRes.locked;
       const retryAfterSec = Math.max(ipRes.retryAfterSec, idRes.retryAfterSec, pairRes.retryAfterSec);
       const remainingAttempts = Math.min(ipRes.remaining, idRes.remaining, pairRes.remaining);
       return { locked, retryAfterSec, remainingAttempts };
     },
 
-    recordSuccess(ip: string, identifier?: string) {
+    async recordSuccess(ip: string, identifier?: string) {
       const { idKey, pairKey } = keysFor(ip, identifier);
+      const redis = resolveRedis();
+      if (redis) {
+        try {
+          const delKeys: string[] = [];
+          if (pairKey) {
+            delKeys.push(`${keyPrefix}:cnt:${pairKey}`, `${keyPrefix}:lock:${pairKey}`);
+          }
+          if (idKey) {
+            delKeys.push(`${keyPrefix}:cnt:${idKey}`, `${keyPrefix}:lock:${idKey}`);
+          }
+          if (delKeys.length > 0) {
+            await redis.del(...delKeys);
+          }
+          return;
+        } catch (err) {
+          logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Redis brute-force recordSuccess failed, falling back to in-memory');
+        }
+      }
+
       if (pairKey) pairBuckets.delete(pairKey);
       if (idKey) idBuckets.delete(idKey);
     },
@@ -265,7 +404,7 @@ export function getClientUser(req: Request): ClientSessionUser | null {
   return requestClientMap.get(req) ?? null;
 }
 
-export type StaffStateLookup = (userId: number) => {
+export type StaffStateResult = {
   active: boolean;
   canLogin: boolean;
   role: StaffRole;
@@ -275,7 +414,9 @@ export type StaffStateLookup = (userId: number) => {
   assigneeLabel: string;
 } | null;
 
-export type ClientStateLookup = (customerId: number) => {
+export type StaffStateLookup = (userId: number) => StaffStateResult | Promise<StaffStateResult>;
+
+export type ClientStateResult = {
   id: number;
   active: boolean;
   name: string;
@@ -283,6 +424,12 @@ export type ClientStateLookup = (customerId: number) => {
   phone: string;
   city: string;
 } | null;
+
+export type ClientStateLookup = (customerId: number) => ClientStateResult | Promise<ClientStateResult>;
+
+function isPromiseLike<T>(val: T | Promise<T>): val is Promise<T> {
+  return Boolean(val && typeof (val as unknown as { then?: unknown }).then === 'function');
+}
 
 export function createRequireCrmAuth(lookupStaff?: StaffStateLookup) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -298,8 +445,7 @@ export function createRequireCrmAuth(lookupStaff?: StaffStateLookup) {
       return;
     }
 
-    if (sessionUser.userId !== null && lookupStaff) {
-      const fresh = lookupStaff(sessionUser.userId);
+    const applyFreshStaff = (fresh: StaffStateResult) => {
       if (!fresh || !fresh.active || !fresh.canLogin) {
         res.status(401).json({ error: 'Обліковий запис вимкнено або доступ до CRM відкликано' });
         return;
@@ -312,10 +458,22 @@ export function createRequireCrmAuth(lookupStaff?: StaffStateLookup) {
         role: fresh.role,
         assigneeLabel: fresh.assigneeLabel,
       });
-    } else {
-      requestUserMap.set(req, sessionUser);
+      next();
+    };
+
+    if (sessionUser.userId !== null && lookupStaff) {
+      const result = lookupStaff(sessionUser.userId);
+      if (isPromiseLike(result)) {
+        result.then(applyFreshStaff).catch(() => {
+          res.status(503).json({ error: 'Помилка перевірки сесії співробітника' });
+        });
+        return;
+      }
+      applyFreshStaff(result);
+      return;
     }
 
+    requestUserMap.set(req, sessionUser);
     next();
   };
 }
@@ -334,8 +492,7 @@ export function createRequireClientAuth(lookupCustomer?: ClientStateLookup) {
       return;
     }
 
-    if (lookupCustomer) {
-      const fresh = lookupCustomer(client.customerId);
+    const applyFreshClient = (fresh: ClientStateResult) => {
       if (!fresh || !fresh.active) {
         res.status(401).json({ error: 'Акаунт клієнта вимкнено або не знайдено' });
         return;
@@ -347,10 +504,22 @@ export function createRequireClientAuth(lookupCustomer?: ClientStateLookup) {
         phone: fresh.phone,
         city: fresh.city,
       });
-    } else {
-      requestClientMap.set(req, client);
+      next();
+    };
+
+    if (lookupCustomer) {
+      const result = lookupCustomer(client.customerId);
+      if (isPromiseLike(result)) {
+        result.then(applyFreshClient).catch(() => {
+          res.status(503).json({ error: 'Помилка перевірки сесії клієнта' });
+        });
+        return;
+      }
+      applyFreshClient(result);
+      return;
     }
 
+    requestClientMap.set(req, client);
     next();
   };
 }

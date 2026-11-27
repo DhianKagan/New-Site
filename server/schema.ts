@@ -1,6 +1,14 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import {
+  bigint,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  serial,
+  text,
+} from 'drizzle-orm/pg-core';
 
-export const productsTable = sqliteTable('products', {
+export const productsTable = pgTable('products', {
   id: text('id').primaryKey(),
   sku: text('sku').notNull(),
   title: text('title').notNull(),
@@ -19,8 +27,8 @@ export const productsTable = sqliteTable('products', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const contactsTable = sqliteTable('contacts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const contactsTable = pgTable('contacts', {
+  id: serial('id').primaryKey(),
   name: text('name').notNull(),
   company: text('company').notNull().default(''),
   phone: text('phone').notNull().unique(),
@@ -32,8 +40,23 @@ export const contactsTable = sqliteTable('contacts', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const dealsTable = sqliteTable('deals', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const customerAccountsTable = pgTable('customer_accounts', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  phone: text('phone').notNull().default(''),
+  city: text('city').notNull().default('Одеса'),
+  firebaseUid: text('firebase_uid').notNull().default(''),
+  passwordHash: text('password_hash').notNull().default(''),
+  authProvider: text('auth_provider').notNull().default('google'),
+  active: integer('active').notNull().default(1),
+  lastLoginAt: text('last_login_at').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const dealsTable = pgTable('deals', {
+  id: serial('id').primaryKey(),
   dealNumber: text('deal_number').notNull().unique(),
   contactId: integer('contact_id').references(() => contactsTable.id, { onDelete: 'set null' }),
   customerId: integer('customer_id').references(() => customerAccountsTable.id, { onDelete: 'set null' }),
@@ -56,8 +79,8 @@ export const dealsTable = sqliteTable('deals', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const tasksTable = sqliteTable('tasks', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const tasksTable = pgTable('tasks', {
+  id: serial('id').primaryKey(),
   contactId: integer('contact_id').references(() => contactsTable.id, { onDelete: 'cascade' }),
   dealId: integer('deal_id').references(() => dealsTable.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
@@ -69,8 +92,8 @@ export const tasksTable = sqliteTable('tasks', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const notesTable = sqliteTable('notes', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const notesTable = pgTable('notes', {
+  id: serial('id').primaryKey(),
   contactId: integer('contact_id').references(() => contactsTable.id, { onDelete: 'cascade' }),
   dealId: integer('deal_id').references(() => dealsTable.id, { onDelete: 'cascade' }),
   author: text('author').notNull().default('Менеджер CRM'),
@@ -78,14 +101,14 @@ export const notesTable = sqliteTable('notes', {
   createdAt: text('created_at').notNull(),
 });
 
-export const settingsTable = sqliteTable('settings', {
+export const settingsTable = pgTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
 
-export const analyticsEventsTable = sqliteTable('analytics_events', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const analyticsEventsTable = pgTable('analytics_events', {
+  id: serial('id').primaryKey(),
   eventName: text('event_name').notNull(),
   metaEvent: text('meta_event').notNull(),
   ga4Event: text('ga4_event').notNull(),
@@ -93,7 +116,7 @@ export const analyticsEventsTable = sqliteTable('analytics_events', {
   createdAt: text('created_at').notNull(),
 });
 
-export const projectsTable = sqliteTable('projects', {
+export const projectsTable = pgTable('projects', {
   id: text('id').primaryKey(),
   seg: text('seg').notNull().default('b2c'),
   tag: text('tag').notNull().default(''),
@@ -108,8 +131,8 @@ export const projectsTable = sqliteTable('projects', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const staffUsersTable = sqliteTable('staff_users', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const staffUsersTable = pgTable('staff_users', {
+  id: serial('id').primaryKey(),
   name: text('name').notNull(),
   login: text('login').notNull().unique(),
   email: text('email').notNull().default(''),
@@ -124,38 +147,45 @@ export const staffUsersTable = sqliteTable('staff_users', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const customerAccountsTable = sqliteTable('customer_accounts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  phone: text('phone').notNull().default(''),
-  city: text('city').notNull().default('Одеса'),
-  firebaseUid: text('firebase_uid').notNull().default(''),
-  passwordHash: text('password_hash').notNull().default(''),
-  authProvider: text('auth_provider').notNull().default('google'),
-  active: integer('active').notNull().default(1),
-  lastLoginAt: text('last_login_at').notNull().default(''),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-});
-
-export const productReviewsTable = sqliteTable('product_reviews', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  authorUid: text('author_uid').notNull(),
-  authorName: text('author_name').notNull(),
-  rating: integer('rating').notNull(),
-  comment: text('comment').notNull(),
-  status: text('status').notNull().default('published'),
-  createdAtMs: integer('created_at_ms').notNull(),
-  updatedAtMs: integer('updated_at_ms').notNull(),
-});
-
-export const customerWishlistTable = sqliteTable('customer_wishlist', {
-  customerId: integer('customer_id')
-    .notNull()
-    .references(() => customerAccountsTable.id, { onDelete: 'cascade' }),
-  productId: text('product_id').notNull(),
+export const clientErrorLogsTable = pgTable('client_error_logs', {
+  id: serial('id').primaryKey(),
+  errorId: text('error_id').notNull(),
+  kind: text('kind').notNull().default('react_boundary'),
+  name: text('name').notNull().default('Error'),
+  message: text('message').notNull(),
+  stack: text('stack').notNull().default(''),
+  componentStack: text('component_stack').notNull().default(''),
+  route: text('route').notNull().default('/'),
+  locale: text('locale').notNull().default('uk'),
   createdAt: text('created_at').notNull(),
 });
 
+export const productReviewsTable = pgTable(
+  'product_reviews',
+  {
+    id: text('id').primaryKey(),
+    productId: text('product_id').notNull(),
+    authorUid: text('author_uid').notNull(),
+    authorName: text('author_name').notNull(),
+    rating: integer('rating').notNull(),
+    comment: text('comment').notNull(),
+    status: text('status').notNull().default('published'),
+    createdAtMs: bigint('created_at_ms', { mode: 'number' }).notNull(),
+    updatedAtMs: bigint('updated_at_ms', { mode: 'number' }).notNull(),
+  },
+  (table) => [
+    index('idx_product_reviews_product_status').on(table.productId, table.status, table.createdAtMs),
+  ],
+);
+
+export const customerWishlistTable = pgTable(
+  'customer_wishlist',
+  {
+    customerId: integer('customer_id')
+      .notNull()
+      .references(() => customerAccountsTable.id, { onDelete: 'cascade' }),
+    productId: text('product_id').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.customerId, table.productId] })],
+);

@@ -1,7 +1,4 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
 import {
   mergeWishlistIds,
@@ -65,36 +62,43 @@ test('clientWishlistPutSchema validates payload bounds', () => {
   assert.equal(tooMany.success, false);
 });
 
-test('server SQLite wishlist persists ordered unique items per customer', async () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ec-wishlist-test-'));
-  process.env.DATA_DIR = tempDir;
-
-  try {
+test(
+  'server Postgres wishlist persists ordered unique items per customer',
+  { skip: !process.env.DATABASE_URL ? 'DATABASE_URL not set' : false },
+  async () => {
     const dbMod = await import('../server/db.ts');
-    const customer = await dbMod.createCustomerAccountByCrm({
-      name: 'Wishlist Tester',
-      email: 'wishlist-tester@example.com',
-      phone: '+380501112233',
-      city: 'Одеса',
-      password: 'password123',
-    });
+    let createdCustomerId: number | null = null;
+    try {
+      await dbMod.initDatabase();
+      const customer = await dbMod.createCustomerAccountByCrm({
+        name: 'Wishlist Tester',
+        email: `wishlist-tester-${Date.now()}@example.com`,
+        phone: '+380501112233',
+        city: 'Одеса',
+        password: 'password123',
+      });
+      createdCustomerId = customer.id;
 
-    assert.deepEqual(dbMod.getCustomerWishlistIds(customer.id), []);
+      assert.deepEqual(await dbMod.getCustomerWishlistIds(customer.id), []);
 
-    const saved = dbMod.setCustomerWishlistIds(customer.id, [
-      'deye-sun-8k',
-      'dyness-dl5',
-      'deye-sun-8k',
-      '  ',
-      'trina-585w',
-    ]);
-    assert.deepEqual(saved, ['deye-sun-8k', 'dyness-dl5', 'trina-585w']);
-    assert.deepEqual(dbMod.getCustomerWishlistIds(customer.id), ['deye-sun-8k', 'dyness-dl5', 'trina-585w']);
+      const saved = await dbMod.setCustomerWishlistIds(customer.id, [
+        'deye-sun-8k',
+        'dyness-dl5',
+        'deye-sun-8k',
+        '  ',
+        'trina-585w',
+      ]);
+      assert.deepEqual(saved, ['deye-sun-8k', 'dyness-dl5', 'trina-585w']);
+      assert.deepEqual(await dbMod.getCustomerWishlistIds(customer.id), ['deye-sun-8k', 'dyness-dl5', 'trina-585w']);
 
-    const cleared = dbMod.setCustomerWishlistIds(customer.id, []);
-    assert.deepEqual(cleared, []);
-    assert.deepEqual(dbMod.getCustomerWishlistIds(customer.id), []);
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
-  }
-});
+      const cleared = await dbMod.setCustomerWishlistIds(customer.id, []);
+      assert.deepEqual(cleared, []);
+      assert.deepEqual(await dbMod.getCustomerWishlistIds(customer.id), []);
+    } finally {
+      if (createdCustomerId !== null) {
+        await dbMod.deleteCustomerAccount(createdCustomerId).catch(() => undefined);
+      }
+      await dbMod.closeDatabasePool();
+    }
+  },
+);

@@ -14,6 +14,7 @@ import {
   isRequestHttps,
   resolveTrustedRequestHost,
   shouldEnforceFrameProtection,
+  verifyAdminSetupToken,
   verifyTelegramWebhookSecret,
 } from '../server/security.ts';
 
@@ -160,4 +161,28 @@ test('server.ts enforces role restrictions on deals, contacts, and Telegram endp
   assert.match(serverSource, /app\.post\('\/api\/crm\/telegram-test',\s*requireRoles\('admin',\s*'manager'\)/);
   assert.match(serverSource, /app\.get\('\/api\/crm\/telegram-webhook',\s*requireRoles\('admin'\)/);
   assert.match(serverSource, /verifyTelegramWebhookSecret\(/);
+  assert.match(serverSource, /verifyAdminSetupToken\(/);
+});
+
+test('verifyAdminSetupToken requires ADMIN_SETUP_TOKEN (503) and validates X-Setup-Token (403/200)', () => {
+  const unconfigured = verifyAdminSetupToken(undefined, 'anything');
+  assert.equal(unconfigured.ok, false);
+  if (!unconfigured.ok) {
+    assert.equal(unconfigured.status, 503);
+  }
+
+  const missingHeader = verifyAdminSetupToken('one-time-setup-secret', '');
+  assert.equal(missingHeader.ok, false);
+  if (!missingHeader.ok) {
+    assert.equal(missingHeader.status, 403);
+  }
+
+  const wrongHeader = verifyAdminSetupToken('one-time-setup-secret', 'wrong-secret');
+  assert.equal(wrongHeader.ok, false);
+  if (!wrongHeader.ok) {
+    assert.equal(wrongHeader.status, 403);
+  }
+
+  const valid = verifyAdminSetupToken('one-time-setup-secret', '  one-time-setup-secret  ');
+  assert.deepEqual(valid, { ok: true });
 });
