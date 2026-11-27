@@ -2,7 +2,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage } from 'node:http';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import type { Readable } from 'node:stream';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import busboy from 'busboy';
 import { getUploadsDir } from './db/utils.ts';
 import { logger } from './logger.ts';
@@ -55,6 +56,40 @@ function getS3Client(): S3Client | null {
     });
   }
   return s3ClientInstance;
+}
+
+/**
+ * Railway Buckets are private: browsers cannot read them directly. With S3_PROXY_UPLOADS=true
+ * the app returns /uploads/<file> URLs and streams the object from the bucket itself.
+ */
+export function isS3ProxyEnabled(): boolean {
+  return isS3Configured() && process.env.S3_PROXY_UPLOADS?.trim().toLowerCase() === 'true';
+}
+
+const PROXY_FILENAME_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,120}\.(jpg|png|webp)$/;
+
+export async function getUploadObject(
+  filename: string,
+): Promise<{ body: Readable; contentType: string; contentLength?: number } | null> {
+  const s3 = getS3Client();
+  if (!s3 || !PROXY_FILENAME_RE.test(filename)) return null;
+  try {
+    const result = await s3.send(
+      new GetObjectCommand({ Bucket: process.env.S3_BUCKET!.trim(), Key: `uploads/${filename}` }),
+    );
+    if (!result.Body) return null;
+    return {
+      body: result.Body as Readable,
+      contentType: result.ContentType || 'application/octet-stream',
+      contentLength: result.ContentLength,
+    };
+  } catch (err) {
+    const name = (err as { name?: string }).name;
+    if (name !== 'NoSuchKey' && name !== 'NotFound') {
+      logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'S3 upload fetch failed');
+    }
+    return null;
+  }
 }
 
 export function buildS3PublicUrl(key: string): string {
@@ -249,7 +284,7 @@ export async function uploadImageBuffer(
       }),
     );
     return {
-      url: buildS3PublicUrl(key),
+      url: isS3ProxyEnabled() ? `/uploads/${filename}` : buildS3PublicUrl(key),
       storage: 's3',
       key,
     };

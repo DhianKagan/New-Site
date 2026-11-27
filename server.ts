@@ -177,6 +177,8 @@ import { getRequestId, logger, requestLoggingMiddleware } from './server/logger.
 import { createRateLimiter } from './server/rateLimit.ts';
 import { checkRedisHealth, closeRedis, getRedisClient } from './server/redis.ts';
 import {
+  getUploadObject,
+  isS3ProxyEnabled,
   parseMultipartImageUpload,
   uploadImageBuffer,
   UploadValidationError,
@@ -2369,6 +2371,21 @@ async function startServer() {
       error: isUnavailable ? 'База даних тимчасово недоступна' : 'Внутрішня помилка сервера',
     });
   });
+  if (isS3ProxyEnabled()) {
+    app.get('/uploads/:filename', async (req, res) => {
+      const object = await getUploadObject(String(req.params.filename));
+      if (!object) {
+        res.status(404).end();
+        return;
+      }
+      res.setHeader('Content-Type', object.contentType);
+      if (object.contentLength !== undefined) res.setHeader('Content-Length', String(object.contentLength));
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      object.body.on('error', () => res.destroy());
+      object.body.pipe(res);
+    });
+  }
   app.use('/uploads', (_req, res) => {
     res.status(404).end();
   });
