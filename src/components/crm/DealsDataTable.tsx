@@ -14,7 +14,7 @@ import {
   type PaginationState,
   type SortingState,
 } from '@tanstack/react-table';
-import { Download, Plus, Search, UserCheck } from 'lucide-react';
+import { Download, LayoutDashboard, Plus, Search, Table2, UserCheck } from 'lucide-react';
 import type { Deal, DealStage, DealType } from '../../types.ts';
 import { tr } from '../../lib/i18n.ts';
 import { Badge } from '../ui/badge.tsx';
@@ -35,6 +35,7 @@ interface DealsDataTableProps {
   onSelectDeal: (deal: Deal) => void;
   onExportCsv: () => void;
   onCreateDeal?: (type: DealType) => void;
+  onSwitchToKanban?: () => void;
 }
 
 const dealsTableFeatures = tableFeatures({
@@ -62,6 +63,7 @@ export function DealsDataTable({
   onSelectDeal,
   onExportCsv,
   onCreateDeal,
+  onSwitchToKanban,
 }: DealsDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
@@ -252,6 +254,22 @@ export function DealsDataTable({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onSwitchToKanban && (
+              <div className="inline-flex items-center p-1 bg-slate-100 border border-slate-200 rounded-lg">
+                <button
+                  type="button"
+                  onClick={onSwitchToKanban}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs sm:text-sm font-bold text-slate-600 hover:text-[#0d1f33] cursor-pointer transition-colors"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  {tr('Канбан', 'Канбан')}
+                </button>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs sm:text-sm font-bold bg-white text-[#0d1f33] shadow-2xs">
+                  <Table2 className="w-3.5 h-3.5 text-[#1769aa]" />
+                  {tr('Список', 'Список')}
+                </span>
+              </div>
+            )}
             {onCreateDeal && (
               <>
                 <Button type="button" variant="primary" size="sm" onClick={() => onCreateDeal('lead')}>

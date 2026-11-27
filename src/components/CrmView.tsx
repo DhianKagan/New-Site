@@ -122,13 +122,20 @@ interface CrmViewProps {
   onBackToStore: () => void;
 }
 
-const STAGES: Array<{ id: DealStage; label: string; colorClass: string }> = [
-  { id: 'new', label: 'Нова заявка', colorClass: 'text-[#1769aa]' },
-  { id: 'audit', label: 'Аудит / Розрахунок', colorClass: 'text-amber-700' },
-  { id: 'proposal', label: 'КП відправлено', colorClass: 'text-indigo-700' },
-  { id: 'fulfillment', label: 'Монтаж / Відвантаження', colorClass: 'text-[#169374]' },
-  { id: 'done', label: 'Виконано', colorClass: 'text-emerald-700' },
+const STAGES: Array<{ id: DealStage; label: string; colorClass: string; topBorderClass: string }> = [
+  { id: 'new', label: 'Нова заявка', colorClass: 'text-[#1769aa]', topBorderClass: 'border-t-[#1769aa]' },
+  { id: 'audit', label: 'Аудит / Розрахунок', colorClass: 'text-amber-700', topBorderClass: 'border-t-amber-500' },
+  { id: 'proposal', label: 'КП відправлено', colorClass: 'text-indigo-700', topBorderClass: 'border-t-indigo-500' },
+  { id: 'fulfillment', label: 'Монтаж / Відвантаження', colorClass: 'text-[#169374]', topBorderClass: 'border-t-[#169374]' },
+  { id: 'done', label: 'Виконано', colorClass: 'text-emerald-700', topBorderClass: 'border-t-emerald-600' },
 ];
+
+const ARCHIVED_STAGE: { id: DealStage; label: string; colorClass: string; topBorderClass: string } = {
+  id: 'archived',
+  label: 'Архів / Скасовано',
+  colorClass: 'text-slate-600',
+  topBorderClass: 'border-t-slate-400',
+};
 
 const DEFAULT_ASSIGNEES = [
   'Олександр (інженер)',
@@ -356,6 +363,7 @@ function CrmWorkspace({
   const [dealQuery, setDealQuery] = useState('');
   const [dealTypeFilter, setDealTypeFilter] = useState<'all' | 'order' | 'lead'>('all');
   const [dealAssigneeFilter, setDealAssigneeFilter] = useState<string>('all');
+  const [showArchivedInKanban, setShowArchivedInKanban] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [refreshingCrm, setRefreshingCrm] = useState(false);
   const [draggedDealId, setDraggedDealId] = useState<number | null>(null);
@@ -773,9 +781,33 @@ function CrmWorkspace({
   }, [deals, dealQuery, dealTypeFilter]);
 
   const kanbanDeals = useMemo(() => {
-    if (dealAssigneeFilter === 'all') return filteredDeals;
-    return filteredDeals.filter((d) => d.assignee === dealAssigneeFilter);
-  }, [filteredDeals, dealAssigneeFilter]);
+    const q = dealQuery.trim().toLowerCase();
+    return deals.filter((d) => {
+      if (!showArchivedInKanban && d.stage === 'archived') return false;
+      if (dealTypeFilter !== 'all' && d.type !== dealTypeFilter) return false;
+      if (dealAssigneeFilter !== 'all' && d.assignee !== dealAssigneeFilter) return false;
+      if (q) {
+        const hit =
+          d.dealNumber.toLowerCase().includes(q) ||
+          d.customerName.toLowerCase().includes(q) ||
+          d.phone.toLowerCase().includes(q) ||
+          d.topic.toLowerCase().includes(q) ||
+          d.city.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
+      return true;
+    });
+  }, [deals, dealQuery, dealTypeFilter, dealAssigneeFilter, showArchivedInKanban]);
+
+  const archivedDealsCount = useMemo(
+    () => deals.filter((d) => d.stage === 'archived').length,
+    [deals],
+  );
+
+  const kanbanStages = useMemo(
+    () => (showArchivedInKanban ? [...STAGES, ARCHIVED_STAGE] : STAGES),
+    [showArchivedInKanban],
+  );
 
   const catalogMatches = useMemo(() => {
     const q = catQuery.trim().toLowerCase();
@@ -1680,11 +1712,27 @@ function CrmWorkspace({
             {crmTab === 'pipeline' && (
               <div className="space-y-4">
                 <div className="bg-white/95 border border-slate-200/90 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-                  <div className="text-sm text-slate-600">
-                    {tr('Перетягніть картку або оберіть етап безпосередньо в картці', 'Перетащите карточку или выберите этап прямо в карточке')}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="inline-flex items-center p-1 bg-slate-100 border border-slate-200 rounded-lg">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs sm:text-sm font-bold bg-white text-[#0d1f33] shadow-2xs">
+                        <LayoutDashboard className="w-3.5 h-3.5 text-[#1769aa]" />
+                        {tr('Канбан', 'Канбан')}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => navigateToTab('table')}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs sm:text-sm font-bold text-slate-600 hover:text-[#0d1f33] cursor-pointer transition-colors"
+                      >
+                        <Table2 className="w-3.5 h-3.5" />
+                        {tr('Список', 'Список')}
+                      </button>
+                    </div>
+                    <span className="text-xs sm:text-sm text-slate-500">
+                      {tr('Перетягніть картку між колонками або змініть етап у картці', 'Перетащите карточку между колонками или измените этап в карточке')}
+                    </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-                    <div className="relative flex-1 sm:flex-none min-w-[180px] sm:w-56 md:w-64">
+                    <div className="relative flex-1 sm:flex-none min-w-[180px] sm:w-52 md:w-60">
                       <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
                         type="search"
@@ -1713,6 +1761,20 @@ function CrmWorkspace({
                         <option key={a} value={a}>{a}</option>
                       ))}
                     </select>
+                    {(archivedDealsCount > 0 || showArchivedInKanban) && (
+                      <button
+                        type="button"
+                        onClick={() => setShowArchivedInKanban((prev) => !prev)}
+                        className={`inline-flex items-center gap-1.5 h-9 sm:h-10 px-3 rounded-lg border text-xs sm:text-sm font-bold cursor-pointer transition-colors whitespace-nowrap ${
+                          showArchivedInKanban
+                            ? 'border-slate-700 bg-slate-800 text-white'
+                            : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <span>{tr('Архів', 'Архив')}</span>
+                        <span className="font-mono text-xs tabular-nums opacity-80">({archivedDealsCount})</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => openCreateDealModal('lead')}
@@ -1732,8 +1794,12 @@ function CrmWorkspace({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3.5 items-start">
-                  {STAGES.map((stage) => {
+                <div
+                  className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${
+                    showArchivedInKanban ? '2xl:grid-cols-6' : '2xl:grid-cols-5'
+                  } gap-3.5 items-start`}
+                >
+                  {kanbanStages.map((stage) => {
                     const stageDeals = kanbanDeals.filter((d) => d.stage === stage.id);
                     const stageSumUsd = stageDeals.reduce((sum, d) => sum + d.totalUsd, 0);
                     const isDropOver = dropTargetStage === stage.id;
@@ -1753,8 +1819,8 @@ function CrmWorkspace({
                             void handlePatchDeal(draggedDealId, { stage: stage.id });
                           }
                         }}
-                        className={`rounded-2xl border p-3.5 space-y-3 min-h-[280px] min-w-0 transition-colors shadow-sm ${
-                          isDropOver ? 'border-[#1769aa] bg-sky-50/80' : 'border-slate-200/90 bg-white/95'
+                        className={`rounded-2xl border border-t-[3px] ${stage.topBorderClass} p-3.5 space-y-3 min-h-[280px] min-w-0 transition-all shadow-sm ${
+                          isDropOver ? 'border-[#1769aa] ring-2 ring-[#1769aa]/25 bg-sky-50/80' : 'border-slate-200/90 bg-white/95'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
@@ -1796,12 +1862,20 @@ function CrmWorkspace({
                                   setDropTargetStage(null);
                                 }}
                                 onClick={() => setSelectedDeal(d)}
-                                className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-[#1769aa] transition-all cursor-pointer space-y-2"
+                                className={`p-3 rounded-xl border border-slate-200 bg-slate-50/75 hover:bg-white hover:border-[#1769aa] hover:shadow-xs transition-all cursor-pointer space-y-2 ${
+                                  draggedDealId === d.id ? 'opacity-60 ring-2 ring-[#1769aa]/30' : ''
+                                }`}
                               >
-                                <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
-                                  <span className="font-mono font-bold text-[#1769aa]">{d.dealNumber}</span>
+                                <div className="flex items-center justify-between gap-2 text-xs">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="font-mono font-bold text-[#1769aa]">{d.dealNumber}</span>
+                                    <span className="text-slate-300" aria-hidden="true">·</span>
+                                    <span className="text-slate-500 tabular-nums">
+                                      {new Date(d.createdAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' })}
+                                    </span>
+                                  </div>
                                   <span
-                                    className={`px-2 py-0.5 rounded-md text-xs font-bold ${
+                                    className={`px-2 py-0.5 rounded-md text-xs font-bold shrink-0 ${
                                       d.type === 'order' ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-[#1769aa]'
                                     }`}
                                   >
@@ -1812,10 +1886,21 @@ function CrmWorkspace({
                                 <div className="text-xs sm:text-sm text-slate-600 truncate">
                                   {d.customerName} · <span className="font-mono">{d.phone}</span>
                                 </div>
-                                {d.assignee && (
-                                  <div className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600 max-w-full">
-                                    <UserCheck className="w-3.5 h-3.5 text-[#1769aa] shrink-0" />
-                                    <span className="truncate">{d.assignee}</span>
+                                {(d.assignee || (d.items && d.items.length > 0)) && (
+                                  <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+                                    {d.assignee ? (
+                                      <span className="inline-flex items-center gap-1 font-medium min-w-0">
+                                        <UserCheck className="w-3.5 h-3.5 text-[#1769aa] shrink-0" />
+                                        <span className="truncate">{d.assignee}</span>
+                                      </span>
+                                    ) : (
+                                      <span />
+                                    )}
+                                    {d.items && d.items.length > 0 && (
+                                      <span className="font-mono text-slate-500 shrink-0 tabular-nums">
+                                        {d.items.length} {tr('поз.')}
+                                      </span>
+                                    )}
                                   </div>
                                 )}
                                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/70 text-xs sm:text-sm">
@@ -1835,7 +1920,7 @@ function CrmWorkspace({
                                     onChange={(e) => void handlePatchDeal(d.id, { stage: e.target.value as DealStage })}
                                     className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-xs sm:text-sm font-semibold text-slate-700 cursor-pointer"
                                   >
-                                    {STAGES.map((st) => (
+                                    {[...STAGES, ARCHIVED_STAGE].map((st) => (
                                       <option key={st.id} value={st.id}>
                                         {tr(st.label)}
                                       </option>
@@ -1857,7 +1942,7 @@ function CrmWorkspace({
             {crmTab === 'table' && (
               <DealsDataTable
                 deals={filteredDeals}
-                stages={STAGES}
+                stages={[...STAGES, ARCHIVED_STAGE]}
                 assignees={assigneeOptions}
                 dealQuery={dealQuery}
                 onDealQueryChange={setDealQuery}
@@ -1866,6 +1951,7 @@ function CrmWorkspace({
                 onSelectDeal={setSelectedDeal}
                 onExportCsv={exportCsv}
                 onCreateDeal={(type) => openCreateDealModal(type)}
+                onSwitchToKanban={() => navigateToTab('pipeline')}
               />
             )}
 
