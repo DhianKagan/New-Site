@@ -2,8 +2,17 @@ import { count, desc, eq, sql } from 'drizzle-orm';
 import * as schema from '../schema.ts';
 import type { ContactSegment, Deal, DealItem, DealStage, DealType } from '../../src/types.ts';
 import { getProductById } from './catalog.ts';
-import { getDb } from './client.ts';
+import { getDb, isDatabaseConfigured } from './client.ts';
 import { upsertContact } from './contacts.ts';
+import {
+  memBackfillCustomerDeals,
+  memCreateDeal,
+  memDeleteDeal,
+  memListCustomerDeals,
+  memListDeals,
+  memMarkDealTelegramSent,
+  memUpdateDeal,
+} from './memoryStore.ts';
 import { normalizeContactPhone, safeJsonParse } from './utils.ts';
 
 function rowToDeal(r: typeof schema.dealsTable.$inferSelect): Deal {
@@ -45,6 +54,7 @@ async function computeNextDealNumericId(): Promise<number> {
 }
 
 export async function seedDealsIfEmpty(): Promise<void> {
+  if (!isDatabaseConfigured()) return;
   const db = getDb();
   const [cntRow] = await db.select({ cnt: count() }).from(schema.dealsTable);
   if (Number(cntRow?.cnt ?? 0) > 0) return;
@@ -226,6 +236,9 @@ export async function createDeal(input: {
   customerId?: number | null;
   customerEmail?: string;
 }): Promise<Deal> {
+  if (!isDatabaseConfigured()) {
+    return memCreateDeal(input);
+  }
   const db = getDb();
   const now = new Date().toISOString();
 
@@ -361,11 +374,18 @@ export async function createDeal(input: {
 }
 
 export async function markDealTelegramSent(id: number): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    memMarkDealTelegramSent(id);
+    return;
+  }
   const db = getDb();
   await db.update(schema.dealsTable).set({ telegramSent: 1 }).where(eq(schema.dealsTable.id, id));
 }
 
 export async function listDeals(): Promise<Deal[]> {
+  if (!isDatabaseConfigured()) {
+    return memListDeals();
+  }
   const db = getDb();
   const rows = await db.select().from(schema.dealsTable).orderBy(desc(schema.dealsTable.id));
   return rows.map(rowToDeal);
@@ -380,6 +400,9 @@ export async function updateDeal(
     totalUsd?: number;
   },
 ): Promise<Deal | null> {
+  if (!isDatabaseConfigured()) {
+    return memUpdateDeal(id, patch);
+  }
   const db = getDb();
   const [existing] = await db
     .select()
@@ -405,6 +428,9 @@ export async function updateDeal(
 }
 
 export async function deleteDeal(id: number): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    return memDeleteDeal(id);
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.dealsTable)
@@ -414,6 +440,9 @@ export async function deleteDeal(id: number): Promise<boolean> {
 }
 
 export async function listCustomerDeals(customer: { id: number; email: string; phone: string }): Promise<Deal[]> {
+  if (!isDatabaseConfigured()) {
+    return memListCustomerDeals(customer);
+  }
   const db = getDb();
   const emailNorm = customer.email.trim().toLowerCase();
   const phoneNorm = customer.phone.trim() ? normalizeContactPhone(customer.phone.trim()) : '';
@@ -440,6 +469,10 @@ export async function backfillCustomerDeals(
   emailNorm: string,
   phoneNorm: string,
 ): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    memBackfillCustomerDeals(customerId, emailNorm, phoneNorm);
+    return;
+  }
   const db = getDb();
   if (emailNorm) {
     await db

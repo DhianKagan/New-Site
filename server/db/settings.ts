@@ -12,10 +12,22 @@ import { DATA_DIR, getUploadsDir, safeJsonParse } from './utils.ts';
 
 let analyticsInsertCounter = 0;
 let errorLogInsertCounter = 0;
+const inMemorySettings = new Map<string, string>();
+const inMemoryAnalyticsEvents: Array<{
+  id: number;
+  eventName: string;
+  metaEvent: string;
+  ga4Event: string;
+  payload: Record<string, string | number>;
+  createdAt: string;
+}> = [];
+const inMemoryErrorLogs: ClientErrorRecord[] = [];
+let inMemoryAnalyticsSeq = 1;
+let inMemoryErrorSeq = 1;
 
 export async function getSetting(key: string): Promise<string | null> {
   if (!isDatabaseConfigured()) {
-    return null;
+    return inMemorySettings.get(key) ?? null;
   }
   const db = getDb();
   const [row] = await db
@@ -27,6 +39,10 @@ export async function getSetting(key: string): Promise<string | null> {
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    inMemorySettings.set(key, value);
+    return;
+  }
   const db = getDb();
   const now = new Date().toISOString();
   await db
@@ -39,6 +55,11 @@ export async function setSetting(key: string, value: string): Promise<void> {
 }
 
 export async function setSettingIfAbsent(key: string, value: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    if (inMemorySettings.has(key)) return false;
+    inMemorySettings.set(key, value);
+    return true;
+  }
   const db = getDb();
   const now = new Date().toISOString();
   const inserted = await db
@@ -50,6 +71,10 @@ export async function setSettingIfAbsent(key: string, value: string): Promise<bo
 }
 
 export async function deleteSetting(key: string): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    inMemorySettings.delete(key);
+    return;
+  }
   const db = getDb();
   await db.delete(schema.settingsTable).where(eq(schema.settingsTable.key, key));
 }
@@ -100,6 +125,17 @@ export async function recordAnalyticsEvent(
   payload: Record<string, string | number>,
 ): Promise<void> {
   if (!isDatabaseConfigured()) {
+    inMemoryAnalyticsEvents.unshift({
+      id: inMemoryAnalyticsSeq++,
+      eventName,
+      metaEvent,
+      ga4Event,
+      payload,
+      createdAt: new Date().toISOString(),
+    });
+    if (inMemoryAnalyticsEvents.length > 100) {
+      inMemoryAnalyticsEvents.length = 100;
+    }
     return;
   }
   const db = getDb();
@@ -140,7 +176,8 @@ export async function listRecentAnalyticsEvents(limit = 35): Promise<
   }>
 > {
   if (!isDatabaseConfigured()) {
-    return [];
+    const safeLimit = Math.max(1, Math.min(100, Math.round(limit)));
+    return inMemoryAnalyticsEvents.slice(0, safeLimit);
   }
   const db = getDb();
   const safeLimit = Math.max(1, Math.min(100, Math.round(limit)));
@@ -171,6 +208,21 @@ export async function recordClientErrorLog(input: {
   locale: 'uk' | 'ru';
 }): Promise<void> {
   if (!isDatabaseConfigured()) {
+    inMemoryErrorLogs.unshift({
+      id: inMemoryErrorSeq++,
+      errorId: input.errorId,
+      kind: input.kind,
+      name: input.name,
+      message: input.message,
+      stack: input.stack,
+      componentStack: input.componentStack,
+      route: input.route,
+      locale: input.locale,
+      createdAt: new Date().toISOString(),
+    });
+    if (inMemoryErrorLogs.length > 200) {
+      inMemoryErrorLogs.length = 200;
+    }
     return;
   }
   const db = getDb();
@@ -206,7 +258,8 @@ export async function recordClientErrorLog(input: {
 
 export async function listRecentClientErrorLogs(limit = 30): Promise<ClientErrorRecord[]> {
   if (!isDatabaseConfigured()) {
-    return [];
+    const safeLimit = Math.max(1, Math.min(100, Math.round(limit)));
+    return inMemoryErrorLogs.slice(0, safeLimit);
   }
   const db = getDb();
   const safeLimit = Math.max(1, Math.min(100, Math.round(limit)));
@@ -236,6 +289,10 @@ export async function listRecentClientErrorLogs(limit = 30): Promise<ClientError
 }
 
 export async function clearClientErrorLogs(): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    inMemoryErrorLogs.length = 0;
+    return;
+  }
   const db = getDb();
   await db.delete(schema.clientErrorLogsTable);
 }
@@ -268,9 +325,28 @@ export async function saveSocialLinks(links: SocialLinksConfig): Promise<void> {
 }
 
 export async function getStorageDiagnostics(): Promise<StorageDiagnostics> {
+  const uploadsDir = getUploadsDir();
+  if (!isDatabaseConfigured()) {
+    let uploadsCount = 0;
+    try {
+      uploadsCount = fs.readdirSync(uploadsDir).filter((f) => !f.startsWith('.')).length;
+    } catch {
+      uploadsCount = 0;
+    }
+    return {
+      dataDir: DATA_DIR,
+      dbPath: 'in-memory (mock)',
+      dbSizeBytes: 0,
+      uploadsDir,
+      uploadsCount,
+      productsCount: 0,
+      projectsCount: 0,
+      dealsCount: 0,
+      isCustomVolume: Boolean(process.env.S3_BUCKET?.trim() || process.env.DATA_DIR?.trim()),
+    };
+  }
   const db = getDb();
   const pool = getPool();
-  const uploadsDir = getUploadsDir();
 
   let dbSizeBytes = 0;
   try {
@@ -320,6 +396,17 @@ export async function getStorageDiagnostics(): Promise<StorageDiagnostics> {
 }
 
 export async function exportDatabaseBackupJson(): Promise<Record<string, unknown>> {
+  if (!isDatabaseConfigured()) {
+    const settings: Array<{ key: string; value: string }> = [];
+    for (const [key, value] of inMemorySettings.entries()) {
+      if (key !== 'admin_password_hash') settings.push({ key, value });
+    }
+    return {
+      exportedAt: new Date().toISOString(),
+      engine: 'in-memory',
+      data: { settings },
+    };
+  }
   const db = getDb();
   const [
     products,

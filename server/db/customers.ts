@@ -2,8 +2,23 @@ import { desc, eq } from 'drizzle-orm';
 import * as schema from '../schema.ts';
 import { hashPassword } from '../auth.ts';
 import type { CrmCustomer, CustomerProfile, Deal } from '../../src/types.ts';
-import { getDb } from './client.ts';
+import { getDb, isDatabaseConfigured } from './client.ts';
 import { backfillCustomerDeals, listCustomerDeals } from './deals.ts';
+import {
+  memCreateCustomerAccountByCrm,
+  memDeleteCustomerAccount,
+  memFindCustomerForPasswordLogin,
+  memGetCustomerAccountDetail,
+  memGetCustomerAuthState,
+  memGetCustomerProfileById,
+  memGetCustomerWishlistIds,
+  memListCustomerAccounts,
+  memRegisterCustomerWithPassword,
+  memSetCustomerWishlistIds,
+  memUpdateCustomerAccountByCrm,
+  memUpdateCustomerProfile,
+  memUpsertGoogleCustomerAccount,
+} from './memoryStore.ts';
 import { normalizeContactPhone } from './utils.ts';
 
 function mapCustomerRow(r: typeof schema.customerAccountsTable.$inferSelect): CustomerProfile {
@@ -31,6 +46,9 @@ export async function getCustomerAuthStateSync(customerId: number): Promise<{
   city: string;
   firebaseUid: string;
 } | null> {
+  if (!isDatabaseConfigured()) {
+    return memGetCustomerAuthState(customerId);
+  }
   const db = getDb();
   const [row] = await db
     .select({
@@ -58,6 +76,9 @@ export async function getCustomerAuthStateSync(customerId: number): Promise<{
 }
 
 export async function getCustomerProfileById(customerId: number): Promise<CustomerProfile | null> {
+  if (!isDatabaseConfigured()) {
+    return memGetCustomerProfileById(customerId);
+  }
   const db = getDb();
   const [row] = await db
     .select()
@@ -71,6 +92,9 @@ export async function findCustomerForPasswordLogin(email: string): Promise<{
   customer: CustomerProfile;
   passwordHash: string;
 } | null> {
+  if (!isDatabaseConfigured()) {
+    return memFindCustomerForPasswordLogin(email);
+  }
   const db = getDb();
   const norm = email.trim().toLowerCase();
   if (!norm) return null;
@@ -93,6 +117,9 @@ export async function registerCustomerWithPassword(input: {
   city?: string;
   password: string;
 }): Promise<CustomerProfile> {
+  if (!isDatabaseConfigured()) {
+    return memRegisterCustomerWithPassword(input);
+  }
   const db = getDb();
   const emailNorm = input.email.trim().toLowerCase();
   const [existingStaff] = await db
@@ -140,6 +167,9 @@ export async function upsertGoogleCustomerAccount(input: {
   name: string;
   firebaseUid: string;
 }): Promise<CustomerProfile> {
+  if (!isDatabaseConfigured()) {
+    return memUpsertGoogleCustomerAccount(input);
+  }
   const db = getDb();
   const emailNorm = input.email.trim().toLowerCase();
   const now = new Date().toISOString();
@@ -193,6 +223,9 @@ export async function updateCustomerProfile(
   customerId: number,
   patch: { name?: string; phone?: string; city?: string },
 ): Promise<CustomerProfile | null> {
+  if (!isDatabaseConfigured()) {
+    return memUpdateCustomerProfile(customerId, patch);
+  }
   const db = getDb();
   const [existing] = await db
     .select()
@@ -224,6 +257,9 @@ export async function updateCustomerProfile(
 }
 
 export async function deleteCustomerAccount(customerId: number): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    return memDeleteCustomerAccount(customerId);
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.customerAccountsTable)
@@ -246,6 +282,9 @@ async function enrichCrmCustomer(row: typeof schema.customerAccountsTable.$infer
 }
 
 export async function listCustomerAccounts(): Promise<CrmCustomer[]> {
+  if (!isDatabaseConfigured()) {
+    return memListCustomerAccounts();
+  }
   const db = getDb();
   const rows = await db
     .select()
@@ -258,6 +297,9 @@ export async function getCustomerAccountDetail(customerId: number): Promise<{
   customer: CrmCustomer;
   deals: Deal[];
 } | null> {
+  if (!isDatabaseConfigured()) {
+    return memGetCustomerAccountDetail(customerId);
+  }
   const db = getDb();
   const [row] = await db
     .select()
@@ -286,6 +328,9 @@ export async function createCustomerAccountByCrm(input: {
   password?: string;
   active?: boolean;
 }): Promise<CrmCustomer> {
+  if (!isDatabaseConfigured()) {
+    return memCreateCustomerAccountByCrm(input);
+  }
   const db = getDb();
   const emailNorm = input.email.trim().toLowerCase();
   const [existingStaff] = await db
@@ -344,6 +389,9 @@ export async function updateCustomerAccountByCrm(
     active?: boolean;
   },
 ): Promise<CrmCustomer | null> {
+  if (!isDatabaseConfigured()) {
+    return memUpdateCustomerAccountByCrm(customerId, patch);
+  }
   const db = getDb();
   const [existing] = await db
     .select()
@@ -411,6 +459,9 @@ export async function updateCustomerAccountByCrm(
 }
 
 export async function getCustomerWishlistIds(customerId: number): Promise<string[]> {
+  if (!isDatabaseConfigured()) {
+    return memGetCustomerWishlistIds(customerId);
+  }
   const db = getDb();
   const rows = await db
     .select({ productId: schema.customerWishlistTable.productId })
@@ -421,6 +472,9 @@ export async function getCustomerWishlistIds(customerId: number): Promise<string
 }
 
 export async function setCustomerWishlistIds(customerId: number, productIds: string[]): Promise<string[]> {
+  if (!isDatabaseConfigured()) {
+    return memSetCustomerWishlistIds(customerId, productIds);
+  }
   const db = getDb();
   const deduped: string[] = [];
   const seen = new Set<string>();

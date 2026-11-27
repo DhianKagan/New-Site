@@ -328,7 +328,35 @@ function getSeedFileMtimeIso(filePath: string): string {
   return new Date(0).toISOString();
 }
 
+let inMemoryCatalog: Product[] | null = null;
+let inMemoryProjects: ProjectCase[] | null = null;
+
+function getInMemoryCatalog(): Product[] {
+  if (!inMemoryCatalog) {
+    inMemoryCatalog = readSeedCatalogItems();
+  }
+  return inMemoryCatalog;
+}
+
+function getInMemoryProjects(): ProjectCase[] {
+  if (!inMemoryProjects) {
+    inMemoryProjects = readSeedProjectsList();
+  }
+  return inMemoryProjects;
+}
+
 async function ensureCatalogCache(): Promise<Product[]> {
+  if (!isDatabaseConfigured()) {
+    const items = getInMemoryCatalog().slice();
+    const byId = new Map<string, Product>();
+    for (const item of items) {
+      byId.set(item.id, item);
+    }
+    cachedCatalogAll = items;
+    cachedCatalogById = byId;
+    return items;
+  }
+
   if (isRedisConfigured()) {
     const redisHit = await redisGetJson<Product[]>(KEY_CATALOG_ALL);
     if (redisHit) {
@@ -339,9 +367,7 @@ async function ensureCatalogCache(): Promise<Product[]> {
   }
 
   let items: Product[];
-  if (!isDatabaseConfigured()) {
-    items = readSeedCatalogItems();
-  } else {
+  {
     const db = getDb();
     const rows = await db
       .select()
@@ -527,6 +553,50 @@ export async function updateProduct(
     description?: string;
   },
 ): Promise<Product | null> {
+  if (!isDatabaseConfigured()) {
+    const list = getInMemoryCatalog();
+    const idx = list.findIndex((p) => p.id === id);
+    if (idx < 0) return null;
+    const existing = list[idx];
+    const title = patch.title !== undefined ? String(patch.title).trim() || existing.title : existing.title;
+    const sku = patch.sku !== undefined ? String(patch.sku).trim() : existing.sku;
+    const cat = patch.cat !== undefined ? patch.cat : existing.cat;
+    const brand = patch.brand !== undefined ? String(patch.brand).trim() || existing.brand : existing.brand;
+    const isKit = patch.isKit !== undefined ? patch.isKit : existing.isKit;
+    const price = patch.price !== undefined ? Math.max(0, Math.round(Number(patch.price) || 0)) : existing.price;
+    const oldPrice =
+      patch.oldPrice !== undefined ? Math.max(0, Math.round(Number(patch.oldPrice) || 0)) : existing.oldPrice;
+    const inStock = patch.inStock !== undefined ? patch.inStock : existing.inStock;
+    const statusLabel =
+      patch.statusLabel !== undefined && String(patch.statusLabel).trim()
+        ? String(patch.statusLabel).trim()
+        : patch.inStock !== undefined
+          ? inStock
+            ? 'в наявності'
+            : 'під замовлення'
+          : existing.statusLabel;
+    const img = patch.img !== undefined ? String(patch.img).trim() : existing.img;
+    const specs = patch.specs !== undefined ? patch.specs : existing.specs;
+    const description = patch.description !== undefined ? String(patch.description).trim() : existing.description;
+    const updated: Product = {
+      ...existing,
+      sku,
+      title,
+      cat,
+      brand,
+      isKit,
+      price,
+      oldPrice,
+      inStock,
+      statusLabel,
+      img,
+      specs,
+      description,
+    };
+    list[idx] = updated;
+    await invalidateCatalogCache();
+    return updated;
+  }
   const db = getDb();
   const existing = await getProductById(id);
   if (!existing) return null;
@@ -591,6 +661,38 @@ export async function createProduct(input: {
   specs?: [string, string][];
   description?: string;
 }): Promise<Product> {
+  if (!isDatabaseConfigured()) {
+    const list = getInMemoryCatalog();
+    const slugBase = input.title
+      .toLowerCase()
+      .replace(/[^a-z0-9а-яіїєґ]+/gi, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 48);
+    const id = `${slugBase || 'item'}-${Date.now().toString(36)}`;
+    const isKit = input.isKit ?? input.cat === 'kits';
+    const statusLabel =
+      input.statusLabel?.trim() || (input.inStock ? 'в наявності' : 'під замовлення');
+    const created: Product = {
+      id,
+      sku: input.sku.trim() || id.slice(0, 8).toUpperCase(),
+      title: input.title.trim(),
+      cat: input.cat,
+      rawCats: [],
+      brand: input.brand.trim() || 'Energo Comfort',
+      isKit,
+      price: Math.max(0, Math.round(Number(input.price) || 0)),
+      oldPrice: Math.max(0, Math.round(Number(input.oldPrice) || 0)),
+      inStock: input.inStock,
+      statusLabel,
+      img: (input.img ?? '').trim(),
+      specs: input.specs ?? [],
+      description: (input.description ?? '').trim(),
+      sourceUrl: '',
+    };
+    list.unshift(created);
+    await invalidateCatalogCache();
+    return created;
+  }
   const db = getDb();
   const now = new Date().toISOString();
   const slugBase = input.title
@@ -631,6 +733,14 @@ export async function createProduct(input: {
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    const list = getInMemoryCatalog();
+    const idx = list.findIndex((p) => p.id === id);
+    if (idx < 0) return false;
+    list.splice(idx, 1);
+    await invalidateCatalogCache();
+    return true;
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.productsTable)
@@ -644,103 +754,103 @@ export async function deleteProduct(id: string): Promise<boolean> {
   return false;
 }
 
+const INITIAL_PROJECTS: ProjectCase[] = [
+  {
+    id: 'sto',
+    seg: 'b2b',
+    tag: 'B2B · Одеса',
+    title: 'СТО для вантажного транспорту',
+    img: '/assets/energocomfort/sto_110kw.jpg',
+    task: 'Забезпечити безперебійну роботу енергоємного обладнання (підйомників, компресорів) в умовах лімітів потужності мережі.',
+    solution: 'Змонтовано сонячне поле 110 кВт, встановлено трифазний гібридний інвертор 80 кВт та блок акумуляторів ємністю 160 кВт·год.',
+    specs: 'PV 110 кВт · Гібрид 80 кВт · АКБ 160 кВт·год',
+    result: 'Денне заміщення власного споживання та тривала автономність сервісу навіть під час тривалих відключень.',
+  },
+  {
+    id: 'factory',
+    seg: 'b2b',
+    tag: 'B2B · Одеська обл.',
+    title: 'Завод з виробництва тротуарної плитки',
+    img: '/assets/energocomfort/factory_110kw.png',
+    task: 'Зменшити навантаження на електромережу та оптимізувати денні витрати промислового виробництва.',
+    solution: 'Промислове покрівельне сонячне поле потужністю 110 кВт із мережевою та гібридною архітектурою 380 В.',
+    specs: 'PV 110 кВт · Промислова СЕС · 380 В',
+    result: 'Стабільна генерація для виробничої лінії у робочу зміну та швидка окупність обладнання.',
+  },
+  {
+    id: 'school',
+    seg: 'b2b',
+    tag: 'B2B · Заклад освіти',
+    title: 'Навчальний заклад',
+    img: '/assets/energocomfort/school_55kw.png',
+    task: 'Забезпечити безперервний навчальний процес освітленням та живленням систем безпеки і серверів.',
+    solution: 'Монтаж 55 кВт сонячних панелей та балансування критичного навантаження на 3-фазній мережі.',
+    specs: 'PV 55 кВт · 3 фази · Проєкт під ключ',
+    result: 'Безперебійна робота навчального комплексу під час графіків відключень.',
+  },
+  {
+    id: 'hotel',
+    seg: 'b2b',
+    tag: 'B2B · Узбережжя',
+    title: 'Готельний комплекс',
+    img: '/assets/energocomfort/hotel_35kw.png',
+    task: 'Провести аудит споживання та організувати автоматичне резервування інженерних систем готелю.',
+    solution: 'Сонячне поле 35 кВт, високовольтний гібридний інвертор Deye 30 кВт та блок АКБ 30 кВт·год.',
+    specs: 'PV 35 кВт · Deye 30 кВт · АКБ 30 кВт·год',
+    result: 'Миттєве перемикання без зупинки сервісу, ліфтів, насосів та систем кондиціонування для гостей.',
+  },
+  {
+    id: 'recreation',
+    seg: 'b2b',
+    tag: 'B2B · Одеська обл.',
+    title: 'База відпочинку',
+    img: '/assets/energocomfort/recreation_36kw.jpg',
+    task: 'Забезпечити безперебійне енергопостачання та оптимізувати витрати у піковий курортний сезон.',
+    solution: 'Встановлено 60 сонячних панелей (36 кВт), трифазний інвертор Deye 30 кВт та акумуляторний блок 30,6 кВт·год.',
+    specs: 'PV 36 кВт · Deye 30 кВт · АКБ 30,6 кВт·год',
+    result: 'Повна автономність ключової інфраструктури комплексу та зниження рахунків за електроенергію.',
+  },
+  {
+    id: 'office',
+    seg: 'b2b',
+    tag: 'B2B · Центр Одеси',
+    title: 'Офісний центр',
+    img: '/assets/energocomfort/office_16kw.png',
+    task: 'Живлення робочих місць, серверної групи, зв’язку та клімат-контролю без простоїв.',
+    solution: 'СЕС 16 кВт, гібридний інвертор 12 кВт та запас енергії в АКБ LiFePO4 20 кВт·год.',
+    specs: 'PV 16 кВт · Інвертор 12 кВт · АКБ 20 кВт·год',
+    result: 'Команда працює у штатному режимі за будь-яких мережевих обмежень.',
+  },
+  {
+    id: 'houseSolar',
+    seg: 'b2c',
+    tag: 'B2C · Одеський р-н',
+    title: 'Приватний будинок із СЕС',
+    img: '/assets/energocomfort/house_6kw.png',
+    task: 'Власна денна генерація та надійний нічний резерв для родини.',
+    solution: 'Сонячне поле 6 кВт, гібридний інвертор 10 кВт і акумуляторна система 15 кВт·год.',
+    specs: 'PV 6 кВт · Інвертор 10 кВт · АКБ 15 кВт·год',
+    result: 'Стабільне живлення будинку незалежно від зовнішньої мережі та економія на тарифі.',
+  },
+  {
+    id: 'houseBackup',
+    seg: 'b2c',
+    tag: 'B2C · Одеса',
+    title: 'Резервне живлення квартири та дому',
+    img: '/assets/energocomfort/backup_deye_8kw.jpg',
+    task: 'Тихий автопідхват опалення, освітлення та побутової техніки без втрати простору в кімнатах.',
+    solution: 'Однофазний гібридний інвертор Deye 6–8 кВт та компактний LiFePO4 блок Deye 12 кВт·год із захистом AC/DC.',
+    specs: 'Без СЕС · Deye 6–8 кВт (1ф) · АКБ 12 кВт·год',
+    result: 'Повністю автоматизована тиха система резервного живлення з можливістю подальшого підключення панелей.',
+  },
+];
+
 export async function seedProjectsIfEmpty(): Promise<void> {
   const db = getDb();
   const [cntRow] = await db.select({ cnt: count() }).from(schema.projectsTable);
   if (Number(cntRow?.cnt ?? 0) > 0) return;
 
-  const initialProjects: ProjectCase[] = [
-    {
-      id: 'sto',
-      seg: 'b2b',
-      tag: 'B2B · Одеса',
-      title: 'СТО для вантажного транспорту',
-      img: '/assets/energocomfort/sto_110kw.jpg',
-      task: 'Забезпечити безперебійну роботу енергоємного обладнання (підйомників, компресорів) в умовах лімітів потужності мережі.',
-      solution: 'Змонтовано сонячне поле 110 кВт, встановлено трифазний гібридний інвертор 80 кВт та блок акумуляторів ємністю 160 кВт·год.',
-      specs: 'PV 110 кВт · Гібрид 80 кВт · АКБ 160 кВт·год',
-      result: 'Денне заміщення власного споживання та тривала автономність сервісу навіть під час тривалих відключень.',
-    },
-    {
-      id: 'factory',
-      seg: 'b2b',
-      tag: 'B2B · Одеська обл.',
-      title: 'Завод з виробництва тротуарної плитки',
-      img: '/assets/energocomfort/factory_110kw.png',
-      task: 'Зменшити навантаження на електромережу та оптимізувати денні витрати промислового виробництва.',
-      solution: 'Промислове покрівельне сонячне поле потужністю 110 кВт із мережевою та гібридною архітектурою 380 В.',
-      specs: 'PV 110 кВт · Промислова СЕС · 380 В',
-      result: 'Стабільна генерація для виробничої лінії у робочу зміну та швидка окупність обладнання.',
-    },
-    {
-      id: 'school',
-      seg: 'b2b',
-      tag: 'B2B · Заклад освіти',
-      title: 'Навчальний заклад',
-      img: '/assets/energocomfort/school_55kw.png',
-      task: 'Забезпечити безперервний навчальний процес освітленням та живленням систем безпеки і серверів.',
-      solution: 'Монтаж 55 кВт сонячних панелей та балансування критичного навантаження на 3-фазній мережі.',
-      specs: 'PV 55 кВт · 3 фази · Проєкт під ключ',
-      result: 'Безперебійна робота навчального комплексу під час графіків відключень.',
-    },
-    {
-      id: 'hotel',
-      seg: 'b2b',
-      tag: 'B2B · Узбережжя',
-      title: 'Готельний комплекс',
-      img: '/assets/energocomfort/hotel_35kw.png',
-      task: 'Провести аудит споживання та організувати автоматичне резервування інженерних систем готелю.',
-      solution: 'Сонячне поле 35 кВт, високовольтний гібридний інвертор Deye 30 кВт та блок АКБ 30 кВт·год.',
-      specs: 'PV 35 кВт · Deye 30 кВт · АКБ 30 кВт·год',
-      result: 'Миттєве перемикання без зупинки сервісу, ліфтів, насосів та систем кондиціонування для гостей.',
-    },
-    {
-      id: 'recreation',
-      seg: 'b2b',
-      tag: 'B2B · Одеська обл.',
-      title: 'База відпочинку',
-      img: '/assets/energocomfort/recreation_36kw.jpg',
-      task: 'Забезпечити безперебійне енергопостачання та оптимізувати витрати у піковий курортний сезон.',
-      solution: 'Встановлено 60 сонячних панелей (36 кВт), трифазний інвертор Deye 30 кВт та акумуляторний блок 30,6 кВт·год.',
-      specs: 'PV 36 кВт · Deye 30 кВт · АКБ 30,6 кВт·год',
-      result: 'Повна автономність ключової інфраструктури комплексу та зниження рахунків за електроенергію.',
-    },
-    {
-      id: 'office',
-      seg: 'b2b',
-      tag: 'B2B · Центр Одеси',
-      title: 'Офісний центр',
-      img: '/assets/energocomfort/office_16kw.png',
-      task: 'Живлення робочих місць, серверної групи, зв’язку та клімат-контролю без простоїв.',
-      solution: 'СЕС 16 кВт, гібридний інвертор 12 кВт та запас енергії в АКБ LiFePO4 20 кВт·год.',
-      specs: 'PV 16 кВт · Інвертор 12 кВт · АКБ 20 кВт·год',
-      result: 'Команда працює у штатному режимі за будь-яких мережевих обмежень.',
-    },
-    {
-      id: 'houseSolar',
-      seg: 'b2c',
-      tag: 'B2C · Одеський р-н',
-      title: 'Приватний будинок із СЕС',
-      img: '/assets/energocomfort/house_6kw.png',
-      task: 'Власна денна генерація та надійний нічний резерв для родини.',
-      solution: 'Сонячне поле 6 кВт, гібридний інвертор 10 кВт і акумуляторна система 15 кВт·год.',
-      specs: 'PV 6 кВт · Інвертор 10 кВт · АКБ 15 кВт·год',
-      result: 'Стабільне живлення будинку незалежно від зовнішньої мережі та економія на тарифі.',
-    },
-    {
-      id: 'houseBackup',
-      seg: 'b2c',
-      tag: 'B2C · Одеса',
-      title: 'Резервне живлення квартири та дому',
-      img: '/assets/energocomfort/backup_deye_8kw.jpg',
-      task: 'Тихий автопідхват опалення, освітлення та побутової техніки без втрати простору в кімнатах.',
-      solution: 'Однофазний гібридний інвертор Deye 6–8 кВт та компактний LiFePO4 блок Deye 12 кВт·год із захистом AC/DC.',
-      specs: 'Без СЕС · Deye 6–8 кВт (1ф) · АКБ 12 кВт·год',
-      result: 'Повністю автоматизована тиха система резервного живлення з можливістю подальшого підключення панелей.',
-    },
-  ];
-
-  let seedList: ProjectCase[] = initialProjects;
+  let seedList: ProjectCase[] = INITIAL_PROJECTS;
   if (fs.existsSync(SEED_PROJECTS_PATH)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(SEED_PROJECTS_PATH, 'utf-8')) as ProjectCase[];
@@ -748,10 +858,10 @@ export async function seedProjectsIfEmpty(): Promise<void> {
         seedList = parsed;
       }
     } catch {
-      seedList = initialProjects;
+      seedList = INITIAL_PROJECTS;
     }
   } else {
-    writeJsonFileAtomic(SEED_PROJECTS_PATH, initialProjects);
+    writeJsonFileAtomic(SEED_PROJECTS_PATH, INITIAL_PROJECTS);
   }
 
   const now = new Date().toISOString();
@@ -791,10 +901,15 @@ function readSeedProjectsList(): ProjectCase[] {
       // ignore malformed seed file
     }
   }
-  return [];
+  return INITIAL_PROJECTS.map((p) => ({ ...p }));
 }
 
 export async function listProjectCases(): Promise<ProjectCase[]> {
+  if (!isDatabaseConfigured()) {
+    const list = getInMemoryProjects().slice();
+    cachedProjectsList = list;
+    return list;
+  }
   if (isRedisConfigured()) {
     const redisHit = await redisGetJson<ProjectCase[]>(KEY_PROJECTS_ALL);
     if (redisHit) return redisHit.slice();
@@ -803,9 +918,7 @@ export async function listProjectCases(): Promise<ProjectCase[]> {
   }
 
   let list: ProjectCase[];
-  if (!isDatabaseConfigured()) {
-    list = readSeedProjectsList();
-  } else {
+  {
     const db = getDb();
     const rows = await db
       .select()
@@ -836,6 +949,29 @@ export async function createProjectCase(input: {
   specs: string;
   result: string;
 }): Promise<ProjectCase> {
+  if (!isDatabaseConfigured()) {
+    const list = getInMemoryProjects();
+    const slugBase = input.title
+      .toLowerCase()
+      .replace(/[^a-z0-9а-яіїєґ]+/gi, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 36);
+    const id = `${slugBase || 'case'}-${Date.now().toString(36)}`;
+    const created: ProjectCase = {
+      id,
+      seg: input.seg === 'b2b' ? 'b2b' : 'b2c',
+      tag: input.tag.trim() || (input.seg === 'b2b' ? 'B2B · Одеса' : 'B2C · Одеса'),
+      title: input.title.trim(),
+      img: input.img.trim() || '/assets/energocomfort/house_6kw.png',
+      task: input.task.trim(),
+      solution: input.solution.trim(),
+      specs: input.specs.trim(),
+      result: input.result.trim(),
+    };
+    list.unshift(created);
+    await invalidateProjectsCache();
+    return created;
+  }
   const db = getDb();
   const now = new Date().toISOString();
   const slugBase = input.title
@@ -885,6 +1021,26 @@ export async function updateProjectCase(
     result: string;
   }>,
 ): Promise<ProjectCase | null> {
+  if (!isDatabaseConfigured()) {
+    const list = getInMemoryProjects();
+    const idx = list.findIndex((p) => p.id === id);
+    if (idx < 0) return null;
+    const existing = list[idx];
+    const updated: ProjectCase = {
+      ...existing,
+      seg: patch.seg === 'b2b' || patch.seg === 'b2c' ? patch.seg : existing.seg,
+      tag: patch.tag !== undefined ? patch.tag.trim() : existing.tag,
+      title: patch.title !== undefined ? patch.title.trim() : existing.title,
+      img: patch.img !== undefined ? patch.img.trim() : existing.img,
+      task: patch.task !== undefined ? patch.task.trim() : existing.task,
+      solution: patch.solution !== undefined ? patch.solution.trim() : existing.solution,
+      specs: patch.specs !== undefined ? patch.specs.trim() : existing.specs,
+      result: patch.result !== undefined ? patch.result.trim() : existing.result,
+    };
+    list[idx] = updated;
+    await invalidateProjectsCache();
+    return updated;
+  }
   const db = getDb();
   const existing = await getProjectCaseById(id);
   if (!existing) return null;
@@ -921,6 +1077,14 @@ export async function updateProjectCase(
 }
 
 export async function deleteProjectCase(id: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    const list = getInMemoryProjects();
+    const idx = list.findIndex((p) => p.id === id);
+    if (idx < 0) return false;
+    list.splice(idx, 1);
+    await invalidateProjectsCache();
+    return true;
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.projectsTable)
@@ -1067,6 +1231,9 @@ export async function getLatestCatalogOrProjectUpdatedAt(): Promise<string> {
 }
 
 export async function getRecentCatalogAndProjectChanges(limit = 12): Promise<RecentChangeRecord[]> {
+  if (!isDatabaseConfigured()) {
+    return [];
+  }
   const db = getDb();
   const safeLimit = Math.max(1, Math.min(30, Math.round(limit)));
   const [prodRows, projRows] = await Promise.all([

@@ -12,7 +12,15 @@ import type {
   TaskPriority,
   TaskStatus,
 } from '../../src/types.ts';
-import { getDb } from './client.ts';
+import { getDb, isDatabaseConfigured } from './client.ts';
+import {
+  memCreateContact,
+  memDeleteContact,
+  memGetContactDetail,
+  memListContacts,
+  memUpdateContact,
+  memUpsertContact,
+} from './memoryStore.ts';
 import { normalizeContactPhone, safeJsonParse } from './utils.ts';
 
 export async function upsertContact(input: {
@@ -24,6 +32,9 @@ export async function upsertContact(input: {
   company?: string;
   segment?: ContactSegment;
 }): Promise<number> {
+  if (!isDatabaseConfigured()) {
+    return memUpsertContact(input);
+  }
   const db = getDb();
   const normalizedPhone = normalizeContactPhone(input.phone);
   const emailNorm = (input.email ?? '').trim().toLowerCase();
@@ -90,6 +101,9 @@ export async function upsertContact(input: {
 }
 
 export async function listContacts(): Promise<Contact[]> {
+  if (!isDatabaseConfigured()) {
+    return memListContacts();
+  }
   const db = getDb();
   const [contactRows, dealRows, taskRows] = await Promise.all([
     db.select().from(schema.contactsTable).orderBy(desc(schema.contactsTable.updatedAt)),
@@ -148,6 +162,9 @@ export async function getContactDetail(id: number): Promise<{
   tasks: CrmTask[];
   notes: CrmNote[];
 } | null> {
+  if (!isDatabaseConfigured()) {
+    return memGetContactDetail(id);
+  }
   const db = getDb();
   const [row] = await db
     .select()
@@ -251,6 +268,9 @@ export async function createContact(input: {
   channel?: string;
   segment?: ContactSegment;
 }): Promise<Contact> {
+  if (!isDatabaseConfigured()) {
+    return memCreateContact(input);
+  }
   const db = getDb();
   const normalizedPhone = normalizeContactPhone(input.phone);
   const [existing] = await db
@@ -307,6 +327,9 @@ export async function updateContact(
     segment: ContactSegment;
   }>,
 ): Promise<Contact | null> {
+  if (!isDatabaseConfigured()) {
+    return memUpdateContact(id, patch);
+  }
   const db = getDb();
   const [existing] = await db
     .select()
@@ -358,6 +381,9 @@ export async function updateContact(
 }
 
 export async function deleteContact(id: number): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    return memDeleteContact(id);
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.contactsTable)

@@ -2,7 +2,18 @@ import { asc, count, desc, eq, or } from 'drizzle-orm';
 import * as schema from '../schema.ts';
 import { hashPassword } from '../auth.ts';
 import type { StaffRole, StaffUser } from '../../src/types.ts';
-import { getDb } from './client.ts';
+import { getDb, isDatabaseConfigured } from './client.ts';
+import {
+  memClaimMasterAdminAccount,
+  memCreateStaffUser,
+  memDeleteStaffUser,
+  memFindStaffForGoogleLogin,
+  memFindStaffForPasswordLogin,
+  memGetMasterAdminRecord,
+  memGetStaffAuthState,
+  memListStaffUsers,
+  memUpdateStaffUser,
+} from './memoryStore.ts';
 import { deleteSetting, getSetting, setSetting, setSettingIfAbsent } from './settings.ts';
 
 function mapStaffRow(r: typeof schema.staffUsersTable.$inferSelect): StaffUser {
@@ -36,6 +47,7 @@ function defaultAssigneeLabel(name: string, position: string): string {
 }
 
 export async function seedStaffIfEmpty(): Promise<void> {
+  if (!isDatabaseConfigured()) return;
   const db = getDb();
   const [seeded, cntRows] = await Promise.all([
     getSetting('staff_seeded'),
@@ -76,6 +88,7 @@ export async function seedStaffIfEmpty(): Promise<void> {
 }
 
 export async function ensureMasterAdminAccount(): Promise<void> {
+  if (!isDatabaseConfigured()) return;
   const db = getDb();
   const [existing] = await db
     .select({
@@ -142,6 +155,9 @@ export async function getStaffAuthStateSync(userId: number): Promise<{
   email: string;
   assigneeLabel: string;
 } | null> {
+  if (!isDatabaseConfigured()) {
+    return memGetStaffAuthState(userId);
+  }
   const db = getDb();
   const [row] = await db
     .select({
@@ -182,6 +198,9 @@ export async function getMasterAdminRecordSync(): Promise<{
   assigneeLabel: string;
   passwordHash: string;
 }> {
+  if (!isDatabaseConfigured()) {
+    return memGetMasterAdminRecord();
+  }
   const db = getDb();
   await ensureMasterAdminAccount();
   const [row] = await db
@@ -224,6 +243,9 @@ export async function claimMasterAdminAccount(input: {
   assigneeLabel: string;
   passwordHash: string;
 }> {
+  if (!isDatabaseConfigured()) {
+    return memClaimMasterAdminAccount(input);
+  }
   const db = getDb();
   const current = await getMasterAdminRecordSync();
   const now = new Date().toISOString();
@@ -245,6 +267,9 @@ export async function claimMasterAdminAccount(input: {
 }
 
 export async function listStaffUsers(): Promise<StaffUser[]> {
+  if (!isDatabaseConfigured()) {
+    return memListStaffUsers();
+  }
   const db = getDb();
   const rows = await db
     .select()
@@ -262,6 +287,9 @@ export async function findStaffForPasswordLogin(identifier: string): Promise<{
   user: StaffUser;
   passwordHash: string;
 } | null> {
+  if (!isDatabaseConfigured()) {
+    return memFindStaffForPasswordLogin(identifier);
+  }
   const db = getDb();
   const norm = identifier.trim().toLowerCase();
   if (!norm) return null;
@@ -279,6 +307,9 @@ export async function findStaffForPasswordLogin(identifier: string): Promise<{
 }
 
 export async function findStaffForGoogleLogin(email: string): Promise<StaffUser | null> {
+  if (!isDatabaseConfigured()) {
+    return memFindStaffForGoogleLogin(email);
+  }
   const db = getDb();
   const norm = email.trim().toLowerCase();
   if (!norm) return null;
@@ -303,6 +334,9 @@ export async function createStaffUser(input: {
   canLogin?: boolean;
   active?: boolean;
 }): Promise<StaffUser> {
+  if (!isDatabaseConfigured()) {
+    return memCreateStaffUser(input);
+  }
   const db = getDb();
   const emailNorm = (input.email ?? '').trim().toLowerCase();
   const explicitLogin = (input.login ?? '').trim().toLowerCase();
@@ -394,6 +428,9 @@ export async function updateStaffUser(
     active: boolean;
   }>,
 ): Promise<StaffUser | null> {
+  if (!isDatabaseConfigured()) {
+    return memUpdateStaffUser(id, patch);
+  }
   const db = getDb();
   const [existing] = await db
     .select()
@@ -503,6 +540,9 @@ export async function updateStaffUser(
 }
 
 export async function deleteStaffUser(id: number): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    return memDeleteStaffUser(id);
+  }
   const db = getDb();
   const [existing] = await db
     .select({ id: schema.staffUsersTable.id, login: schema.staffUsersTable.login })

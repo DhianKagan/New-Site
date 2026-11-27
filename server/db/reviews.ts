@@ -3,6 +3,13 @@ import { and, desc, eq } from 'drizzle-orm';
 import * as schema from '../schema.ts';
 import type { ProductReview, ProductReviewStatus } from '../../src/types.ts';
 import { getDb, isDatabaseConfigured } from './client.ts';
+import {
+  memCreateProductReviewRecord,
+  memDeleteProductReviewRecord,
+  memGetProductReviewById,
+  memListPublishedProductReviews,
+  memUpdateProductReviewRecord,
+} from './memoryStore.ts';
 
 function rowToProductReview(row: typeof schema.productReviewsTable.$inferSelect): ProductReview {
   const status: ProductReviewStatus = row.status === 'hidden' ? 'hidden' : 'published';
@@ -21,7 +28,7 @@ function rowToProductReview(row: typeof schema.productReviewsTable.$inferSelect)
 
 export async function listPublishedProductReviews(productId: string, limitCount = 100): Promise<ProductReview[]> {
   if (!isDatabaseConfigured()) {
-    return [];
+    return memListPublishedProductReviews(productId, limitCount);
   }
   const db = getDb();
   const safeLimit = Math.max(1, Math.min(200, Math.trunc(limitCount)));
@@ -35,6 +42,9 @@ export async function listPublishedProductReviews(productId: string, limitCount 
 }
 
 export async function getProductReviewById(reviewId: string): Promise<ProductReview | null> {
+  if (!isDatabaseConfigured()) {
+    return memGetProductReviewById(reviewId);
+  }
   const db = getDb();
   const [row] = await db
     .select()
@@ -53,6 +63,9 @@ export async function createProductReviewRecord(input: {
   comment: string;
   status?: ProductReviewStatus;
 }): Promise<ProductReview> {
+  if (!isDatabaseConfigured()) {
+    return memCreateProductReviewRecord(input);
+  }
   const db = getDb();
   const nowMs = Date.now();
   const reviewId = input.id?.trim() || `rev_${crypto.randomBytes(12).toString('hex')}`;
@@ -78,6 +91,9 @@ export async function updateProductReviewRecord(
   reviewId: string,
   patch: { authorName: string; rating: number; comment: string },
 ): Promise<ProductReview | null> {
+  if (!isDatabaseConfigured()) {
+    return memUpdateProductReviewRecord(reviewId, patch);
+  }
   const db = getDb();
   const nowMs = Date.now();
   const [updated] = await db
@@ -94,6 +110,9 @@ export async function updateProductReviewRecord(
 }
 
 export async function deleteProductReviewRecord(reviewId: string): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    return memDeleteProductReviewRecord(reviewId);
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.productReviewsTable)

@@ -1,11 +1,21 @@
 import { count, desc, eq, isNull, or } from 'drizzle-orm';
 import * as schema from '../schema.ts';
 import type { ContactSegment, CrmNote, CrmTask, TaskPriority, TaskStatus } from '../../src/types.ts';
-import { getDb } from './client.ts';
+import { getDb, isDatabaseConfigured } from './client.ts';
 import { upsertContact } from './contacts.ts';
+import {
+  memCreateNote,
+  memCreateTask,
+  memDeleteNote,
+  memDeleteTask,
+  memListNotes,
+  memListTasks,
+  memUpdateTask,
+} from './memoryStore.ts';
 import { getSetting, setSettingIfAbsent } from './settings.ts';
 
 export async function backfillContactsAndSeedCrm(): Promise<void> {
+  if (!isDatabaseConfigured()) return;
   const db = getDb();
   const unlinkedDeals = await db
     .select({
@@ -102,6 +112,9 @@ export async function backfillContactsAndSeedCrm(): Promise<void> {
 }
 
 export async function listTasks(filters?: { contactId?: number; dealId?: number }): Promise<CrmTask[]> {
+  if (!isDatabaseConfigured()) {
+    return memListTasks(filters);
+  }
   const db = getDb();
   let rows = await db.select().from(schema.tasksTable).orderBy(desc(schema.tasksTable.id));
   if (filters?.contactId) {
@@ -194,6 +207,9 @@ export async function createTask(input: {
   assignee?: string;
   dueDate?: string;
 }): Promise<CrmTask> {
+  if (!isDatabaseConfigured()) {
+    return memCreateTask(input);
+  }
   const db = getDb();
   let resolvedContactId = input.contactId ?? null;
   if (!resolvedContactId && input.dealId) {
@@ -249,6 +265,9 @@ export async function updateTask(
     dueDate: string;
   }>,
 ): Promise<CrmTask | null> {
+  if (!isDatabaseConfigured()) {
+    return memUpdateTask(id, patch);
+  }
   const db = getDb();
   const [existing] = await db.select().from(schema.tasksTable).where(eq(schema.tasksTable.id, id)).limit(1);
   if (!existing) return null;
@@ -272,6 +291,9 @@ export async function updateTask(
 }
 
 export async function deleteTask(id: number): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    return memDeleteTask(id);
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.tasksTable)
@@ -281,6 +303,9 @@ export async function deleteTask(id: number): Promise<boolean> {
 }
 
 export async function listNotes(filters?: { contactId?: number; dealId?: number }): Promise<CrmNote[]> {
+  if (!isDatabaseConfigured()) {
+    return memListNotes(filters);
+  }
   const db = getDb();
   const whereClause =
     filters?.contactId && filters?.dealId
@@ -311,6 +336,9 @@ export async function createNote(input: {
   author?: string;
   body: string;
 }): Promise<CrmNote> {
+  if (!isDatabaseConfigured()) {
+    return memCreateNote(input);
+  }
   const db = getDb();
   let resolvedContactId = input.contactId ?? null;
   if (!resolvedContactId && input.dealId) {
@@ -345,6 +373,9 @@ export async function createNote(input: {
 }
 
 export async function deleteNote(id: number): Promise<boolean> {
+  if (!isDatabaseConfigured()) {
+    return memDeleteNote(id);
+  }
   const db = getDb();
   const deleted = await db
     .delete(schema.notesTable)

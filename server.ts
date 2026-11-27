@@ -1015,9 +1015,9 @@ async function startServer() {
   const handleAuthStatus = asyncHandler(async (_req, res) => {
     const hasEnvPassword = Boolean(process.env.ADMIN_PASSWORD?.trim());
     const hasSetupToken = Boolean(process.env.ADMIN_SETUP_TOKEN?.trim());
-    const dbReady = isDatabaseConfigured();
+    const allowPreviewSetupWithoutToken = !IS_PROD && !isDatabaseConfigured() && !hasSetupToken;
     const [master, dbHash, googleEnabled] = await Promise.all([
-      dbReady ? getMasterAdminRecordSync() : Promise.resolve({ passwordHash: '' }),
+      getMasterAdminRecordSync(),
       getSetting('admin_password_hash'),
       isFirebaseAuthConfigured(),
     ]);
@@ -1027,7 +1027,7 @@ async function startServer() {
       configured,
       mode: configured ? 'login' : 'setup',
       googleEnabled,
-      setupTokenRequired: !configured && !hasEnvPassword,
+      setupTokenRequired: !configured && !hasEnvPassword && !allowPreviewSetupWithoutToken,
       setupTokenConfigured: hasSetupToken,
     });
   });
@@ -1055,13 +1055,18 @@ async function startServer() {
       return;
     }
 
-    const setupTokenCheck = verifyAdminSetupToken(
-      process.env.ADMIN_SETUP_TOKEN,
-      req.header('x-setup-token'),
-    );
-    if (!setupTokenCheck.ok) {
-      res.status(setupTokenCheck.status).json({ error: setupTokenCheck.error });
-      return;
+    const allowPreviewSetupWithoutToken =
+      !IS_PROD && !isDatabaseConfigured() && !process.env.ADMIN_SETUP_TOKEN?.trim();
+
+    if (!allowPreviewSetupWithoutToken) {
+      const setupTokenCheck = verifyAdminSetupToken(
+        process.env.ADMIN_SETUP_TOKEN,
+        req.header('x-setup-token'),
+      );
+      if (!setupTokenCheck.ok) {
+        res.status(setupTokenCheck.status).json({ error: setupTokenCheck.error });
+        return;
+      }
     }
 
     const parsed = adminSetupSchema.safeParse(req.body ?? {});
@@ -1070,10 +1075,12 @@ async function startServer() {
       return;
     }
 
-    const setupTokenHash = crypto
-      .createHash('sha256')
-      .update(process.env.ADMIN_SETUP_TOKEN!.trim())
-      .digest('hex');
+    const setupTokenHash = allowPreviewSetupWithoutToken
+      ? 'preview-no-token'
+      : crypto
+          .createHash('sha256')
+          .update(process.env.ADMIN_SETUP_TOKEN!.trim())
+          .digest('hex');
     const tokenClaimed = await setSettingIfAbsent('admin_setup_token_consumed_hash', setupTokenHash);
     if (!tokenClaimed) {
       res.status(409).json({ error: 'Одноразовий токен налаштування вже використано.' });
