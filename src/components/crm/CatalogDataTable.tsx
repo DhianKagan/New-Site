@@ -13,13 +13,15 @@ import {
   type PaginationState,
   type SortingState,
 } from '@tanstack/react-table';
-import { Check, Pencil, Plus, Search, X } from 'lucide-react';
+import { Check, Loader2, Pencil, Plus, RotateCcw, Search, X } from 'lucide-react';
 import type { Product, ProductCategory } from '../../types.ts';
 import { tr } from '../../lib/i18n.ts';
 import { SmartImage } from '../SmartImage.tsx';
+import { badgeVariants } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
 import { Card } from '../ui/card.tsx';
 import { Input } from '../ui/input.tsx';
+import { Select } from '../ui/select.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table.tsx';
 import { SortDirectionIcon, TablePagination } from './TablePagination.tsx';
 
@@ -49,6 +51,11 @@ interface CatalogDataTableProps {
   onToggleStockQuick: (product: Product) => void;
   onOpenEditModal: (product: Product) => void;
   onOpenCreateModal: () => void;
+  totalCatalogCount?: number;
+  isFetching?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  onResetFilters?: () => void;
 }
 
 const CAT_NAMES: Record<ProductCategory, string> = {
@@ -96,6 +103,11 @@ export function CatalogDataTable({
   onToggleStockQuick,
   onOpenEditModal,
   onOpenCreateModal,
+  totalCatalogCount,
+  isFetching = false,
+  isError = false,
+  onRetry,
+  onResetFilters,
 }: CatalogDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
@@ -195,11 +207,10 @@ export function CatalogDataTable({
                 disabled={isBusy}
                 onClick={() => onToggleStockQuick(p)}
                 title={tr('Натисніть, щоб швидко перемкнути наявність', 'Нажмите, чтобы быстро изменить наличие')}
-                className={`px-2 py-1 rounded-md text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 ${
-                  p.inStock
-                    ? 'bg-emerald-50 border-emerald-200 text-[#169374] hover:bg-emerald-100'
-                    : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
-                }`}
+                className={badgeVariants({
+                  variant: p.inStock ? 'success' : 'warning',
+                  className: 'cursor-pointer hover:brightness-95 disabled:opacity-60',
+                })}
               >
                 {p.statusLabel || (p.inStock ? tr('В наявності', 'В наличии') : tr('Під замовлення', 'Под заказ'))}
               </button>
@@ -350,13 +361,19 @@ export function CatalogDataTable({
               value={catQuery}
               onChange={(e) => onCatQueryChange(e.target.value)}
               placeholder={tr('Пошук товару, SKU або бренду...', 'Поиск товара, SKU или бренда...')}
-              className="pl-9"
+              className="pl-9 pr-8"
             />
+            {isFetching && (
+              <Loader2
+                className="w-3.5 h-3.5 text-[#1769aa] animate-spin absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                aria-label={tr('Оновлення списку...', 'Обновление списка...')}
+              />
+            )}
           </div>
-          <select
+          <Select
             value={catFilter}
             onChange={(e) => onCatFilterChange(e.target.value as 'all' | ProductCategory)}
-            className="h-9 sm:h-10 max-w-full px-3 rounded-lg border border-slate-300 text-sm bg-white font-semibold text-[#0d1f33]"
+            aria-label={tr('Категорія обладнання', 'Категория оборудования')}
           >
             <option value="all">{tr('Усі категорії', 'Все категории')}</option>
             <option value="kits">{tr('Готові рішення')}</option>
@@ -364,22 +381,37 @@ export function CatalogDataTable({
             <option value="batteries">{tr('Акумулятори')}</option>
             <option value="panels">{tr('Сонячні панелі')}</option>
             <option value="parts">{tr('Комплектуючі')}</option>
-          </select>
-          <select
+          </Select>
+          <Select
             value={stockFilter}
             onChange={(e) => onStockFilterChange(e.target.value as CatalogStockFilter)}
-            className="h-9 sm:h-10 max-w-full px-3 rounded-lg border border-slate-300 text-sm bg-white font-semibold text-[#0d1f33]"
+            aria-label={tr('Статус наявності', 'Статус наличия')}
           >
             <option value="all">{tr('Будь-яка наявність', 'Любое наличие')}</option>
             <option value="in_stock">{tr('В наявності', 'В наличии')}</option>
             <option value="on_order">{tr('Під замовлення', 'Под заказ')}</option>
-          </select>
+          </Select>
+          {onResetFilters && (catQuery.trim() !== '' || catFilter !== 'all' || stockFilter !== 'all') && (
+            <Button type="button" size="sm" variant="ghost" onClick={onResetFilters} className="text-slate-600">
+              <RotateCcw className="w-3.5 h-3.5" />
+              {tr('Скинути', 'Сбросить')}
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="text-xs sm:text-sm font-semibold text-slate-500 tabular-nums">
-            {tr('Позицій:', 'Позиций:')} <strong className="text-[#0d1f33]">{products.length}</strong> ·{' '}
-            {tr('В наявності:', 'В наличии:')} <strong className="text-[#169374]">{inStockCount}</strong>
+          <div className="text-xs sm:text-sm font-semibold text-slate-500 tabular-nums flex items-center gap-1.5">
+            <span>
+              {tr('Позицій:', 'Позиций:')}{' '}
+              <strong className="text-[#0d1f33]">
+                {products.length}
+                {typeof totalCatalogCount === 'number' && totalCatalogCount > products.length ? ` / ${totalCatalogCount}` : ''}
+              </strong>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {tr('В наявності:', 'В наличии:')} <strong className="text-[#169374]">{inStockCount}</strong>
+            </span>
           </div>
           <Button type="button" size="sm" onClick={onOpenCreateModal}>
             <Plus className="w-4 h-4" />
@@ -387,6 +419,19 @@ export function CatalogDataTable({
           </Button>
         </div>
       </Card>
+
+      {isError && (
+        <div className="px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700 flex flex-wrap items-center justify-between gap-2">
+          <span className="font-semibold">
+            {tr('Не вдалося оновити каталог із сервера. Показано локально кешовані позиції.', 'Не удалось обновить каталог с сервера. Показаны локально кэшированные позиции.')}
+          </span>
+          {onRetry && (
+            <Button type="button" size="sm" variant="outline" onClick={onRetry}>
+              {tr('Повторити', 'Повторить')}
+            </Button>
+          )}
+        </div>
+      )}
 
       <Card className="overflow-hidden">
         <Table>

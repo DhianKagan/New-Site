@@ -715,9 +715,11 @@ async function startServer() {
     const brand = typeof req.query.brand === 'string' ? req.query.brand : undefined;
     const q = typeof req.query.q === 'string' ? req.query.q : undefined;
     const inStockOnly = req.query.inStockOnly === 'true' || req.query.inStockOnly === '1';
+    const stock =
+      req.query.stock === 'in_stock' || req.query.stock === 'on_order' ? req.query.stock : undefined;
     const sort = typeof req.query.sort === 'string' ? req.query.sort : undefined;
     const [items, facets, latestUpdatedAt] = await Promise.all([
-      listProducts({ cat, brand, q, inStockOnly, sort }),
+      listProducts({ cat, brand, q, inStockOnly, stock, sort }),
       getCatalogFacets(),
       getLatestCatalogOrProjectUpdatedAt(),
     ]);

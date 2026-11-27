@@ -399,11 +399,13 @@ export async function listProducts(filters?: {
   brand?: string;
   q?: string;
   inStockOnly?: boolean;
+  stock?: 'all' | 'in_stock' | 'on_order';
   sort?: string;
 }): Promise<Product[]> {
   const hasCat = Boolean(filters?.cat && filters.cat !== 'all');
   const hasBrand = Boolean(filters?.brand && filters.brand !== 'all');
-  const hasStock = Boolean(filters?.inStockOnly);
+  const stockMode = filters?.stock && filters.stock !== 'all' ? filters.stock : filters?.inStockOnly ? 'in_stock' : 'all';
+  const hasStock = stockMode !== 'all';
   const hasQuery = Boolean(filters?.q && filters.q.trim());
   const sort = filters?.sort;
 
@@ -423,8 +425,10 @@ export async function listProducts(filters?: {
   if (hasBrand) {
     items = items.filter((p) => p.brand === filters!.brand);
   }
-  if (hasStock) {
+  if (stockMode === 'in_stock') {
     items = items.filter((p) => p.inStock);
+  } else if (stockMode === 'on_order') {
+    items = items.filter((p) => !p.inStock);
   }
   if (hasQuery) {
     const q = filters!.q!.trim().toLowerCase();

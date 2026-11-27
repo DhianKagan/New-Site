@@ -13,6 +13,7 @@ import {
   type HttpError,
   type TreeMenuItem,
 } from '@refinedev/core';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   ArrowLeft,
@@ -164,6 +165,26 @@ const MENU_GROUP_ORDER: Array<{ id: CrmMenuGroupId; labelUk: string; labelRu: st
   { id: 'system', labelUk: 'Система', labelRu: 'Система', adminOnly: true },
 ];
 
+const VALID_CATALOG_CATS = new Set<ProductCategory>(['kits', 'inverters', 'batteries', 'panels', 'parts']);
+
+function parseCatalogFiltersFromLocation(): {
+  q: string;
+  cat: 'all' | ProductCategory;
+  stock: CatalogStockFilter;
+} {
+  if (typeof window === 'undefined') {
+    return { q: '', cat: 'all', stock: 'all' };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const rawCat = params.get('cat') as ProductCategory | null;
+  const rawStock = params.get('stock');
+  return {
+    q: params.get('q') || '',
+    cat: rawCat && VALID_CATALOG_CATS.has(rawCat) ? rawCat : 'all',
+    stock: rawStock === 'in_stock' || rawStock === 'on_order' ? rawStock : 'all',
+  };
+}
+
 export function CrmView(props: CrmViewProps) {
   const [crmTab, setCrmTab] = useState<CrmTabId>(() => parseCrmTabFromLocation());
   const activeTabRef = useRef<CrmTabId>(crmTab);
@@ -271,6 +292,7 @@ function CrmWorkspace({
 }: CrmWorkspaceProps) {
   const go = useGo();
   const invalidate = useInvalidate();
+  const queryClient = useQueryClient();
   const { open: notify } = useNotification();
   const { menuItems } = useMenu();
 
@@ -391,10 +413,81 @@ function CrmWorkspace({
     setCreateDealOpen(true);
   }
 
-  // Catalog Manager state
-  const [catQuery, setCatQuery] = useState('');
-  const [catFilter, setCatFilter] = useState<'all' | ProductCategory>('all');
-  const [catStockFilter, setCatStockFilter] = useState<CatalogStockFilter>('all');
+  // Catalog Manager state (synced with URL query params + TanStack Query -> /api/catalog)
+  const [catQuery, setCatQuery] = useState<string>(() => parseCatalogFiltersFromLocation().q);
+  const [debouncedCatQuery, setDebouncedCatQuery] = useState<string>(() => parseCatalogFiltersFromLocation().q);
+  const [catFilter, setCatFilter] = useState<'all' | ProductCategory>(() => parseCatalogFiltersFromLocation().cat);
+  const [catStockFilter, setCatStockFilter] = useState<CatalogStockFilter>(() => parseCatalogFiltersFromLocation().stock);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedCatQuery(catQuery);
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [catQuery]);
+
+  useEffect(() => {
+    const syncFromPopState = () => {
+      const next = parseCatalogFiltersFromLocation();
+      setCatQuery(next.q);
+      setDebouncedCatQuery(next.q);
+      setCatFilter(next.cat);
+      setCatStockFilter(next.stock);
+    };
+    window.addEventListener('popstate', syncFromPopState);
+    return () => window.removeEventListener('popstate', syncFromPopState);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || crmTab !== 'catalog') return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', 'catalog');
+    const trimmed = debouncedCatQuery.trim();
+    if (trimmed) params.set('q', trimmed);
+    else params.delete('q');
+    if (catFilter !== 'all') params.set('cat', catFilter);
+    else params.delete('cat');
+    if (catStockFilter !== 'all') params.set('stock', catStockFilter);
+    else params.delete('stock');
+    const nextSearch = `?${params.toString()}`;
+    if (window.location.search !== nextSearch) {
+      window.history.replaceState({}, '', `/crm${nextSearch}`);
+    }
+  }, [crmTab, debouncedCatQuery, catFilter, catStockFilter]);
+
+  const catalogServerQuery = useQuery<{
+    items: Product[];
+    meta?: { totalCount?: number };
+  }>({
+    queryKey: [
+      'crm',
+      'catalog',
+      {
+        q: debouncedCatQuery.trim(),
+        cat: catFilter,
+        stock: catStockFilter,
+      },
+    ],
+    enabled: crmTab === 'catalog',
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    queryFn: async ({ signal }) => {
+      const params = new URLSearchParams();
+      const trimmed = debouncedCatQuery.trim();
+      if (trimmed) params.set('q', trimmed);
+      if (catFilter !== 'all') params.set('cat', catFilter);
+      if (catStockFilter !== 'all') params.set('stock', catStockFilter);
+      const qs = params.toString();
+      const resp = await fetch(`/api/catalog${qs ? `?${qs}` : ''}`, { signal });
+      if (!resp.ok) {
+        throw new Error('Failed to load catalog');
+      }
+      return (await resp.json()) as {
+        items: Product[];
+        meta?: { totalCount?: number };
+      };
+    },
+  });
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
   const [quickTitle, setQuickTitle] = useState('');
   const [quickPrice, setQuickPrice] = useState('');
@@ -617,9 +710,10 @@ function CrmWorkspace({
   const syncCatalogWithParent = useCallback(async () => {
     await Promise.all([
       invalidate({ resource: 'products', invalidates: ['list'] }),
+      queryClient.invalidateQueries({ queryKey: ['crm', 'catalog'] }),
       onRefreshCatalog(),
     ]);
-  }, [invalidate, onRefreshCatalog]);
+  }, [invalidate, queryClient, onRefreshCatalog]);
 
   const syncProjectsWithParent = useCallback(async () => {
     await Promise.all([
@@ -692,6 +786,7 @@ function CrmWorkspace({
     try {
       await Promise.all([
         invalidate({ invalidates: ['list'] }),
+        queryClient.invalidateQueries({ queryKey: ['crm', 'catalog'] }),
         onRefreshDeals(),
         onRefreshCatalog(),
         onRefreshProjects(),
@@ -2029,9 +2124,19 @@ function CrmWorkspace({
                   </div>
                 )}
 
-                <PerformanceProfiler id="CrmView.CatalogProductList" itemCount={catalogMatches.length}>
+                <PerformanceProfiler id="CrmView.CatalogProductList" itemCount={(catalogServerQuery.data?.items ?? catalogMatches).length}>
                   <CatalogDataTable
-                    products={catalogMatches}
+                    products={catalogServerQuery.data?.items ?? catalogMatches}
+                    totalCatalogCount={catalogServerQuery.data?.meta?.totalCount ?? products.length}
+                    isFetching={catalogServerQuery.isFetching}
+                    isError={catalogServerQuery.isError}
+                    onRetry={() => void catalogServerQuery.refetch()}
+                    onResetFilters={() => {
+                      setCatQuery('');
+                      setDebouncedCatQuery('');
+                      setCatFilter('all');
+                      setCatStockFilter('all');
+                    }}
                     catQuery={catQuery}
                     onCatQueryChange={setCatQuery}
                     catFilter={catFilter}
@@ -2816,6 +2921,7 @@ function CrmWorkspace({
                   onDataMutated={async () => {
                     await Promise.all([
                       invalidate({ invalidates: ['list'] }),
+                      queryClient.invalidateQueries({ queryKey: ['crm', 'catalog'] }),
                       onRefreshDeals(),
                       onRefreshCatalog(),
                       onRefreshProjects(),

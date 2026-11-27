@@ -112,15 +112,26 @@ test('Refine CRM router provider parses default tab and resolves go() navigation
   assert.equal(parsed.pathname, '/crm');
 });
 
-test('CrmView integrates Refine <Refine>, simple-rest provider, and preserves profiler/video contracts', () => {
+test('CrmView integrates Refine <Refine>, TanStack Query, simple-rest provider, and preserves profiler/video contracts', () => {
   const crmViewSrc = fs.readFileSync(path.join(process.cwd(), 'src/components/CrmView.tsx'), 'utf8');
   const providersSrc = fs.readFileSync(path.join(process.cwd(), 'src/crm/refineProviders.ts'), 'utf8');
+  const catalogTableSrc = fs.readFileSync(
+    path.join(process.cwd(), 'src/components/crm/CatalogDataTable.tsx'),
+    'utf8',
+  );
 
   assert.match(crmViewSrc, /from '@refinedev\/core'/);
+  assert.match(crmViewSrc, /from '@tanstack\/react-query'/);
+  assert.match(crmViewSrc, /useQuery</);
+  assert.match(crmViewSrc, /keepPreviousData/);
   assert.match(crmViewSrc, /<Refine\b/);
   assert.match(crmViewSrc, /useList</);
   assert.match(crmViewSrc, /useMenu\(/);
   assert.match(crmViewSrc, /<PerformanceProfiler id="CrmView\.CatalogProductList"/);
   assert.match(crmViewSrc, /<VideoBackground/);
   assert.match(providersSrc, /from '@refinedev\/simple-rest'/);
+  assert.match(catalogTableSrc, /from '@tanstack\/react-table'/);
+  assert.match(catalogTableSrc, /Select/);
+  assert.match(catalogTableSrc, /badgeVariants/);
 });
+
