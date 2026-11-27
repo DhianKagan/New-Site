@@ -1052,7 +1052,7 @@ async function startServer() {
       const storedHash = master.passwordHash || getSetting('admin_password_hash');
       const valid = envPass
         ? verifyEnvPassword(password, envPass)
-        : Boolean(storedHash && verifyScryptPassword(password, storedHash));
+        : Boolean(storedHash && (await verifyScryptPassword(password, storedHash)));
 
       if (!valid) {
         const fail = loginBruteGuard.recordFailure(clientIp, normalizedId);
@@ -1086,7 +1086,7 @@ async function startServer() {
     if (
       staffRecord &&
       staffRecord.passwordHash &&
-      verifyScryptPassword(password, staffRecord.passwordHash)
+      (await verifyScryptPassword(password, staffRecord.passwordHash))
     ) {
       if (!staffRecord.user.active || !staffRecord.user.canLogin) {
         res.status(403).json({
@@ -1112,7 +1112,7 @@ async function startServer() {
     if (
       customerRecord &&
       customerRecord.passwordHash &&
-      verifyScryptPassword(password, customerRecord.passwordHash)
+      (await verifyScryptPassword(password, customerRecord.passwordHash))
     ) {
       if (!customerRecord.customer.active) {
         res.status(403).json({
