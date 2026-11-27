@@ -489,3 +489,35 @@ export const productReviewBodySchema = z.object({
     .max(1000, 'Текст відгуку має містити від 3 до 1000 символів'),
 });
 
+export const DB_IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/;
+
+export const adminDbQuerySchema = z.object({
+  sql: z.string().trim().min(1, 'Введіть SQL-запит').max(20_000, 'Запит занадто довгий (макс. 20 000 символів)'),
+  allowWrite: z.boolean().optional().default(false),
+});
+
+export const adminDbRowInsertSchema = z.object({
+  values: z.record(z.string().regex(DB_IDENTIFIER_REGEX), z.unknown()),
+});
+
+export const adminDbRowUpdateSchema = z.object({
+  pk: z.record(z.string().regex(DB_IDENTIFIER_REGEX), z.unknown()),
+  updates: z.record(z.string().regex(DB_IDENTIFIER_REGEX), z.unknown()),
+});
+
+export const adminDbRowDeleteSchema = z.object({
+  pks: z.array(z.record(z.string().regex(DB_IDENTIFIER_REGEX), z.unknown())).min(1).max(100),
+});
+
+export const s3RenameSchema = z.object({
+  sourceKey: z.string().trim().min(1).max(400),
+  targetKey: z.string().trim().min(1).max(400),
+});
+
+export const s3DeleteSchema = z.object({
+  keys: z.array(z.string().trim().min(1).max(400)).min(1).max(200),
+});
+
+export const volumeDeleteSchema = z.object({
+  fileNames: z.array(z.string().trim().min(1).max(200)).min(1).max(200),
+});

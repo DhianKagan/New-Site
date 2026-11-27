@@ -20,6 +20,7 @@ import {
   createTask,
   deleteContact,
   deleteCustomerAccount,
+  deleteAdminDbRows,
   deleteDeal,
   deleteNote,
   deleteProduct,
@@ -27,10 +28,14 @@ import {
   deleteProjectCase,
   deleteStaffUser,
   deleteTask,
+  executeAdminSqlQuery,
+  exportAdminDbTable,
   exportDatabaseBackupJson,
   findCustomerForPasswordLogin,
   findStaffForGoogleLogin,
   findStaffForPasswordLogin,
+  getAdminDbOverview,
+  getCatalogAndSiteIntegrityReport,
   getCatalogFacets,
   getContactDetail,
   getCustomerAccountDetail,
@@ -49,7 +54,9 @@ import {
   getStorageDiagnostics,
   getUploadsDir,
   initDatabase,
+  insertAdminDbRow,
   isDatabaseConfigured,
+  listAdminDbTableRows,
   listContacts,
   listCustomerAccounts,
   listCustomerDeals,
@@ -73,6 +80,7 @@ import {
   setCustomerWishlistIds,
   setSetting,
   setSettingIfAbsent,
+  updateAdminDbRow,
   updateContact,
   updateCustomerAccountByCrm,
   updateCustomerProfile,
@@ -86,6 +94,10 @@ import {
 } from './server/db.ts';
 import { escapeXml, generateSitemapXml } from './server/sitemap.ts';
 import {
+  adminDbQuerySchema,
+  adminDbRowDeleteSchema,
+  adminDbRowInsertSchema,
+  adminDbRowUpdateSchema,
   adminLoginSchema,
   adminSetupSchema,
   analyticsPutSchema,
@@ -99,6 +111,7 @@ import {
   crmCustomerCreateSchema,
   crmCustomerPatchSchema,
   crmDealCreateSchema,
+  DB_IDENTIFIER_REGEX,
   dealPatchSchema,
   firebaseDomainsPutSchema,
   leadCreateSchema,
@@ -111,12 +124,15 @@ import {
   productReviewBodySchema,
   projectCreateSchema,
   projectPatchSchema,
+  s3DeleteSchema,
+  s3RenameSchema,
   scrubSensitiveErrorText,
   socialPutSchema,
   staffCreateSchema,
   staffPatchSchema,
   taskCreateSchema,
   taskPatchSchema,
+  volumeDeleteSchema,
 } from './server/validation.ts';
 import {
   createClientSessionToken,
@@ -177,10 +193,23 @@ import { getRequestId, logger, requestLoggingMiddleware } from './server/logger.
 import { createRateLimiter } from './server/rateLimit.ts';
 import { checkRedisHealth, closeRedis, getRedisClient } from './server/redis.ts';
 import {
+  deleteLocalVolumeFiles,
+  deleteS3Objects,
+  getLocalVolumeFilePath,
+  getS3ObjectStream,
+  getStorageOverview,
   getUploadObject,
+  guessContentTypeFromKey,
   isS3ProxyEnabled,
+  listLocalVolumeFiles,
+  listS3Objects,
+  migrateLocalUploadsToS3,
+  parseMultipartGeneralUpload,
   parseMultipartImageUpload,
+  renameS3Object,
+  uploadBucketObject,
   uploadImageBuffer,
+  uploadLocalVolumeFile,
   UploadValidationError,
 } from './server/storage.ts';
 
@@ -2113,6 +2142,280 @@ async function startServer() {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
     res.send(JSON.stringify(backup, null, 2));
+  }));
+
+  // ============================================================================
+  // Admin-Only Data Management: SQL DB Client, S3 Bucket Explorer & Integrity
+  // ============================================================================
+
+  app.get('/api/crm/data/db/overview', requireRoles('admin'), asyncHandler(async (_req, res) => {
+    res.json(await getAdminDbOverview());
+  }));
+
+  app.get('/api/crm/data/db/tables/:table/rows', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const table = String(req.params.table || '').trim();
+    if (!DB_IDENTIFIER_REGEX.test(table)) {
+      res.status(400).json({ error: 'Некоректна назва таблиці' });
+      return;
+    }
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 25;
+    const sortBy = typeof req.query.sortBy === 'string' ? req.query.sortBy.trim() : undefined;
+    const sortDir = req.query.sortDir === 'asc' ? 'asc' : 'desc';
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+    const filterCol = typeof req.query.filterCol === 'string' ? req.query.filterCol.trim() : undefined;
+    const filterVal = typeof req.query.filterVal === 'string' ? req.query.filterVal : undefined;
+    try {
+      const result = await listAdminDbTableRows(table, {
+        page,
+        limit,
+        sortBy,
+        sortDir,
+        search,
+        filterCol,
+        filterVal,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Помилка читання таблиці' });
+    }
+  }));
+
+  app.post('/api/crm/data/db/tables/:table/rows', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const table = String(req.params.table || '').trim();
+    if (!DB_IDENTIFIER_REGEX.test(table)) {
+      res.status(400).json({ error: 'Некоректна назва таблиці' });
+      return;
+    }
+    const parsed = adminDbRowInsertSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні поля рядка' });
+      return;
+    }
+    try {
+      const row = await insertAdminDbRow(table, parsed.data.values);
+      res.status(201).json({ row });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Не вдалося додати рядок' });
+    }
+  }));
+
+  app.patch('/api/crm/data/db/tables/:table/rows', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const table = String(req.params.table || '').trim();
+    if (!DB_IDENTIFIER_REGEX.test(table)) {
+      res.status(400).json({ error: 'Некоректна назва таблиці' });
+      return;
+    }
+    const parsed = adminDbRowUpdateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні параметри оновлення' });
+      return;
+    }
+    try {
+      const row = await updateAdminDbRow(table, parsed.data.pk, parsed.data.updates);
+      if (!row) {
+        res.status(404).json({ error: 'Рядок не знайдено' });
+        return;
+      }
+      res.json({ row });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Не вдалося оновити рядок' });
+    }
+  }));
+
+  app.delete('/api/crm/data/db/tables/:table/rows', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const table = String(req.params.table || '').trim();
+    if (!DB_IDENTIFIER_REGEX.test(table)) {
+      res.status(400).json({ error: 'Некоректна назва таблиці' });
+      return;
+    }
+    const parsed = adminDbRowDeleteSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректний список ключів для видалення' });
+      return;
+    }
+    try {
+      const result = await deleteAdminDbRows(table, parsed.data.pks);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Не вдалося видалити рядки' });
+    }
+  }));
+
+  app.post('/api/crm/data/db/query', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const parsed = adminDbQuerySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректний SQL-запит' });
+      return;
+    }
+    try {
+      const result = await executeAdminSqlQuery(parsed.data.sql, { allowWrite: parsed.data.allowWrite });
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Помилка виконання SQL-запиту' });
+    }
+  }));
+
+  app.get('/api/crm/data/db/export', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const table = String(req.query.table || '').trim();
+    if (!DB_IDENTIFIER_REGEX.test(table)) {
+      res.status(400).json({ error: 'Вкажіть коректну таблицю для експорту' });
+      return;
+    }
+    const format = req.query.format === 'csv' ? 'csv' : 'json';
+    try {
+      const exported = await exportAdminDbTable(table, format);
+      const safeName = exported.fileName.replace(/[^A-Za-z0-9_.-]/g, '_');
+      res.setHeader('Content-Type', exported.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+      res.send(exported.content);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Помилка експорту таблиці' });
+    }
+  }));
+
+  app.get('/api/crm/data/integrity', requireRoles('admin'), asyncHandler(async (_req, res) => {
+    res.json(await getCatalogAndSiteIntegrityReport());
+  }));
+
+  app.get('/api/crm/data/storage/overview', requireRoles('admin'), asyncHandler(async (_req, res) => {
+    res.json(await getStorageOverview());
+  }));
+
+  app.get('/api/crm/data/s3/objects', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const prefix = typeof req.query.prefix === 'string' ? req.query.prefix : '';
+    const continuationToken = typeof req.query.token === 'string' ? req.query.token : undefined;
+    const maxKeys = Number(req.query.maxKeys) || 100;
+    res.json(await listS3Objects({ prefix, continuationToken, maxKeys }));
+  }));
+
+  app.get('/api/crm/data/s3/object', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const key = typeof req.query.key === 'string' ? req.query.key : '';
+    const download = req.query.download === '1' || req.query.download === 'true';
+    const object = await getS3ObjectStream(key);
+    if (!object) {
+      res.status(404).json({ error: 'Об’єкт у S3 Bucket не знайдено' });
+      return;
+    }
+    const safeFileName = object.fileName.replace(/[^A-Za-z0-9_.-]/g, '_') || 'file';
+    const forceAttachment = download || /\.(svg|xml)$/i.test(safeFileName);
+    res.setHeader('Content-Type', object.contentType);
+    if (object.contentLength !== undefined) {
+      res.setHeader('Content-Length', String(object.contentLength));
+    }
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', 'sandbox');
+    res.setHeader(
+      'Content-Disposition',
+      `${forceAttachment ? 'attachment' : 'inline'}; filename="${safeFileName}"`,
+    );
+    object.body.on('error', () => res.destroy());
+    object.body.pipe(res);
+  }));
+
+  app.post('/api/crm/data/s3/upload', requireRoles('admin'), asyncHandler(async (req, res) => {
+    try {
+      const { buffer, fileName, mimeType, prefix } = await parseMultipartGeneralUpload(req);
+      const item = await uploadBucketObject(buffer, { fileName, mimeType, prefix });
+      res.status(201).json({ object: item });
+    } catch (err) {
+      if (err instanceof UploadValidationError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  }));
+
+  app.post('/api/crm/data/s3/rename', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const parsed = s3RenameSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні ключі' });
+      return;
+    }
+    try {
+      const object = await renameS3Object(parsed.data.sourceKey, parsed.data.targetKey);
+      res.json({ object });
+    } catch (err) {
+      if (err instanceof UploadValidationError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  }));
+
+  app.delete('/api/crm/data/s3/objects', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const parsed = s3DeleteSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Вкажіть файли для видалення' });
+      return;
+    }
+    try {
+      res.json(await deleteS3Objects(parsed.data.keys));
+    } catch (err) {
+      if (err instanceof UploadValidationError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  }));
+
+  app.post('/api/crm/data/s3/migrate-from-volume', requireRoles('admin'), asyncHandler(async (_req, res) => {
+    try {
+      res.json(await migrateLocalUploadsToS3());
+    } catch (err) {
+      if (err instanceof UploadValidationError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  }));
+
+  app.get('/api/crm/data/volume/files', requireRoles('admin'), asyncHandler(async (_req, res) => {
+    res.json({ files: await listLocalVolumeFiles() });
+  }));
+
+  app.get('/api/crm/data/volume/file', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const name = typeof req.query.name === 'string' ? req.query.name : '';
+    const download = req.query.download === '1' || req.query.download === 'true';
+    const fullPath = await getLocalVolumeFilePath(name);
+    if (!fullPath) {
+      res.status(404).json({ error: 'Файл на Volume не знайдено' });
+      return;
+    }
+    const safeFileName = path.basename(fullPath).replace(/[^A-Za-z0-9_.-]/g, '_');
+    const forceAttachment = download || /\.(svg|xml)$/i.test(safeFileName);
+    res.setHeader('Content-Type', guessContentTypeFromKey(fullPath));
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', 'sandbox');
+    res.setHeader('Content-Disposition', `${forceAttachment ? 'attachment' : 'inline'}; filename="${safeFileName}"`);
+    res.sendFile(fullPath);
+  }));
+
+  app.post('/api/crm/data/volume/upload', requireRoles('admin'), asyncHandler(async (req, res) => {
+    try {
+      const { buffer, fileName } = await parseMultipartGeneralUpload(req);
+      const file = await uploadLocalVolumeFile(buffer, fileName);
+      res.status(201).json({ file });
+    } catch (err) {
+      if (err instanceof UploadValidationError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  }));
+
+  app.delete('/api/crm/data/volume/files', requireRoles('admin'), asyncHandler(async (req, res) => {
+    const parsed = volumeDeleteSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message || 'Вкажіть файли для видалення' });
+      return;
+    }
+    res.json(await deleteLocalVolumeFiles(parsed.data.fileNames));
   }));
 
   app.post('/api/crm/products', requireRoles('admin', 'manager'), asyncHandler(async (req, res) => {

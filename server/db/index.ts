@@ -42,3 +42,5 @@ export * from './tasks.ts';
 export * from './staff.ts';
 export * from './customers.ts';
 export * from './reviews.ts';
+export * from './adminSql.ts';
+

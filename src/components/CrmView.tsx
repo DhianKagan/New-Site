@@ -6,13 +6,12 @@ import {
   Trash2,
   Send,
   X,
+  Check,
   ArrowLeft,
   LogOut,
   RefreshCw,
   Upload,
   Pencil,
-  Check,
-  Copy,
   Database,
   Globe,
   HardDrive,
@@ -30,7 +29,7 @@ import {
   UserCog,
   Users,
 } from 'lucide-react';
-import { getFirebaseProjectId, getRuntimeFirebaseConfig } from '../lib/firebaseAuth.ts';
+import { getRuntimeFirebaseConfig } from '../lib/firebaseAuth.ts';
 import { VideoBackground } from './VideoBackground.tsx';
 import type {
   AnalyticsConfig,
@@ -63,6 +62,7 @@ import { ExchangeRateTab } from './crm/ExchangeRateTab.tsx';
 import { ClientsUnifiedTab } from './crm/ClientsUnifiedTab.tsx';
 import { TasksTab } from './crm/TasksTab.tsx';
 import { StaffTab } from './crm/StaffTab.tsx';
+import { DataManagementTab } from './crm/DataManagementTab.tsx';
 import { PerformanceDiagnosticsPanel } from './crm/PerformanceDiagnosticsPanel.tsx';
 import { PerformanceProfiler } from './PerformanceProfiler.tsx';
 import { tr } from '../lib/i18n.ts';
@@ -325,10 +325,11 @@ export function CrmView({
   }, []);
 
   const loadDiagnostics = useCallback(async () => {
+    const adminSession = currentUser?.role === 'admin';
     const [statusResp, webhookResp, errorsResp] = await Promise.all([
       authFetch('/api/crm/status'),
-      authFetch('/api/crm/telegram-webhook'),
-      authFetch('/api/crm/errors'),
+      adminSession ? authFetch('/api/crm/telegram-webhook') : Promise.resolve(null),
+      adminSession ? authFetch('/api/crm/errors') : Promise.resolve(null),
     ]);
     if (statusResp.ok) {
       const data = (await statusResp.json()) as {
@@ -338,7 +339,7 @@ export function CrmView({
       if (data.storage) setStorageInfo(data.storage);
       if (Array.isArray(data.recentChanges)) setRecentChanges(data.recentChanges);
     }
-    if (webhookResp.ok) {
+    if (webhookResp?.ok) {
       const info = (await webhookResp.json()) as {
         configured: boolean;
         url: string;
@@ -347,11 +348,11 @@ export function CrmView({
       };
       setWebhookStatus(info);
     }
-    if (errorsResp.ok) {
+    if (errorsResp?.ok) {
       const data = (await errorsResp.json()) as { errors?: ClientErrorRecord[] };
       if (Array.isArray(data.errors)) setClientErrors(data.errors);
     }
-  }, [authFetch]);
+  }, [authFetch, currentUser?.role]);
 
   async function handleClearClientErrors() {
     setClearingErrors(true);
@@ -432,14 +433,14 @@ export function CrmView({
     }
   }, [authFetch]);
 
+  const isAdmin = currentUser?.role === 'admin';
+
   useEffect(() => {
     void loadCurrentUser();
     void loadStaff();
     void loadCustomers();
     void loadAnalytics();
-    void loadAdminEmails();
     void loadFirebaseDomains();
-    void loadDiagnostics();
     void loadContacts();
     void loadTasks();
     void loadExchangeRate(false);
@@ -449,14 +450,25 @@ export function CrmView({
     loadStaff,
     loadCustomers,
     loadAnalytics,
-    loadAdminEmails,
     loadFirebaseDomains,
-    loadDiagnostics,
     loadContacts,
     loadTasks,
     loadExchangeRate,
     loadSocialLinks,
   ]);
+
+  useEffect(() => {
+    void loadDiagnostics();
+    if (isAdmin) {
+      void loadAdminEmails();
+    }
+  }, [isAdmin, loadDiagnostics, loadAdminEmails]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'admin' && (crmTab === 'deploy' || crmTab === 'analytics')) {
+      setCrmTab('pipeline');
+    }
+  }, [currentUser, crmTab]);
 
   const assigneeOptions = useMemo(() => {
     const set = new Set<string>();
@@ -474,8 +486,6 @@ export function CrmView({
     });
     return Array.from(set);
   }, [staffUsers, deals, tasks]);
-
-  const isAdmin = !currentUser || currentUser.role === 'admin';
 
   const metrics = useMemo(() => {
     const active = deals.filter((d) => d.stage !== 'archived');
@@ -1257,7 +1267,7 @@ export function CrmView({
                       },
                       {
                         id: 'social',
-                        label: tr('Соцмережі та SEO', 'Соцсети и SEO'),
+                        label: tr('Соцмережі та Telegram', 'Соцсети и Telegram'),
                         Icon: Share2,
                         badge: `${activeSocialCount}/${SOCIAL_CHANNELS.length}`,
                       },
@@ -1275,7 +1285,7 @@ export function CrmView({
                     adminOnly: true,
                     items: [
                       { id: 'analytics', label: tr('Аналітика'), Icon: ChartNoAxesCombined, badge: null },
-                      { id: 'deploy', label: tr('Бекап · Telegram · Доступ'), Icon: Database, badge: null },
+                      { id: 'deploy', label: tr('Управління даними', 'Управление данными'), Icon: Database, badge: null },
                     ],
                   },
                 ] as const
@@ -1800,8 +1810,8 @@ export function CrmView({
                     Де зберігаються фото та зміни: <code className="font-mono text-[#1769aa]">{storageInfo.dataDir}</code>
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    БД SQLite ({Math.round(storageInfo.dbSizeBytes / 1024)} КБ) та завантажені фото ({storageInfo.uploadsCount} файлів у{' '}
-                    <code className="font-mono">/uploads</code>) при підключеному Railway Volume (<code className="font-mono">DATA_DIR=/data</code>) зберігаються між деплоями — початковий сід не перезаписує ваші правки.
+                    БД ({storageInfo.dbPath}, {Math.round(storageInfo.dbSizeBytes / 1024)} КБ) та завантажені фото ({storageInfo.uploadsCount} файлів у{' '}
+                    <code className="font-mono">/uploads</code>) зберігаються на S3 Bucket / Railway Volume — початковий сід не перезаписує ваші правки.
                   </p>
                 </div>
                 <button
@@ -1811,7 +1821,7 @@ export function CrmView({
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer whitespace-nowrap"
                 >
                   <Database className="w-3.5 h-3.5 text-[#1769aa]" />
-                  {downloadingBackup ? 'Готуємо бекап...' : 'Завантажити бекап БД (.db)'}
+                  {downloadingBackup ? 'Готуємо бекап...' : 'Завантажити бекап БД (.json)'}
                 </button>
               </div>
             )}
@@ -2350,6 +2360,76 @@ export function CrmView({
               </div>
             </form>
 
+            {/* Telegram Bot & Webhook Setup (moved to Social tab) */}
+            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
+                    <Send className="w-4 h-4 text-[#1769aa]" />
+                    {tr('Інтеграція Telegram-бота та Webhook', 'Интеграция Telegram-бота и Webhook')}
+                  </h3>
+                  <p className="text-xs text-[#52657a] mt-0.5">
+                    {tr('Статус змінних оточення:', 'Статус переменных окружения:')}{' '}
+                    <strong className={telegramConfigured ? 'text-[#169374]' : 'text-amber-700'}>
+                      {telegramConfigured
+                        ? tr('TELEGRAM_BOT_TOKEN і CHAT_ID задані', 'TELEGRAM_BOT_TOKEN и CHAT_ID заданы')
+                        : tr('Не налаштовано у .env / Railway', 'Не настроено в .env / Railway')}
+                    </strong>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleTestTelegram()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#1769aa]" />
+                  {tr('Надіслати тест у чат', 'Отправить тест в чат')}
+                </button>
+              </div>
+
+              {tgResult && (
+                <div className="px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-[#0d1f33]">
+                  {tgResult}
+                </div>
+              )}
+
+              {isAdmin && (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end pt-2 border-t border-slate-100">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-[#0d1f33] mb-1">
+                        {tr('HTTPS-адреса Telegram Webhook', 'HTTPS-адрес Telegram Webhook')}
+                      </label>
+                      <input
+                        type="url"
+                        value={webhookUrlInput}
+                        onChange={(e) => setWebhookUrlInput(e.target.value)}
+                        placeholder="https://energocomfort.shop/api/telegram/webhook"
+                        className="w-full px-3.5 py-2 rounded-lg border border-slate-300 font-mono text-xs"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleSetupTelegramWebhook()}
+                      disabled={settingWebhook}
+                      className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
+                    >
+                      {settingWebhook ? tr('Підключаємо...', 'Подключаем...') : tr('Зареєструвати Webhook', 'Зарегистрировать Webhook')}
+                    </button>
+                  </div>
+
+                  {webhookStatus && (
+                    <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                      Поточний Webhook: {webhookStatus.url || 'не встановлено'} · Черга оновлень: {webhookStatus.pendingUpdateCount}
+                      {webhookStatus.lastErrorMessage ? ` · Помилка: ${webhookStatus.lastErrorMessage}` : ''}
+                    </div>
+                  )}
+                  {webhookErr && <div className="text-xs font-semibold text-red-600">{webhookErr}</div>}
+                  {webhookMsg && <div className="text-xs font-semibold text-[#169374]">{webhookMsg}</div>}
+                </>
+              )}
+            </div>
+
             <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
               <div>
                 <h3 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
@@ -2357,7 +2437,7 @@ export function CrmView({
                   SEO-файли та товарні фіди для Google Shopping / Meta Catalog
                 </h3>
                 <p className="text-xs text-[#52657a] mt-0.5">
-                  Генеруються автоматично з актуальної бази товарів SQLite за встановленим комерційним курсом.
+                  Генеруються автоматично з актуальної бази товарів за встановленим комерційним курсом.
                 </p>
               </div>
 
@@ -2396,285 +2476,44 @@ export function CrmView({
           </div>
         )}
 
-        {/* TAB 6: BACKUP, TELEGRAM, STORAGE & AUTH */}
-        {crmTab === 'deploy' && (
+        {/* TAB 6: DATA MANAGEMENT (ADMIN ONLY) */}
+        {crmTab === 'deploy' && isAdmin && (
           <div className="space-y-5">
-            {storageInfo && (
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
-                      <HardDrive className="w-4 h-4 text-[#169374]" />
-                      Сховище SQLite, фото та резервна копія
-                    </h2>
-                    <p className="text-xs text-[#52657a] mt-0.5">
-                      Шлях даних: <code className="font-mono text-[#0d1f33]">{storageInfo.dataDir}</code> · Розмір БД:{' '}
-                      <strong>{Math.round(storageInfo.dbSizeBytes / 1024)} КБ</strong> · Фото у{' '}
-                      <code className="font-mono">/uploads</code>: <strong>{storageInfo.uploadsCount}</strong>
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleDownloadBackup()}
-                    disabled={downloadingBackup}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] disabled:opacity-60 text-white text-xs font-bold cursor-pointer"
-                  >
-                    <Database className="w-3.5 h-3.5 text-[#f59e0b]" />
-                    {downloadingBackup ? 'Готуємо файл...' : tr('Завантажити бекап БД (.db)')}
-                  </button>
-                </div>
-
-                {backupErr && <div className="text-xs font-semibold text-red-600">{backupErr}</div>}
-
-                {recentChanges.length > 0 && (
-                  <div className="border-t border-slate-100 pt-3">
-                    <div className="text-xs font-bold text-slate-500 mb-2">Останні оновлення каталогу та проєктів у БД:</div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                      {recentChanges.slice(0, 6).map((ch) => (
-                        <div key={`${ch.kind}-${ch.id}`} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
-                          <span className="truncate font-semibold text-[#0d1f33]">
-                            {ch.kind === 'product' ? 'Товар: ' : 'Проєкт: '}
-                            {ch.title}
-                          </span>
-                          <span className="font-mono text-[10.5px] text-slate-500 shrink-0">
-                            {new Date(ch.updatedAt).toLocaleDateString('uk-UA')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Telegram Bot & Webhook Setup */}
-            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-extrabold text-[#0d1f33]">Інтеграція Telegram-бота та Webhook</h2>
-                  <p className="text-xs text-[#52657a] mt-0.5">
-                    Статус змінних оточення:{' '}
-                    <strong className={telegramConfigured ? 'text-[#169374]' : 'text-amber-700'}>
-                      {telegramConfigured ? 'TELEGRAM_BOT_TOKEN і CHAT_ID задані' : 'Не налаштовано у .env / Railway'}
-                    </strong>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleTestTelegram()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5 text-[#1769aa]" />
-                  Надіслати тест у чат
-                </button>
-              </div>
-
-              {tgResult && (
-                <div className="px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-[#0d1f33]">
-                  {tgResult}
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end pt-2 border-t border-slate-100">
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">HTTPS-адреса Telegram Webhook</label>
-                  <input
-                    type="url"
-                    value={webhookUrlInput}
-                    onChange={(e) => setWebhookUrlInput(e.target.value)}
-                    placeholder="https://energocomfort.shop/api/telegram/webhook"
-                    className="w-full px-3.5 py-2 rounded-lg border border-slate-300 font-mono text-xs"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleSetupTelegramWebhook()}
-                  disabled={settingWebhook}
-                  className="px-4 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
-                >
-                  {settingWebhook ? 'Підключаємо...' : 'Зареєструвати Webhook'}
-                </button>
-              </div>
-
-              {webhookStatus && (
-                <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  Поточний Webhook: {webhookStatus.url || 'не встановлено'} · Черга оновлень: {webhookStatus.pendingUpdateCount}
-                  {webhookStatus.lastErrorMessage ? ` · Помилка: ${webhookStatus.lastErrorMessage}` : ''}
-                </div>
-              )}
-              {webhookErr && <div className="text-xs font-semibold text-red-600">{webhookErr}</div>}
-              {webhookMsg && <div className="text-xs font-semibold text-[#169374]">{webhookMsg}</div>}
-            </div>
-
-            {/* Google Auth & Admin Allowlist Card */}
-            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-[#1769aa]" />
-                    {tr('Google-вхід (Firebase) і доступи адміністраторів', 'Вход через Google (Firebase) и доступы администраторов')}
-                  </h2>
-                  <p className="text-xs text-[#52657a] mt-1 max-w-2xl leading-relaxed">
-                    {tr(
-                      'Firebase підключено автоматично — окремі змінні оточення вводити не потрібно. Користувачі з цього списку та співробітники з розділу «Користувачі» входять у CRM через Google або за Email та паролем.',
-                      'Firebase подключён автоматически — отдельные переменные окружения вводить не нужно. Пользователи из этого списка и сотрудники из раздела «Пользователи» входят в CRM через Google или по Email и паролю.',
-                    )}
-                  </p>
-                </div>
-                <div className="text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  {tr('Активні:', 'Активные:')} {effectiveAdminEmails.join(', ') || '—'}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-                <div className="space-y-0.5 min-w-0">
-                  <div className="text-[#0d1f33] font-semibold">
-                    {tr('Проєкт Firebase:', 'Проект Firebase:')}{' '}
-                    <code className="font-mono font-bold text-[#1769aa]">
-                      {activeFirebaseConfig?.projectId || getFirebaseProjectId() || '—'}
-                    </code>
-                  </div>
-                  <div className="text-[11px] text-[#52657a]">
-                    {tr(
-                      'Якщо відкриваєте сайт на власному або *.ai.studio домені та Google-вхід просить додати домен, скопіюйте поточний домен і додайте його один раз у Firebase Console → Authorized domains:',
-                      'Если открываете сайт на своём или *.ai.studio домене и вход Google просит добавить домен, скопируйте текущий домен и добавьте его один раз в Firebase Console → Authorized domains:',
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {(activeFirebaseConfig?.requestHost || (typeof window !== 'undefined' ? window.location.hostname : '')) && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void handleCopyCurrentHost(
-                          activeFirebaseConfig?.requestHost || window.location.hostname,
-                        )
-                      }
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-[11px] font-bold text-[#0d1f33] cursor-pointer"
-                    >
-                      {copiedCurrentHost ? <Check className="w-3 h-3 text-[#169374]" /> : <Copy className="w-3 h-3" />}
-                      {copiedCurrentHost
-                        ? tr('Скопійовано', 'Скопировано')
-                        : activeFirebaseConfig?.requestHost || window.location.hostname}
-                    </button>
-                  )}
-                  {(activeFirebaseConfig?.projectId || getFirebaseProjectId()) && (
-                    <a
-                      href={`https://console.firebase.google.com/project/${encodeURIComponent(activeFirebaseConfig?.projectId || getFirebaseProjectId())}/authentication/settings`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1769aa] hover:bg-[#12558a] text-white text-[11px] font-bold"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      Authorized domains
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              <form onSubmit={handleSaveAdminEmails} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-[#0d1f33] mb-1">
-                    {tr('Email адміністраторів (через кому)', 'Email администраторов (через запятую)')}
-                  </label>
-                  <input
-                    type="text"
-                    value={adminEmailsInput}
-                    onChange={(e) => setAdminEmailsInput(e.target.value)}
-                    placeholder="owner@gmail.com, partner@gmail.com"
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-xs focus:outline-none focus:border-[#1769aa]"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={savingEmails}
-                  className="px-4 py-2.5 rounded-lg bg-[#0d1f33] hover:bg-[#16324f] disabled:opacity-60 text-white text-xs font-bold whitespace-nowrap cursor-pointer"
-                >
-                  {savingEmails ? tr('Зберігаємо...', 'Сохраняем...') : tr('Зберегти список доступу', 'Сохранить список доступа')}
-                </button>
-              </form>
-
-              {emailsErr && <div className="text-xs font-semibold text-red-600">{emailsErr}</div>}
-              {emailsMsg && <div className="text-xs font-semibold text-[#169374]">{emailsMsg}</div>}
-            </div>
-
-            {/* Production Client Runtime Error Logs Card */}
-            {isAdmin && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-extrabold text-[#0d1f33] flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-red-600" />
-                    {tr('Журнал клієнтських помилок (Production Debug)', 'Журнал клиентских ошибок (Production Debug)')}
-                  </h2>
-                  <p className="text-xs text-[#52657a] mt-0.5">
-                    {tr(
-                      'Звіти від GlobalErrorBoundary та неперехоплені винятки браузера (без токенів і секретів).',
-                      'Отчёты от GlobalErrorBoundary и неперехваченные исключения браузера (без токенов и секретов).',
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void loadDiagnostics()}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-[#0d1f33] cursor-pointer"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    {tr('Оновити', 'Обновить')}
-                  </button>
-                  {clientErrors.length > 0 && (
-                    <button
-                      type="button"
-                      disabled={clearingErrors}
-                      onClick={() => void handleClearClientErrors()}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-bold text-red-700 cursor-pointer disabled:opacity-60"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      {tr('Очистити', 'Очистить')}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {clientErrors.length === 0 ? (
-                <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                  {tr('Критичних помилок інтерфейсу не зафіксовано.', 'Критических ошибок интерфейса не зафиксировано.')}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {clientErrors.slice(0, 15).map((errItem) => (
-                    <div
-                      key={errItem.id}
-                      className="rounded-lg border border-red-200/80 bg-red-50/40 p-3 text-xs space-y-1.5"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="font-mono font-bold text-[#0d1f33]">
-                          [{errItem.kind}] {errItem.name} · <span className="text-[#1769aa]">{errItem.route}</span>
-                        </div>
-                        <div className="font-mono text-[11px] text-slate-500">
-                          {errItem.errorId} · {new Date(errItem.createdAt).toLocaleString('uk-UA')}
-                        </div>
-                      </div>
-                      <div className="text-red-800 font-semibold break-words">{errItem.message}</div>
-                      {(errItem.componentStack || errItem.stack) && (
-                        <details className="text-[11px] text-slate-600">
-                          <summary className="cursor-pointer font-semibold text-[#1769aa] hover:underline">
-                            Stack / Component stack
-                          </summary>
-                          <pre className="mt-1.5 bg-white border border-slate-200 rounded p-2 text-[10px] font-mono whitespace-pre-wrap overflow-x-auto max-h-36">
-                            {errItem.componentStack || errItem.stack}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            )}
-
-            {isAdmin && <PerformanceDiagnosticsPanel />}
+            <DataManagementTab
+              authFetch={authFetch}
+              storageInfo={storageInfo}
+              recentChanges={recentChanges}
+              downloadingBackup={downloadingBackup}
+              backupErr={backupErr}
+              onDownloadBackup={handleDownloadBackup}
+              onDataMutated={async () => {
+                await Promise.all([
+                  onRefreshDeals(),
+                  onRefreshCatalog(),
+                  onRefreshProjects(),
+                  loadContacts(),
+                  loadCustomers(),
+                  loadTasks(),
+                  loadStaff(),
+                  loadDiagnostics(),
+                ]);
+              }}
+              effectiveAdminEmails={effectiveAdminEmails}
+              adminEmailsInput={adminEmailsInput}
+              onAdminEmailsInputChange={setAdminEmailsInput}
+              savingEmails={savingEmails}
+              emailsMsg={emailsMsg}
+              emailsErr={emailsErr}
+              onSaveAdminEmails={handleSaveAdminEmails}
+              activeFirebaseConfig={activeFirebaseConfig}
+              copiedCurrentHost={copiedCurrentHost}
+              onCopyCurrentHost={handleCopyCurrentHost}
+              clientErrors={clientErrors}
+              clearingErrors={clearingErrors}
+              onRefreshDiagnostics={loadDiagnostics}
+              onClearClientErrors={handleClearClientErrors}
+            />
+            <PerformanceDiagnosticsPanel />
           </div>
         )}
           </div>
