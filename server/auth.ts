@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { promisify } from 'node:util';
 import type { NextFunction, Request, Response } from 'express';
 import type { ClientSessionUser, CrmSessionUser, StaffRole } from '../src/types.ts';
 
@@ -18,13 +19,20 @@ export function hashPassword(password: string): string {
   return `${salt}:${derived}`;
 }
 
-export function verifyScryptPassword(password: string, stored: string): boolean {
+const scryptAsync = promisify(crypto.scrypt) as (
+  password: string,
+  salt: string,
+  keylen: number,
+) => Promise<Buffer>;
+
+/** Async so a login attempt does not block the event loop during key derivation. */
+export async function verifyScryptPassword(password: string, stored: string): Promise<boolean> {
   const parts = stored.split(':');
   if (parts.length !== 2) return false;
   const [salt, hashHex] = parts;
   if (!salt || !hashHex) return false;
   try {
-    const derived = crypto.scryptSync(password, salt, 64);
+    const derived = await scryptAsync(password, salt, 64);
     const expected = Buffer.from(hashHex, 'hex');
     if (derived.length !== expected.length) return false;
     return crypto.timingSafeEqual(derived, expected);
