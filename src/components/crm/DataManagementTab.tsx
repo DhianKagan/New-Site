@@ -110,17 +110,17 @@ export function DataManagementTab({
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Admin-Only Workbench Header & Navigation */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-xl font-extrabold text-[#0d1f33]">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-extrabold text-[#0d1f33]">
               {tr('Управління даними', 'Управление данными')}
             </h2>
             <Badge variant="info">{tr('Тільки для адміністратора', 'Только для администратора')}</Badge>
           </div>
-          <p className="text-[15px] text-[#52657a] mt-1.5">
+          <p className="text-sm text-[#52657a] mt-1">
             {tr(
               'Повний клієнт PostgreSQL, файловий менеджер S3 Bucket і локального Volume, перевірка цілісності сайту та резервні копії.',
               'Полный клиент PostgreSQL, файловый менеджер S3 Bucket и локального Volume, проверка целостности сайта и резервные копии.',
@@ -128,7 +128,7 @@ export function DataManagementTab({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-1.5">
+        <div className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
           {subTabs.map(({ id, label, Icon }) => {
             const active = subTab === id;
             return (
@@ -136,7 +136,7 @@ export function DataManagementTab({
                 key={id}
                 type="button"
                 onClick={() => setSubTab(id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[15px] font-bold transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors cursor-pointer ${
                   active
                     ? 'bg-[#0d1f33] text-white shadow-2xs'
                     : 'text-slate-600 hover:bg-white hover:text-[#0d1f33]'
@@ -158,16 +158,16 @@ export function DataManagementTab({
 
       {/* 3. Site Data Integrity & Backups */}
       {subTab === 'site' && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {storageInfo && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-7 space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-extrabold text-[#0d1f33] flex items-center gap-2">
-                    <HardDrive className="w-5 h-5 text-[#169374]" />
+            <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-extrabold text-[#0d1f33] flex items-center gap-2">
+                    <HardDrive className="w-5 h-5 text-[#169374] shrink-0" />
                     {tr('Сховище бази даних, медіа та резервна копія', 'Хранилище базы данных, медиа и резервная копия')}
                   </h3>
-                  <p className="text-[15px] text-[#52657a] mt-1.5">
+                  <p className="text-xs sm:text-sm text-[#52657a] mt-1 break-all">
                     БД: <code className="font-mono text-[#0d1f33]">{storageInfo.dbPath}</code> · Розмір:{' '}
                     <strong>{Math.round(storageInfo.dbSizeBytes / 1024)} КБ</strong> · Volume{' '}
                     <code className="font-mono">{storageInfo.dataDir}</code> · Файлів у{' '}
@@ -226,7 +226,7 @@ export function DataManagementTab({
 
           {/* Site Integrity Audit Report */}
           {integrity && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-7 space-y-5">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="text-lg font-extrabold text-[#0d1f33] flex items-center gap-2">
@@ -322,28 +322,28 @@ export function DataManagementTab({
 
       {/* 4. Access Allowlist & Production Error Logs */}
       {subTab === 'access' && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* Google Auth & Admin Allowlist Card */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-7 space-y-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-extrabold text-[#0d1f33] flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-[#1769aa]" />
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-extrabold text-[#0d1f33] flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-[#1769aa] shrink-0" />
                   {tr('Google-вхід (Firebase) і доступи адміністраторів', 'Вход через Google (Firebase) и доступы администраторов')}
                 </h3>
-                <p className="text-[15px] text-[#52657a] mt-1.5 max-w-2xl leading-relaxed">
+                <p className="text-sm text-[#52657a] mt-1 max-w-2xl leading-relaxed">
                   {tr(
                     'Firebase підключено автоматично — окремі змінні оточення вводити не потрібно. Користувачі з цього списку та співробітники з розділу «Користувачі» входять у CRM через Google або за Email та паролем.',
                     'Firebase подключён автоматически — отдельные переменные окружения вводить не нужно. Пользователи из этого списка и сотрудники из раздела «Пользователи» входят в CRM через Google или по Email и паролю.',
                   )}
                 </p>
               </div>
-              <div className="text-sm font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5">
+              <div className="text-xs sm:text-sm font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 break-all">
                 {tr('Активні:', 'Активные:')} {effectiveAdminEmails.join(', ') || '—'}
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-sm">
               <div className="space-y-1 min-w-0">
                 <div className="text-[#0d1f33] font-semibold">
                   {tr('Проєкт Firebase:', 'Проект Firebase:')}{' '}
@@ -351,7 +351,7 @@ export function DataManagementTab({
                     {activeFirebaseConfig?.projectId || getFirebaseProjectId() || '—'}
                   </code>
                 </div>
-                <div className="text-sm text-[#52657a]">
+                <div className="text-xs sm:text-sm text-[#52657a]">
                   {tr(
                     'Якщо відкриваєте сайт на власному або *.ai.studio домені та Google-вхід просить додати домен, скопіюйте поточний домен і додайте його один раз у Firebase Console → Authorized domains:',
                     'Если открываете сайт на своём или *.ai.studio домене и вход Google просит добавить домен, скопируйте текущий домен и добавьте его один раз в Firebase Console → Authorized domains:',
@@ -367,7 +367,7 @@ export function DataManagementTab({
                         activeFirebaseConfig?.requestHost || window.location.hostname,
                       )
                     }
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs sm:text-sm font-bold text-[#0d1f33] cursor-pointer"
                   >
                     {copiedCurrentHost ? <Check className="w-3.5 h-3.5 text-[#169374]" /> : <Copy className="w-3.5 h-3.5" />}
                     {copiedCurrentHost
@@ -380,7 +380,7 @@ export function DataManagementTab({
                     href={`https://console.firebase.google.com/project/${encodeURIComponent(activeFirebaseConfig?.projectId || getFirebaseProjectId())}/authentication/settings`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1769aa] hover:bg-[#12558a] text-white text-sm font-bold"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1769aa] hover:bg-[#12558a] text-white text-xs sm:text-sm font-bold"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Authorized domains
@@ -390,8 +390,8 @@ export function DataManagementTab({
             </div>
 
             <form onSubmit={onSaveAdminEmails} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-              <div className="flex-1">
-                <label className="block text-sm font-bold text-[#0d1f33] mb-2">
+              <div className="flex-1 min-w-0">
+                <label className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Email адміністраторів (через кому)', 'Email администраторов (через запятую)')}
                 </label>
                 <input
@@ -399,7 +399,7 @@ export function DataManagementTab({
                   value={adminEmailsInput}
                   onChange={(e) => onAdminEmailsInputChange(e.target.value)}
                   placeholder="owner@gmail.com, partner@gmail.com"
-                  className="w-full h-11 px-4 rounded-lg border border-slate-300 font-mono text-[15px] focus:outline-none focus:border-[#1769aa]"
+                  className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 font-mono text-sm focus:outline-none focus:border-[#1769aa]"
                 />
               </div>
               <Button type="submit" variant="default" disabled={savingEmails}>
@@ -407,12 +407,12 @@ export function DataManagementTab({
               </Button>
             </form>
 
-            {emailsErr && <div className="text-[15px] font-semibold text-red-600">{emailsErr}</div>}
-            {emailsMsg && <div className="text-[15px] font-semibold text-[#169374]">{emailsMsg}</div>}
+            {emailsErr && <div className="text-sm font-semibold text-red-600">{emailsErr}</div>}
+            {emailsMsg && <div className="text-sm font-semibold text-[#169374]">{emailsMsg}</div>}
           </div>
 
           {/* Production Client Runtime Error Logs Card */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-7 space-y-5">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-extrabold text-[#0d1f33] flex items-center gap-2">

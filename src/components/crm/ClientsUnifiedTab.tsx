@@ -639,8 +639,8 @@ export function ClientsUnifiedTab({
           cell: (info) => {
             const row = info.row.original;
             return (
-              <div>
-                <div className="font-bold text-[15px] text-[#0d1f33] flex flex-wrap items-center gap-2">
+              <div className="min-w-[140px]">
+                <div className="font-bold text-sm text-[#0d1f33] flex flex-wrap items-center gap-1.5">
                   <span>{row.name}</span>
                   {row.segment && (
                     <Badge variant={row.segment === 'b2b' ? 'dark' : 'info'}>{row.segment.toUpperCase()}</Badge>
@@ -653,17 +653,17 @@ export function ClientsUnifiedTab({
                     </Badge>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 mt-1">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-slate-600 mt-1">
                   {row.company && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Building2 className="w-4 h-4 text-slate-400" />
-                      {row.company}
+                    <span className="inline-flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{row.company}</span>
                     </span>
                   )}
                   {row.email && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Mail className="w-4 h-4 text-[#1769aa]" />
-                      {row.email}
+                    <span className="inline-flex items-center gap-1 break-all">
+                      <Mail className="w-3.5 h-3.5 text-[#1769aa] shrink-0" />
+                      <span>{row.email}</span>
                     </span>
                   )}
                 </div>
@@ -676,18 +676,18 @@ export function ClientsUnifiedTab({
           cell: (info) => {
             const row = info.row.original;
             return (
-              <div className="space-y-1 text-sm">
+              <div className="space-y-0.5 text-xs sm:text-sm">
                 {row.phone ? (
-                  <div className="font-mono font-semibold text-[#0d1f33] inline-flex items-center gap-1.5">
-                    <Phone className="w-4 h-4 text-slate-400" />
+                  <div className="font-mono font-semibold text-[#0d1f33] inline-flex items-center gap-1 whitespace-nowrap">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     {row.phone}
                   </div>
                 ) : (
                   <div className="text-slate-400 italic">{tr('Телефон не вказано', 'Телефон не указан')}</div>
                 )}
-                <div className="text-slate-500 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-slate-400" />
-                  {row.city || 'Одеса'}
+                <div className="text-slate-500 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{row.city || 'Одеса'}</span>
                 </div>
               </div>
             );
@@ -698,12 +698,15 @@ export function ClientsUnifiedTab({
           cell: (info) => {
             const row = info.row.original;
             return (
-              <div className="text-sm space-y-0.5">
+              <div className="text-xs sm:text-sm space-y-0.5 whitespace-nowrap">
                 <div className="font-mono font-bold text-[#0d1f33] tabular-nums">
                   {row.dealsCount} {tr('угод', 'сделок')}
                 </div>
                 <div className="font-mono font-bold text-[#169374] tabular-nums">
                   {row.totalUsd > 0 ? `$${row.totalUsd.toLocaleString('uk-UA')}` : '—'}
+                </div>
+                <div className="2xl:hidden text-[11px] text-slate-400 tabular-nums">
+                  {new Date(row.updatedAt).toLocaleDateString('uk-UA')}
                 </div>
               </div>
             );
@@ -713,7 +716,7 @@ export function ClientsUnifiedTab({
           header: () => <span>{tr('Задачі', 'Задачи')}</span>,
           cell: (info) => {
             const val = info.getValue();
-            return val > 0 ? <Badge variant="warning">{val}</Badge> : <span className="text-slate-400 text-[15px]">0</span>;
+            return val > 0 ? <Badge variant="warning">{val}</Badge> : <span className="text-slate-400 text-sm">0</span>;
           },
         }),
         columnHelper.accessor('updatedAt', {
@@ -738,38 +741,38 @@ export function ClientsUnifiedTab({
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('Усього в базі', 'Всего в базе')}</div>
-          <div className="font-mono text-3xl font-extrabold text-[#0d1f33] mt-1.5 tabular-nums leading-none">{stats.total}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Усього в базі', 'Всего в базе')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mt-1 tabular-nums leading-none">{stats.total}</div>
         </Card>
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('З акаунтом кабінету', 'С аккаунтом кабинета')}</div>
-          <div className="font-mono text-3xl font-extrabold text-[#1769aa] mt-1.5 tabular-nums leading-none">{stats.accounts}</div>
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('З акаунтом кабінету', 'С аккаунтом кабинета')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#1769aa] mt-1 tabular-nums leading-none">{stats.accounts}</div>
         </Card>
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('Бізнес-клієнти (B2B)', 'Бизнес-клиенты (B2B)')}</div>
-          <div className="font-mono text-3xl font-extrabold text-[#169374] mt-1.5 tabular-nums leading-none">{stats.b2b}</div>
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Бізнес-клієнти (B2B)', 'Бизнес-клиенты (B2B)')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#169374] mt-1 tabular-nums leading-none">{stats.b2b}</div>
         </Card>
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('Відкритих задач', 'Открытых задач')}</div>
-          <div className="font-mono text-3xl font-extrabold text-amber-600 mt-1.5 tabular-nums leading-none">{stats.openTasks}</div>
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Відкритих задач', 'Открытых задач')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1 tabular-nums leading-none">{stats.openTasks}</div>
         </Card>
       </div>
 
       {/* Toolbar */}
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
-          <div className="relative flex-1 min-w-[240px] max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-[180px] sm:max-w-xs">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={tr('Пошук за ім’ям, Email, телефоном, компанією...', 'Поиск по имени, Email, телефону, компании…')}
-              className="pl-10"
+              className="pl-9"
             />
           </div>
 
@@ -788,7 +791,7 @@ export function ClientsUnifiedTab({
                 key={key}
                 type="button"
                 onClick={() => setFilter(key)}
-                className={`px-3.5 py-2 rounded-md text-sm font-bold transition-colors cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-colors cursor-pointer ${
                   filter === key ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
@@ -798,13 +801,13 @@ export function ClientsUnifiedTab({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button type="button" variant="outline" onClick={() => openNewContactModal()}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => openNewContactModal()}>
             <Plus className="w-4 h-4" />
             {tr('Контакт CRM', 'Контакт CRM')}
           </Button>
           {isAdmin && (
-            <Button type="button" variant="primary" onClick={() => openCreateAccountModal()}>
+            <Button type="button" variant="primary" size="sm" onClick={() => openCreateAccountModal()}>
               <UserCheck className="w-4 h-4" />
               {tr('Акаунт кабінету', 'Аккаунт кабинета')}
             </Button>
@@ -813,12 +816,12 @@ export function ClientsUnifiedTab({
       </Card>
 
       {actionMsg && (
-        <div className="px-5 py-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[15px] font-semibold text-emerald-800">
+        <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-semibold text-emerald-800">
           {actionMsg}
         </div>
       )}
       {actionErr && (
-        <div className="px-5 py-3.5 rounded-xl bg-red-50 border border-red-200 text-[15px] font-semibold text-red-700" role="alert">
+        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm font-semibold text-red-700" role="alert">
           {actionErr}
         </div>
       )}
@@ -830,7 +833,10 @@ export function ClientsUnifiedTab({
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
                 {hg.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={header.column.id === 'updatedAt' ? 'hidden 2xl:table-cell' : undefined}
+                  >
                     <button
                       type="button"
                       onClick={header.column.getToggleSortingHandler()}
@@ -859,10 +865,15 @@ export function ClientsUnifiedTab({
                   className="cursor-pointer"
                 >
                   {row.getAllCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell
+                      key={cell.id}
+                      className={cell.column.id === 'updatedAt' ? 'hidden 2xl:table-cell' : undefined}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
                   ))}
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                    <div className="inline-flex items-center justify-end gap-1 flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
@@ -1022,25 +1033,25 @@ export function ClientsUnifiedTab({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveAccount} className="p-7 space-y-5 text-[15px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSaveAccount} className="p-4 sm:p-6 space-y-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="acc-name" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="acc-name" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Ім’я *', 'Имя *')}
                 </label>
                 <Input id="acc-name" required value={aName} onChange={(e) => setAName(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="acc-email" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="acc-email" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   Email *
                 </label>
                 <Input id="acc-email" type="email" required value={aEmail} onChange={(e) => setAEmail(e.target.value)} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="acc-phone" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="acc-phone" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Телефон')}
                 </label>
                 <Input
@@ -1053,7 +1064,7 @@ export function ClientsUnifiedTab({
                 />
               </div>
               <div>
-                <label htmlFor="acc-city" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="acc-city" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Місто')}
                 </label>
                 <Input id="acc-city" value={aCity} onChange={(e) => setACity(e.target.value)} />
@@ -1061,7 +1072,7 @@ export function ClientsUnifiedTab({
             </div>
 
             <div>
-              <label htmlFor="acc-pass" className="block text-sm font-bold text-[#0d1f33] mb-2 inline-flex items-center gap-1.5">
+              <label htmlFor="acc-pass" className="block text-sm font-bold text-[#0d1f33] mb-1.5 inline-flex items-center gap-1.5">
                 <KeyRound className="w-4 h-4 text-[#1769aa]" />
                 {editingCustomer
                   ? tr('Новий пароль (необов’язково)', 'Новый пароль (необязательно)')
@@ -1076,25 +1087,25 @@ export function ClientsUnifiedTab({
               />
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <label className="inline-flex items-center gap-2.5 font-bold text-[#0d1f33] cursor-pointer">
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <label className="inline-flex items-center gap-2 font-bold text-[#0d1f33] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={aActive}
                   onChange={(e) => setAActive(e.target.checked)}
-                  className="w-4.5 h-4.5 accent-[#169374]"
+                  className="w-4 h-4 accent-[#169374]"
                 />
                 {tr('Акаунт активний (дозволено вхід у кабінет)', 'Аккаунт активен (разрешён вход в кабинет)')}
               </label>
             </div>
 
             {accountErr && (
-              <div className="text-[15px] font-bold text-red-600" role="alert">
+              <div className="text-sm font-bold text-red-600" role="alert">
                 {accountErr}
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-3">
+            <div className="flex justify-end gap-2.5 pt-2">
               <Button type="button" variant="outline" onClick={() => setAccountModalOpen(false)}>
                 {tr('Скасувати')}
               </Button>
@@ -1117,16 +1128,16 @@ export function ClientsUnifiedTab({
               {tr('Клієнт прив’язується до угод і задач за номером телефону', 'Клиент связывается со сделками и задачами по телефону')}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveContact} className="p-7 space-y-5 text-[15px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSaveContact} className="p-4 sm:p-6 space-y-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="uc-name" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="uc-name" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Ім’я *', 'Имя *')}
                 </label>
                 <Input id="uc-name" required value={cName} onChange={(e) => setCName(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="uc-phone" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="uc-phone" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Телефон *', 'Телефон *')}
                 </label>
                 <Input
@@ -1138,36 +1149,36 @@ export function ClientsUnifiedTab({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="uc-company" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="uc-company" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Компанія / Об’єкт', 'Компания / Объект')}
                 </label>
                 <Input id="uc-company" value={cCompany} onChange={(e) => setCCompany(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="uc-email" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="uc-email" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   Email
                 </label>
                 <Input id="uc-email" type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div>
-                <label htmlFor="uc-city" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="uc-city" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Місто')}
                 </label>
                 <Input id="uc-city" value={cCity} onChange={(e) => setCCity(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="uc-channel" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="uc-channel" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Канал зв’язку')}
                 </label>
                 <select
                   id="uc-channel"
                   value={cChannel}
                   onChange={(e) => setCChannel(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px]"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
                 >
                   <option value="Telegram">Telegram</option>
                   <option value="Viber">Viber</option>
@@ -1175,14 +1186,14 @@ export function ClientsUnifiedTab({
                 </select>
               </div>
               <div>
-                <label htmlFor="uc-segment" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="uc-segment" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Сегмент', 'Сегмент')}
                 </label>
                 <select
                   id="uc-segment"
                   value={cSegment}
                   onChange={(e) => setCSegment(e.target.value as ContactSegment)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-bold"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold"
                 >
                   <option value="b2c">B2C ({tr('Дім')})</option>
                   <option value="b2b">B2B ({tr('Бізнес')})</option>
@@ -1191,12 +1202,12 @@ export function ClientsUnifiedTab({
             </div>
 
             {contactErr && (
-              <div className="text-[15px] font-bold text-red-600" role="alert">
+              <div className="text-sm font-bold text-red-600" role="alert">
                 {contactErr}
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-3">
+            <div className="flex justify-end gap-2.5 pt-2">
               <Button type="button" variant="outline" onClick={() => setContactModalOpen(false)}>
                 {tr('Скасувати')}
               </Button>
@@ -1236,8 +1247,8 @@ export function ClientsUnifiedTab({
                     </span>
                   )}
                   {detailRow.email && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Mail className="w-4 h-4" />
+                    <span className="inline-flex items-center gap-1.5 break-all">
+                      <Mail className="w-4 h-4 shrink-0" />
                       {detailRow.email}
                     </span>
                   )}
@@ -1246,7 +1257,7 @@ export function ClientsUnifiedTab({
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-7 space-y-6 text-[15px] max-h-[78vh] overflow-y-auto">
+              <div className="p-4 sm:p-6 space-y-5 text-sm max-h-[78vh] overflow-y-auto">
                 {detailErr && (
                   <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
                     {detailErr}
@@ -1405,18 +1416,18 @@ export function ClientsUnifiedTab({
                           value={newTaskTitle}
                           onChange={(e) => setNewTaskTitle(e.target.value)}
                           placeholder={tr('Нова задача (напр. Надіслати КП)...', 'Новая задача…')}
-                          className="flex-1 min-w-[200px]"
+                          className="flex-1 min-w-[160px]"
                         />
                         <Input
                           type="date"
                           value={newTaskDue}
                           onChange={(e) => setNewTaskDue(e.target.value)}
-                          className="w-40"
+                          className="w-36 sm:w-40"
                         />
                         <select
                           value={newTaskPriority}
                           onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
-                          className="h-11 rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold"
+                          className="h-9 sm:h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold"
                         >
                           <option value="low">{tr('Низький', 'Низкий')}</option>
                           <option value="medium">{tr('Середній', 'Средний')}</option>

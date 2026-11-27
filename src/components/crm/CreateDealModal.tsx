@@ -367,7 +367,7 @@ export function CreateDealModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4"
       onClick={() => {
         if (!saving) onClose();
       }}
@@ -376,16 +376,16 @@ export function CreateDealModal({
       aria-labelledby="create-deal-modal-title"
     >
       <div
-        className="bg-white rounded-2xl border border-slate-200 w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-2xl border border-slate-200 w-full max-w-3xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-7 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
-          <div>
-            <div className="font-mono text-sm font-bold text-[#1769aa]">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
+          <div className="min-w-0">
+            <div className="font-mono text-xs sm:text-sm font-bold text-[#1769aa]">
               {tr('Новий запис у CRM · Energo Comfort', 'Новая запись в CRM · Energo Comfort')}
             </div>
-            <h3 id="create-deal-modal-title" className="text-xl font-extrabold text-[#0d1f33] mt-0.5">
+            <h3 id="create-deal-modal-title" className="text-lg sm:text-xl font-extrabold text-[#0d1f33] mt-0.5">
               {dealType === 'order'
                 ? tr('Створити замовлення обладнання', 'Создать заказ оборудования')
                 : tr('Створити нову угоду (лід)', 'Создать новую сделку (лид)')}
@@ -396,13 +396,13 @@ export function CreateDealModal({
             disabled={saving}
             onClick={onClose}
             aria-label={tr('Закрити', 'Закрыть')}
-            className="w-10 h-10 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] cursor-pointer"
+            className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] cursor-pointer shrink-0"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-7 space-y-6 text-[15px]">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-sm sm:text-[15px]">
           {/* Type Switcher */}
           <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-slate-100 border border-slate-200">
             <button
@@ -453,7 +453,7 @@ export function CreateDealModal({
                 id="crm-existing-client"
                 value={selectedClientKey}
                 onChange={(e) => handleSelectExistingClient(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
               >
                 <option value="">
                   {tr('— Новий клієнт (ввести вручну нижче) —', '— Новый клиент (ввести вручную ниже) —')}
@@ -480,7 +480,7 @@ export function CreateDealModal({
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder={tr('Наприклад, Ігор Мельник або ТОВ «Енерго»', 'Например, Игорь Мельник или ООО «Энерго»')}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-semibold text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 font-semibold text-[15px] text-[#0d1f33]"
               />
             </div>
 
@@ -495,7 +495,7 @@ export function CreateDealModal({
                 value={phone}
                 onChange={(e) => setPhone(formatUaPhone(e.target.value))}
                 placeholder="+380 50 777 71 72"
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono font-semibold text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 font-mono font-semibold text-[15px] text-[#0d1f33]"
               />
             </div>
 
@@ -509,7 +509,7 @@ export function CreateDealModal({
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder="client@example.com"
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 text-[15px] text-[#0d1f33]"
               />
             </div>
 
@@ -523,7 +523,7 @@ export function CreateDealModal({
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder={tr('Одеса, Таїрова', 'Одесса, Таирова')}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 text-[15px]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 text-[15px]"
               />
             </div>
 
@@ -535,7 +535,7 @@ export function CreateDealModal({
                 id="crm-deal-channel"
                 value={channel}
                 onChange={(e) => setChannel(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
               >
                 {DEAL_CHANNEL_OPTIONS.map((ch) => (
                   <option key={ch.value} value={ch.value}>
@@ -553,7 +553,7 @@ export function CreateDealModal({
                 id="crm-deal-stage"
                 value={stage}
                 onChange={(e) => setStage(e.target.value as DealStage)}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
               >
                 {creatableStages.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -571,7 +571,7 @@ export function CreateDealModal({
                 id="crm-deal-assignee"
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
               >
                 {assignees.map((a) => (
                   <option key={a} value={a}>
@@ -590,7 +590,7 @@ export function CreateDealModal({
                 id="crm-deal-task-type"
                 value={taskType}
                 onChange={(e) => setTaskType(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
               >
                 {DEAL_TASK_PRESETS.map((preset) => (
                   <option key={preset.value} value={preset.value}>
@@ -621,7 +621,7 @@ export function CreateDealModal({
                       ? tr(`Замовлення обладнання (${orderItems.length} поз.)`, `Заказ оборудования (${orderItems.length} поз.)`)
                       : tr('Наприклад, Комплект інвертор + АКБ зі складу', 'Например, Комплект инвертор + АКБ со склада')
                 }
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-semibold text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 font-semibold text-[15px] text-[#0d1f33]"
               />
             </div>
 
@@ -656,7 +656,7 @@ export function CreateDealModal({
                   setManualTotal(e.target.value);
                 }}
                 placeholder={catalogSubtotalUsd > 0 ? String(catalogSubtotalUsd) : '3500'}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono font-bold text-[15px] text-[#0d1f33]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 font-mono font-bold text-[15px] text-[#0d1f33]"
               />
             </div>
           </div>
@@ -715,7 +715,7 @@ export function CreateDealModal({
                     setShowProductCatalog(true);
                   }}
                   placeholder={tr('Пошук за моделлю, потужністю або SKU (напр. Deye, 10018)...', 'Поиск по модели, мощности или SKU (напр. Deye, 10018)...')}
-                  className="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 bg-white text-[15px]"
+                  className="w-full h-9 sm:h-10 pl-10 pr-4 rounded-lg border border-slate-300 bg-white text-[15px]"
                 />
               </div>
 
@@ -801,7 +801,7 @@ export function CreateDealModal({
                           </button>
                         </div>
 
-                        <span className="font-mono font-bold text-[#0d1f33] w-20 text-right tabular-nums">
+                        <span className="font-mono font-bold text-[#0d1f33] w-16 sm:w-20 text-right tabular-nums">
                           ${(product.price * qty).toLocaleString('uk-UA')}
                         </span>
 
@@ -894,7 +894,7 @@ export function CreateDealModal({
                   ))}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2">
                 <input
                   type="text"
                   value={customLoadInput}
@@ -906,12 +906,12 @@ export function CreateDealModal({
                     }
                   }}
                   placeholder={tr('Свій прилад (напр. Тепловий насос 5 кВт)', 'Свой прибор (напр. Тепловой насос 5 кВт)')}
-                  className="flex-1 h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px]"
+                  className="flex-1 min-w-0 h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white text-sm"
                 />
                 <button
                   type="button"
                   onClick={handleAddCustomLoad}
-                  className="h-11 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer"
+                  className="h-9 sm:h-10 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer shrink-0"
                 >
                   + {tr('Додати', 'Добавить')}
                 </button>
@@ -960,14 +960,14 @@ export function CreateDealModal({
               type="button"
               disabled={saving}
               onClick={onClose}
-              className="h-11 px-5 rounded-lg border border-slate-300 text-[15px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              className="h-9 sm:h-10 px-5 rounded-lg border border-slate-300 text-[15px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
               {tr('Скасувати', 'Отмена')}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="h-11 inline-flex items-center gap-2 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold cursor-pointer"
+              className="h-9 sm:h-10 inline-flex items-center gap-2 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] disabled:opacity-60 text-white text-[15px] font-bold cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               {saving

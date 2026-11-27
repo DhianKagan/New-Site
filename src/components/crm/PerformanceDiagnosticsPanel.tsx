@@ -33,17 +33,17 @@ export function PerformanceDiagnosticsPanel() {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-7 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-[#0d1f33] flex items-center gap-2">
-            <Gauge className="w-5 h-5 text-[#1769aa]" />
+    <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg sm:text-xl font-extrabold text-[#0d1f33] flex items-center gap-2">
+            <Gauge className="w-5 h-5 text-[#1769aa] shrink-0" />
             {tr(
               'Моніторинг продуктивності (React.Profiler & Lazy Load)',
               'Мониторинг производительности (React.Profiler & Lazy Load)',
             )}
           </h2>
-          <p className="text-[15px] text-[#52657a] mt-1.5 max-w-2xl">
+          <p className="text-sm text-[#52657a] mt-1 max-w-2xl">
             {tr(
               `Час завантаження lazy-компонентів і продуктивність рендерингу великих списків товарів. Поріг повільного кадру: > ${snapshot.slowRenderThresholdMs} ms (60 FPS).`,
               `Время загрузки lazy-компонентов и производительность рендеринга больших списков товаров. Порог медленного кадра: > ${snapshot.slowRenderThresholdMs} ms (60 FPS).`,
@@ -51,11 +51,11 @@ export function PerformanceDiagnosticsPanel() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => void handleCopyReport()}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-sm font-bold text-[#0d1f33] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs sm:text-sm font-bold text-[#0d1f33] cursor-pointer"
           >
             {copiedReport ? <Check className="w-4 h-4 text-[#169374]" /> : <Copy className="w-4 h-4" />}
             {copiedReport ? tr('Скопійовано JSON', 'Скопирован JSON') : tr('Експорт JSON', 'Экспорт JSON')}
@@ -64,13 +64,13 @@ export function PerformanceDiagnosticsPanel() {
             <button
               type="button"
               onClick={() => clearPerformanceMetrics()}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-sm font-bold text-slate-600 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs sm:text-sm font-bold text-slate-600 cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               {tr('Скинути', 'Сбросить')}
             </button>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-100 text-sm font-semibold text-slate-500">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-xs sm:text-sm font-semibold text-slate-500">
               <RefreshCw className="w-4 h-4" />
               {tr('Очікує вимірів', 'Ожидает замеров')}
             </span>
@@ -79,7 +79,7 @@ export function PerformanceDiagnosticsPanel() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
         <div className="rounded-xl border border-slate-200 bg-slate-50/75 p-4">
           <div className="text-sm font-bold text-slate-500">
             {tr('Відстежувані зони', 'Отслеживаемые зоны')}

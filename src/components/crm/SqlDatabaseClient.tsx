@@ -515,7 +515,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
   return (
     <div className="space-y-4">
       {/* Database Connection & KPI Strip */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 space-y-5">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -578,24 +578,24 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
         </div>
 
         {overview && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
-              <div className="text-sm font-bold text-slate-500">{tr('Таблиць у схемі')}</div>
-              <div className="font-mono text-lg font-extrabold text-[#0d1f33] mt-1 tabular-nums">{overview.tables.length}</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
+              <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Таблиць у схемі')}</div>
+              <div className="font-mono text-base sm:text-lg font-extrabold text-[#0d1f33] mt-0.5 tabular-nums">{overview.tables.length}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
-              <div className="text-sm font-bold text-slate-500">{tr('Загалом записів')}</div>
-              <div className="font-mono text-lg font-extrabold text-[#1769aa] mt-1 tabular-nums">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
+              <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Загалом записів')}</div>
+              <div className="font-mono text-base sm:text-lg font-extrabold text-[#1769aa] mt-0.5 tabular-nums">
                 {totalRowsAcrossTables.toLocaleString('uk-UA')}
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
-              <div className="text-sm font-bold text-slate-500">{tr('Розмір БД')}</div>
-              <div className="font-mono text-lg font-extrabold text-[#169374] mt-1 tabular-nums">{formatBytes(overview.sizeBytes)}</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
+              <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Розмір БД')}</div>
+              <div className="font-mono text-base sm:text-lg font-extrabold text-[#169374] mt-0.5 tabular-nums">{formatBytes(overview.sizeBytes)}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
-              <div className="text-sm font-bold text-slate-500">{tr('Активні сесії PG')}</div>
-              <div className="font-mono text-lg font-extrabold text-[#0d1f33] mt-1 tabular-nums">{overview.activeConnections}</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3.5 py-2.5">
+              <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Активні сесії PG')}</div>
+              <div className="font-mono text-base sm:text-lg font-extrabold text-[#0d1f33] mt-0.5 tabular-nums">{overview.activeConnections}</div>
             </div>
           </div>
         )}
@@ -608,16 +608,16 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
       </div>
 
       {/* Main Two-Column Workbench */}
-      <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4 items-start">
         {/* Left Schema Explorer */}
-        <aside className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+        <aside className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2.5 min-w-0">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               value={tableSearch}
               onChange={(e) => setTableSearch(e.target.value)}
               placeholder={tr('Пошук таблиці або колонки...', 'Поиск таблицы или колонки...')}
-              className="pl-9 h-10 text-sm"
+              className="pl-9 h-9 text-sm"
             />
           </div>
 
@@ -699,19 +699,19 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
         {/* Right Workspace: Table Data Browser OR SQL Console */}
         <div className="min-w-0 space-y-4">
           {subMode === 'browser' ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3.5">
               {/* Table Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h3 className="font-mono text-base font-extrabold text-[#0d1f33]">{selectedTable}</h3>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-mono text-base font-extrabold text-[#0d1f33] break-all">{selectedTable}</h3>
                     {activeTableMeta && (
-                      <span className="font-mono text-sm text-slate-500">
+                      <span className="font-mono text-xs sm:text-sm text-slate-500">
                         {formatBytes(activeTableMeta.totalBytes)} · PK: {activeTableMeta.primaryKey.join(', ') || '—'}
                       </span>
                     )}
                     {rowsData && (
-                      <span className="font-mono text-sm text-[#169374]">
+                      <span className="font-mono text-xs sm:text-sm text-[#169374]">
                         {rowsData.executionMs} ms
                       </span>
                     )}
@@ -761,27 +761,27 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                   setAppliedSearch(searchInput.trim());
                   setPage(1);
                 }}
-                className="flex flex-wrap items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-lg p-3.5"
+                className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3"
               >
-                <div className="relative flex-1 min-w-[220px]">
+                <div className="relative flex-1 min-w-[160px]">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <Input
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder={tr('Пошук по всіх колонках...', 'Поиск по всем колонкам...')}
-                    className="pl-9 h-10 text-sm bg-white"
+                    className="pl-9 h-9 text-sm bg-white"
                   />
                 </div>
 
-                <div className="inline-flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-slate-400" />
+                <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
+                  <Filter className="w-4 h-4 text-slate-400 shrink-0" />
                   <select
                     value={filterCol}
                     onChange={(e) => {
                       setFilterCol(e.target.value);
                       setPage(1);
                     }}
-                    className="h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm font-mono text-[#0d1f33]"
+                    className="h-9 px-2.5 rounded-lg border border-slate-300 bg-white text-sm font-mono text-[#0d1f33] max-w-full min-w-0"
                   >
                     <option value="">{tr('Колонка фільтра', 'Колонка фильтра')}</option>
                     {(rowsData?.columns ?? activeTableMeta?.columns ?? []).map((c) => (
@@ -798,7 +798,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         setPage(1);
                       }}
                       placeholder={tr('Значення...', 'Значение...')}
-                      className="w-44 h-10 text-sm bg-white"
+                      className="w-full sm:w-40 min-w-0 h-9 text-sm bg-white"
                     />
                   )}
                 </div>
@@ -1004,7 +1004,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                         setLimit(Number(e.target.value));
                         setPage(1);
                       }}
-                      className="h-10 px-3 rounded-lg border border-slate-300 bg-white font-mono text-sm"
+                      className="h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-mono text-sm"
                     >
                       <option value={25}>25 / стор.</option>
                       <option value={50}>50 / стор.</option>
@@ -1040,7 +1040,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
             </div>
           ) : (
             /* Interactive SQL Console */
-            <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-5">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-bold text-slate-500 mr-1">
@@ -1276,7 +1276,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                 </DialogDescription>
               </DialogHeader>
 
-              <form onSubmit={handleSaveRowModal} className="p-7 space-y-5 text-[15px]">
+              <form onSubmit={handleSaveRowModal} className="p-4 sm:p-6 space-y-4 text-sm sm:text-[15px]">
                 {rowsData.columns.map((col) => {
                   const isReadOnlyField =
                     !rowsData.writable ||
@@ -1288,14 +1288,14 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                   const isLong = isLongTextColumn(col);
 
                   return (
-                    <div key={col.name} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-2.5">
+                    <div key={col.name} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2 font-mono text-sm">
-                          {col.isPrimaryKey && <KeyRound className="w-4 h-4 text-amber-500" />}
-                          <span className="font-bold text-[#0d1f33] text-[15px]">{col.name}</span>
-                          <span className="text-sm text-slate-500">{col.dataType}</span>
+                        <div className="flex flex-wrap items-center gap-2 font-mono text-xs sm:text-sm min-w-0">
+                          {col.isPrimaryKey && <KeyRound className="w-4 h-4 text-amber-500 shrink-0" />}
+                          <span className="font-bold text-[#0d1f33] break-all">{col.name}</span>
+                          <span className="text-xs sm:text-sm text-slate-500">{col.dataType}</span>
                           {col.foreignKey && (
-                            <span className="inline-flex items-center gap-1 text-sm text-[#1769aa]">
+                            <span className="inline-flex items-center gap-1 text-xs sm:text-sm text-[#1769aa]">
                               <Link2 className="w-3.5 h-3.5" />
                               {col.foreignKey.table}.{col.foreignKey.column}
                             </span>
@@ -1315,20 +1315,20 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                                   // keep current text
                                 }
                               }}
-                              className="text-sm font-bold text-[#1769aa] hover:underline cursor-pointer"
+                              className="text-xs sm:text-sm font-bold text-[#1769aa] hover:underline cursor-pointer"
                             >
                               Форматувати JSON
                             </button>
                           )}
                           {col.nullable && !isReadOnlyField && (
-                            <label className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-600 cursor-pointer">
+                            <label className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-600 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={isNull}
                                 onChange={(e) =>
                                   setNullFlags((prev) => ({ ...prev, [col.name]: e.target.checked }))
                                 }
-                                className="w-4.5 h-4.5 accent-[#1769aa]"
+                                className="w-4 h-4 accent-[#1769aa]"
                               />
                               NULL
                             </label>
@@ -1345,7 +1345,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                             setFormValues((prev) => ({ ...prev, [col.name]: e.target.value }))
                           }
                           placeholder={isNull ? 'NULL' : isAutoSkip ? 'Згенерується автоматично' : ''}
-                          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-mono text-sm disabled:bg-slate-100 disabled:text-slate-500"
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-sm disabled:bg-slate-100 disabled:text-slate-500"
                         />
                       ) : (
                         <input
@@ -1356,7 +1356,7 @@ export function SqlDatabaseClient({ authFetch, onDataMutated }: SqlDatabaseClien
                             setFormValues((prev) => ({ ...prev, [col.name]: e.target.value }))
                           }
                           placeholder={isNull ? 'NULL' : isAutoSkip ? 'Згенерується автоматично' : ''}
-                          className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 font-mono text-sm disabled:bg-slate-100 disabled:text-slate-500"
+                          className="w-full h-9 sm:h-10 rounded-lg border border-slate-300 bg-white px-3.5 font-mono text-sm disabled:bg-slate-100 disabled:text-slate-500"
                         />
                       )}
                     </div>

@@ -114,16 +114,16 @@ export function CatalogDataTable({
           cell: (info) => {
             const p = info.row.original;
             return (
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => onOpenEditModal(p)}
                   title={tr('Змінити фото та характеристики', 'Изменить фото и характеристики')}
-                  className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center hover:border-[#1769aa] cursor-pointer"
+                  className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center hover:border-[#1769aa] cursor-pointer"
                 >
                   <SmartImage src={p.img} alt={p.title} className="w-full h-full object-contain" />
                 </button>
-                <span className="font-mono text-sm font-semibold text-slate-500">{p.sku || '—'}</span>
+                <span className="font-mono text-xs font-semibold text-slate-500">{p.sku || '—'}</span>
               </div>
             );
           },
@@ -143,20 +143,21 @@ export function CatalogDataTable({
                     if (e.key === 'Enter') onSaveQuickEdit(p);
                     if (e.key === 'Escape') onCancelQuickEdit();
                   }}
-                  className="w-full min-w-[240px] h-10 px-3.5 rounded-lg border border-[#1769aa] text-[15px] font-semibold text-[#0d1f33] bg-white"
+                  className="w-full min-w-[140px] h-9 px-3 rounded-lg border border-[#1769aa] text-sm font-semibold text-[#0d1f33] bg-white"
                 />
               );
             }
             return (
-              <div className="min-w-[240px] max-w-md">
+              <div className="min-w-0 max-w-sm">
                 <button
                   type="button"
                   onClick={() => onOpenEditModal(p)}
-                  className="font-semibold text-[15px] text-[#0d1f33] hover:text-[#1769aa] text-left line-clamp-2 cursor-pointer"
+                  className="font-semibold text-sm text-[#0d1f33] hover:text-[#1769aa] text-left line-clamp-2 cursor-pointer leading-snug"
                 >
                   {p.title}
                 </button>
-                <div className="text-sm text-slate-500 mt-0.5">
+                <div className="text-xs text-slate-500 mt-0.5">
+                  <span className="2xl:hidden font-medium text-slate-600">{p.brand} · </span>
                   {CAT_NAMES[p.cat]}
                   {p.specs.length > 0 ? ` · ${p.specs.length} ${tr('хар-к', 'хар-к')}` : ''}
                 </div>
@@ -166,7 +167,7 @@ export function CatalogDataTable({
         }),
         columnHelper.accessor('brand', {
           header: () => <span>{tr('Бренд')}</span>,
-          cell: (info) => <span className="text-[15px] font-medium text-slate-700 whitespace-nowrap">{info.getValue()}</span>,
+          cell: (info) => <span className="text-sm font-medium text-slate-700 whitespace-nowrap">{info.getValue()}</span>,
         }),
         columnHelper.accessor((row) => (row.inStock ? 1 : 0), {
           id: 'inStock',
@@ -177,12 +178,12 @@ export function CatalogDataTable({
             const isBusy = savingQuickId === p.id;
             if (isQuick) {
               return (
-                <label className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#0d1f33] cursor-pointer whitespace-nowrap">
+                <label className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#0d1f33] cursor-pointer whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={quickInStock}
                     onChange={(e) => onQuickInStockChange(e.target.checked)}
-                    className="w-4.5 h-4.5 accent-[#1769aa]"
+                    className="w-4 h-4 accent-[#1769aa]"
                   />
                   {tr('В наявності', 'В наличии')}
                 </label>
@@ -194,7 +195,7 @@ export function CatalogDataTable({
                 disabled={isBusy}
                 onClick={() => onToggleStockQuick(p)}
                 title={tr('Натисніть, щоб швидко перемкнути наявність', 'Нажмите, чтобы быстро изменить наличие')}
-                className={`px-3 py-1.5 rounded-md text-sm font-bold border transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 ${
+                className={`px-2 py-1 rounded-md text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 ${
                   p.inStock
                     ? 'bg-emerald-50 border-emerald-200 text-[#169374] hover:bg-emerald-100'
                     : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
@@ -212,7 +213,7 @@ export function CatalogDataTable({
             const isQuick = quickEditId === p.id;
             if (isQuick) {
               return (
-                <div className="inline-flex items-center justify-end gap-2">
+                <div className="inline-flex items-center justify-end gap-1.5">
                   <input
                     type="number"
                     min="0"
@@ -223,7 +224,7 @@ export function CatalogDataTable({
                       if (e.key === 'Escape') onCancelQuickEdit();
                     }}
                     placeholder={tr('Ціна', 'Цена')}
-                    className="w-26 h-10 px-3 rounded-lg border border-[#1769aa] text-right font-mono text-[15px] bg-white"
+                    className="w-20 h-9 px-2 rounded-lg border border-[#1769aa] text-right font-mono text-sm bg-white"
                   />
                   <input
                     type="number"
@@ -232,18 +233,18 @@ export function CatalogDataTable({
                     onChange={(e) => onQuickOldPriceChange(e.target.value)}
                     placeholder={tr('Стара', 'Старая')}
                     title={tr('Стара ціна (закреслена)', 'Старая цена (зачёркнута)')}
-                    className="w-22 h-10 px-2.5 rounded-lg border border-slate-300 text-right font-mono text-sm text-slate-500 bg-white"
+                    className="w-16 h-9 px-2 rounded-lg border border-slate-300 text-right font-mono text-xs text-slate-500 bg-white"
                   />
                 </div>
               );
             }
             return (
               <div className="text-right font-mono tabular-nums whitespace-nowrap">
-                <div className="text-[15px] font-bold text-[#0d1f33]">
+                <div className="text-sm font-bold text-[#0d1f33]">
                   {p.price > 0 ? `$${p.price.toLocaleString('uk-UA')}` : tr('За запитом', 'По запросу')}
                 </div>
                 {p.oldPrice > p.price && (
-                  <div className="text-sm text-slate-400 line-through font-normal">
+                  <div className="text-xs text-slate-400 line-through font-normal">
                     ${p.oldPrice.toLocaleString('uk-UA')}
                   </div>
                 )}
@@ -284,7 +285,7 @@ export function CatalogDataTable({
               );
             }
             return (
-              <div className="inline-flex items-center justify-end gap-1.5 w-full">
+              <div className="inline-flex items-center justify-end gap-1 w-full">
                 <Button
                   type="button"
                   size="sm"
@@ -301,7 +302,8 @@ export function CatalogDataTable({
                   className="border-[#1769aa]/30 bg-sky-50/50 hover:bg-sky-50 text-[#1769aa]"
                 >
                   <Pencil className="w-3.5 h-3.5" />
-                  {tr('Фото / Картка', 'Фото / Карточка')}
+                  <span className="hidden xl:inline">{tr('Фото / Картка', 'Фото / Карточка')}</span>
+                  <span className="xl:hidden">{tr('Картка', 'Карточка')}</span>
                 </Button>
               </div>
             );
@@ -338,23 +340,23 @@ export function CatalogDataTable({
   });
 
   return (
-    <div className="space-y-5">
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
-          <div className="relative flex-1 min-w-[240px] max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+    <div className="space-y-4">
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-[180px] sm:max-w-xs">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               type="search"
               value={catQuery}
               onChange={(e) => onCatQueryChange(e.target.value)}
               placeholder={tr('Пошук товару, SKU або бренду...', 'Поиск товара, SKU или бренда...')}
-              className="pl-10"
+              className="pl-9"
             />
           </div>
           <select
             value={catFilter}
             onChange={(e) => onCatFilterChange(e.target.value as 'all' | ProductCategory)}
-            className="h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] bg-white font-semibold text-[#0d1f33]"
+            className="h-9 sm:h-10 max-w-full px-3 rounded-lg border border-slate-300 text-sm bg-white font-semibold text-[#0d1f33]"
           >
             <option value="all">{tr('Усі категорії', 'Все категории')}</option>
             <option value="kits">{tr('Готові рішення')}</option>
@@ -366,7 +368,7 @@ export function CatalogDataTable({
           <select
             value={stockFilter}
             onChange={(e) => onStockFilterChange(e.target.value as CatalogStockFilter)}
-            className="h-11 px-3.5 rounded-lg border border-slate-300 text-[15px] bg-white font-semibold text-[#0d1f33]"
+            className="h-9 sm:h-10 max-w-full px-3 rounded-lg border border-slate-300 text-sm bg-white font-semibold text-[#0d1f33]"
           >
             <option value="all">{tr('Будь-яка наявність', 'Любое наличие')}</option>
             <option value="in_stock">{tr('В наявності', 'В наличии')}</option>
@@ -374,12 +376,12 @@ export function CatalogDataTable({
           </select>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="text-sm font-semibold text-slate-500 tabular-nums hidden sm:block">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-xs sm:text-sm font-semibold text-slate-500 tabular-nums">
             {tr('Позицій:', 'Позиций:')} <strong className="text-[#0d1f33]">{products.length}</strong> ·{' '}
             {tr('В наявності:', 'В наличии:')} <strong className="text-[#169374]">{inStockCount}</strong>
           </div>
-          <Button type="button" onClick={onOpenCreateModal}>
+          <Button type="button" size="sm" onClick={onOpenCreateModal}>
             <Plus className="w-4 h-4" />
             {tr('Додати товар', 'Добавить товар')}
           </Button>
@@ -394,7 +396,7 @@ export function CatalogDataTable({
                 {hg.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className={header.column.id === 'brand' ? 'hidden 2xl:table-cell' : undefined}>
                       {canSort ? (
                         <button
                           type="button"
@@ -416,7 +418,7 @@ export function CatalogDataTable({
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-[15px] text-slate-500">
+                <TableCell colSpan={6} className="py-10 text-center text-sm text-slate-500">
                   {tr('За вашим запитом товарів не знайдено', 'По вашему запросу товаров не найдено')}
                 </TableCell>
               </TableRow>
@@ -424,7 +426,7 @@ export function CatalogDataTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getAllCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={cell.column.id === 'brand' ? 'hidden 2xl:table-cell' : undefined}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

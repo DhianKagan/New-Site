@@ -317,20 +317,25 @@ export function StaffTab({
             const m = info.row.original;
             const isSelf = currentUser?.userId === m.id;
             const isMaster = m.login === 'admin';
+            const w = workloadByLabel.get(m.assigneeLabel) ?? { deals: 0, openTasks: 0 };
             return (
-              <div>
-                <div className="font-bold text-[15px] text-[#0d1f33] flex flex-wrap items-center gap-2">
+              <div className="min-w-[130px]">
+                <div className="font-bold text-sm text-[#0d1f33] flex flex-wrap items-center gap-1.5">
                   <span>{m.name}</span>
                   {isMaster && (
                     <Badge variant="dark" className="gap-1">
-                      <Crown className="w-3.5 h-3.5 text-amber-400" />
+                      <Crown className="w-3 h-3 text-amber-400" />
                       {tr('Майстер', 'Мастер')}
                     </Badge>
                   )}
                   {isSelf && <Badge variant="info">{tr('Ви', 'Вы')}</Badge>}
                 </div>
-                <div className="text-sm text-slate-500 mt-0.5">
+                <div className="text-xs text-slate-500 mt-0.5">
                   {m.position} · <span className="font-mono text-slate-600">{m.assigneeLabel}</span>
+                </div>
+                <div className="xl:hidden text-[11px] font-mono tabular-nums text-slate-500 mt-0.5">
+                  {tr('Угод', 'Сделок')}: <strong className="text-[#0d1f33]">{w.deals}</strong> · {tr('Задач', 'Задач')}:{' '}
+                  <strong className="text-[#1769aa]">{w.openTasks}</strong>
                 </div>
               </div>
             );
@@ -341,11 +346,11 @@ export function StaffTab({
           cell: (info) => {
             const m = info.row.original;
             return (
-              <div className="space-y-1 text-sm">
+              <div className="space-y-1 text-xs sm:text-sm min-w-0">
                 {m.email ? (
-                  <div className="font-semibold text-[#0d1f33] inline-flex items-center gap-1.5">
-                    <Mail className="w-4 h-4 text-[#1769aa]" />
-                    {m.email}
+                  <div className="font-semibold text-[#0d1f33] inline-flex items-center gap-1.5 break-all">
+                    <Mail className="w-3.5 h-3.5 text-[#1769aa] shrink-0" />
+                    <span>{m.email}</span>
                   </div>
                 ) : (
                   <div className="text-slate-400 italic">
@@ -356,8 +361,8 @@ export function StaffTab({
                 )}
                 {m.phone && (
                   <div className="text-slate-500 flex items-center gap-1.5">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    {m.phone}
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{m.phone}</span>
                   </div>
                 )}
               </div>
@@ -520,38 +525,38 @@ export function StaffTab({
   const activeCount = staff.filter((m) => m.active).length;
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('Усього користувачів', 'Всего пользователей')}</div>
-          <div className="font-mono text-3xl font-extrabold text-[#0d1f33] mt-1.5 tabular-nums leading-none">{staff.length}</div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Усього користувачів', 'Всего пользователей')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mt-1 tabular-nums leading-none">{staff.length}</div>
         </Card>
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('Активні виконавці', 'Активные исполнители')}</div>
-          <div className="font-mono text-3xl font-extrabold text-[#169374] mt-1.5 tabular-nums leading-none">{activeCount}</div>
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Активні виконавці', 'Активные исполнители')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#169374] mt-1 tabular-nums leading-none">{activeCount}</div>
         </Card>
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('Прив’язані до Google Email', 'Привязаны к Google Email')}</div>
-          <div className="font-mono text-3xl font-extrabold text-[#1769aa] mt-1.5 tabular-nums leading-none">{activeGoogleLoginCount}</div>
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Прив’язані до Google Email', 'Привязаны к Google Email')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#1769aa] mt-1 tabular-nums leading-none">{activeGoogleLoginCount}</div>
         </Card>
-        <Card className="p-5">
-          <div className="text-sm font-bold text-slate-500">{tr('Адміністратори', 'Администраторы')}</div>
-          <div className="font-mono text-3xl font-extrabold text-[#0d1f33] mt-1.5 tabular-nums leading-none">
+        <Card className="p-4">
+          <div className="text-xs sm:text-sm font-bold text-slate-500">{tr('Адміністратори', 'Администраторы')}</div>
+          <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#0d1f33] mt-1 tabular-nums leading-none">
             {staff.filter((m) => m.role === 'admin' && m.active).length}
           </div>
         </Card>
       </div>
 
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-[180px] sm:max-w-xs">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={tr('Пошук за ім’ям, Email, посадою...', 'Поиск по имени, Email, должности...')}
-              className="pl-10 w-80"
+              className="pl-9 w-full"
               aria-label={tr('Пошук користувачів', 'Поиск пользователей')}
             />
           </div>
@@ -569,7 +574,7 @@ export function StaffTab({
                 key={r}
                 type="button"
                 onClick={() => setRoleFilter(r)}
-                className={`px-3.5 py-2 rounded-md text-sm font-bold cursor-pointer transition-colors ${
+                className={`px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-bold cursor-pointer transition-colors ${
                   roleFilter === r ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
@@ -579,15 +584,15 @@ export function StaffTab({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {selfMember && (
-            <Button type="button" variant="outline" onClick={() => openEditModal(selfMember)}>
-              <Pencil className="w-4 h-4 text-[#1769aa]" />
+            <Button type="button" variant="outline" size="sm" onClick={() => openEditModal(selfMember)}>
+              <Pencil className="w-3.5 h-3.5 text-[#1769aa]" />
               {tr('Мій профіль', 'Мой профиль')}
             </Button>
           )}
           {isAdmin && (
-            <Button type="button" variant="primary" onClick={openCreateModal}>
+            <Button type="button" variant="primary" size="sm" onClick={openCreateModal}>
               <Plus className="w-4 h-4" />
               {tr('Додати користувача', 'Добавить пользователя')}
             </Button>
@@ -596,7 +601,7 @@ export function StaffTab({
       </Card>
 
       {actionMsg && (
-        <div className="px-5 py-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[15px] font-semibold text-[#169374]">
+        <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm font-semibold text-[#169374]">
           {actionMsg}
         </div>
       )}
@@ -607,7 +612,10 @@ export function StaffTab({
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
                 {hg.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={header.column.id === 'workload' ? 'hidden xl:table-cell' : undefined}
+                  >
                     {header.id === 'actions' || header.id === 'workload' ? (
                       flexRender(header.column.columnDef.header, header.getContext())
                     ) : (
@@ -629,7 +637,10 @@ export function StaffTab({
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id} className={!row.original.active ? 'opacity-60' : undefined}>
                 {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell
+                    key={cell.id}
+                    className={cell.column.id === 'workload' ? 'hidden xl:table-cell' : undefined}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -638,7 +649,7 @@ export function StaffTab({
           </TableBody>
         </Table>
         {filteredStaff.length === 0 && (
-          <div className="p-12 text-center text-[15px] text-slate-400">
+          <div className="p-10 text-center text-sm text-slate-400">
             {tr('Користувачів за вибраним фільтром не знайдено', 'Пользователи по выбранному фильтру не найдены')}
           </div>
         )}
@@ -697,10 +708,10 @@ export function StaffTab({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveMember} className="p-7 space-y-5 text-[15px]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSaveMember} className="p-4 sm:p-6 space-y-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="staff-name" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="staff-name" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Ім’я та прізвище *', 'Имя и фамилия *')}
                 </label>
                 <Input
@@ -712,7 +723,7 @@ export function StaffTab({
                 />
               </div>
               <div>
-                <label htmlFor="staff-position" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="staff-position" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Посада *', 'Должность *')}
                 </label>
                 <Input
@@ -725,9 +736,9 @@ export function StaffTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="staff-email" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="staff-email" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Email (Google акаунт)', 'Email (Google аккаунт)')}
                   {fCanLogin && !editingIsMaster ? ' *' : ''}
                 </label>
@@ -743,7 +754,7 @@ export function StaffTab({
                 />
               </div>
               <div>
-                <label htmlFor="staff-phone" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="staff-phone" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Телефон')}
                 </label>
                 <Input
@@ -755,9 +766,9 @@ export function StaffTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="staff-role" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="staff-role" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Роль доступу', 'Роль доступа')}
                 </label>
                 <select
@@ -765,7 +776,7 @@ export function StaffTab({
                   value={fRole}
                   disabled={!isAdmin || editingIsMaster}
                   onChange={(e) => setFRole(e.target.value as StaffRole)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold disabled:bg-slate-100 disabled:text-slate-500"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold disabled:bg-slate-100 disabled:text-slate-500"
                 >
                   <option value="admin">{tr('Адміністратор (повний доступ)', 'Администратор (полный доступ)')}</option>
                   <option value="manager">{tr('Менеджер (угоди, задачі, каталог)', 'Менеджер (сделки, задачи, каталог)')}</option>

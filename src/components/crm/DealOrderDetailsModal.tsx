@@ -320,7 +320,7 @@ export function DealOrderDetailsModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4"
       onClick={() => {
         if (!saving) onClose();
       }}
@@ -329,25 +329,25 @@ export function DealOrderDetailsModal({
       aria-labelledby="deal-order-details-title"
     >
       <div
-        className="bg-white rounded-2xl border border-slate-200 w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-2xl border border-slate-200 w-full max-w-3xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Header */}
-        <div className="px-7 py-5 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50 sticky top-0 z-10">
-          <div className="min-w-0 space-y-2">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 flex items-start justify-between gap-3 bg-slate-50 sticky top-0 z-10">
+          <div className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => void handleCopy(deal.dealNumber, 'deal')}
                 title={tr('Скопіювати номер', 'Скопировать номер')}
-                className="inline-flex items-center gap-1.5 font-mono text-[15px] font-extrabold text-[#1769aa] hover:text-[#12568c] cursor-pointer"
+                className="inline-flex items-center gap-1.5 font-mono text-sm sm:text-[15px] font-extrabold text-[#1769aa] hover:text-[#12568c] cursor-pointer"
               >
                 <span>{deal.dealNumber}</span>
                 {copiedKey === 'deal' ? <Check className="w-4 h-4 text-[#169374]" /> : <Copy className="w-4 h-4 opacity-60" />}
               </button>
 
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-bold ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs sm:text-sm font-bold ${
                   dealTypeInput === 'order' ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-[#1769aa]'
                 }`}
               >
@@ -356,26 +356,26 @@ export function DealOrderDetailsModal({
               </span>
 
               {stageInfo && (
-                <span className={`px-3 py-1 rounded-md text-sm font-bold bg-white border border-slate-200 ${stageInfo.colorClass}`}>
+                <span className={`px-2.5 py-0.5 rounded-md text-xs sm:text-sm font-bold bg-white border border-slate-200 ${stageInfo.colorClass}`}>
                   {tr(stageInfo.label)}
                 </span>
               )}
 
               {deal.telegramSent && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-bold bg-emerald-50 border border-emerald-200 text-[#169374]">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs sm:text-sm font-bold bg-emerald-50 border border-emerald-200 text-[#169374]">
                   <Send className="w-3.5 h-3.5" />
                   Telegram
                 </span>
               )}
             </div>
 
-            <h3 id="deal-order-details-title" className="text-xl font-extrabold text-[#0d1f33] leading-snug">
+            <h3 id="deal-order-details-title" className="text-lg sm:text-xl font-extrabold text-[#0d1f33] leading-snug break-words">
               {topicInput || deal.topic}
             </h3>
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-500">
               <span className="inline-flex items-center gap-1.5 tabular-nums">
-                <Calendar className="w-4 h-4" />
+                <Calendar className="w-3.5 h-3.5" />
                 {tr('Створено:', 'Создано:')} {new Date(deal.createdAt).toLocaleString('uk-UA')}
               </span>
               {deal.updatedAt !== deal.createdAt && (
@@ -391,15 +391,15 @@ export function DealOrderDetailsModal({
             disabled={saving}
             onClick={onClose}
             aria-label={tr('Закрити', 'Закрыть')}
-            className="w-10 h-10 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] shrink-0 cursor-pointer"
+            className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-[#0d1f33] shrink-0 cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-7 space-y-6 text-[15px]">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-sm sm:text-[15px]">
           {/* Customer Contact & Main Info Card */}
-          <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-5 space-y-3.5">
+          <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 sm:p-4 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h4 className="font-extrabold text-[#0d1f33] inline-flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-[#1769aa]" />
@@ -465,7 +465,7 @@ export function DealOrderDetailsModal({
                     type="text"
                     value={topicInput}
                     onChange={(e) => setTopicInput(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
+                    className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
@@ -478,7 +478,7 @@ export function DealOrderDetailsModal({
                     type="text"
                     value={customerNameInput}
                     onChange={(e) => setCustomerNameInput(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
+                    className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
@@ -491,7 +491,7 @@ export function DealOrderDetailsModal({
                     type="tel"
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(formatUaPhone(e.target.value))}
-                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-mono font-semibold text-[15px] text-[#0d1f33]"
+                    className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-mono font-semibold text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
@@ -505,7 +505,7 @@ export function DealOrderDetailsModal({
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="client@example.com"
-                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px] text-[#0d1f33]"
+                    className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px] text-[#0d1f33]"
                   />
                 </div>
 
@@ -518,7 +518,7 @@ export function DealOrderDetailsModal({
                     type="text"
                     value={cityInput}
                     onChange={(e) => setCityInput(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px]"
+                    className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px]"
                   />
                 </div>
 
@@ -530,7 +530,7 @@ export function DealOrderDetailsModal({
                     id="detail-deal-channel"
                     value={channelInput}
                     onChange={(e) => setChannelInput(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
+                    className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                   >
                     {DEAL_CHANNEL_OPTIONS.map((ch) => (
                       <option key={ch.value} value={ch.value}>
@@ -551,7 +551,7 @@ export function DealOrderDetailsModal({
                     id="detail-deal-task-type"
                     value={taskTypeInput}
                     onChange={(e) => setTaskTypeInput(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
+                    className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                   >
                     {DEAL_TASK_PRESETS.map((preset) => (
                       <option key={preset.value} value={preset.value}>
@@ -679,7 +679,7 @@ export function DealOrderDetailsModal({
                         setShowProductCatalog(true);
                       }}
                       placeholder={tr('Додати товар за назвою, брендом або SKU...', 'Добавить товар по названию, бренду или SKU...')}
-                      className="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 bg-white text-[15px]"
+                      className="w-full h-9 sm:h-10 pl-10 pr-4 rounded-lg border border-slate-300 bg-white text-[15px]"
                     />
                   </div>
                   <button
@@ -738,7 +738,7 @@ export function DealOrderDetailsModal({
                     const prod = productMap.get(item.productId);
                     const lineTotal = item.price * item.qty;
                     return (
-                      <div key={item.productId} className="p-4 flex items-center justify-between gap-3">
+                      <div key={item.productId} className="p-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-3">
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
                           <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center">
                             {prod?.img ? (
@@ -793,7 +793,7 @@ export function DealOrderDetailsModal({
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                            <span className="font-mono font-bold text-[#0d1f33] w-20 text-right tabular-nums">
+                            <span className="font-mono font-bold text-[#0d1f33] w-16 sm:w-20 text-right tabular-nums">
                               ${lineTotal.toLocaleString('uk-UA')}
                             </span>
                             <button
@@ -909,7 +909,7 @@ export function DealOrderDetailsModal({
                       </button>
                     ))}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap sm:flex-nowrap gap-2">
                   <input
                     type="text"
                     value={customLoadInput}
@@ -921,12 +921,12 @@ export function DealOrderDetailsModal({
                       }
                     }}
                     placeholder={tr('Свій прилад (напр. Тепловий насос)', 'Свой прибор (напр. Тепловой насос)')}
-                    className="flex-1 h-11 px-3.5 rounded-lg border border-slate-300 bg-white text-[15px]"
+                    className="flex-1 min-w-0 h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white text-sm"
                   />
                   <button
                     type="button"
                     onClick={handleAddCustomLoad}
-                    className="h-11 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer"
+                    className="h-9 sm:h-10 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-sm font-bold text-[#0d1f33] cursor-pointer shrink-0"
                   >
                     + {tr('Додати', 'Добавить')}
                   </button>
@@ -988,7 +988,7 @@ export function DealOrderDetailsModal({
                   value={deal.stage}
                   disabled={saving}
                   onChange={(e) => void onPatchDeal(deal.id, { stage: e.target.value as DealStage })}
-                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
+                  className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                 >
                   {stages.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -1006,7 +1006,7 @@ export function DealOrderDetailsModal({
                   value={deal.assignee}
                   disabled={saving}
                   onChange={(e) => void onPatchDeal(deal.id, { assignee: e.target.value })}
-                  className="w-full h-11 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
+                  className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 bg-white font-semibold text-[15px]"
                 >
                   {assignees.map((a) => (
                     <option key={a} value={a}>
@@ -1030,7 +1030,7 @@ export function DealOrderDetailsModal({
                 min="0"
                 value={totalInput}
                 onChange={(e) => setTotalInput(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono font-bold text-[15px]"
+                className="w-full h-9 sm:h-10 px-3.5 rounded-lg border border-slate-300 font-mono font-bold text-[15px]"
               />
             </div>
 
@@ -1074,7 +1074,7 @@ export function DealOrderDetailsModal({
                   type="button"
                   disabled={saving}
                   onClick={() => void handleSaveDetails()}
-                  className="h-11 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[15px] font-bold cursor-pointer disabled:opacity-60"
+                  className="h-9 sm:h-10 px-5 rounded-lg bg-[#1769aa] hover:bg-[#12568c] text-white text-[15px] font-bold cursor-pointer disabled:opacity-60"
                 >
                   {tr('Зберегти зміни', 'Сохранить изменения')}
                 </button>
@@ -1086,7 +1086,7 @@ export function DealOrderDetailsModal({
                     type="button"
                     disabled={saving}
                     onClick={() => void onDeleteDeal(deal.id)}
-                    className="h-11 inline-flex items-center gap-2 px-5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[15px] font-bold cursor-pointer"
+                    className="h-9 sm:h-10 inline-flex items-center gap-2 px-5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[15px] font-bold cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     {tr('Підтвердити видалення', 'Подтвердить удаление')}

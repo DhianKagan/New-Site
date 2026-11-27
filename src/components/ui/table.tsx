@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils.ts';
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
     <div className="relative w-full overflow-x-auto">
-      <table ref={ref} className={cn('w-full caption-bottom text-[15px] text-left', className)} {...props} />
+      <table ref={ref} className={cn('w-full caption-bottom text-sm text-left', className)} {...props} />
     </div>
   ),
 );
@@ -35,7 +35,7 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttr
   ({ className, ...props }, ref) => (
     <th
       ref={ref}
-      className={cn('px-5 py-4 text-left align-middle text-[13px] font-bold tracking-wide text-slate-600 whitespace-nowrap', className)}
+      className={cn('px-2.5 py-2.5 sm:px-3.5 sm:py-3 text-left align-middle text-xs font-bold tracking-wide text-slate-600 whitespace-normal', className)}
       {...props}
     />
   ),
@@ -43,6 +43,6 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttr
 TableHead.displayName = 'TableHead';
 
 export const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(
-  ({ className, ...props }, ref) => <td ref={ref} className={cn('px-5 py-4 align-middle', className)} {...props} />,
+  ({ className, ...props }, ref) => <td ref={ref} className={cn('px-2.5 py-2.5 sm:px-3.5 sm:py-3 align-middle', className)} {...props} />,
 );
 TableCell.displayName = 'TableCell';

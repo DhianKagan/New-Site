@@ -45,26 +45,50 @@ test('CRM_RESOURCES registers all CRM tabs and hidden auxiliary resources for Re
   assert.equal(getResourceMeta('deals').envelopeListKey, 'deals');
   assert.equal(getResourceMeta('data-management').adminOnly, true);
   assert.equal(getResourceMeta('analytics').adminOnly, true);
+  assert.equal(getResourceMeta('rates').group, 'system');
+  assert.equal(getResourceMeta('rates').adminOnly, true);
+  assert.equal(getResourceMeta('social').group, 'system');
+  assert.equal(getResourceMeta('social').adminOnly, true);
+  assert.equal(getResourceMeta('staff').group, 'system');
+  assert.equal(getResourceMeta('staff').adminOnly, true);
+  assert.ok(
+    CRM_RESOURCES.every((r) => (r.meta as CrmResourceMeta | undefined)?.group !== ('team' as string)),
+    'Legacy team group should be removed after moving staff into system',
+  );
 });
 
 test('canRoleAccessResource enforces admin-only and role-scoped RBAC rules', () => {
   assert.equal(canRoleAccessResource(null, 'deals', 'list'), false);
   assert.equal(canRoleAccessResource('admin', 'data-management', 'list'), true);
   assert.equal(canRoleAccessResource('admin', 'analytics', 'list'), true);
+  assert.equal(canRoleAccessResource('admin', 'rates', 'list'), true);
+  assert.equal(canRoleAccessResource('admin', 'social', 'list'), true);
+  assert.equal(canRoleAccessResource('admin', 'staff', 'list'), true);
 
   assert.equal(canRoleAccessResource('manager', 'data-management', 'list'), false);
   assert.equal(canRoleAccessResource('manager', 'analytics', 'list'), false);
+  assert.equal(canRoleAccessResource('manager', 'rates', 'list'), false);
+  assert.equal(canRoleAccessResource('manager', 'rates', 'edit'), false);
+  assert.equal(canRoleAccessResource('manager', 'social', 'list'), false);
+  assert.equal(canRoleAccessResource('manager', 'social', 'edit'), false);
+  assert.equal(canRoleAccessResource('manager', 'staff', 'list'), false);
+  assert.equal(canRoleAccessResource('manager', 'staff', 'create'), false);
   assert.equal(canRoleAccessResource('manager', 'deals', 'delete'), true);
   assert.equal(canRoleAccessResource('manager', 'products', 'create'), true);
-  assert.equal(canRoleAccessResource('manager', 'staff', 'create'), false);
   assert.equal(canRoleAccessResource('manager', 'customers', 'edit'), false);
 
   assert.equal(canRoleAccessResource('engineer', 'deals', 'edit'), true);
   assert.equal(canRoleAccessResource('engineer', 'deals', 'delete'), false);
   assert.equal(canRoleAccessResource('engineer', 'products', 'create'), false);
+  assert.equal(canRoleAccessResource('engineer', 'rates', 'list'), false);
+  assert.equal(canRoleAccessResource('engineer', 'social', 'list'), false);
+  assert.equal(canRoleAccessResource('engineer', 'staff', 'list'), false);
 
   assert.equal(canRoleAccessResource('installer', 'tasks', 'list'), true);
   assert.equal(canRoleAccessResource('installer', 'deals', 'create'), false);
+  assert.equal(canRoleAccessResource('installer', 'rates', 'list'), false);
+  assert.equal(canRoleAccessResource('installer', 'social', 'list'), false);
+  assert.equal(canRoleAccessResource('installer', 'staff', 'list'), false);
 });
 
 test('Refine CRM router provider parses default tab and resolves go() navigation', () => {

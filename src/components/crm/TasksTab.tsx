@@ -198,7 +198,7 @@ export function TasksTab({
                 value={task.status}
                 aria-label={`${tr('Статус задачі', 'Статус задачи')}: ${task.title}`}
                 onChange={(e) => void handleStatusChange(task, e.target.value as TaskStatus)}
-                className={`h-10 rounded-lg border px-3 text-sm font-bold cursor-pointer ${
+                className={`h-9 max-w-[132px] rounded-lg border px-2 text-xs sm:text-sm font-bold cursor-pointer ${
                   task.status === 'done'
                     ? 'border-emerald-200 bg-emerald-50 text-[#169374]'
                     : task.status === 'in_progress'
@@ -218,22 +218,29 @@ export function TasksTab({
           cell: (info) => {
             const task = info.row.original;
             return (
-              <div>
+              <div className="min-w-[140px]">
                 <div
                   className={
                     task.status === 'done'
-                      ? 'line-through text-slate-400 font-semibold text-[15px]'
-                      : 'font-bold text-[#0d1f33] text-[15px]'
+                      ? 'line-through text-slate-400 font-semibold text-sm'
+                      : 'font-bold text-[#0d1f33] text-sm leading-snug'
                   }
                 >
                   {task.title}
                 </div>
-                {(task.contactName || task.dealNumber) && (
-                  <div className="text-sm text-slate-500 mt-0.5 flex flex-wrap gap-2">
-                    {task.contactName && <span>{task.contactName}</span>}
-                    {task.dealNumber && <span className="font-mono text-[#1769aa]">{task.dealNumber}</span>}
-                  </div>
-                )}
+                <div className="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  {task.contactName && <span>{task.contactName}</span>}
+                  {task.dealNumber && <span className="font-mono text-[#1769aa]">{task.dealNumber}</span>}
+                  <span className="xl:hidden text-slate-600">{task.assignee}</span>
+                  <span className="xl:hidden font-semibold">
+                    ·{' '}
+                    {task.priority === 'high'
+                      ? tr('Терміново', 'Срочно')
+                      : task.priority === 'medium'
+                        ? tr('Середній', 'Средний')
+                        : tr('Низький', 'Низкий')}
+                  </span>
+                </div>
               </div>
             );
           },
@@ -259,13 +266,13 @@ export function TasksTab({
             const isToday = !done && due === today;
             return (
               <span
-                className={`inline-flex items-center gap-1.5 font-mono text-sm font-bold tabular-nums ${
+                className={`inline-flex items-center gap-1 font-mono text-xs sm:text-sm font-bold tabular-nums whitespace-nowrap ${
                   isOverdue ? 'text-red-600' : isToday ? 'text-amber-700' : 'text-slate-600'
                 }`}
               >
-                <Calendar className="w-4 h-4" />
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
                 {due}
-                {isOverdue && ` (${tr('прострочено', 'просрочено')})`}
+                {isOverdue && ` (${tr('простр.', 'проср.')})`}
                 {isToday && ` (${tr('сьогодні', 'сегодня')})`}
               </span>
             );
@@ -273,7 +280,7 @@ export function TasksTab({
         }),
         columnHelper.accessor('assignee', {
           header: () => <span>{tr('Відповідальний')}</span>,
-          cell: (info) => <span className="text-[15px] text-slate-700">{info.getValue()}</span>,
+          cell: (info) => <span className="text-sm text-slate-700">{info.getValue()}</span>,
         }),
         columnHelper.display({
           id: 'actions',
@@ -363,17 +370,17 @@ export function TasksTab({
   }
 
   return (
-    <div className="space-y-5">
-      <Card className="p-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
-          <div className="relative flex-1 min-w-[240px] max-w-sm">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+    <div className="space-y-4">
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-[180px] sm:max-w-xs">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={tr('Пошук задачі, клієнта, угоди...', 'Поиск задачи, клиента, сделки...')}
-              className="pl-10 w-full"
+              className="pl-9 w-full"
               aria-label={tr('Пошук задач', 'Поиск задач')}
             />
           </div>
@@ -392,7 +399,7 @@ export function TasksTab({
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`px-3.5 py-2 rounded-md text-sm font-bold cursor-pointer transition-colors ${
+                className={`px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-bold cursor-pointer transition-colors ${
                   statusFilter === st ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                 }`}
               >
@@ -405,7 +412,7 @@ export function TasksTab({
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
             aria-label={tr('Фільтр за відповідальним', 'Фильтр по ответственному')}
-            className="h-11 rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold text-[#0d1f33]"
+            className="h-9 sm:h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-[#0d1f33]"
           >
             <option value="all">{tr('Усі відповідальні', 'Все ответственные')}</option>
             {assignees.map((a) => (
@@ -416,7 +423,7 @@ export function TasksTab({
           </select>
         </div>
 
-        <Button type="button" variant="primary" onClick={openCreateModal}>
+        <Button type="button" variant="primary" size="sm" onClick={openCreateModal}>
           <Plus className="w-4 h-4" />
           {tr('Нова задача', 'Новая задача')}
         </Button>
@@ -428,7 +435,14 @@ export function TasksTab({
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
                 {hg.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={
+                      header.column.id === 'priority' || header.column.id === 'assignee'
+                        ? 'hidden xl:table-cell'
+                        : undefined
+                    }
+                  >
                     {header.id === 'actions' ? null : (
                       <button
                         type="button"
@@ -448,7 +462,14 @@ export function TasksTab({
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
                 {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell
+                    key={cell.id}
+                    className={
+                      cell.column.id === 'priority' || cell.column.id === 'assignee'
+                        ? 'hidden xl:table-cell'
+                        : undefined
+                    }
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -457,7 +478,7 @@ export function TasksTab({
           </TableBody>
         </Table>
         {filteredTasks.length === 0 && (
-          <div className="p-12 text-center text-[15px] text-slate-400">
+          <div className="p-10 text-center text-sm text-slate-400">
             {tr('Задач за вибраним статусом немає', 'Задач по выбранному статусу нет')}
           </div>
         )}
@@ -486,9 +507,9 @@ export function TasksTab({
               {tr('Прив’яжіть нагадування до контакту або угоди', 'Привяжите задачу к контакту или сделке')}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveTask} className="p-7 space-y-5 text-[15px]">
+          <form onSubmit={handleSaveTask} className="p-4 sm:p-6 space-y-4 text-sm">
             <div>
-              <label htmlFor="task-title" className="block text-sm font-bold text-[#0d1f33] mb-2">
+              <label htmlFor="task-title" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                 {tr('Що потрібно зробити *', 'Что нужно сделать *')}
               </label>
               <Input
@@ -499,16 +520,16 @@ export function TasksTab({
                 placeholder={tr('Передзвонити клієнту щодо щита 380 В...', 'Перезвонить клиенту...')}
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="task-contact" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="task-contact" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Контакт', 'Контакт')}
                 </label>
                 <select
                   id="task-contact"
                   value={tContactId}
                   onChange={(e) => setTContactId(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px]"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
                 >
                   <option value="">—</option>
                   {contacts.map((c) => (
@@ -519,14 +540,14 @@ export function TasksTab({
                 </select>
               </div>
               <div>
-                <label htmlFor="task-deal" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="task-deal" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Угода', 'Сделка')}
                 </label>
                 <select
                   id="task-deal"
                   value={tDealId}
                   onChange={(e) => setTDealId(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px]"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
                 >
                   <option value="">—</option>
                   {deals.map((d) => (
@@ -537,22 +558,22 @@ export function TasksTab({
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div>
-                <label htmlFor="task-due" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="task-due" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Термін', 'Срок')}
                 </label>
                 <Input id="task-due" type="date" value={tDueDate} onChange={(e) => setTDueDate(e.target.value)} />
               </div>
               <div>
-                <label htmlFor="task-prio" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="task-prio" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Пріоритет', 'Приоритет')}
                 </label>
                 <select
                   id="task-prio"
                   value={tPriority}
                   onChange={(e) => setTPriority(e.target.value as TaskPriority)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold"
                 >
                   <option value="low">{tr('Низький', 'Низкий')}</option>
                   <option value="medium">{tr('Середній', 'Средний')}</option>
@@ -560,14 +581,14 @@ export function TasksTab({
                 </select>
               </div>
               <div>
-                <label htmlFor="task-assignee" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="task-assignee" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Відповідальний')}
                 </label>
                 <select
                   id="task-assignee"
                   value={tAssignee}
                   onChange={(e) => setTAssignee(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px]"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
                 >
                   {assignees.map((a) => (
                     <option key={a} value={a}>
@@ -579,14 +600,14 @@ export function TasksTab({
             </div>
             {editingTask && (
               <div>
-                <label htmlFor="task-status" className="block text-sm font-bold text-[#0d1f33] mb-2">
+                <label htmlFor="task-status" className="block text-sm font-bold text-[#0d1f33] mb-1.5">
                   {tr('Статус')}
                 </label>
                 <select
                   id="task-status"
                   value={tStatus}
                   onChange={(e) => setTStatus(e.target.value as TaskStatus)}
-                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold"
+                  className="h-9 sm:h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold"
                 >
                   <option value="todo">{tr('До виконання', 'К выполнению')}</option>
                   <option value="in_progress">{tr('У роботі', 'В работе')}</option>
@@ -594,7 +615,7 @@ export function TasksTab({
                 </select>
               </div>
             )}
-            {err && <div className="text-[15px] font-bold text-red-600">{err}</div>}
+            {err && <div className="text-sm font-bold text-red-600">{err}</div>}
             <div className="flex justify-end gap-3 pt-3">
               <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
                 {tr('Скасувати')}

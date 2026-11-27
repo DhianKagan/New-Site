@@ -33,7 +33,7 @@ export type CrmTabId =
   | 'social'
   | 'deploy';
 
-export type CrmMenuGroupId = 'sales' | 'storefront' | 'team' | 'system';
+export type CrmMenuGroupId = 'sales' | 'storefront' | 'system';
 
 export interface CrmResourceMeta {
   tabId?: CrmTabId;
@@ -173,9 +173,10 @@ export const CRM_RESOURCES: ResourceProps[] = [
     list: '/crm?tab=rates',
     meta: {
       tabId: 'rates',
-      group: 'storefront',
+      group: 'system',
       labelUk: 'Курс валют (USD/UAH)',
       labelRu: 'Курс валют (USD/UAH)',
+      adminOnly: true,
       apiResource: 'exchange-rate',
     } satisfies CrmResourceMeta,
   },
@@ -184,9 +185,10 @@ export const CRM_RESOURCES: ResourceProps[] = [
     list: '/crm?tab=social',
     meta: {
       tabId: 'social',
-      group: 'storefront',
+      group: 'system',
       labelUk: 'Соцмережі та Telegram',
       labelRu: 'Соцсети и Telegram',
+      adminOnly: true,
       apiResource: 'social',
     } satisfies CrmResourceMeta,
   },
@@ -195,9 +197,10 @@ export const CRM_RESOURCES: ResourceProps[] = [
     list: '/crm?tab=staff',
     meta: {
       tabId: 'staff',
-      group: 'team',
+      group: 'system',
       labelUk: 'Користувачі та доступ',
       labelRu: 'Пользователи и доступ',
+      adminOnly: true,
       apiResource: 'staff',
       envelopeListKey: 'staff',
       envelopeSingleKey: 'member',
@@ -522,10 +525,14 @@ export function canRoleAccessResource(
   if (!role) return false;
   if (role === 'admin') return true;
 
-  if (resource === 'analytics' || resource === 'data-management' || resource === 'deploy') {
-    return false;
-  }
-  if (resource === 'staff' && (action === 'create' || action === 'delete')) {
+  if (
+    resource === 'analytics' ||
+    resource === 'data-management' ||
+    resource === 'deploy' ||
+    resource === 'rates' ||
+    resource === 'social' ||
+    resource === 'staff'
+  ) {
     return false;
   }
   if (resource === 'customers' && (action === 'create' || action === 'edit' || action === 'delete')) {
@@ -535,7 +542,7 @@ export function canRoleAccessResource(
     if (action === 'delete') return role === 'manager';
     if (action === 'create' || action === 'edit') return role === 'manager' || role === 'engineer';
   }
-  if (resource === 'products' || resource === 'projects' || resource === 'rates' || resource === 'social') {
+  if (resource === 'products' || resource === 'projects') {
     if (action === 'create' || action === 'edit' || action === 'delete') return role === 'manager';
   }
   if (resource === 'tasks' || resource === 'notes') {

@@ -2012,7 +2012,7 @@ async function startServer() {
     res.json({ ok: true });
   }));
 
-  app.get('/api/crm/exchange-rate', asyncHandler(async (req, res) => {
+  app.get('/api/crm/exchange-rate', requireRoles('admin'), asyncHandler(async (req, res) => {
     const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
     const [commercial, market7km] = await Promise.all([
       getStoredCommercialRate(),
@@ -2029,7 +2029,7 @@ async function startServer() {
     });
   }));
 
-  app.put('/api/crm/exchange-rate', requireRoles('admin', 'manager'), asyncHandler(async (req, res) => {
+  app.put('/api/crm/exchange-rate', requireRoles('admin'), asyncHandler(async (req, res) => {
     const parsed = commercialExchangeRatePutSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректний курс валют' });
@@ -2047,7 +2047,7 @@ async function startServer() {
     });
   }));
 
-  app.get('/api/crm/analytics', asyncHandler(async (_req, res) => {
+  app.get('/api/crm/analytics', requireRoles('admin'), asyncHandler(async (_req, res) => {
     const [config, recentEvents] = await Promise.all([
       getPublicAnalyticsConfig(),
       listRecentAnalyticsEvents(35),
@@ -2077,12 +2077,12 @@ async function startServer() {
     res.json({ ok: true });
   }));
 
-  app.get('/api/crm/social', requireRoles('admin', 'manager'), asyncHandler(async (_req, res) => {
+  app.get('/api/crm/social', requireRoles('admin'), asyncHandler(async (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json({ socialLinks: await getSocialLinks() });
   }));
 
-  app.put('/api/crm/social', requireRoles('admin', 'manager'), asyncHandler(async (req, res) => {
+  app.put('/api/crm/social', requireRoles('admin'), asyncHandler(async (req, res) => {
     const parsed = socialPutSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message || 'Некоректні посилання соцмереж' });

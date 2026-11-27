@@ -46,8 +46,8 @@ export function TablePagination({
   const endRow = Math.min(totalRows, (pageIndex + 1) * pageSize);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 border-t border-slate-200 bg-slate-50/80 text-[15px] text-slate-600">
-      <div className="flex flex-wrap items-center gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 sm:px-4 py-3 border-t border-slate-200 bg-slate-50/80 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="tabular-nums">
           {tr('Показано', 'Показано')}{' '}
           <strong className="text-[#0d1f33]">
@@ -55,13 +55,13 @@ export function TablePagination({
           </strong>{' '}
           {tr('з', 'из')} <strong className="text-[#0d1f33]">{totalRows}</strong>
         </span>
-        <label className="inline-flex items-center gap-2.5 text-sm text-slate-600">
+        <label className="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-600">
           <span>{tr('На сторінці:', 'На странице:')}</span>
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
             aria-label={tr('Рядків на сторінці', 'Строк на странице')}
-            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-[#0d1f33] focus:outline-none focus:border-[#1769aa]"
+            className="h-8 sm:h-9 rounded-lg border border-slate-300 bg-white px-2.5 text-xs sm:text-sm font-bold text-[#0d1f33] focus:outline-none focus:border-[#1769aa]"
           >
             {pageSizeOptions.map((size) => (
               <option key={size} value={size}>
@@ -99,7 +99,7 @@ export function TablePagination({
               }
             }}
             aria-label={tr('Номер сторінки', 'Номер страницы')}
-            className="w-14 h-10 rounded-lg border border-slate-300 bg-white text-center text-sm font-bold text-[#0d1f33]"
+            className="w-12 h-8 sm:h-9 rounded-lg border border-slate-300 bg-white text-center text-xs sm:text-sm font-bold text-[#0d1f33]"
           />
           <span className="text-slate-500">/ {safePageCount}</span>
         </div>

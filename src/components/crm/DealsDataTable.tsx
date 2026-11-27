@@ -94,26 +94,29 @@ export function DealsDataTable({
     () =>
       columnHelper.columns([
         columnHelper.accessor('dealNumber', {
-          header: () => <span>ID</span>,
-          cell: (info) => <span className="font-mono text-[15px] font-bold text-[#0d1f33]">{info.getValue()}</span>,
-        }),
-        columnHelper.accessor('type', {
-          header: () => <span>{tr('Тип')}</span>,
-          cell: (info) =>
-            info.getValue() === 'order' ? (
-              <Badge variant="success">{tr('Кошик', 'Корзина')}</Badge>
-            ) : (
-              <Badge variant="info">{tr('Лід')}</Badge>
-            ),
+          header: () => <span>ID / {tr('Тип')}</span>,
+          cell: (info) => {
+            const row = info.row.original;
+            return (
+              <div className="space-y-1 whitespace-nowrap">
+                <div className="font-mono text-sm font-bold text-[#0d1f33]">{row.dealNumber}</div>
+                {row.type === 'order' ? (
+                  <Badge variant="success">{tr('Кошик', 'Корзина')}</Badge>
+                ) : (
+                  <Badge variant="info">{tr('Лід')}</Badge>
+                )}
+              </div>
+            );
+          },
         }),
         columnHelper.accessor('customerName', {
           header: () => <span>{tr('Клієнт / Контакт')}</span>,
           cell: (info) => {
             const row = info.row.original;
             return (
-              <div>
-                <div className="font-bold text-[#0d1f33] text-[15px]">{row.customerName}</div>
-                <div className="font-mono text-sm text-slate-500 mt-0.5">
+              <div className="min-w-[130px]">
+                <div className="font-bold text-[#0d1f33] text-sm leading-snug">{row.customerName}</div>
+                <div className="font-mono text-xs text-slate-500 mt-0.5 break-words">
                   {row.phone}
                   {row.city ? ` · ${row.city}` : ''}
                 </div>
@@ -124,46 +127,44 @@ export function DealsDataTable({
         columnHelper.accessor('topic', {
           header: () => <span>{tr('Задача або позиції')}</span>,
           cell: (info) => (
-            <div className="text-slate-700 text-[15px] max-w-[340px] truncate" title={info.getValue()}>
+            <div className="text-slate-700 text-sm min-w-[140px] max-w-[300px] whitespace-normal line-clamp-2" title={info.getValue()}>
               {info.getValue()}
             </div>
           ),
         }),
         columnHelper.accessor('stage', {
-          header: () => <span>{tr('Етап')}</span>,
+          header: () => <span>{tr('Етап / Виконавець', 'Этап / Исполнитель')}</span>,
           cell: (info) => {
+            const row = info.row.original;
             const st = stageMap.get(info.getValue());
             return (
-              <Badge variant="default" className={st?.colorClass}>
-                {st ? tr(st.label) : info.getValue()}
-              </Badge>
+              <div className="space-y-1">
+                <Badge variant="default" className={st?.colorClass}>
+                  {st ? tr(st.label) : info.getValue()}
+                </Badge>
+                <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
+                  <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate max-w-[140px]">{row.assignee || '—'}</span>
+                </div>
+              </div>
             );
           },
         }),
-        columnHelper.accessor('assignee', {
-          header: () => <span>{tr('Відповідальний')}</span>,
-          cell: (info) => (
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 whitespace-nowrap">
-              <UserCheck className="w-4 h-4 text-slate-400" />
-              {info.getValue() || '—'}
-            </span>
-          ),
-        }),
         columnHelper.accessor('totalUsd', {
-          header: () => <span>{tr('Сума')}</span>,
-          cell: (info) => (
-            <span className="font-mono text-[15px] font-bold text-[#0d1f33] tabular-nums whitespace-nowrap">
-              {info.getValue() > 0 ? `$${info.getValue().toLocaleString('uk-UA')}` : '—'}
-            </span>
-          ),
-        }),
-        columnHelper.accessor('createdAt', {
-          header: () => <span>{tr('Створено')}</span>,
-          cell: (info) => (
-            <span className="text-slate-500 text-sm whitespace-nowrap tabular-nums">
-              {new Date(info.getValue()).toLocaleDateString('uk-UA')}
-            </span>
-          ),
+          header: () => <span className="ml-auto">{tr('Сума / Дата', 'Сумма / Дата')}</span>,
+          cell: (info) => {
+            const row = info.row.original;
+            return (
+              <div className="text-right whitespace-nowrap">
+                <div className="font-mono text-sm font-bold text-[#0d1f33] tabular-nums">
+                  {info.getValue() > 0 ? `$${info.getValue().toLocaleString('uk-UA')}` : '—'}
+                </div>
+                <div className="text-xs text-slate-500 tabular-nums mt-0.5">
+                  {new Date(row.createdAt).toLocaleDateString('uk-UA')}
+                </div>
+              </div>
+            );
+          },
         }),
       ]),
     [stageMap],
@@ -184,35 +185,35 @@ export function DealsDataTable({
   );
 
   return (
-    <div className="space-y-5">
-      <Card className="p-5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
-            <div className="relative flex-1 min-w-[260px] max-w-md">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+    <div className="space-y-4">
+      <Card className="p-4 space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+            <div className="relative flex-1 min-w-[180px] sm:max-w-xs">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
                 type="search"
                 value={dealQuery}
                 onChange={(e) => onDealQueryChange(e.target.value)}
                 placeholder={tr('Пошук за номером, телефоном, клієнтом...')}
-                className="pl-10 w-full"
+                className="pl-9 w-full"
                 aria-label={tr('Пошук угод')}
               />
             </div>
 
-            <div className="inline-flex p-1 bg-slate-100 border border-slate-200 rounded-lg">
+            <div className="inline-flex flex-wrap p-1 bg-slate-100 border border-slate-200 rounded-lg">
               {(
                 [
                   ['all', tr('Усі')],
-                  ['order', tr('Замовлення із кошика')],
-                  ['lead', tr('Інженерні ліди')],
+                  ['order', tr('Кошик', 'Корзина')],
+                  ['lead', tr('Ліди', 'Лиды')],
                 ] as const
               ).map(([t, label]) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => onDealTypeFilterChange(t)}
-                  className={`px-3.5 py-2 rounded-md text-sm font-bold cursor-pointer transition-colors ${
+                  className={`px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-bold cursor-pointer transition-colors ${
                     dealTypeFilter === t ? 'bg-white text-[#0d1f33] shadow-2xs' : 'text-slate-600 hover:text-[#0d1f33]'
                   }`}
                 >
@@ -225,7 +226,7 @@ export function DealsDataTable({
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value as 'all' | DealStage)}
               aria-label={tr('Фільтр за етапом', 'Фильтр по этапу')}
-              className="h-11 rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold text-[#0d1f33]"
+              className="h-9 sm:h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-[#0d1f33]"
             >
               <option value="all">{tr('Усі етапи', 'Все этапы')}</option>
               {stages.map((st) => (
@@ -239,7 +240,7 @@ export function DealsDataTable({
               value={assigneeFilter}
               onChange={(e) => setAssigneeFilter(e.target.value)}
               aria-label={tr('Фільтр за відповідальним', 'Фильтр по ответственному')}
-              className="h-11 rounded-lg border border-slate-300 bg-white px-3.5 text-[15px] font-semibold text-[#0d1f33]"
+              className="h-9 sm:h-10 max-w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-[#0d1f33]"
             >
               <option value="all">{tr('Усі відповідальні', 'Все ответственные')}</option>
               {assigneeOptions.map((a) => (
@@ -250,16 +251,17 @@ export function DealsDataTable({
             </select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             {onCreateDeal && (
               <>
-                <Button type="button" variant="primary" onClick={() => onCreateDeal('lead')}>
+                <Button type="button" variant="primary" size="sm" onClick={() => onCreateDeal('lead')}>
                   <Plus className="w-4 h-4" />
                   {tr('Нова угода', 'Новая сделка')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
                   onClick={() => onCreateDeal('order')}
                   className="border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950"
                 >
@@ -268,14 +270,14 @@ export function DealsDataTable({
                 </Button>
               </>
             )}
-            <Button type="button" variant="outline" onClick={onExportCsv}>
+            <Button type="button" variant="outline" size="sm" onClick={onExportCsv}>
               <Download className="w-4 h-4" />
-              {tr('Завантажити CSV')}
+              {tr('CSV', 'CSV')}
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 text-sm text-slate-600">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-100 text-xs sm:text-sm text-slate-600">
           <span>
             {tr('Вибірка:', 'Выборка:')}{' '}
             <strong className="text-[#0d1f33] tabular-nums">{tableDeals.length}</strong>{' '}
