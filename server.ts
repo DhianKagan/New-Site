@@ -1774,7 +1774,17 @@ async function startServer() {
       return;
     }
 
-    const updated = await updateDeal(dealId, parsed.data);
+    const patchData = { ...parsed.data };
+    if (patchData.phone !== undefined) {
+      const normalizedPhone = normalizePhoneInput(patchData.phone);
+      if (!normalizedPhone) {
+        res.status(400).json({ error: 'Вкажіть коректний номер телефону у форматі +380 XX XXX XX XX' });
+        return;
+      }
+      patchData.phone = normalizedPhone;
+    }
+
+    const updated = await updateDeal(dealId, patchData);
     if (!updated) {
       res.status(404).json({ error: 'Угоду не знайдено' });
       return;

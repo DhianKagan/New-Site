@@ -46,6 +46,7 @@ export interface Deal {
   id: number;
   dealNumber: string;
   contactId?: number | null;
+  customerEmail?: string;
   type: DealType;
   stage: DealStage;
   customerName: string;
@@ -62,6 +63,23 @@ export interface Deal {
   telegramSent: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DealPatchPayload {
+  type?: DealType;
+  stage?: DealStage;
+  assignee?: string;
+  customerName?: string;
+  phone?: string;
+  customerEmail?: string;
+  city?: string;
+  channel?: string;
+  topic?: string;
+  taskType?: string;
+  loads?: string[];
+  items?: Array<{ productId: string; qty: number }>;
+  notes?: string;
+  totalUsd?: number;
 }
 
 export type ContactSegment = 'b2c' | 'b2b';

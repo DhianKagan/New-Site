@@ -8,6 +8,7 @@ import type {
   CustomerProfile,
   Deal,
   DealItem,
+  DealPatchPayload,
   DealStage,
   DealType,
   ProductReview,
@@ -285,7 +286,7 @@ function ensureSeeded(): void {
 }
 
 function toPublicDeal(d: MemDeal): Deal {
-  const { customerId: _cid, customerEmail: _ce, ...rest } = d;
+  const { customerId: _cid, ...rest } = d;
   return { ...rest, loads: [...rest.loads], items: rest.items.map((i) => ({ ...i })) };
 }
 
@@ -509,7 +510,7 @@ export async function memCreateDeal(input: {
   const customerName = (input.customerName ?? '').trim() || 'Клієнт сайту';
   const city = (input.city ?? '').trim() || 'Одеса';
   const channel = (input.channel ?? '').trim() || 'Telegram';
-  const taskType = (input.taskType ?? '').trim() || (input.type === 'order' ? 'Кошик / Shop' : 'Консультація');
+  const taskType = (input.taskType ?? '').trim() || (input.type === 'order' ? 'Замовлення обладнання' : 'Консультація');
   const customerEmailNorm = (input.customerEmail ?? '').trim().toLowerCase();
   const segment: ContactSegment = /бізнес|сто|380\s*в|тов/i.test(`${customerName} ${taskType} ${topic}`)
     ? 'b2b'
@@ -569,18 +570,73 @@ export function memListDeals(): Deal[] {
   return deals.map(toPublicDeal);
 }
 
-export function memUpdateDeal(
+export async function memUpdateDeal(
   id: number,
-  patch: { stage?: DealStage; assignee?: string; notes?: string; totalUsd?: number },
-): Deal | null {
+  patch: DealPatchPayload,
+): Promise<Deal | null> {
   ensureSeeded();
   const deal = deals.find((d) => d.id === id);
   if (!deal) return null;
+  if (patch.type !== undefined) deal.type = patch.type;
   if (patch.stage !== undefined) deal.stage = patch.stage;
   if (patch.assignee !== undefined) deal.assignee = patch.assignee.trim();
+  if (patch.customerName !== undefined) {
+    deal.customerName = patch.customerName.trim() || deal.customerName;
+  }
+  if (patch.phone !== undefined) {
+    deal.phone = normalizeContactPhone(patch.phone.trim()) || deal.phone;
+  }
+  if (patch.customerEmail !== undefined) {
+    deal.customerEmail = patch.customerEmail.trim().toLowerCase();
+  }
+  if (patch.city !== undefined) deal.city = patch.city.trim() || 'Одеса';
+  if (patch.channel !== undefined) deal.channel = patch.channel.trim() || deal.channel;
+  if (patch.topic !== undefined) deal.topic = patch.topic.trim() || deal.topic;
+  if (patch.taskType !== undefined) deal.taskType = patch.taskType.trim();
+  if (patch.loads !== undefined) {
+    deal.loads = patch.loads.map((item) => item.trim()).filter(Boolean);
+  }
+  if (patch.items !== undefined) {
+    const verifiedItems: DealItem[] = [];
+    for (const reqItem of patch.items) {
+      const prod = await getProductById(reqItem.productId);
+      if (!prod) continue;
+      const qty = Math.max(1, Math.min(99, Math.round(Number(reqItem.qty) || 1)));
+      verifiedItems.push({
+        productId: prod.id,
+        sku: prod.sku,
+        title: prod.title,
+        price: prod.price,
+        qty,
+      });
+    }
+    deal.items = verifiedItems;
+  }
   if (patch.notes !== undefined) deal.notes = patch.notes.trim();
   if (patch.totalUsd !== undefined) deal.totalUsd = Math.max(0, Math.round(Number(patch.totalUsd)));
   deal.updatedAt = new Date().toISOString();
+
+  if (
+    patch.customerName !== undefined ||
+    patch.phone !== undefined ||
+    patch.customerEmail !== undefined ||
+    patch.city !== undefined ||
+    patch.channel !== undefined
+  ) {
+    const segment: ContactSegment = /бізнес|сто|380\s*в|тов/i.test(`${deal.customerName} ${deal.taskType} ${deal.topic}`)
+      ? 'b2b'
+      : 'b2c';
+    memUpsertContact({
+      name: deal.customerName,
+      phone: deal.phone,
+      email: deal.customerEmail,
+      city: deal.city,
+      channel: deal.channel,
+      company: /тов/i.test(deal.customerName) ? deal.customerName : '',
+      segment,
+    });
+  }
+
   return toPublicDeal(deal);
 }
 

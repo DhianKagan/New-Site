@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   Plus,
@@ -41,6 +42,7 @@ import type {
   CrmSessionUser,
   CrmTask,
   Deal,
+  DealPatchPayload,
   DealStage,
   DealType,
   FirebaseRuntimeWebConfig,
@@ -543,10 +545,7 @@ export function CrmView({
     return showAllProducts ? catalogMatches : catalogMatches.slice(0, 60);
   }, [catalogMatches, showAllProducts]);
 
-  async function handlePatchDeal(
-    dealId: number,
-    patch: { stage?: DealStage; assignee?: string; notes?: string; totalUsd?: number },
-  ) {
+  async function handlePatchDeal(dealId: number, patch: DealPatchPayload) {
     setSavingDeal(true);
     try {
       const resp = await authFetch(`/api/crm/deals/${dealId}`, {
@@ -556,8 +555,23 @@ export function CrmView({
       });
       if (resp.ok) {
         const data = (await resp.json()) as { deal: Deal };
-        await onRefreshDeals();
-        setDealActionMsg(tr('Етап угоди оновлено', 'Этап сделки обновлён'));
+        const touchedContact =
+          patch.customerName !== undefined ||
+          patch.phone !== undefined ||
+          patch.customerEmail !== undefined ||
+          patch.city !== undefined ||
+          patch.channel !== undefined;
+        await Promise.all([
+          onRefreshDeals(),
+          ...(touchedContact ? [loadContacts(), loadCustomers()] : []),
+        ]);
+        const keys = Object.keys(patch);
+        const onlyStage = keys.length === 1 && keys[0] === 'stage';
+        setDealActionMsg(
+          onlyStage
+            ? tr('Етап угоди оновлено', 'Этап сделки обновлён')
+            : tr('Зміни угоди збережено', 'Изменения сделки сохранены'),
+        );
         if (selectedDeal?.id === dealId) {
           setSelectedDeal(data.deal);
         }
@@ -2681,17 +2695,19 @@ export function CrmView({
         onDeleteDeal={handleDeleteDeal}
       />
       {/* Product Card Editor Modal (Create & Full Edit) */}
-      {productModalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setProductModalOpen(false)}
-          role="dialog"
-          aria-modal="true"
-        >
+      {productModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
+            onClick={() => setProductModalOpen(false)}
+            role="dialog"
+            aria-modal="true"
           >
+            <div
+              className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
               <div>
                 <div className="font-mono text-[11px] font-bold text-[#1769aa]">
@@ -2982,9 +2998,10 @@ export function CrmView({
                 </div>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body,
+        )}
       <CreateDealModal
         open={createDealOpen}
         initialType={createDealType}

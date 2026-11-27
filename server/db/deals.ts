@@ -1,6 +1,6 @@
 import { count, desc, eq, sql } from 'drizzle-orm';
 import * as schema from '../schema.ts';
-import type { ContactSegment, Deal, DealItem, DealStage, DealType } from '../../src/types.ts';
+import type { ContactSegment, Deal, DealItem, DealPatchPayload, DealStage, DealType } from '../../src/types.ts';
 import { getProductById } from './catalog.ts';
 import { getDb, isDatabaseConfigured } from './client.ts';
 import { upsertContact } from './contacts.ts';
@@ -20,6 +20,7 @@ function rowToDeal(r: typeof schema.dealsTable.$inferSelect): Deal {
     id: r.id,
     dealNumber: r.dealNumber,
     contactId: r.contactId ?? null,
+    customerEmail: r.customerEmail || '',
     type: r.type as DealType,
     stage: r.stage as DealStage,
     customerName: r.customerName,
@@ -281,7 +282,7 @@ export async function createDeal(input: {
   const customerName = (input.customerName ?? '').trim() || 'Клієнт сайту';
   const city = (input.city ?? '').trim() || 'Одеса';
   const channel = (input.channel ?? '').trim() || 'Telegram';
-  const taskType = (input.taskType ?? '').trim() || (input.type === 'order' ? 'Кошик / Shop' : 'Консультація');
+  const taskType = (input.taskType ?? '').trim() || (input.type === 'order' ? 'Замовлення обладнання' : 'Консультація');
 
   let resolvedCustomerId: number | null = null;
   let customerEmailNorm = (input.customerEmail ?? '').trim().toLowerCase();
@@ -393,12 +394,7 @@ export async function listDeals(): Promise<Deal[]> {
 
 export async function updateDeal(
   id: number,
-  patch: {
-    stage?: DealStage;
-    assignee?: string;
-    notes?: string;
-    totalUsd?: number;
-  },
+  patch: DealPatchPayload,
 ): Promise<Deal | null> {
   if (!isDatabaseConfigured()) {
     return memUpdateDeal(id, patch);
@@ -411,8 +407,42 @@ export async function updateDeal(
     .limit(1);
   if (!existing) return null;
 
+  const type = patch.type ?? (existing.type as DealType);
   const stage = patch.stage ?? (existing.stage as DealStage);
   const assignee = patch.assignee !== undefined ? patch.assignee.trim() : existing.assignee;
+  const customerName =
+    patch.customerName !== undefined ? patch.customerName.trim() || existing.customerName : existing.customerName;
+  const phone =
+    patch.phone !== undefined ? normalizeContactPhone(patch.phone.trim()) || existing.phone : existing.phone;
+  const customerEmail =
+    patch.customerEmail !== undefined ? patch.customerEmail.trim().toLowerCase() : existing.customerEmail;
+  const city = patch.city !== undefined ? patch.city.trim() || 'Одеса' : existing.city;
+  const channel = patch.channel !== undefined ? patch.channel.trim() || existing.channel : existing.channel;
+  const topic = patch.topic !== undefined ? patch.topic.trim() || existing.topic : existing.topic;
+  const taskType = patch.taskType !== undefined ? patch.taskType.trim() : existing.taskType;
+  const loadsJson =
+    patch.loads !== undefined
+      ? JSON.stringify(patch.loads.map((item) => item.trim()).filter(Boolean))
+      : existing.loadsJson;
+
+  let itemsJson = existing.itemsJson;
+  if (patch.items !== undefined) {
+    const verifiedItems: DealItem[] = [];
+    for (const reqItem of patch.items) {
+      const prod = await getProductById(reqItem.productId);
+      if (!prod) continue;
+      const qty = Math.max(1, Math.min(99, Math.round(Number(reqItem.qty) || 1)));
+      verifiedItems.push({
+        productId: prod.id,
+        sku: prod.sku,
+        title: prod.title,
+        price: prod.price,
+        qty,
+      });
+    }
+    itemsJson = JSON.stringify(verifiedItems);
+  }
+
   const notes = patch.notes !== undefined ? patch.notes.trim() : existing.notes;
   const totalUsd =
     patch.totalUsd !== undefined ? Math.max(0, Math.round(Number(patch.totalUsd))) : existing.totalUsd;
@@ -420,9 +450,47 @@ export async function updateDeal(
 
   const [updated] = await db
     .update(schema.dealsTable)
-    .set({ stage, assignee, notes, totalUsd, updatedAt: now })
+    .set({
+      type,
+      stage,
+      assignee,
+      customerName,
+      phone,
+      customerEmail,
+      city,
+      channel,
+      topic,
+      taskType,
+      loadsJson,
+      itemsJson,
+      notes,
+      totalUsd,
+      updatedAt: now,
+    })
     .where(eq(schema.dealsTable.id, id))
     .returning();
+
+  if (
+    updated &&
+    (patch.customerName !== undefined ||
+      patch.phone !== undefined ||
+      patch.customerEmail !== undefined ||
+      patch.city !== undefined ||
+      patch.channel !== undefined)
+  ) {
+    const segment: ContactSegment = /бізнес|сто|380\s*в|тов/i.test(`${customerName} ${taskType} ${topic}`)
+      ? 'b2b'
+      : 'b2c';
+    await upsertContact({
+      name: customerName,
+      phone,
+      email: customerEmail,
+      city,
+      channel,
+      company: /тов/i.test(customerName) ? customerName : '',
+      segment,
+    });
+  }
 
   return updated ? rowToDeal(updated) : null;
 }

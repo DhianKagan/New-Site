@@ -1,8 +1,23 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Minus, PackagePlus, Plus, Search, ShoppingBag, Sparkles, Trash2, UserCheck, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import {
+  ChevronDown,
+  ChevronUp,
+  Minus,
+  PackagePlus,
+  Plus,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Trash2,
+  UserCheck,
+  X,
+  Zap,
+} from 'lucide-react';
 import type { Contact, CrmCustomer, Deal, DealStage, DealType, Product } from '../../types.ts';
 import { formatUaPhone, isValidUaPhone } from '../../lib/leadForm.ts';
 import { localizeCatalogText, tr } from '../../lib/i18n.ts';
+import { CRITICAL_LOAD_PRESETS, DEAL_CHANNEL_OPTIONS, DEAL_TASK_PRESETS } from './dealFormShared.ts';
 
 interface CreateDealModalProps {
   open: boolean;
@@ -31,23 +46,8 @@ interface ClientPickerOption {
   customerId: number | null;
 }
 
-const LEAD_TASK_PRESETS = [
-  { uk: 'Резервне живлення (квартира / дім)', ru: 'Резервное питание (квартира / дом)' },
-  { uk: 'Сонячна електростанція (СЕС)', ru: 'Солнечная электростанция (СЭС)' },
-  { uk: 'Рішення для бізнесу / СТО (380 В)', ru: 'Решение для бизнеса / СТО (380 В)' },
-  { uk: 'Монтаж та інженерний аудит', ru: 'Монтаж и инженерный аудит' },
-  { uk: 'Консультація по обладнанню', ru: 'Консультация по оборудованию' },
-];
-
-const CHANNEL_OPTIONS = [
-  { value: 'CRM (вручну)', uk: 'CRM (вручну)', ru: 'CRM (вручную)' },
-  { value: 'Телефон', uk: 'Телефон / Дзвінок', ru: 'Телефон / Звонок' },
-  { value: 'Офіс (Одеса)', uk: 'Офіс (Одеса)', ru: 'Офис (Одесса)' },
-  { value: 'Telegram', uk: 'Telegram', ru: 'Telegram' },
-  { value: 'Viber / WhatsApp', uk: 'Viber / WhatsApp', ru: 'Viber / WhatsApp' },
-  { value: 'Instagram / Facebook', uk: 'Instagram / Facebook', ru: 'Instagram / Facebook' },
-  { value: 'Рекомендація', uk: 'Рекомендація клієнта', ru: 'Рекомендация клиента' },
-];
+const DEFAULT_LEAD_TASK_TYPE = 'Резервне живлення (квартира / дім)';
+const DEFAULT_ORDER_TASK_TYPE = 'Замовлення обладнання';
 
 export function CreateDealModal({
   open,
@@ -71,20 +71,27 @@ export function CreateDealModal({
   const [selectedClientKey, setSelectedClientKey] = useState('');
   const [linkedContactId, setLinkedContactId] = useState<number | null>(null);
   const [linkedCustomerId, setLinkedCustomerId] = useState<number | null>(null);
-  const [linkedCustomerEmail, setLinkedCustomerEmail] = useState('');
 
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [city, setCity] = useState('Одеса');
   const [channel, setChannel] = useState('CRM (вручну)');
 
   const [topic, setTopic] = useState('');
-  const [taskType, setTaskType] = useState(LEAD_TASK_PRESETS[0].uk);
+  const [taskType, setTaskType] = useState(
+    initialType === 'order' ? DEFAULT_ORDER_TASK_TYPE : DEFAULT_LEAD_TASK_TYPE,
+  );
+  const [loads, setLoads] = useState<string[]>([]);
+  const [customLoadInput, setCustomLoadInput] = useState('');
+  const [showLoadsForOrder, setShowLoadsForOrder] = useState(false);
+
   const [notes, setNotes] = useState('');
 
   const [orderItems, setOrderItems] = useState<Array<{ product: Product; qty: number }>>([]);
   const [productQuery, setProductQuery] = useState('');
   const [showProductCatalog, setShowProductCatalog] = useState(false);
+  const [showItemsForLead, setShowItemsForLead] = useState(false);
 
   const [manualTotal, setManualTotal] = useState('');
   const [totalEditedManually, setTotalEditedManually] = useState(false);
@@ -112,17 +119,21 @@ export function CreateDealModal({
     setSelectedClientKey('');
     setLinkedContactId(null);
     setLinkedCustomerId(null);
-    setLinkedCustomerEmail('');
     setCustomerName('');
     setPhone('');
+    setCustomerEmail('');
     setCity('Одеса');
     setChannel('CRM (вручну)');
     setTopic('');
-    setTaskType(LEAD_TASK_PRESETS[0].uk);
+    setTaskType(initialType === 'order' ? DEFAULT_ORDER_TASK_TYPE : DEFAULT_LEAD_TASK_TYPE);
+    setLoads([]);
+    setCustomLoadInput('');
+    setShowLoadsForOrder(false);
     setNotes('');
     setOrderItems([]);
     setProductQuery('');
     setShowProductCatalog(false);
+    setShowItemsForLead(false);
     setManualTotal('');
     setTotalEditedManually(false);
     setSendTelegram(false);
@@ -201,17 +212,27 @@ export function CreateDealModal({
   );
 
   useEffect(() => {
-    if (dealType === 'order' && !totalEditedManually) {
+    if (!totalEditedManually && (dealType === 'order' || orderItems.length > 0)) {
       setManualTotal(catalogSubtotalUsd > 0 ? String(catalogSubtotalUsd) : '');
     }
-  }, [dealType, catalogSubtotalUsd, totalEditedManually]);
+  }, [dealType, orderItems.length, catalogSubtotalUsd, totalEditedManually]);
+
+  function handleSwitchType(nextType: DealType) {
+    setDealType(nextType);
+    setErr('');
+    if (nextType === 'order' && taskType === DEFAULT_LEAD_TASK_TYPE) {
+      setTaskType(DEFAULT_ORDER_TASK_TYPE);
+    } else if (nextType === 'lead' && taskType === DEFAULT_ORDER_TASK_TYPE) {
+      setTaskType(DEFAULT_LEAD_TASK_TYPE);
+    }
+  }
 
   function handleSelectExistingClient(key: string) {
     setSelectedClientKey(key);
     if (!key) {
       setLinkedContactId(null);
       setLinkedCustomerId(null);
-      setLinkedCustomerEmail('');
+      setCustomerEmail('');
       return;
     }
     const found = clientOptions.find((o) => o.key === key);
@@ -219,10 +240,23 @@ export function CreateDealModal({
     setCustomerName(found.name);
     setPhone(found.phone ? formatUaPhone(found.phone) : '');
     setCity(found.city || 'Одеса');
+    setCustomerEmail(found.email || '');
     setLinkedContactId(found.contactId);
     setLinkedCustomerId(found.customerId);
-    setLinkedCustomerEmail(found.email);
     setErr('');
+  }
+
+  function toggleLoad(val: string) {
+    setLoads((prev) => (prev.includes(val) ? prev.filter((item) => item !== val) : [...prev, val]));
+  }
+
+  function handleAddCustomLoad() {
+    const clean = customLoadInput.trim();
+    if (!clean) return;
+    if (!loads.some((l) => l.toLowerCase() === clean.toLowerCase())) {
+      setLoads((prev) => [...prev, clean].slice(0, 15));
+    }
+    setCustomLoadInput('');
   }
 
   function addProductToOrder(prod: Product) {
@@ -262,6 +296,12 @@ export function CreateDealModal({
       return;
     }
 
+    const emailTrimmed = customerEmail.trim().toLowerCase();
+    if (emailTrimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+      setErr(tr('Вкажіть коректний Email або залиште поле порожнім', 'Укажите корректный Email или оставьте поле пустым'));
+      return;
+    }
+
     if (dealType === 'lead' && !topic.trim() && !taskType.trim()) {
       setErr(tr('Вкажіть тему угоди або тип задачі', 'Укажите тему сделки или тип задачи'));
       return;
@@ -288,13 +328,14 @@ export function CreateDealModal({
           city: city.trim() || 'Одеса',
           channel: channel.trim() || 'CRM (вручну)',
           topic: topic.trim(),
-          taskType: dealType === 'lead' ? taskType.trim() : tr('Замовлення CRM', 'Заказ CRM'),
+          taskType: taskType.trim() || (dealType === 'order' ? DEFAULT_ORDER_TASK_TYPE : DEFAULT_LEAD_TASK_TYPE),
+          loads,
           notes: notes.trim(),
           totalUsd: parsedTotal,
-          items: dealType === 'order' ? orderItems.map((it) => ({ productId: it.product.id, qty: it.qty })) : [],
+          items: orderItems.map((it) => ({ productId: it.product.id, qty: it.qty })),
           contactId: linkedContactId,
           customerId: linkedCustomerId,
-          customerEmail: linkedCustomerEmail,
+          customerEmail: emailTrimmed,
           sendTelegram,
         }),
       });
@@ -312,11 +353,14 @@ export function CreateDealModal({
     }
   }
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
+  const showItemsSection = dealType === 'order' || showItemsForLead || orderItems.length > 0;
+  const showLoadsSection = dealType === 'lead' || showLoadsForOrder || loads.length > 0;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-[#081421]/70 backdrop-blur-xs flex items-center justify-center p-4"
       onClick={() => {
         if (!saving) onClose();
       }}
@@ -325,7 +369,7 @@ export function CreateDealModal({
       aria-labelledby="create-deal-modal-title"
     >
       <div
-        className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -356,10 +400,7 @@ export function CreateDealModal({
           <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
             <button
               type="button"
-              onClick={() => {
-                setDealType('lead');
-                setErr('');
-              }}
+              onClick={() => handleSwitchType('lead')}
               className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg font-extrabold transition-all cursor-pointer ${
                 dealType === 'lead'
                   ? 'bg-white text-[#1769aa] shadow-xs border border-sky-200'
@@ -371,10 +412,7 @@ export function CreateDealModal({
             </button>
             <button
               type="button"
-              onClick={() => {
-                setDealType('order');
-                setErr('');
-              }}
+              onClick={() => handleSwitchType('order')}
               className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg font-extrabold transition-all cursor-pointer ${
                 dealType === 'order'
                   ? 'bg-white text-[#0d1f33] shadow-xs border border-amber-300'
@@ -422,7 +460,7 @@ export function CreateDealModal({
             </div>
           )}
 
-          {/* Client Info */}
+          {/* Client Info (Unified across leads & orders) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label htmlFor="crm-deal-customer-name" className="block font-bold text-slate-600 mb-1">
@@ -455,6 +493,20 @@ export function CreateDealModal({
             </div>
 
             <div>
+              <label htmlFor="crm-deal-email" className="block font-bold text-slate-600 mb-1">
+                {tr('Email клієнта (необов’язково)', 'Email клиента (необязательно)')}
+              </label>
+              <input
+                id="crm-deal-email"
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="client@example.com"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-[#0d1f33]"
+              />
+            </div>
+
+            <div>
               <label htmlFor="crm-deal-city" className="block font-bold text-slate-600 mb-1">
                 {tr('Місто / Об’єкт', 'Город / Объект')}
               </label>
@@ -478,17 +530,14 @@ export function CreateDealModal({
                 onChange={(e) => setChannel(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
               >
-                {CHANNEL_OPTIONS.map((ch) => (
+                {DEAL_CHANNEL_OPTIONS.map((ch) => (
                   <option key={ch.value} value={ch.value}>
                     {tr(ch.uk, ch.ru)}
                   </option>
                 ))}
               </select>
             </div>
-          </div>
 
-          {/* Pipeline Stage & Assignee */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label htmlFor="crm-deal-stage" className="block font-bold text-slate-600 mb-1">
                 {tr('Етап воронки', 'Этап воронки')}
@@ -525,71 +574,107 @@ export function CreateDealModal({
                 {!assignees.includes(assignee) && assignee && <option value={assignee}>{assignee}</option>}
               </select>
             </div>
+
+            <div>
+              <label htmlFor="crm-deal-task-type" className="block font-bold text-slate-600 mb-1">
+                {tr('Тип задачі / напрямок', 'Тип задачи / направление')}
+              </label>
+              <select
+                id="crm-deal-task-type"
+                value={taskType}
+                onChange={(e) => setTaskType(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
+              >
+                {DEAL_TASK_PRESETS.map((preset) => (
+                  <option key={preset.value} value={preset.value}>
+                    {tr(preset.uk, preset.ru)}
+                  </option>
+                ))}
+                {!DEAL_TASK_PRESETS.some((p) => p.value === taskType) && taskType && (
+                  <option value={taskType}>{taskType}</option>
+                )}
+              </select>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label htmlFor="crm-deal-topic" className="block font-bold text-slate-600 mb-1">
+                {dealType === 'lead'
+                  ? tr('Назва / Тема угоди *', 'Название / Тема сделки *')
+                  : tr('Назва замовлення (необов’язково)', 'Название заказа (необязательно)')}
+              </label>
+              <input
+                id="crm-deal-topic"
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder={
+                  dealType === 'lead'
+                    ? tr('Наприклад, Гібридна СЕС 8 кВт + АКБ 10 кВт·год під ключ', 'Например, Гибридная СЭС 8 кВт + АКБ 10 кВт·ч под ключ')
+                    : orderItems.length > 0
+                      ? tr(`Замовлення обладнання (${orderItems.length} поз.)`, `Заказ оборудования (${orderItems.length} поз.)`)
+                      : tr('Наприклад, Комплект інвертор + АКБ зі складу', 'Например, Комплект инвертор + АКБ со склада')
+                }
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-[#0d1f33]"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <label htmlFor="crm-deal-total" className="font-bold text-slate-600">
+                  {dealType === 'order'
+                    ? tr('Підсумкова сума (USD)', 'Итоговая сумма (USD)')
+                    : tr('Орієнтовний бюджет / Сума угоди (USD)', 'Ориентировочный бюджет / Сумма сделки (USD)')}
+                </label>
+                {totalEditedManually && catalogSubtotalUsd > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTotalEditedManually(false);
+                      setManualTotal(String(catalogSubtotalUsd));
+                    }}
+                    className="text-[10.5px] font-bold text-[#1769aa] hover:underline cursor-pointer"
+                  >
+                    {tr(`За каталогом ($${catalogSubtotalUsd})`, `По каталогу ($${catalogSubtotalUsd})`)}
+                  </button>
+                )}
+              </div>
+              <input
+                id="crm-deal-total"
+                type="number"
+                min="0"
+                step="1"
+                value={manualTotal}
+                onChange={(e) => {
+                  setTotalEditedManually(true);
+                  setManualTotal(e.target.value);
+                }}
+                placeholder={catalogSubtotalUsd > 0 ? String(catalogSubtotalUsd) : '3500'}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-bold text-[#0d1f33]"
+              />
+            </div>
           </div>
 
-          {/* Mode-specific section */}
-          {dealType === 'lead' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="sm:col-span-2">
-                <label htmlFor="crm-lead-topic" className="block font-bold text-slate-600 mb-1">
-                  {tr('Назва / Тема угоди *', 'Название / Тема сделки *')}
-                </label>
-                <input
-                  id="crm-lead-topic"
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder={tr('Наприклад, Гібридна СЕС 8 кВт + АКБ 10 кВт·год під ключ', 'Например, Гибридная СЭС 8 кВт + АКБ 10 кВт·ч под ключ')}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-[#0d1f33]"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="crm-lead-task-type" className="block font-bold text-slate-600 mb-1">
-                  {tr('Тип задачі', 'Тип задачи')}
-                </label>
-                <select
-                  id="crm-lead-task-type"
-                  value={taskType}
-                  onChange={(e) => setTaskType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-semibold"
-                >
-                  {LEAD_TASK_PRESETS.map((preset) => (
-                    <option key={preset.uk} value={preset.uk}>
-                      {tr(preset.uk, preset.ru)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="crm-deal-total" className="block font-bold text-slate-600 mb-1">
-                  {tr('Орієнтовний бюджет (USD)', 'Ориентировочный бюджет (USD)')}
-                </label>
-                <input
-                  id="crm-deal-total"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={manualTotal}
-                  onChange={(e) => {
-                    setTotalEditedManually(true);
-                    setManualTotal(e.target.value);
-                  }}
-                  placeholder="3500"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-bold text-[#0d1f33]"
-                />
-              </div>
-            </div>
+          {/* Catalog Items Section (Primary for order, expandable for lead) */}
+          {!showItemsSection ? (
+            <button
+              type="button"
+              onClick={() => setShowItemsForLead(true)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 text-[#1769aa] font-bold flex items-center justify-between cursor-pointer transition-colors"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <PackagePlus className="w-4 h-4" />
+                {tr('Додати обладнання з каталогу до угоди (необов’язково)', 'Добавить оборудование из каталога к сделке (необязательно)')}
+              </span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
           ) : (
-            <div className="space-y-3.5">
-              {/* Catalog Product Picker */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-bold text-[#0d1f33] inline-flex items-center gap-1.5">
-                    <PackagePlus className="w-4 h-4 text-[#1769aa]" />
-                    {tr('Товари з каталогу', 'Товары из каталога')} ({products.length})
-                  </span>
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold text-[#0d1f33] inline-flex items-center gap-1.5">
+                  <PackagePlus className="w-4 h-4 text-[#1769aa]" />
+                  {tr('Товари з каталогу', 'Товары из каталога')} ({products.length})
+                </span>
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setShowProductCatalog((v) => !v)}
@@ -599,185 +684,230 @@ export function CreateDealModal({
                       ? tr('Приховати підбір', 'Скрыть подбор')
                       : tr('Показати позиції в наявності', 'Показать позиции в наличии')}
                   </button>
+                  {dealType === 'lead' && orderItems.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowItemsForLead(false)}
+                      className="text-[11px] text-slate-500 hover:text-[#0d1f33] inline-flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                      {tr('Згорнути', 'Свернуть')}
+                    </button>
+                  )}
                 </div>
+              </div>
 
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="search"
-                    value={productQuery}
-                    onFocus={() => setShowProductCatalog(true)}
-                    onChange={(e) => {
-                      setProductQuery(e.target.value);
-                      setShowProductCatalog(true);
-                    }}
-                    placeholder={tr('Пошук за моделлю, потужністю або SKU (напр. Deye, 10018)...', 'Поиск по модели, мощности или SKU (напр. Deye, 10018)...')}
-                    className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 bg-white text-xs"
-                  />
-                </div>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="search"
+                  value={productQuery}
+                  onFocus={() => setShowProductCatalog(true)}
+                  onChange={(e) => {
+                    setProductQuery(e.target.value);
+                    setShowProductCatalog(true);
+                  }}
+                  placeholder={tr('Пошук за моделлю, потужністю або SKU (напр. Deye, 10018)...', 'Поиск по модели, мощности или SKU (напр. Deye, 10018)...')}
+                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 bg-white text-xs"
+                />
+              </div>
 
-                {(showProductCatalog || productQuery.trim().length > 0) && (
-                  <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
-                    {matchingProducts.length === 0 ? (
-                      <div className="p-3 text-center text-slate-500">
-                        {tr('Нічого не знайдено за цим запитом', 'Ничего не найдено по этому запросу')}
-                      </div>
-                    ) : (
-                      matchingProducts.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => addProductToOrder(p)}
-                          className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-sky-50/70 transition-colors cursor-pointer"
-                        >
-                          <div className="min-w-0">
-                            <div className="font-semibold text-[#0d1f33] truncate">
-                              {localizeCatalogText(p.title)}
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              SKU {p.sku} · {p.brand} ·{' '}
-                              <span className={p.inStock ? 'text-[#169374] font-semibold' : 'text-amber-700'}>
-                                {p.inStock ? tr('в наявності', 'в наличии') : tr('під замовлення', 'под заказ')}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-mono font-bold text-[#0d1f33] tabular-nums">
-                              {p.price > 0 ? `$${p.price.toLocaleString('uk-UA')}` : tr('За запитом', 'По запросу')}
-                            </span>
-                            <span className="inline-flex items-center gap-0.5 px-2 py-1 rounded bg-[#1769aa] text-white text-[11px] font-bold">
-                              <Plus className="w-3 h-3" />
-                              {tr('Додати', 'Добавить')}
-                            </span>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {/* Selected Order Items */}
-                {orderItems.length > 0 && (
-                  <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
-                    {orderItems.map(({ product, qty }) => (
-                      <div key={product.id} className="px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
+              {(showProductCatalog || productQuery.trim().length > 0) && (
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                  {matchingProducts.length === 0 ? (
+                    <div className="p-3 text-center text-slate-500">
+                      {tr('Нічого не знайдено за цим запитом', 'Ничего не найдено по этому запросу')}
+                    </div>
+                  ) : (
+                    matchingProducts.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => addProductToOrder(p)}
+                        className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left hover:bg-sky-50/70 transition-colors cursor-pointer"
+                      >
+                        <div className="min-w-0">
                           <div className="font-semibold text-[#0d1f33] truncate">
-                            {localizeCatalogText(product.title)}
+                            {localizeCatalogText(p.title)}
                           </div>
-                          <div className="font-mono text-[11px] text-slate-500">
-                            SKU {product.sku} · ${product.price.toLocaleString('uk-UA')} / {tr('шт.', 'шт.')}
+                          <div className="text-[11px] text-slate-500">
+                            SKU {p.sku} · {p.brand} ·{' '}
+                            <span className={p.inStock ? 'text-[#169374] font-semibold' : 'text-amber-700'}>
+                              {p.inStock ? tr('в наявності', 'в наличии') : tr('під замовлення', 'под заказ')}
+                            </span>
                           </div>
                         </div>
-
                         <div className="flex items-center gap-2 shrink-0">
-                          <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50">
-                            <button
-                              type="button"
-                              onClick={() => updateOrderItemQty(product.id, qty - 1)}
-                              aria-label={tr('Зменшити кількість', 'Уменьшить количество')}
-                              className="p-1.5 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <input
-                              type="number"
-                              min={1}
-                              max={99}
-                              value={qty}
-                              onChange={(e) => updateOrderItemQty(product.id, Number(e.target.value) || 1)}
-                              className="w-10 text-center font-mono font-bold text-xs bg-transparent focus:outline-none"
-                              aria-label={tr('Кількість товару', 'Количество товара')}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => updateOrderItemQty(product.id, qty + 1)}
-                              aria-label={tr('Збільшити кількість', 'Увеличить количество')}
-                              className="p-1.5 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          <span className="font-mono font-bold text-[#0d1f33] w-16 text-right tabular-nums">
-                            ${(product.price * qty).toLocaleString('uk-UA')}
+                          <span className="font-mono font-bold text-[#0d1f33] tabular-nums">
+                            {p.price > 0 ? `$${p.price.toLocaleString('uk-UA')}` : tr('За запитом', 'По запросу')}
                           </span>
+                          <span className="inline-flex items-center gap-0.5 px-2 py-1 rounded bg-[#1769aa] text-white text-[11px] font-bold">
+                            <Plus className="w-3 h-3" />
+                            {tr('Додати', 'Добавить')}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
 
+              {orderItems.length > 0 && (
+                <div className="rounded-lg border border-slate-200 bg-white divide-y divide-slate-100">
+                  {orderItems.map(({ product, qty }) => (
+                    <div key={product.id} className="px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-[#0d1f33] truncate">
+                          {localizeCatalogText(product.title)}
+                        </div>
+                        <div className="font-mono text-[11px] text-slate-500">
+                          SKU {product.sku} · ${product.price.toLocaleString('uk-UA')} / {tr('шт.', 'шт.')}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50">
                           <button
                             type="button"
-                            onClick={() => updateOrderItemQty(product.id, 0)}
-                            aria-label={tr('Видалити позицію', 'Удалить позицию')}
-                            className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                            onClick={() => updateOrderItemQty(product.id, qty - 1)}
+                            aria-label={tr('Зменшити кількість', 'Уменьшить количество')}
+                            className="p-1.5 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <input
+                            type="number"
+                            min={1}
+                            max={99}
+                            value={qty}
+                            onChange={(e) => updateOrderItemQty(product.id, Number(e.target.value) || 1)}
+                            className="w-10 text-center font-mono font-bold text-xs bg-transparent focus:outline-none"
+                            aria-label={tr('Кількість товару', 'Количество товара')}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateOrderItemQty(product.id, qty + 1)}
+                            aria-label={tr('Збільшити кількість', 'Увеличить количество')}
+                            className="p-1.5 text-slate-600 hover:text-[#0d1f33] cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
                           </button>
                         </div>
+
+                        <span className="font-mono font-bold text-[#0d1f33] w-16 text-right tabular-nums">
+                          ${(product.price * qty).toLocaleString('uk-UA')}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => updateOrderItemQty(product.id, 0)}
+                          aria-label={tr('Видалити позицію', 'Удалить позицию')}
+                          className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    ))}
-                    <div className="px-3 py-2 bg-slate-50 flex items-center justify-between text-xs font-bold">
-                      <span className="text-slate-600">
-                        {tr('Сума обраних товарів', 'Сумма выбранных товаров')} ({orderItems.length}{' '}
-                        {tr('поз.', 'поз.')})
-                      </span>
-                      <span className="font-mono text-[#169374] tabular-nums">
-                        ${catalogSubtotalUsd.toLocaleString('uk-UA')}
-                      </span>
                     </div>
+                  ))}
+                  <div className="px-3 py-2 bg-slate-50 flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-600">
+                      {tr('Сума обраних товарів', 'Сумма выбранных товаров')} ({orderItems.length} {tr('поз.', 'поз.')})
+                    </span>
+                    <span className="font-mono text-[#169374] tabular-nums">
+                      ${catalogSubtotalUsd.toLocaleString('uk-UA')}
+                    </span>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Critical Loads Section (Primary for lead, expandable for order) */}
+          {!showLoadsSection ? (
+            <button
+              type="button"
+              onClick={() => setShowLoadsForOrder(true)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-100/70 text-[#1769aa] font-bold flex items-center justify-between cursor-pointer transition-colors"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Zap className="w-4 h-4" />
+                {tr('Додати критичні прилади об’єкта (необов’язково)', 'Добавить критические приборы объекта (необязательно)')}
+              </span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-[#0d1f33] inline-flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-[#1769aa]" />
+                  {tr('Критичні прилади (резервне навантаження)', 'Критические приборы (резервная нагрузка)')}
+                </span>
+                {dealType === 'order' && loads.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowLoadsForOrder(false)}
+                    className="text-[11px] text-slate-500 hover:text-[#0d1f33] inline-flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                    {tr('Згорнути', 'Свернуть')}
+                  </button>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label htmlFor="crm-order-topic" className="block font-bold text-slate-600 mb-1">
-                    {tr('Назва замовлення (необов’язково)', 'Название заказа (необязательно)')}
-                  </label>
-                  <input
-                    id="crm-order-topic"
-                    type="text"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    placeholder={
-                      orderItems.length > 0
-                        ? tr(`Замовлення обладнання (${orderItems.length} поз.)`, `Заказ оборудования (${orderItems.length} поз.)`)
-                        : tr('Наприклад, Комплект інвертор + АКБ зі складу', 'Например, Комплект инвертор + АКБ со склада')
-                    }
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-[#0d1f33]"
-                  />
-                </div>
+              <div className="flex flex-wrap gap-1.5">
+                {CRITICAL_LOAD_PRESETS.map((preset) => {
+                  const selected = loads.includes(preset.value);
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => toggleLoad(preset.value)}
+                      className={`px-2.5 py-1 rounded-md border font-semibold transition-colors cursor-pointer ${
+                        selected
+                          ? 'bg-[#1769aa] border-[#1769aa] text-white'
+                          : 'bg-white border-slate-200 text-[#0d1f33] hover:border-[#1769aa]'
+                      }`}
+                    >
+                      {tr(preset.uk, preset.ru)}
+                    </button>
+                  );
+                })}
+                {loads
+                  .filter((l) => !CRITICAL_LOAD_PRESETS.some((p) => p.value === l))
+                  .map((custom) => (
+                    <button
+                      key={custom}
+                      type="button"
+                      onClick={() => toggleLoad(custom)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#1769aa] border border-[#1769aa] text-white font-semibold cursor-pointer"
+                    >
+                      <span>{custom}</span>
+                      <X className="w-3 h-3" />
+                    </button>
+                  ))}
+              </div>
 
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <label htmlFor="crm-order-total" className="font-bold text-slate-600">
-                      {tr('Підсумкова сума (USD)', 'Итоговая сумма (USD)')}
-                    </label>
-                    {totalEditedManually && catalogSubtotalUsd > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTotalEditedManually(false);
-                          setManualTotal(String(catalogSubtotalUsd));
-                        }}
-                        className="text-[10.5px] font-bold text-[#1769aa] hover:underline cursor-pointer"
-                      >
-                        {tr(`За каталогом ($${catalogSubtotalUsd})`, `По каталогу ($${catalogSubtotalUsd})`)}
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="crm-order-total"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={manualTotal}
-                    onChange={(e) => {
-                      setTotalEditedManually(true);
-                      setManualTotal(e.target.value);
-                    }}
-                    placeholder={String(catalogSubtotalUsd || 0)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono font-bold text-[#0d1f33]"
-                  />
-                </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customLoadInput}
+                  onChange={(e) => setCustomLoadInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomLoad();
+                    }
+                  }}
+                  placeholder={tr('Свій прилад (напр. Тепловий насос 5 кВт)', 'Свой прибор (напр. Тепловой насос 5 кВт)')}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomLoad}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 font-bold text-[#0d1f33] cursor-pointer"
+                >
+                  + {tr('Додати', 'Добавить')}
+                </button>
               </div>
             </div>
           )}
@@ -841,6 +971,7 @@ export function CreateDealModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

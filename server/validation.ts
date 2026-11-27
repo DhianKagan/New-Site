@@ -81,8 +81,32 @@ export const orderCreateSchema = z.object({
 });
 
 export const dealPatchSchema = z.object({
+  type: z.enum(['lead', 'order']).optional(),
   stage: z.enum(DEAL_STAGES).optional(),
-  assignee: z.string().max(120).optional(),
+  assignee: z.string().trim().max(120).optional(),
+  customerName: z.string().trim().min(2, 'Вкажіть ім’я клієнта (мінімум 2 символи)').max(120).optional(),
+  phone: z.string().trim().min(1, 'Вкажіть номер телефону').max(40).optional(),
+  customerEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(160)
+    .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Некоректний Email')
+    .optional(),
+  city: z.string().trim().max(120).optional(),
+  channel: z.string().trim().max(40).optional(),
+  topic: z.string().trim().max(180).optional(),
+  taskType: z.string().trim().max(120).optional(),
+  loads: z.array(z.string().trim().max(80)).max(15).optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().trim().min(1),
+        qty: z.coerce.number().int().min(1).max(99).optional().default(1),
+      }),
+    )
+    .max(50)
+    .optional(),
   notes: z.string().max(3000).optional(),
   totalUsd: z.coerce.number().min(0).max(10_000_000).optional(),
 });
