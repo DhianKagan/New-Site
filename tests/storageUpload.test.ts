@@ -7,6 +7,8 @@ import test from 'node:test';
 import {
   buildS3PublicUrl,
   detectImageFormat,
+  getUploadObject,
+  isS3ProxyEnabled,
   MAX_UPLOAD_BYTES,
   parseMultipartImageUpload,
   uploadImageBuffer,
@@ -123,5 +125,25 @@ test('uploadImageBuffer falls back to local disk when S3 env vars are unset', as
     if (prevBucket === undefined) delete process.env.S3_BUCKET;
     else process.env.S3_BUCKET = prevBucket;
     fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('S3 proxy mode needs S3 config plus S3_PROXY_UPLOADS=true, and rejects unsafe filenames', async () => {
+  const saved = { ...process.env };
+  try {
+    process.env.S3_BUCKET = 'b';
+    process.env.S3_ACCESS_KEY_ID = 'k';
+    process.env.S3_SECRET_ACCESS_KEY = 's';
+    delete process.env.S3_PROXY_UPLOADS;
+    assert.equal(isS3ProxyEnabled(), false);
+    process.env.S3_PROXY_UPLOADS = 'true';
+    assert.equal(isS3ProxyEnabled(), true);
+    for (const bad of ['../secret.png', 'a/b.png', 'x.svg', '.hidden.png', 'x.png/../y']) {
+      assert.equal(await getUploadObject(bad), null, bad);
+    }
+    delete process.env.S3_BUCKET;
+    assert.equal(isS3ProxyEnabled(), false);
+  } finally {
+    process.env = saved;
   }
 });
